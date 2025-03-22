@@ -1,0 +1,201 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Cursor Rules Documentation
+
+This directory contains guidelines and rules for using Cursor AI assistant effectively with the Employee Shift Schedule App. These rules ensure consistent, high-quality AI-generated code that follows project standards.
+
+## Purpose
+
+The cursor rules documentation provides:
+
+- Clear guidelines for interacting with Cursor AI
+- Standardized formatting for AI responses
+- Project-specific constraints for AI-generated code
+- Common response patterns to maintain consistency
+
+## What to Document Here
+
+### Interaction Guidelines
+
+- Preferred response formats
+- AI response styling conventions
+- When to use code blocks vs inline code
+- Handling complex multi-part requests
+- Rules for follow-up questions
+
+### Code Generation Rules
+
+- Project-specific conventions
+- Frameworks and libraries to use
+- UI component constraints
+- Styling approach restrictions
+- Coding standards to follow
+
+### Technical Constraints
+
+- Technology stack limitations
+- Third-party library usage rules
+- Import/export patterns
+- File structure conventions
+- Naming conventions
+
+### Response Patterns
+
+- Standard greeting formats
+- Code explanation structure
+- Error notification patterns
+- Confirmation messages
+- Complex solution breakdown format
+
+## File Structure
+
+```
+cursor-rules/
+├── interaction/           # AI interaction guidelines
+├── code-generation/       # Code generation constraints
+├── styling/               # UI and style conventions
+├── responses/             # Standard response formats
+└── examples/              # Example interactions
+```
+
+## Current Cursor Rules
+
+### General Interaction
+
+- AI responses should begin with a robot emoji (🤖)
+- Avoid unnecessary introductions and conclusions
+- Keep explanations concise and direct
+- Focus answers on exactly what was asked
+- Avoid explaining concepts unnecessarily unless requested
+
+### UI Development Rules
+
+- Use ShadCN UI components for web application
+- Use React Native components for mobile application
+- Use TailwindCSS for styling (no raw CSS unless explicitly authorized)
+- Follow the established design system for colors and spacing
+- Don't add unnecessary padding to elements
+- Don't attempt to fix issues beyond the current task
+- Never make assumptions about functionality without confirmation
+
+### Technology Stack Compliance
+
+- **Mobile App**: React Native for cross-platform mobile development
+- **Web Admin Panel**: React for web-based dashboard
+- **UI Library**: ShadCN with Radix UI primitives
+- **Styling**: TailwindCSS
+- **State Management**: React Query / Zustand
+- **Backend**: Supabase (PostgreSQL) with NestJS for custom logic
+- Support the following integrations:
+  - Stripe
+  - Twilio
+  - SendGrid
+  - Firebase
+  - Google Analytics
+
+## Example: Cursor Rules Usage
+
+### Correct Response Pattern
+
+```
+🤖 Here's the employee detail component using React and ShadCN UI:
+
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Phone, Mail, Calendar } from "lucide-react";
+
+export function EmployeeDetail({ employee }) {
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-4">
+          <Avatar>
+            <AvatarImage src={employee.avatar} alt={employee.name} />
+            <AvatarFallback>{employee.initials}</AvatarFallback>
+          </Avatar>
+          <div>
+            <CardTitle>{employee.name}</CardTitle>
+            <CardDescription>{employee.position}</CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Phone className="h-4 w-4 text-muted-foreground" />
+            <span>{employee.phone}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Mail className="h-4 w-4 text-muted-foreground" />
+            <span>{employee.email}</span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+```
+
+### Incorrect Response Patterns
+
+❌ **Using non-ShadCN components for web**
+
+```jsx
+<div className="card">
+	<div className="card-header">
+		<h2>{employee.name}</h2>
+	</div>
+	<div className="card-body">
+		<p>{employee.email}</p>
+	</div>
+</div>
+```
+
+❌ **Using raw CSS instead of Tailwind**
+
+```jsx
+<Card style={{ padding: "20px", backgroundColor: "#f4f4f4" }}>
+	{/* Content with inline styles */}
+</Card>
+```
+
+❌ **Importing components from incorrect UI libraries**
+
+```jsx
+import { Card } from "@mui/material";
+// Using Material UI instead of ShadCN
+```
+
+❌ **Using custom components without confirming they exist**
+
+```jsx
+<CustomEmployeeCard employee={employee} />
+// Using a component that hasn't been established in the codebase
+```
+
+## Decision Guidelines
+
+When making decisions about implementation:
+
+- Always use the appropriate tech stack for each platform (React for web, React Native for mobile)
+- Use ShadCN UI components for web interfaces
+- Use React Native's built-in components for mobile interfaces
+- Use TailwindCSS for styling
+- When unsure about a feature, ask for clarification
+- Avoid introducing dependencies not already in the project
+- Follow the principle of least surprise in UI interactions
+
+## Maintaining Consistency
+
+To ensure consistency across AI interactions:
+
+- Reference these rules at the start of new sessions
+- Use the same terminology across interactions
+- Follow established patterns from previous code
+- Maintain the same level of detail in responses
+- Be explicit about constraints followed
+
+AI should adhere to these rules when generating code and responding to user queries, ensuring consistent, high-quality output that aligns with project standards.
