@@ -15,6 +15,9 @@ import {
 	DollarSign,
 	ArrowUpDown,
 	Loader2,
+	Filter,
+	X,
+	AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AddEmployeeDialog } from "../components/AddEmployeeDialog";
@@ -32,15 +35,72 @@ import {
 import { DataTable } from "../components/ui/data-table";
 import { ColumnDef } from "@tanstack/react-table";
 import { Skeleton } from "../components/ui/skeleton";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "../components/ui/select";
 
 export default function EmployeesPage() {
 	const [employees, setEmployees] = useState<Employee[]>([]);
 	const [searchParams] = useSearchParams();
 	const [searchTerm, setSearchTerm] = useState("");
+	const [positionFilter, setPositionFilter] = useState<string | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
 	const [loadingPhase, setLoadingPhase] = useState<string>("organization");
 	const navigate = useNavigate();
 	const [organization, setOrganization] = useState<Organization | null>(null);
+
+	// Get unique positions for the filter
+	const uniquePositions = useMemo(() => {
+		return [
+			...new Set(
+				employees
+					.map((employee) => employee.position || employee.role)
+					.filter(Boolean)
+			),
+		].filter(
+			(position) => position !== null && position !== undefined
+		) as string[];
+	}, [employees]);
+
+	// Filter employees by position and search term
+	const filteredEmployees = useMemo(() => {
+		return employees.filter((employee) => {
+			// Apply position filter
+			if (
+				positionFilter &&
+				employee.position !== positionFilter &&
+				employee.role !== positionFilter
+			) {
+				return false;
+			}
+
+			// Apply search filter
+			if (searchTerm) {
+				const lowercaseSearch = searchTerm.toLowerCase();
+				const name = (employee.name || "").toLowerCase();
+				const email = (employee.email || "").toLowerCase();
+				const phone = (employee.phone || "").toLowerCase();
+				const position = (
+					employee.position ||
+					employee.role ||
+					""
+				).toLowerCase();
+
+				return (
+					name.includes(lowercaseSearch) ||
+					email.includes(lowercaseSearch) ||
+					phone.includes(lowercaseSearch) ||
+					position.includes(lowercaseSearch)
+				);
+			}
+
+			return true;
+		});
+	}, [employees, positionFilter, searchTerm]);
 
 	const columns = useMemo<ColumnDef<Employee>[]>(
 		() => [
@@ -252,35 +312,18 @@ export default function EmployeesPage() {
 	};
 
 	if (isLoading) {
-		return <div className="px-4 sm:px-6 py-6">{renderLoadingSkeleton()}</div>;
+		return <div className="p-6">{renderLoadingSkeleton()}</div>;
 	}
 
 	return (
-		<div className="px-4 sm:px-6 py-6">
-			{/* Header with title */}
-			<div className="flex items-center justify-between mb-4">
-				<h1 className="text-xl font-semibold">Employees</h1>
-			</div>
-
-			{/* Employee management header card */}
-			<div className="bg-white rounded-lg shadow-sm border mb-6">
-				<div className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-					<div className="flex flex-col">
-						<h2 className="text-xl font-bold">Employee Directory</h2>
-						<p className="text-sm text-muted-foreground mt-1">
-							Manage your team members and their information
-						</p>
-						{isLoading && (
-							<div className="flex items-center text-sm text-muted-foreground gap-2 mt-1">
-								<Loader2 className="h-3 w-3 animate-spin" />
-								<span>
-									{loadingPhase === "organization"
-										? "Loading organization..."
-										: "Loading employees..."}
-								</span>
-							</div>
-						)}
-					</div>
+		<div className="p-4">
+			{employees.length === 0 ? (
+				<div className="text-center py-12 border-2 border-dashed rounded-lg">
+					<User className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+					<h3 className="text-lg font-medium mb-2">No employees found</h3>
+					<p className="text-sm text-muted-foreground mb-4">
+						Start by adding employees to your organization
+					</p>
 					{organization && (
 						<AddEmployeeDialog
 							organizationId={organization.id}
@@ -289,50 +332,111 @@ export default function EmployeesPage() {
 								<Button
 									variant="default"
 									className="bg-black hover:bg-black/90 text-white">
-									<Plus className="h-4 w-4 mr-2" />
-									Add Employee
+									<Plus className="mr-2 h-4 w-4" />
+									Add First Employee
 								</Button>
 							}
 						/>
 					)}
 				</div>
-			</div>
-
-			{/* Employee data table container */}
-			<div className="bg-white rounded-lg shadow-sm border">
-				{employees.length === 0 ? (
-					<div className="text-center py-12 border-2 border-dashed rounded-lg m-4">
-						<User className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-						<h3 className="text-lg font-medium mb-2">No employees found</h3>
-						<p className="text-sm text-muted-foreground mb-4">
-							Start by adding employees to your organization
-						</p>
-						{organization && (
-							<AddEmployeeDialog
-								organizationId={organization.id}
-								onEmployeesAdded={handleEmployeesAdded}
-								trigger={
-									<Button
-										variant="default"
-										className="bg-black hover:bg-black/90 text-white">
-										<Plus className="mr-2 h-4 w-4" />
-										Add First Employee
-									</Button>
-								}
-							/>
-						)}
-					</div>
-				) : (
-					<div className="p-4">
-						<DataTable
-							columns={columns}
-							data={employees}
-							searchKey="name"
-							searchPlaceholder="Search employees..."
+			) : (
+				<div className="space-y-4">
+					{/* Search bar */}
+					<div className="relative mb-4">
+						<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+						<Input
+							placeholder="Search employees by name, email, role or position..."
+							className="pl-10"
+							value={searchTerm}
+							onChange={(e) => setSearchTerm(e.target.value)}
 						/>
 					</div>
-				)}
-			</div>
+
+					{/* Filter controls in a simplified row */}
+					<div className="flex flex-wrap items-center gap-x-6 gap-y-2 mb-4">
+						<div className="flex items-center">
+							<Filter className="h-4 w-4 mr-2 text-muted-foreground" />
+							<span className="text-sm font-medium">Filters</span>
+						</div>
+
+						<div className="flex items-center">
+							<span className="text-sm mr-2">Position</span>
+							<Select
+								value={positionFilter || "all"}
+								onValueChange={(value) =>
+									setPositionFilter(value === "all" ? null : value)
+								}>
+								<SelectTrigger className="w-[160px] h-8">
+									<SelectValue placeholder="All positions" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="all">All positions</SelectItem>
+									{uniquePositions.map((position) => (
+										<SelectItem
+											key={position}
+											value={position}>
+											{position}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+
+						{/* Clear filters button */}
+						{(positionFilter || searchTerm) && (
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={() => {
+									setPositionFilter(null);
+									setSearchTerm("");
+								}}
+								className="h-8 ml-auto">
+								<X className="h-4 w-4 mr-1" />
+								Clear
+							</Button>
+						)}
+					</div>
+
+					{/* Active filters badges */}
+					{positionFilter && (
+						<div className="flex flex-wrap gap-2 mb-4">
+							<Badge
+								variant="outline"
+								className="flex items-center gap-1 bg-muted/40 py-1 px-2">
+								Position: {positionFilter}
+								<Button
+									variant="ghost"
+									size="icon"
+									className="h-4 w-4 ml-1 p-0"
+									onClick={() => setPositionFilter(null)}>
+									<X className="h-3 w-3" />
+								</Button>
+							</Badge>
+						</div>
+					)}
+
+					{/* Employee Table */}
+					{filteredEmployees.length === 0 ? (
+						<div className="bg-muted/30 rounded-lg p-6 text-center">
+							<AlertCircle className="h-5 w-5 mx-auto mb-2 text-muted-foreground" />
+							<h3 className="text-base font-medium mb-1">No employees found</h3>
+							<p className="text-sm text-muted-foreground">
+								{positionFilter || searchTerm
+									? "Try adjusting your filters or search term"
+									: "There are no employees in your organization"}
+							</p>
+						</div>
+					) : (
+						<>
+							<DataTable
+								columns={columns}
+								data={filteredEmployees}
+							/>
+						</>
+					)}
+				</div>
+			)}
 		</div>
 	);
 }

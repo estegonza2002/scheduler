@@ -1,10 +1,10 @@
 import {
-	BadgeCheck,
-	Bell,
 	ChevronsUpDown,
 	CreditCard,
 	LogOut,
 	Sparkles,
+	User,
+	Building2,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
@@ -23,17 +23,29 @@ import {
 	SidebarMenuItem,
 	useSidebar,
 } from "../components/ui/sidebar";
+import { Link } from "react-router-dom";
+import { useAuth } from "../lib/auth";
 
 export function NavUser({
 	user,
+	isAdmin = false,
+	subscriptionPlan = "free",
 }: {
 	user: {
 		name: string;
 		email: string;
 		avatar: string;
 	};
+	isAdmin?: boolean;
+	subscriptionPlan?: "free" | "pro" | "business";
 }) {
 	const { isMobile } = useSidebar();
+	const { signOut } = useAuth();
+	const isPaidUser = subscriptionPlan !== "free";
+
+	const handleSignOut = () => {
+		signOut();
+	};
 
 	return (
 		<SidebarMenu>
@@ -79,29 +91,39 @@ export function NavUser({
 						</DropdownMenuLabel>
 						<DropdownMenuSeparator />
 						<DropdownMenuGroup>
-							<DropdownMenuItem>
-								<Sparkles />
-								Upgrade to Pro
+							<DropdownMenuItem asChild>
+								<Link to="/profile">
+									<User className="mr-2 h-4 w-4" />
+									Profile
+								</Link>
 							</DropdownMenuItem>
+							{isAdmin && (
+								<DropdownMenuItem asChild>
+									<Link to="/business-profile">
+										<Building2 className="mr-2 h-4 w-4" />
+										Business Profile
+									</Link>
+								</DropdownMenuItem>
+							)}
+							{!isPaidUser ? (
+								<DropdownMenuItem asChild>
+									<Link to="/billing">
+										<Sparkles className="mr-2 h-4 w-4" />
+										Upgrade to Pro
+									</Link>
+								</DropdownMenuItem>
+							) : (
+								<DropdownMenuItem asChild>
+									<Link to="/billing">
+										<CreditCard className="mr-2 h-4 w-4" />
+										Billing
+									</Link>
+								</DropdownMenuItem>
+							)}
 						</DropdownMenuGroup>
 						<DropdownMenuSeparator />
-						<DropdownMenuGroup>
-							<DropdownMenuItem>
-								<BadgeCheck />
-								Account
-							</DropdownMenuItem>
-							<DropdownMenuItem>
-								<CreditCard />
-								Billing
-							</DropdownMenuItem>
-							<DropdownMenuItem>
-								<Bell />
-								Notifications
-							</DropdownMenuItem>
-						</DropdownMenuGroup>
-						<DropdownMenuSeparator />
-						<DropdownMenuItem>
-							<LogOut />
+						<DropdownMenuItem onClick={handleSignOut}>
+							<LogOut className="mr-2 h-4 w-4" />
 							Log out
 						</DropdownMenuItem>
 					</DropdownMenuContent>

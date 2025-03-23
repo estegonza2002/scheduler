@@ -6,9 +6,8 @@ import {
 	Calendar,
 	Users,
 	Building2,
-	User,
-	LogOut,
 	MapPin,
+	Bell,
 } from "lucide-react";
 
 import {
@@ -21,20 +20,40 @@ import {
 	SidebarMenuItem,
 	SidebarSeparator,
 } from "./ui/sidebar";
-import { Button } from "./ui/button";
 import { MiniCalendar } from "./MiniCalendar";
 import { NavUser } from "./nav-user";
+import { useState, useEffect } from "react";
+import { OrganizationsAPI, type Organization } from "../api";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-	const { user, signOut } = useAuth();
+	const { user } = useAuth();
 	const location = useLocation();
+	const [organization, setOrganization] = useState<Organization | null>(null);
+	const [subscriptionPlan, setSubscriptionPlan] = useState<
+		"free" | "pro" | "business"
+	>("free");
 
 	// Check if user is an admin
 	const isAdmin = user?.user_metadata?.role === "admin";
 
-	const handleSignOut = () => {
-		signOut();
-	};
+	useEffect(() => {
+		const fetchOrganizationData = async () => {
+			try {
+				// In a real implementation, this would fetch the organization by the user's organization_id
+				const orgs = await OrganizationsAPI.getAll();
+				if (orgs.length > 0) {
+					setOrganization(orgs[0]);
+					// In a real implementation, this would fetch the subscription plan from the organization data
+					// For now, we'll assume the plan is "free"
+					setSubscriptionPlan("free");
+				}
+			} catch (error) {
+				console.error("Error fetching organization:", error);
+			}
+		};
+
+		fetchOrganizationData();
+	}, []);
 
 	const navItems = [
 		{
@@ -67,6 +86,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 			href: "/locations",
 			isActive: location.pathname === "/locations",
 			adminOnly: true,
+		},
+		{
+			icon: <Bell className="h-5 w-5" />,
+			label: "Notifications",
+			href: "/notifications",
+			isActive: location.pathname === "/notifications",
 		},
 	];
 
@@ -119,41 +144,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
 			<SidebarFooter>
 				<div className="p-4 border-t">
-					<div className="flex items-center gap-3 mb-4">
-						<NavUser user={userDisplay} />
-					</div>
-
-					<div className="space-y-2">
-						<Button
-							variant="outline"
-							className="w-full justify-start"
-							asChild>
-							<Link to="/profile">
-								<User className="mr-2 h-4 w-4" />
-								Profile
-							</Link>
-						</Button>
-
-						{isAdmin && (
-							<Button
-								variant="outline"
-								className="w-full justify-start"
-								asChild>
-								<Link to="/business-profile">
-									<Building2 className="mr-2 h-4 w-4" />
-									Business Profile
-								</Link>
-							</Button>
-						)}
-
-						<Button
-							variant="outline"
-							className="w-full justify-start"
-							onClick={handleSignOut}>
-							<LogOut className="mr-2 h-4 w-4" />
-							Sign Out
-						</Button>
-					</div>
+					<NavUser
+						user={userDisplay}
+						isAdmin={isAdmin}
+						subscriptionPlan={subscriptionPlan}
+					/>
 				</div>
 			</SidebarFooter>
 		</>

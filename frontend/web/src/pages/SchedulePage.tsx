@@ -10,7 +10,7 @@ import {
 	Plus,
 	ListTodo,
 } from "lucide-react";
-import { ShiftCreationDialog } from "../components/ShiftCreationDialog";
+import { ShiftCreationSheet } from "../components/ShiftCreationSheet";
 
 export default function SchedulePage() {
 	const [searchParams] = useSearchParams();
@@ -54,7 +54,7 @@ export default function SchedulePage() {
 				</div>
 
 				<div className="flex items-center gap-2 flex-shrink-0">
-					<ShiftCreationDialog
+					<ShiftCreationSheet
 						scheduleId={scheduleId}
 						organizationId={organizationId}
 						initialDate={selectedDate}

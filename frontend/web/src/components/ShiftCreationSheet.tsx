@@ -45,7 +45,9 @@ export function ShiftCreationSheet({
 					</Button>
 				)}
 			</SheetTrigger>
-			<SheetContent className="sm:max-w-[600px] p-0 flex flex-col h-full">
+			<SheetContent
+				className="sm:max-w-[550px] p-0 flex flex-col h-[100dvh]"
+				side="right">
 				<SheetHeader className="px-6 py-4 border-b text-left flex-shrink-0">
 					<SheetTitle>Create New Shift</SheetTitle>
 				</SheetHeader>

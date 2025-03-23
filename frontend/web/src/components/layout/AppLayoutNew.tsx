@@ -19,12 +19,17 @@ import {
 	ChevronRight,
 	Plus,
 	Grid,
+	User,
+	MapPin,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { format, addDays, subDays } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Calendar } from "../ui/calendar";
-import { ShiftCreationDialog } from "../ShiftCreationDialog";
+import { ShiftCreationSheet } from "../ShiftCreationSheet";
+import { AddEmployeeDialog } from "../AddEmployeeDialog";
+import { AddLocationDialog } from "../AddLocationDialog";
+import { OrganizationsAPI, Organization } from "../../api";
 
 export default function AppLayoutNew() {
 	const location = useLocation();
@@ -36,6 +41,23 @@ export default function AppLayoutNew() {
 	});
 	const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 	const organizationId = searchParams.get("organizationId") || "org-1";
+	const [organization, setOrganization] = useState<Organization | null>(null);
+
+	// Fetch organization
+	useEffect(() => {
+		const fetchOrganization = async () => {
+			try {
+				const orgs = await OrganizationsAPI.getAll();
+				if (orgs.length > 0) {
+					setOrganization(orgs[0]);
+				}
+			} catch (error) {
+				console.error("Error fetching organization:", error);
+			}
+		};
+
+		fetchOrganization();
+	}, []);
 
 	// Get date from URL param or use today's date
 	useEffect(() => {
@@ -69,8 +91,62 @@ export default function AppLayoutNew() {
 		return "Scheduler";
 	};
 
-	// Check if we're on the daily shifts page
+	// Check if we're on specific pages
 	const isDailyShiftsPage = location.pathname.startsWith("/daily-shifts");
+	const isEmployeesPage = location.pathname === "/employees";
+	const isLocationsPage = location.pathname === "/locations";
+
+	const renderActionButton = () => {
+		if (isDailyShiftsPage) {
+			return (
+				<ShiftCreationSheet
+					scheduleId="sch-4"
+					organizationId={organizationId}
+					initialDate={currentDate}
+					onShiftCreated={() => {}}
+					trigger={
+						<Button
+							variant="default"
+							className="bg-black hover:bg-black/90 text-white">
+							<Plus className="h-4 w-4 mr-2" />
+							New Shift
+						</Button>
+					}
+				/>
+			);
+		} else if (isEmployeesPage && organization) {
+			return (
+				<AddEmployeeDialog
+					organizationId={organization.id}
+					onEmployeesAdded={() => {}}
+					trigger={
+						<Button
+							variant="default"
+							className="bg-black hover:bg-black/90 text-white">
+							<Plus className="h-4 w-4 mr-2" />
+							New Employee
+						</Button>
+					}
+				/>
+			);
+		} else if (isLocationsPage && organization) {
+			return (
+				<AddLocationDialog
+					organizationId={organization.id}
+					onLocationsAdded={() => {}}
+					trigger={
+						<Button
+							variant="default"
+							className="bg-black hover:bg-black/90 text-white">
+							<Plus className="h-4 w-4 mr-2" />
+							New Location
+						</Button>
+					}
+				/>
+			);
+		}
+		return null;
+	};
 
 	return (
 		<SidebarProvider>
@@ -88,22 +164,7 @@ export default function AppLayoutNew() {
 						<div className="text-lg font-semibold">{getPageTitle()}</div>
 					</div>
 
-					{isDailyShiftsPage && (
-						<ShiftCreationDialog
-							scheduleId="sch-4"
-							organizationId={organizationId}
-							initialDate={currentDate}
-							onShiftCreated={() => {}}
-							trigger={
-								<Button
-									variant="default"
-									className="bg-black hover:bg-black/90 text-white">
-									<Plus className="h-4 w-4 mr-2" />
-									New Shift
-								</Button>
-							}
-						/>
-					)}
+					{renderActionButton()}
 				</header>
 				<main className="flex-1 overflow-auto mx-auto w-full">
 					<Outlet />

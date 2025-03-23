@@ -40,6 +40,13 @@ type EmployeeData = {
 	employeeId: string;
 };
 
+// New type to handle multiple employee selection
+type SelectedEmployee = {
+	id: string;
+	name: string;
+	role?: string;
+};
+
 export function ShiftCreationWizard({
 	scheduleId,
 	organizationId,
@@ -53,6 +60,11 @@ export function ShiftCreationWizard({
 	// Store data from each step
 	const [locationData, setLocationData] = useState<LocationData | null>(null);
 	const [shiftData, setShiftData] = useState<ShiftData | null>(null);
+
+	// State for multiple employee selection
+	const [selectedEmployees, setSelectedEmployees] = useState<
+		SelectedEmployee[]
+	>([]);
 
 	// State for data loading and filtering
 	const [loading, setLoading] = useState(false);
@@ -69,9 +81,7 @@ export function ShiftCreationWizard({
 	// Search functionality
 	const [searchTerm, setSearchTerm] = useState("");
 	const [locationSearchTerm, setLocationSearchTerm] = useState("");
-	const [searchFilter, setSearchFilter] = useState<"name" | "role" | "all">(
-		"all"
-	);
+	const [searchFilter, setSearchFilter] = useState<string>("all");
 	const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
 
 	// Forms for each step
@@ -184,26 +194,46 @@ export function ShiftCreationWizard({
 
 	// Filter employees based on search term
 	useEffect(() => {
-		if (!searchTerm.trim()) {
+		// If no search term and no role filter (all), show all employees
+		if (!searchTerm.trim() && searchFilter === "all") {
 			setFilteredEmployees(employees);
 			return;
 		}
 
+		// Apply filters
 		const lowerCaseSearch = searchTerm.toLowerCase();
 		const filtered = employees.filter((employee) => {
-			if (searchFilter === "name" || searchFilter === "all") {
-				if (employee.name.toLowerCase().includes(lowerCaseSearch)) {
-					return true;
+			// First check if we need to filter by role
+			if (searchFilter !== "all" && searchFilter !== "name") {
+				// If we're filtering by a specific role value
+				if (employee.role !== searchFilter) {
+					return false; // Employee doesn't have this role, exclude them
 				}
 			}
 
-			if (searchFilter === "role" || searchFilter === "all") {
-				if (employee.role?.toLowerCase().includes(lowerCaseSearch)) {
-					return true;
+			// If we have a search term, apply text search
+			if (searchTerm.trim()) {
+				// Always search by name unless explicitly filtering only by role
+				if (searchFilter === "all" || searchFilter === "name") {
+					if (employee.name.toLowerCase().includes(lowerCaseSearch)) {
+						return true;
+					}
 				}
+
+				// Search by role if filter is 'all' or explicitly 'role'
+				if (searchFilter === "all" || searchFilter === "role") {
+					const role = employee.role || "";
+					if (role.toLowerCase().includes(lowerCaseSearch)) {
+						return true;
+					}
+				}
+
+				// If we got here with a search term but didn't match anything, exclude
+				return false;
 			}
 
-			return false;
+			// If we got here, the employee passed the role filter and there was no search term
+			return true;
 		});
 
 		setFilteredEmployees(filtered);
@@ -215,14 +245,26 @@ export function ShiftCreationWizard({
 		setStep("shift-details");
 	};
 
+	// Reset location and return to first step
+	const resetLocation = () => {
+		setLocationData(null);
+		setShiftData(null);
+		setSelectedEmployees([]);
+		locationForm.setValue("locationId", "");
+		setStep("select-location");
+	};
+
 	// Handle the shift details step submission
 	const handleShiftDetailsSubmit = (data: ShiftData) => {
 		setShiftData(data);
 		setStep("assign-employee");
 	};
 
-	// Handle the full form submission (all steps)
-	const handleEmployeeAssignSubmit = async (data: EmployeeData) => {
+	// Handle the full form submission with multiple employees
+	const handleEmployeeAssignSubmit = async (
+		data: EmployeeData,
+		selectedEmployees: SelectedEmployee[]
+	) => {
 		if (!locationData || !shiftData) return;
 
 		try {
@@ -232,17 +274,39 @@ export function ShiftCreationWizard({
 			const startDateTime = `${shiftData.date}T${shiftData.startTime}:00`;
 			const endDateTime = `${shiftData.date}T${shiftData.endTime}:00`;
 
-			await ShiftsAPI.create({
-				scheduleId,
-				locationId: locationData.locationId,
-				employeeId: data.employeeId,
-				startTime: startDateTime,
-				endTime: endDateTime,
-				role: "", // Empty string as roles only apply to employees
-				notes: shiftData.notes,
-			});
+			// If no employees selected, create shift without an employee
+			if (selectedEmployees.length === 0) {
+				await ShiftsAPI.create({
+					scheduleId,
+					locationId: locationData.locationId,
+					employeeId: "", // Empty string for no employee
+					startTime: startDateTime,
+					endTime: endDateTime,
+					role: "",
+					notes: shiftData.notes,
+				});
 
-			toast.success("Shift created successfully");
+				toast.success("Shift created successfully");
+			} else {
+				// Create a shift for each selected employee
+				for (const employee of selectedEmployees) {
+					await ShiftsAPI.create({
+						scheduleId,
+						locationId: locationData.locationId,
+						employeeId: employee.id,
+						startTime: startDateTime,
+						endTime: endDateTime,
+						role: employee.role || "",
+						notes: shiftData.notes,
+					});
+				}
+
+				toast.success(
+					`${selectedEmployees.length} ${
+						selectedEmployees.length === 1 ? "shift" : "shifts"
+					} created successfully`
+				);
+			}
 
 			if (onComplete) {
 				onComplete();
@@ -289,7 +353,7 @@ export function ShiftCreationWizard({
 	const handleStepClick = (targetStep: WizardStep) => {
 		// Only allow navigation to steps that make sense based on current data
 		if (targetStep === "select-location") {
-			setStep(targetStep);
+			resetLocation();
 		} else if (targetStep === "shift-details" && locationData) {
 			setStep(targetStep);
 		} else if (targetStep === "assign-employee" && locationData && shiftData) {
@@ -297,8 +361,13 @@ export function ShiftCreationWizard({
 		}
 	};
 
+	// Update selected employees
+	const handleSelectedEmployeesChange = (employees: SelectedEmployee[]) => {
+		setSelectedEmployees(employees);
+	};
+
 	return (
-		<div className="flex flex-col h-full">
+		<div className="h-full flex flex-col">
 			{/* Progress bar at the top of the wizard */}
 			<WizardProgressBar
 				currentStep={step}
@@ -307,8 +376,7 @@ export function ShiftCreationWizard({
 				onStepClick={handleStepClick}
 			/>
 
-			{/* Step content */}
-			<div className="flex-1">
+			<div className="flex-1 flex flex-col">
 				{/* Step 1: Select Location */}
 				{step === "select-location" && (
 					<LocationSelectionStep
@@ -332,7 +400,7 @@ export function ShiftCreationWizard({
 						locationData={locationData}
 						getLocationById={getLocationById}
 						handleShiftDetailsSubmit={handleShiftDetailsSubmit}
-						onBack={() => setStep("select-location")}
+						onBack={resetLocation}
 					/>
 				)}
 
@@ -349,9 +417,15 @@ export function ShiftCreationWizard({
 						filteredEmployees={filteredEmployees}
 						loadingEmployees={loadingEmployees}
 						getLocationName={getLocationName}
-						handleEmployeeAssignSubmit={handleEmployeeAssignSubmit}
+						handleEmployeeAssignSubmit={(data) =>
+							handleEmployeeAssignSubmit(data, selectedEmployees)
+						}
 						onBack={() => setStep("shift-details")}
+						onResetLocation={resetLocation}
 						loading={loading}
+						selectedEmployees={selectedEmployees}
+						onSelectedEmployeesChange={handleSelectedEmployeesChange}
+						allEmployees={employees}
 					/>
 				)}
 			</div>

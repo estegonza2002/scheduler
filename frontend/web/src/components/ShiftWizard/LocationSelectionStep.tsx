@@ -7,6 +7,7 @@ import { Location } from "../../api";
 import { Search, X, Building2, Check } from "lucide-react";
 import { ScrollArea } from "../ui/scroll-area";
 import { Badge } from "../ui/badge";
+import { cn } from "../../lib/utils";
 
 type LocationData = {
 	locationId: string;
@@ -25,6 +26,38 @@ interface LocationSelectionStepProps {
 	onCancel?: () => void;
 }
 
+// Location card component
+interface LocationCardProps {
+	location: Location;
+	selected: boolean;
+	onClick: () => void;
+}
+
+function LocationCard({ location, selected, onClick }: LocationCardProps) {
+	return (
+		<Card
+			className={cn(
+				"cursor-pointer transition-colors hover:bg-accent/50",
+				selected && "bg-accent/50 border-primary"
+			)}
+			onClick={onClick}>
+			<CardContent className="p-4">
+				<div className="flex items-center justify-between">
+					<div>
+						<p className="font-medium">{location.name}</p>
+						<p className="text-sm text-muted-foreground">
+							{location.address}
+							{location.city && `, ${location.city}`}
+							{location.state && ` ${location.state}`}
+						</p>
+					</div>
+					{selected && <Check className="h-5 w-5 text-primary" />}
+				</div>
+			</CardContent>
+		</Card>
+	);
+}
+
 export function LocationSelectionStep({
 	locationForm,
 	locations,
@@ -38,130 +71,88 @@ export function LocationSelectionStep({
 	onCancel,
 }: LocationSelectionStepProps) {
 	return (
-		<div className="flex-1">
+		<div className="flex flex-col h-full relative">
 			<form
+				id="location-selection-form"
 				onSubmit={locationForm.handleSubmit(handleLocationSelect)}
-				className="space-y-4 h-full flex flex-col">
-				<div className="flex-1">
-					<div>
+				className="flex flex-col h-full">
+				{/* Content area with bottom padding to make space for fixed footer */}
+				<div className="flex-1 overflow-y-auto pb-24 px-6 py-4">
+					{/* Header */}
+					<div className="mb-4">
 						<h3 className="text-lg font-medium">Select a Location</h3>
 						<p className="text-muted-foreground">
 							Choose the location where this shift will take place
 						</p>
 					</div>
 
-					{/* Location search */}
-					<div className="my-4">
-						<div className="relative">
-							<Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-							<Input
-								type="text"
-								placeholder="Search by name, address, or city..."
-								className="pl-9"
-								value={locationSearchTerm}
-								onChange={(e) => setLocationSearchTerm(e.target.value)}
-							/>
-							{locationSearchTerm && (
-								<Button
-									type="button"
-									variant="ghost"
-									size="sm"
-									className="absolute right-0 top-0 h-full px-3"
-									onClick={clearLocationSearch}>
-									<X className="h-4 w-4" />
-									<span className="sr-only">Clear search</span>
-								</Button>
-							)}
-						</div>
+					{/* Search box */}
+					<div className="relative mb-4">
+						<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+						<Input
+							type="text"
+							placeholder="Search by name, address, or city..."
+							className="pl-10 pr-10"
+							value={locationSearchTerm}
+							onChange={(e) => setLocationSearchTerm(e.target.value)}
+						/>
+						{locationSearchTerm && (
+							<button
+								type="button"
+								onClick={clearLocationSearch}
+								className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground">
+								<X className="h-4 w-4" />
+							</button>
+						)}
 					</div>
 
 					{/* Location list */}
-					{loadingLocations ? (
-						<div className="flex items-center justify-center h-[300px]">
-							<div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full mr-2"></div>
-							Loading locations...
-						</div>
-					) : (
-						<div className="space-y-2 mt-4">
-							{filteredLocations.length === 0 ? (
-								<Card>
-									<CardContent className="pt-6 pb-4">
-										<h3 className="font-medium">No locations found</h3>
-										{locationSearchTerm ? (
-											<>
-												<p className="text-muted-foreground mt-1 text-sm">
-													No locations match "{locationSearchTerm}"
-												</p>
-												<Button
-													variant="link"
-													onClick={clearLocationSearch}
-													className="mt-1">
-													Clear search
-												</Button>
-											</>
-										) : (
-											<p className="text-muted-foreground mt-1 text-sm">
-												Please add a location first
-											</p>
-										)}
-									</CardContent>
-								</Card>
-							) : (
-								<ScrollArea className="h-[340px]">
-									<div className="space-y-4">
-										{filteredLocations.map((location) => (
-											<Card
-												key={location.id}
-												onClick={() => handleLocationChange(location.id)}>
-												<input
-													type="radio"
-													id={`location-${location.id}`}
-													value={location.id}
-													className="sr-only"
-													{...locationForm.register("locationId")}
-												/>
-												<CardContent className="p-4">
-													<div className="flex items-center justify-between">
-														<div>
-															<p className="font-medium">{location.name}</p>
-															{location.address && (
-																<p className="text-sm text-muted-foreground">
-																	{location.address}
-																	{location.city && `, ${location.city}`}
-																	{location.state && ` ${location.state}`}
-																</p>
-															)}
-														</div>
-														{locationForm.watch("locationId") ===
-															location.id && <Check className="h-4 w-4" />}
-													</div>
-												</CardContent>
-											</Card>
-										))}
-									</div>
-								</ScrollArea>
-							)}
-						</div>
-					)}
-
-					{locationForm.formState.errors.locationId && (
-						<p className="text-destructive">
-							{locationForm.formState.errors.locationId.message}
-						</p>
-					)}
-				</div>
-
-				{/* Navigation Buttons */}
-				<div className="flex justify-between items-center mt-4">
-					<Button
-						type="button"
-						variant="outline"
-						onClick={onCancel}>
-						Cancel
-					</Button>
-					<Button type="submit">Continue</Button>
+					<div className="space-y-2">
+						{loadingLocations ? (
+							<div className="py-12 flex items-center justify-center">
+								<div className="animate-pulse text-muted-foreground">
+									Loading locations...
+								</div>
+							</div>
+						) : filteredLocations.length > 0 ? (
+							<div className="space-y-2">
+								{filteredLocations.map((location) => (
+									<LocationCard
+										key={location.id}
+										location={location}
+										selected={locationForm.watch("locationId") === location.id}
+										onClick={() => handleLocationChange(location.id)}
+									/>
+								))}
+							</div>
+						) : (
+							<div className="py-12 flex flex-col items-center justify-center text-center">
+								<Building2 className="h-8 w-8 text-muted-foreground mb-2" />
+								<h4 className="font-medium">No locations found</h4>
+								<p className="text-sm text-muted-foreground">
+									Try adjusting your search or add a new location
+								</p>
+							</div>
+						)}
+					</div>
 				</div>
 			</form>
+
+			{/* Absolutely positioned footer within the container */}
+			<div className="absolute bottom-0 left-0 right-0 flex justify-between p-4 border-t bg-background">
+				<Button
+					type="button"
+					variant="outline"
+					onClick={onCancel}>
+					Cancel
+				</Button>
+				<Button
+					type="submit"
+					form="location-selection-form"
+					disabled={!locationForm.watch("locationId") || loadingLocations}>
+					Continue
+				</Button>
+			</div>
 		</div>
 	);
 }

@@ -19,7 +19,7 @@ import {
 	Grid,
 	Loader2,
 } from "lucide-react";
-import { ShiftCreationDialog } from "../components/ShiftCreationDialog";
+import { ShiftCreationSheet } from "../components/ShiftCreationSheet";
 import { useNavigate } from "react-router-dom";
 import {
 	Popover,

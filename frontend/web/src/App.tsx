@@ -31,6 +31,7 @@ import DashboardPage from "./pages/DashboardPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
 import ProfilePage from "./pages/ProfilePage";
 import BusinessProfilePage from "./pages/BusinessProfilePage";
+import BillingPage from "./pages/BillingPage";
 import SchedulePage from "./pages/SchedulePage";
 import DailyShiftsPage from "./pages/DailyShiftsPage";
 import EmployeesPage from "./pages/EmployeesPage";
@@ -138,6 +139,10 @@ function App() {
 							<Route
 								path="/business-profile"
 								element={<BusinessProfilePage />}
+							/>
+							<Route
+								path="/billing"
+								element={<BillingPage />}
 							/>
 							<Route
 								path="/employees"

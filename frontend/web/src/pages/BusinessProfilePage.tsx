@@ -191,7 +191,6 @@ export default function BusinessProfilePage() {
 				<TabsList className="mb-6 w-full">
 					<TabsTrigger value="profile">Business Profile</TabsTrigger>
 					<TabsTrigger value="branding">Branding</TabsTrigger>
-					<TabsTrigger value="subscription">Subscription</TabsTrigger>
 				</TabsList>
 
 				<TabsContent value="profile">
@@ -415,27 +414,6 @@ export default function BusinessProfilePage() {
 						<p className="text-center text-muted-foreground pt-4">
 							Advanced branding options will be available in a future update.
 						</p>
-					</div>
-				</TabsContent>
-
-				<TabsContent value="subscription">
-					<div className="mb-6">
-						<h2 className="text-2xl font-bold tracking-tight">
-							Subscription Plan
-						</h2>
-						<p className="text-sm text-muted-foreground">
-							Manage your subscription and billing information
-						</p>
-					</div>
-					<div className="py-10 text-center">
-						<p className="text-muted-foreground mb-4">
-							Your business is currently on the <strong>Free</strong> plan.
-						</p>
-						<p className="text-muted-foreground mb-6">
-							Upgrade to unlock premium features such as advanced scheduling,
-							reporting, and more.
-						</p>
-						<Button>View Pricing Plans</Button>
 					</div>
 				</TabsContent>
 			</Tabs>

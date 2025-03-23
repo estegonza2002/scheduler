@@ -40,6 +40,7 @@ interface DataTableProps<TData, TValue> {
 	data: TData[];
 	searchKey?: string;
 	searchPlaceholder?: string;
+	hidePagination?: boolean;
 }
 
 export function DataTable<TData, TValue>({
@@ -47,6 +48,7 @@ export function DataTable<TData, TValue>({
 	data,
 	searchKey,
 	searchPlaceholder = "Search...",
+	hidePagination = false,
 }: DataTableProps<TData, TValue>) {
 	const [sorting, setSorting] = React.useState<SortingState>([]);
 	const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -77,8 +79,8 @@ export function DataTable<TData, TValue>({
 	return (
 		<div>
 			{/* Search Controls - Top Section */}
-			<div className="flex items-center py-4">
-				{searchKey && (
+			{searchKey && (
+				<div className="flex items-center py-2">
 					<Input
 						placeholder={searchPlaceholder}
 						value={
@@ -89,9 +91,8 @@ export function DataTable<TData, TValue>({
 						}
 						className="max-w-sm"
 					/>
-				)}
-				{!searchKey && <div />}
-			</div>
+				</div>
+			)}
 
 			{/* Table */}
 			<div className="rounded-lg border">
@@ -144,68 +145,70 @@ export function DataTable<TData, TValue>({
 			</div>
 
 			{/* Pagination Controls - Bottom Section */}
-			<div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0 sm:space-x-2 py-4">
-				<div className="flex items-center space-x-6">
-					<div className="text-sm text-muted-foreground">
-						Showing{" "}
-						{table.getFilteredRowModel().rows.length > 0
-							? table.getState().pagination.pageIndex *
-									table.getState().pagination.pageSize +
-							  1
-							: 0}{" "}
-						to{" "}
-						{Math.min(
-							(table.getState().pagination.pageIndex + 1) *
-								table.getState().pagination.pageSize,
-							table.getFilteredRowModel().rows.length
-						)}{" "}
-						of {table.getFilteredRowModel().rows.length} entries
+			{!hidePagination && (
+				<div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0 sm:space-x-2 py-4">
+					<div className="flex items-center space-x-6">
+						<div className="text-sm text-muted-foreground">
+							Showing{" "}
+							{table.getFilteredRowModel().rows.length > 0
+								? table.getState().pagination.pageIndex *
+										table.getState().pagination.pageSize +
+								  1
+								: 0}{" "}
+							to{" "}
+							{Math.min(
+								(table.getState().pagination.pageIndex + 1) *
+									table.getState().pagination.pageSize,
+								table.getFilteredRowModel().rows.length
+							)}{" "}
+							of {table.getFilteredRowModel().rows.length} entries
+						</div>
+
+						<div className="flex items-center space-x-2">
+							<p className="text-sm text-muted-foreground">Items per page</p>
+							<Select
+								value={`${table.getState().pagination.pageSize}`}
+								onValueChange={(value) => {
+									table.setPageSize(Number(value));
+								}}>
+								<SelectTrigger className="h-8 w-[70px]">
+									<SelectValue
+										placeholder={table.getState().pagination.pageSize}
+									/>
+								</SelectTrigger>
+								<SelectContent side="top">
+									{[10, 20, 30, 40, 50].map((pageSize) => (
+										<SelectItem
+											key={pageSize}
+											value={`${pageSize}`}>
+											{pageSize}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
 					</div>
 
 					<div className="flex items-center space-x-2">
-						<p className="text-sm text-muted-foreground">Items per page</p>
-						<Select
-							value={`${table.getState().pagination.pageSize}`}
-							onValueChange={(value) => {
-								table.setPageSize(Number(value));
-							}}>
-							<SelectTrigger className="h-8 w-[70px]">
-								<SelectValue
-									placeholder={table.getState().pagination.pageSize}
-								/>
-							</SelectTrigger>
-							<SelectContent side="top">
-								{[10, 20, 30, 40, 50].map((pageSize) => (
-									<SelectItem
-										key={pageSize}
-										value={`${pageSize}`}>
-										{pageSize}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={() => table.previousPage()}
+							disabled={!table.getCanPreviousPage()}>
+							<ChevronLeft className="h-4 w-4 mr-1" />
+							Previous
+						</Button>
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={() => table.nextPage()}
+							disabled={!table.getCanNextPage()}>
+							Next
+							<ChevronRight className="h-4 w-4 ml-1" />
+						</Button>
 					</div>
 				</div>
-
-				<div className="flex items-center space-x-2">
-					<Button
-						variant="outline"
-						size="sm"
-						onClick={() => table.previousPage()}
-						disabled={!table.getCanPreviousPage()}>
-						<ChevronLeft className="h-4 w-4 mr-1" />
-						Previous
-					</Button>
-					<Button
-						variant="outline"
-						size="sm"
-						onClick={() => table.nextPage()}
-						disabled={!table.getCanNextPage()}>
-						Next
-						<ChevronRight className="h-4 w-4 ml-1" />
-					</Button>
-				</div>
-			</div>
+			)}
 		</div>
 	);
 }
