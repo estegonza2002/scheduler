@@ -9,30 +9,13 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Textarea } from "../components/ui/textarea";
 import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardFooter,
-	CardHeader,
-	CardTitle,
-} from "../components/ui/card";
-import {
 	Tabs,
 	TabsContent,
 	TabsList,
 	TabsTrigger,
 } from "../components/ui/tabs";
-import { useAuth } from "../lib/auth";
-import { Organization, OrganizationsAPI } from "../api";
-import {
-	Building2,
-	MapPin,
-	Phone,
-	Mail,
-	Globe,
-	Clock,
-	ChevronLeft,
-} from "lucide-react";
+import { OrganizationsAPI, type Organization } from "../api";
+import { MapPin, Phone, Globe, Clock, ChevronLeft } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 
 // Define form schema for validation
@@ -53,7 +36,6 @@ const businessProfileSchema = z.object({
 type BusinessProfileFormValues = z.infer<typeof businessProfileSchema>;
 
 export default function BusinessProfilePage() {
-	const { user } = useAuth();
 	const navigate = useNavigate();
 	const [isLoading, setIsLoading] = useState(false);
 	const [organization, setOrganization] = useState<Organization | null>(null);
@@ -145,8 +127,10 @@ export default function BusinessProfilePage() {
 
 			setOrganization(updatedOrg);
 			toast.success("Business profile updated successfully");
-		} catch (error: any) {
-			toast.error("Failed to update business profile: " + error.message);
+		} catch (error: unknown) {
+			const errorMessage =
+				error instanceof Error ? error.message : "Unknown error";
+			toast.error("Failed to update business profile: " + errorMessage);
 		} finally {
 			setIsLoading(false);
 		}

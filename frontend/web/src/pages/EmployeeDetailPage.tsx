@@ -1,15 +1,7 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useParams, Link } from "react-router-dom";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "../components/ui/card";
+import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
-import { Separator } from "../components/ui/separator";
 import { Employee, EmployeesAPI } from "../api";
 import {
 	Mail,

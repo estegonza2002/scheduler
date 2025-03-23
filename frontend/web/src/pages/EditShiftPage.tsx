@@ -19,7 +19,7 @@ import {
 } from "../components/ui/select";
 import { Shift, ShiftsAPI, LocationsAPI, Location } from "../api";
 import { format, parseISO } from "date-fns";
-import { ArrowLeft, Clock, MapPin, Save } from "lucide-react";
+import { ArrowLeft, Save } from "lucide-react";
 import { toast } from "sonner";
 
 export default function EditShiftPage() {
