@@ -31,6 +31,7 @@ import {
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import { ShiftCard } from "./shift/ShiftCard";
 
 // Helper functions
 const formatTime = (date: Date): string => {
@@ -348,67 +349,12 @@ export function DailyShiftsView({
 							</h3>
 							<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
 								{timeShifts.map((shift) => (
-									<Card
+									<ShiftCard
 										key={shift.id}
-										className="overflow-hidden hover:shadow-md hover:border-primary/50 hover:bg-muted/30 transition-all cursor-pointer"
-										onClick={() => navigate(`/shifts/${shift.id}`)}>
-										<CardHeader className="p-4 pb-0 border-b">
-											<div className="flex justify-between items-start">
-												<div>
-													<div className="flex items-center gap-2">
-														<CardTitle className="text-base">
-															{formatTime(new Date(shift.startTime))} -{" "}
-															{formatTime(new Date(shift.endTime))}
-														</CardTitle>
-														{shift.notes?.includes("Urgent") && (
-															<Badge
-																variant="destructive"
-																className="h-5">
-																Urgent
-															</Badge>
-														)}
-													</div>
-													<CardDescription>
-														{getLocationName(shift.locationId)}
-													</CardDescription>
-												</div>
-
-												<Badge
-													variant="outline"
-													className="capitalize">
-													{shift.role || "No role"}
-												</Badge>
-											</div>
-										</CardHeader>
-										<CardContent className="p-4">
-											<div className="flex flex-col space-y-2">
-												<div className="flex items-center justify-between">
-													<div className="text-sm text-muted-foreground">
-														Assigned:
-													</div>
-													<div className="flex -space-x-2">
-														{shift.employeeId ? (
-															<Avatar className="h-6 w-6 border-2 border-background">
-																<AvatarFallback className="text-[10px]">
-																	{getEmployeeInitials(shift.employeeId)}
-																</AvatarFallback>
-															</Avatar>
-														) : (
-															<span className="text-sm text-muted-foreground">
-																Unassigned
-															</span>
-														)}
-													</div>
-												</div>
-												{shift.notes && (
-													<div className="text-sm">
-														<span className="font-medium">Notes:</span>{" "}
-														{truncateText(shift.notes, 80)}
-													</div>
-												)}
-											</div>
-										</CardContent>
-									</Card>
+										shift={shift}
+										locations={locations}
+										employees={employees}
+									/>
 								))}
 							</div>
 						</div>

@@ -1,5 +1,7 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../../lib/auth";
+import { Card, CardContent } from "../ui/card";
+import { Loader2 } from "lucide-react";
 
 interface ProtectedRouteProps {
 	redirectTo?: string;
@@ -17,7 +19,11 @@ export function ProtectedRoute({
 	if (isLoading) {
 		return (
 			<div className="min-h-screen flex items-center justify-center">
-				<div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+				<Card className="p-6">
+					<CardContent className="flex items-center justify-center">
+						<Loader2 className="h-12 w-12 animate-spin text-primary" />
+					</CardContent>
+				</Card>
 			</div>
 		);
 	}

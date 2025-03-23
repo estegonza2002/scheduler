@@ -45,11 +45,11 @@ export function ShiftCreationDialog({
 					</Button>
 				)}
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
-				<DialogHeader>
+			<DialogContent className="sm:max-w-[600px] p-0 h-[90vh] flex flex-col">
+				<DialogHeader className="px-6 py-4 border-b">
 					<DialogTitle>Create New Shift</DialogTitle>
 				</DialogHeader>
-				<div className="flex-1 overflow-hidden">
+				<div className="flex-1 overflow-y-auto px-6 py-4">
 					<ShiftCreationWizard
 						scheduleId={scheduleId}
 						organizationId={organizationId}

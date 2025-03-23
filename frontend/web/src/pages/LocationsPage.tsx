@@ -1,14 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "../components/ui/table";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -18,7 +10,7 @@ import {
 	DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
 import { Location, LocationsAPI, OrganizationsAPI, Organization } from "../api";
-import { MapPin, MoreVertical, Plus, Search } from "lucide-react";
+import { MapPin, MoreVertical, Plus, Search, ArrowUpDown } from "lucide-react";
 import { Badge } from "../components/ui/badge";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
@@ -26,14 +18,14 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { AddLocationDialog } from "../components/AddLocationDialog";
 import { EditLocationDialog } from "../components/EditLocationDialog";
 import { DeleteLocationDialog } from "../components/DeleteLocationDialog";
+import { DataTable } from "../components/ui/data-table";
+import { ColumnDef } from "@tanstack/react-table";
 
 export default function LocationsPage() {
 	const [searchParams] = useSearchParams();
 	const [loading, setLoading] = useState<boolean>(true);
 	const [locations, setLocations] = useState<Location[]>([]);
-	const [filteredLocations, setFilteredLocations] = useState<Location[]>([]);
 	const [organization, setOrganization] = useState<Organization | null>(null);
-	const [searchQuery, setSearchQuery] = useState<string>("");
 	const navigate = useNavigate();
 
 	// Dialog states
@@ -42,6 +34,134 @@ export default function LocationsPage() {
 	);
 	const [editDialogOpen, setEditDialogOpen] = useState(false);
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+	const columns = useMemo<ColumnDef<Location>[]>(
+		() => [
+			{
+				accessorKey: "name",
+				header: ({ column }) => (
+					<Button
+						variant="ghost"
+						onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+						className="pl-0">
+						Name
+						<ArrowUpDown className="ml-2 h-4 w-4" />
+					</Button>
+				),
+				cell: ({ row }) => (
+					<div className="flex items-center gap-3">
+						<div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+							<MapPin className="h-4 w-4 text-primary" />
+						</div>
+						<span className="font-medium">{row.original.name}</span>
+					</div>
+				),
+			},
+			{
+				accessorKey: "address",
+				header: ({ column }) => (
+					<Button
+						variant="ghost"
+						onClick={() =>
+							column.toggleSorting(column.getIsSorted() === "asc")
+						}>
+						Address
+						<ArrowUpDown className="ml-2 h-4 w-4" />
+					</Button>
+				),
+				cell: ({ row }) => <>{row.original.address || "-"}</>,
+			},
+			{
+				accessorKey: "city",
+				header: ({ column }) => (
+					<Button
+						variant="ghost"
+						onClick={() =>
+							column.toggleSorting(column.getIsSorted() === "asc")
+						}>
+						City
+						<ArrowUpDown className="ml-2 h-4 w-4" />
+					</Button>
+				),
+				cell: ({ row }) => <>{row.original.city || "-"}</>,
+			},
+			{
+				accessorKey: "state",
+				header: ({ column }) => (
+					<Button
+						variant="ghost"
+						onClick={() =>
+							column.toggleSorting(column.getIsSorted() === "asc")
+						}>
+						State/ZIP
+						<ArrowUpDown className="ml-2 h-4 w-4" />
+					</Button>
+				),
+				cell: ({ row }) => (
+					<>
+						{row.original.state}{" "}
+						{row.original.zipCode && `${row.original.zipCode}`}
+					</>
+				),
+			},
+			{
+				accessorKey: "isActive",
+				header: ({ column }) => (
+					<Button
+						variant="ghost"
+						onClick={() =>
+							column.toggleSorting(column.getIsSorted() === "asc")
+						}>
+						Status
+						<ArrowUpDown className="ml-2 h-4 w-4" />
+					</Button>
+				),
+				cell: ({ row }) => (
+					<Badge variant={row.original.isActive ? "default" : "outline"}>
+						{row.original.isActive ? "Active" : "Inactive"}
+					</Badge>
+				),
+			},
+			{
+				id: "actions",
+				cell: ({ row }) => {
+					const location = row.original;
+					return (
+						<div onClick={(e) => e.stopPropagation()}>
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button
+										variant="ghost"
+										className="h-8 w-8 p-0">
+										<span className="sr-only">Open menu</span>
+										<MoreVertical className="h-4 w-4" />
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent align="end">
+									<DropdownMenuLabel>Actions</DropdownMenuLabel>
+									<DropdownMenuItem
+										onClick={() => navigate(`/location-detail/${location.id}`)}>
+										View Details
+									</DropdownMenuItem>
+									<DropdownMenuItem
+										onClick={() => handleOpenEditDialog(location)}>
+										Edit
+									</DropdownMenuItem>
+									<DropdownMenuSeparator />
+									<DropdownMenuItem
+										className="text-destructive focus:text-destructive"
+										onSelect={() => handleOpenDeleteDialog(location)}>
+										Delete
+									</DropdownMenuItem>
+								</DropdownMenuContent>
+							</DropdownMenu>
+						</div>
+					);
+				},
+			},
+		],
+		[navigate]
+	);
 
 	useEffect(() => {
 		const fetchData = async () => {
@@ -54,7 +174,6 @@ export default function LocationsPage() {
 					setOrganization(orgs[0]);
 					const fetchedLocations = await LocationsAPI.getAll(orgs[0].id);
 					setLocations(fetchedLocations);
-					setFilteredLocations(fetchedLocations);
 				}
 			} catch (error) {
 				console.error("Error fetching locations:", error);
@@ -65,24 +184,6 @@ export default function LocationsPage() {
 
 		fetchData();
 	}, []);
-
-	useEffect(() => {
-		// Filter locations when search query changes
-		if (searchQuery.trim() === "") {
-			setFilteredLocations(locations);
-		} else {
-			const query = searchQuery.toLowerCase();
-			const filtered = locations.filter(
-				(location) =>
-					location.name.toLowerCase().includes(query) ||
-					location.address?.toLowerCase().includes(query) ||
-					location.city?.toLowerCase().includes(query) ||
-					location.state?.toLowerCase().includes(query) ||
-					location.zipCode?.toLowerCase().includes(query)
-			);
-			setFilteredLocations(filtered);
-		}
-	}, [searchQuery, locations]);
 
 	const handleLocationsAdded = (newLocations: Location[]) => {
 		setLocations((prev) => [...prev, ...newLocations]);
@@ -136,119 +237,37 @@ export default function LocationsPage() {
 
 			<div className="flex items-center justify-between mb-4">
 				<h2 className="text-xl font-semibold">Location Directory</h2>
-				<div className="flex items-center gap-2">
-					<div className="relative w-64">
-						<Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-						<Input
-							type="search"
-							placeholder="Search locations..."
-							className="pl-8"
-							value={searchQuery}
-							onChange={(e) => setSearchQuery(e.target.value)}
-						/>
-					</div>
-				</div>
 			</div>
 
-			<p className="text-muted-foreground mb-4">
-				{filteredLocations.length} total locations
-			</p>
-
-			{filteredLocations.length === 0 ? (
-				<div className="text-center py-12 border-2 border-dashed rounded-lg">
-					<h3 className="text-lg font-medium mb-2">No locations found</h3>
-					<p className="text-sm text-muted-foreground mb-4">
-						{locations.length === 0
-							? "Start by adding locations to your organization"
-							: "Try a different search query"}
-					</p>
-					{locations.length === 0 && organization && (
-						<AddLocationDialog
-							organizationId={organization.id}
-							onLocationsAdded={handleLocationsAdded}
-							trigger={
-								<Button>
-									<Plus className="mr-2 h-4 w-4" />
-									Add First Location
-								</Button>
-							}
-						/>
-					)}
-				</div>
-			) : (
-				<div className="border rounded-md bg-background">
-					<Table>
-						<TableHeader>
-							<TableRow>
-								<TableHead>Name</TableHead>
-								<TableHead>Address</TableHead>
-								<TableHead>City</TableHead>
-								<TableHead>State/ZIP</TableHead>
-								<TableHead>Status</TableHead>
-								<TableHead className="w-[80px]"></TableHead>
-							</TableRow>
-						</TableHeader>
-						<TableBody>
-							{filteredLocations.map((location) => (
-								<TableRow
-									key={location.id}
-									className="cursor-pointer hover:bg-muted/50"
-									onClick={() => navigate(`/location-detail/${location.id}`)}>
-									<TableCell className="font-medium">
-										<div className="flex items-center gap-3">
-											<div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-												<MapPin className="h-4 w-4 text-primary" />
-											</div>
-											<span>{location.name}</span>
-										</div>
-									</TableCell>
-									<TableCell>{location.address || "-"}</TableCell>
-									<TableCell>{location.city || "-"}</TableCell>
-									<TableCell>
-										{location.state} {location.zipCode && `${location.zipCode}`}
-									</TableCell>
-									<TableCell>
-										<Badge variant={location.isActive ? "default" : "outline"}>
-											{location.isActive ? "Active" : "Inactive"}
-										</Badge>
-									</TableCell>
-									<TableCell onClick={(e) => e.stopPropagation()}>
-										<DropdownMenu>
-											<DropdownMenuTrigger asChild>
-												<Button
-													variant="ghost"
-													className="h-8 w-8 p-0">
-													<span className="sr-only">Open menu</span>
-													<MoreVertical className="h-4 w-4" />
-												</Button>
-											</DropdownMenuTrigger>
-											<DropdownMenuContent align="end">
-												<DropdownMenuLabel>Actions</DropdownMenuLabel>
-												<DropdownMenuItem
-													onClick={() =>
-														navigate(`/location-detail/${location.id}`)
-													}>
-													View Details
-												</DropdownMenuItem>
-												<DropdownMenuItem
-													onClick={() => handleOpenEditDialog(location)}>
-													Edit
-												</DropdownMenuItem>
-												<DropdownMenuSeparator />
-												<DropdownMenuItem
-													className="text-destructive focus:text-destructive"
-													onSelect={() => handleOpenDeleteDialog(location)}>
-													Delete
-												</DropdownMenuItem>
-											</DropdownMenuContent>
-										</DropdownMenu>
-									</TableCell>
-								</TableRow>
-							))}
-						</TableBody>
-					</Table>
-				</div>
-			)}
+			<div className="rounded-md bg-background">
+				{locations.length === 0 ? (
+					<div className="text-center py-12 border-2 border-dashed rounded-lg">
+						<h3 className="text-lg font-medium mb-2">No locations found</h3>
+						<p className="text-sm text-muted-foreground mb-4">
+							Start by adding locations to your organization
+						</p>
+						{organization && (
+							<AddLocationDialog
+								organizationId={organization.id}
+								onLocationsAdded={handleLocationsAdded}
+								trigger={
+									<Button>
+										<Plus className="mr-2 h-4 w-4" />
+										Add First Location
+									</Button>
+								}
+							/>
+						)}
+					</div>
+				) : (
+					<DataTable
+						columns={columns}
+						data={locations}
+						searchKey="name"
+						searchPlaceholder="Search locations..."
+					/>
+				)}
+			</div>
 
 			{/* Dialogs with controlled state */}
 			{selectedLocation && (

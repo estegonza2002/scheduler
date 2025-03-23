@@ -13,6 +13,7 @@ import {
 	Header,
 	Row,
 	Cell,
+	PaginationState,
 } from "@tanstack/react-table";
 
 import {
@@ -25,6 +26,14 @@ import {
 } from "./table";
 import { Button } from "./button";
 import { Input } from "./input";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "./select";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface DataTableProps<TData, TValue> {
 	columns: ColumnDef<TData, TValue>[];
@@ -43,6 +52,10 @@ export function DataTable<TData, TValue>({
 	const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
 		[]
 	);
+	const [pagination, setPagination] = React.useState<PaginationState>({
+		pageIndex: 0,
+		pageSize: 10,
+	});
 
 	const table = useReactTable({
 		data,
@@ -53,16 +66,18 @@ export function DataTable<TData, TValue>({
 		getSortedRowModel: getSortedRowModel(),
 		onColumnFiltersChange: setColumnFilters,
 		getFilteredRowModel: getFilteredRowModel(),
+		onPaginationChange: setPagination,
 		state: {
 			sorting,
 			columnFilters,
+			pagination,
 		},
 	});
 
 	return (
 		<div>
-			{searchKey && (
-				<div className="flex items-center py-4">
+			<div className="flex items-center justify-between py-4">
+				{searchKey && (
 					<Input
 						placeholder={searchPlaceholder}
 						value={
@@ -73,8 +88,30 @@ export function DataTable<TData, TValue>({
 						}
 						className="max-w-sm"
 					/>
+				)}
+				{!searchKey && <div />}
+				<div className="flex items-center space-x-2">
+					<p className="text-sm text-muted-foreground">Items per page</p>
+					<Select
+						value={`${table.getState().pagination.pageSize}`}
+						onValueChange={(value) => {
+							table.setPageSize(Number(value));
+						}}>
+						<SelectTrigger className="h-8 w-[70px]">
+							<SelectValue placeholder={table.getState().pagination.pageSize} />
+						</SelectTrigger>
+						<SelectContent side="top">
+							{[10, 20, 30, 40, 50].map((pageSize) => (
+								<SelectItem
+									key={pageSize}
+									value={`${pageSize}`}>
+									{pageSize}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
 				</div>
-			)}
+			</div>
 			<div className="rounded-md border">
 				<Table>
 					<TableHeader>
@@ -123,21 +160,40 @@ export function DataTable<TData, TValue>({
 					</TableBody>
 				</Table>
 			</div>
-			<div className="flex items-center justify-end space-x-2 py-4">
-				<Button
-					variant="outline"
-					size="sm"
-					onClick={() => table.previousPage()}
-					disabled={!table.getCanPreviousPage()}>
-					Previous
-				</Button>
-				<Button
-					variant="outline"
-					size="sm"
-					onClick={() => table.nextPage()}
-					disabled={!table.getCanNextPage()}>
-					Next
-				</Button>
+			<div className="flex items-center justify-between space-x-2 py-4">
+				<div className="text-sm text-muted-foreground">
+					Showing{" "}
+					{table.getFilteredRowModel().rows.length > 0
+						? table.getState().pagination.pageIndex *
+								table.getState().pagination.pageSize +
+						  1
+						: 0}{" "}
+					to{" "}
+					{Math.min(
+						(table.getState().pagination.pageIndex + 1) *
+							table.getState().pagination.pageSize,
+						table.getFilteredRowModel().rows.length
+					)}{" "}
+					of {table.getFilteredRowModel().rows.length} entries
+				</div>
+				<div className="flex items-center space-x-2">
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={() => table.previousPage()}
+						disabled={!table.getCanPreviousPage()}>
+						<ChevronLeft className="h-4 w-4 mr-1" />
+						Previous
+					</Button>
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={() => table.nextPage()}
+						disabled={!table.getCanNextPage()}>
+						Next
+						<ChevronRight className="h-4 w-4 ml-1" />
+					</Button>
+				</div>
 			</div>
 		</div>
 	);

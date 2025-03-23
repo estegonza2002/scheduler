@@ -7,15 +7,6 @@ import {
 	CardHeader,
 	CardTitle,
 } from "../components/ui/card";
-import {
-	Table,
-	TableBody,
-	TableCaption,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "../components/ui/table";
 import { Input } from "../components/ui/input";
 import { Badge } from "../components/ui/badge";
 import { Employee, EmployeesAPI, OrganizationsAPI, Organization } from "../api";
@@ -29,6 +20,7 @@ import {
 	Mail,
 	Phone,
 	DollarSign,
+	ArrowUpDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AddEmployeeDialog } from "../components/AddEmployeeDialog";
@@ -43,6 +35,8 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
+import { DataTable } from "../components/ui/data-table";
+import { ColumnDef } from "@tanstack/react-table";
 
 export default function EmployeesPage() {
 	const [employees, setEmployees] = useState<Employee[]>([]);
@@ -50,8 +44,152 @@ export default function EmployeesPage() {
 	const [searchTerm, setSearchTerm] = useState("");
 	const [isLoading, setIsLoading] = useState(true);
 	const navigate = useNavigate();
-	const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
 	const [organization, setOrganization] = useState<Organization | null>(null);
+
+	const columns = useMemo<ColumnDef<Employee>[]>(
+		() => [
+			{
+				accessorKey: "name",
+				header: ({ column }) => (
+					<Button
+						variant="ghost"
+						onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+						className="pl-0">
+						Name
+						<ArrowUpDown className="ml-2 h-4 w-4" />
+					</Button>
+				),
+				cell: ({ row }) => (
+					<div className="flex items-center gap-3">
+						<div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+							<span className="text-primary font-medium text-xs">
+								{row.original.name
+									.split(" ")
+									.map((n) => n[0])
+									.join("")
+									.toUpperCase()}
+							</span>
+						</div>
+						<span className="font-medium">{row.original.name}</span>
+					</div>
+				),
+			},
+			{
+				accessorKey: "email",
+				header: ({ column }) => (
+					<Button
+						variant="ghost"
+						onClick={() =>
+							column.toggleSorting(column.getIsSorted() === "asc")
+						}>
+						Contact
+						<ArrowUpDown className="ml-2 h-4 w-4" />
+					</Button>
+				),
+				cell: ({ row }) => (
+					<div className="flex flex-col">
+						<div className="flex items-center text-sm">
+							<Mail className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+							<span>{row.original.email}</span>
+						</div>
+						{row.original.phone && (
+							<div className="flex items-center text-sm mt-1">
+								<Phone className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+								<span>{row.original.phone}</span>
+							</div>
+						)}
+					</div>
+				),
+			},
+			{
+				accessorKey: "position",
+				header: ({ column }) => (
+					<Button
+						variant="ghost"
+						onClick={() =>
+							column.toggleSorting(column.getIsSorted() === "asc")
+						}>
+						Position
+						<ArrowUpDown className="ml-2 h-4 w-4" />
+					</Button>
+				),
+				cell: ({ row }) => <>{row.original.position || row.original.role}</>,
+			},
+			{
+				accessorKey: "hourlyRate",
+				header: ({ column }) => (
+					<Button
+						variant="ghost"
+						onClick={() =>
+							column.toggleSorting(column.getIsSorted() === "asc")
+						}>
+						Hourly Rate
+						<ArrowUpDown className="ml-2 h-4 w-4" />
+					</Button>
+				),
+				cell: ({ row }) => {
+					const hourlyRate = row.original.hourlyRate;
+					return hourlyRate !== undefined ? (
+						<div className="flex items-center">
+							<DollarSign className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
+							<span>{hourlyRate.toFixed(2)}/hr</span>
+						</div>
+					) : (
+						"-"
+					);
+				},
+			},
+			{
+				id: "actions",
+				cell: ({ row }) => {
+					const employee = row.original;
+					return (
+						<div onClick={(e) => e.stopPropagation()}>
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button
+										variant="ghost"
+										className="h-8 w-8 p-0">
+										<span className="sr-only">Open menu</span>
+										<MoreVertical className="h-4 w-4" />
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent align="end">
+									<DropdownMenuLabel>Actions</DropdownMenuLabel>
+									<DropdownMenuItem
+										onClick={() => navigate(`/employee-detail/${employee.id}`)}>
+										View Details
+									</DropdownMenuItem>
+									<EditEmployeeDialog
+										employee={employee}
+										onEmployeeUpdated={handleEmployeeUpdated}
+										trigger={
+											<DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+												Edit Employee
+											</DropdownMenuItem>
+										}
+									/>
+									<DropdownMenuSeparator />
+									<DeleteEmployeeDialog
+										employee={employee}
+										onEmployeeDeleted={handleEmployeeDeleted}
+										trigger={
+											<DropdownMenuItem
+												className="text-destructive"
+												onSelect={(e) => e.preventDefault()}>
+												Delete Employee
+											</DropdownMenuItem>
+										}
+									/>
+								</DropdownMenuContent>
+							</DropdownMenu>
+						</div>
+					);
+				},
+			},
+		],
+		[navigate]
+	);
 
 	useEffect(() => {
 		const fetchData = async () => {
@@ -64,7 +202,6 @@ export default function EmployeesPage() {
 					setOrganization(orgs[0]);
 					const fetchedEmployees = await EmployeesAPI.getAll(orgs[0].id);
 					setEmployees(fetchedEmployees);
-					setFilteredEmployees(fetchedEmployees);
 				}
 			} catch (error) {
 				console.error("Error fetching employees:", error);
@@ -75,23 +212,6 @@ export default function EmployeesPage() {
 
 		fetchData();
 	}, []);
-
-	useEffect(() => {
-		// Filter employees when search query changes
-		if (searchTerm.trim() === "") {
-			setFilteredEmployees(employees);
-		} else {
-			const query = searchTerm.toLowerCase();
-			const filtered = employees.filter(
-				(employee) =>
-					employee.name.toLowerCase().includes(query) ||
-					employee.email.toLowerCase().includes(query) ||
-					employee.position?.toLowerCase().includes(query) ||
-					employee.role.toLowerCase().includes(query)
-			);
-			setFilteredEmployees(filtered);
-		}
-	}, [searchTerm, employees]);
 
 	const handleEmployeesAdded = (newEmployees: Employee[]) => {
 		setEmployees((prev) => [...prev, ...newEmployees]);
@@ -134,151 +254,37 @@ export default function EmployeesPage() {
 
 			<div className="flex items-center justify-between mb-4">
 				<h2 className="text-xl font-semibold">Employee Directory</h2>
-				<div className="flex items-center gap-2">
-					<div className="relative w-64">
-						<Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-						<Input
-							type="search"
-							placeholder="Search employees..."
-							className="pl-8"
-							value={searchTerm}
-							onChange={(e) => setSearchTerm(e.target.value)}
-						/>
-					</div>
-				</div>
 			</div>
 
-			<p className="text-muted-foreground mb-4">
-				{filteredEmployees.length} total employees
-			</p>
-
-			{filteredEmployees.length === 0 ? (
-				<div className="text-center py-12 border-2 border-dashed rounded-lg">
-					<h3 className="text-lg font-medium mb-2">No employees found</h3>
-					<p className="text-sm text-muted-foreground mb-4">
-						{employees.length === 0
-							? "Start by adding employees to your organization"
-							: "Try a different search query"}
-					</p>
-					{employees.length === 0 && organization && (
-						<AddEmployeeDialog
-							organizationId={organization.id}
-							onEmployeesAdded={handleEmployeesAdded}
-							trigger={
-								<Button>
-									<Plus className="mr-2 h-4 w-4" />
-									Add First Employee
-								</Button>
-							}
-						/>
-					)}
-				</div>
-			) : (
-				<div className="border rounded-md bg-background">
-					<Table>
-						<TableHeader>
-							<TableRow>
-								<TableHead>Name</TableHead>
-								<TableHead>Contact</TableHead>
-								<TableHead>Position</TableHead>
-								<TableHead>Hourly Rate</TableHead>
-								<TableHead className="w-[80px]"></TableHead>
-							</TableRow>
-						</TableHeader>
-						<TableBody>
-							{filteredEmployees.map((employee) => (
-								<TableRow
-									key={employee.id}
-									className="cursor-pointer hover:bg-muted/50"
-									onClick={() => navigate(`/employee-detail/${employee.id}`)}>
-									<TableCell className="font-medium">
-										<div className="flex items-center gap-3">
-											<div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-												<span className="text-primary font-medium text-xs">
-													{employee.name
-														.split(" ")
-														.map((n) => n[0])
-														.join("")
-														.toUpperCase()}
-												</span>
-											</div>
-											<span>{employee.name}</span>
-										</div>
-									</TableCell>
-									<TableCell>
-										<div className="flex flex-col">
-											<div className="flex items-center text-sm">
-												<Mail className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-												<span>{employee.email}</span>
-											</div>
-											{employee.phone && (
-												<div className="flex items-center text-sm mt-1">
-													<Phone className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
-													<span>{employee.phone}</span>
-												</div>
-											)}
-										</div>
-									</TableCell>
-									<TableCell>{employee.position || employee.role}</TableCell>
-									<TableCell>
-										{employee.hourlyRate !== undefined ? (
-											<div className="flex items-center">
-												<DollarSign className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
-												<span>{employee.hourlyRate.toFixed(2)}/hr</span>
-											</div>
-										) : (
-											"-"
-										)}
-									</TableCell>
-									<TableCell onClick={(e) => e.stopPropagation()}>
-										<DropdownMenu>
-											<DropdownMenuTrigger asChild>
-												<Button
-													variant="ghost"
-													className="h-8 w-8 p-0">
-													<span className="sr-only">Open menu</span>
-													<MoreVertical className="h-4 w-4" />
-												</Button>
-											</DropdownMenuTrigger>
-											<DropdownMenuContent align="end">
-												<DropdownMenuLabel>Actions</DropdownMenuLabel>
-												<DropdownMenuItem
-													onClick={() =>
-														navigate(`/employee-detail/${employee.id}`)
-													}>
-													View Details
-												</DropdownMenuItem>
-												<EditEmployeeDialog
-													employee={employee}
-													onEmployeeUpdated={handleEmployeeUpdated}
-													trigger={
-														<DropdownMenuItem
-															onSelect={(e) => e.preventDefault()}>
-															Edit Employee
-														</DropdownMenuItem>
-													}
-												/>
-												<DropdownMenuSeparator />
-												<DeleteEmployeeDialog
-													employee={employee}
-													onEmployeeDeleted={handleEmployeeDeleted}
-													trigger={
-														<DropdownMenuItem
-															className="text-destructive"
-															onSelect={(e) => e.preventDefault()}>
-															Delete Employee
-														</DropdownMenuItem>
-													}
-												/>
-											</DropdownMenuContent>
-										</DropdownMenu>
-									</TableCell>
-								</TableRow>
-							))}
-						</TableBody>
-					</Table>
-				</div>
-			)}
+			<div className="rounded-md bg-background">
+				{employees.length === 0 ? (
+					<div className="text-center py-12 border-2 border-dashed rounded-lg">
+						<h3 className="text-lg font-medium mb-2">No employees found</h3>
+						<p className="text-sm text-muted-foreground mb-4">
+							Start by adding employees to your organization
+						</p>
+						{organization && (
+							<AddEmployeeDialog
+								organizationId={organization.id}
+								onEmployeesAdded={handleEmployeesAdded}
+								trigger={
+									<Button>
+										<Plus className="mr-2 h-4 w-4" />
+										Add First Employee
+									</Button>
+								}
+							/>
+						)}
+					</div>
+				) : (
+					<DataTable
+						columns={columns}
+						data={employees}
+						searchKey="name"
+						searchPlaceholder="Search employees..."
+					/>
+				)}
+			</div>
 		</div>
 	);
 }

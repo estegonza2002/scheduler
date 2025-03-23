@@ -1,31 +1,42 @@
 import { SignUpForm } from "../components/auth/SignUpForm";
 import { Link } from "react-router-dom";
+import {
+	Card,
+	CardContent,
+	CardFooter,
+	CardHeader,
+	CardTitle,
+	CardDescription,
+} from "../components/ui/card";
+import { Button } from "../components/ui/button";
 
 export default function SignUpPage() {
 	return (
 		<div className="min-h-screen flex items-center justify-center p-4 bg-muted">
-			<div className="w-full max-w-md">
-				<div className="text-center mb-8">
-					<h1 className="text-4xl font-bold text-primary mb-2">
+			<Card className="w-full max-w-md">
+				<CardHeader className="text-center">
+					<CardTitle className="text-4xl font-bold text-primary mb-2">
 						Employee Scheduler
-					</h1>
-					<p className="text-muted-foreground">
-						Create an account to get started
-					</p>
-				</div>
-				<SignUpForm />
-
-				<div className="mt-8 text-center">
+					</CardTitle>
+					<CardDescription>Create an account to get started</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<SignUpForm />
+				</CardContent>
+				<CardFooter className="flex flex-col">
 					<p className="text-sm text-muted-foreground mb-2">
 						Are you a business owner?
 					</p>
-					<Link
-						to="/business-signup"
-						className="text-primary font-semibold hover:underline text-sm">
-						Register a business account instead
-					</Link>
-				</div>
-			</div>
+					<Button
+						variant="link"
+						className="h-auto p-0 font-semibold"
+						asChild>
+						<Link to="/business-signup">
+							Register a business account instead
+						</Link>
+					</Button>
+				</CardFooter>
+			</Card>
 		</div>
 	);
 }

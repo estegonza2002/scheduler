@@ -40,12 +40,15 @@ import {
 	Check,
 	Building2,
 	X,
+	Info,
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Input as SearchInput } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { ScrollArea } from "./ui/scroll-area";
+import { Separator } from "./ui/separator";
+import { Avatar, AvatarFallback } from "./ui/avatar";
 
 interface ShiftCreationWizardProps {
 	scheduleId: string;
@@ -105,6 +108,7 @@ export function ShiftCreationWizard({
 	const [searchFilter, setSearchFilter] = useState<"name" | "role" | "all">(
 		"all"
 	);
+	const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
 
 	// Forms for each step
 	const locationForm = useForm<LocationData>({
@@ -155,20 +159,45 @@ export function ShiftCreationWizard({
 		fetchLocations();
 	}, [organizationId]);
 
-	// Filter locations based on search term
+	// Debounce search term
 	useEffect(() => {
-		if (!locationSearchTerm.trim()) {
+		const timer = setTimeout(() => {
+			setDebouncedSearchTerm(locationSearchTerm);
+		}, 300);
+
+		return () => clearTimeout(timer);
+	}, [locationSearchTerm]);
+
+	// Filter locations based on debounced search term
+	useEffect(() => {
+		if (!debouncedSearchTerm.trim()) {
 			setFilteredLocations(locations);
 			return;
 		}
 
-		const lowerCaseSearch = locationSearchTerm.toLowerCase();
-		const filtered = locations.filter((location) =>
-			location.name.toLowerCase().includes(lowerCaseSearch)
-		);
+		const searchTerms = debouncedSearchTerm
+			.toLowerCase()
+			.split(/\s+/)
+			.filter((term) => term.length > 0);
+
+		const filtered = locations.filter((location) => {
+			// If no search terms, include all locations
+			if (searchTerms.length === 0) return true;
+
+			// Check if all search terms match something in the location
+			return searchTerms.every((term) => {
+				return (
+					location.name.toLowerCase().includes(term) ||
+					(location.address && location.address.toLowerCase().includes(term)) ||
+					(location.city && location.city.toLowerCase().includes(term)) ||
+					(location.state && location.state.toLowerCase().includes(term)) ||
+					(location.zipCode && location.zipCode.toLowerCase().includes(term))
+				);
+			});
+		});
 
 		setFilteredLocations(filtered);
-	}, [locationSearchTerm, locations]);
+	}, [debouncedSearchTerm, locations]);
 
 	// Fetch employees
 	useEffect(() => {
@@ -283,12 +312,19 @@ export function ShiftCreationWizard({
 		setLocationSearchTerm("");
 	};
 
+	// Handle location selection and advance to next step
+	const handleLocationChange = (locationId: string) => {
+		// Set the location ID in the form
+		locationForm.setValue("locationId", locationId);
+
+		// Automatically submit the form to advance to the next step
+		handleLocationSelect({ locationId });
+	};
+
 	return (
 		<div className="flex flex-col h-full">
 			{/* Header with steps progress */}
 			<div>
-				<h2 className="text-xl font-semibold">Create New Shift</h2>
-
 				<div className="grid grid-cols-3 gap-2 my-4">
 					<div
 						className={cn(
@@ -336,23 +372,25 @@ export function ShiftCreationWizard({
 
 							{/* Location search */}
 							<div className="my-4">
-								<div className="flex items-center border rounded-md px-3 py-2 focus-within:ring-1 focus-within:ring-ring">
-									<Search className="h-4 w-4 mr-2 text-muted-foreground" />
-									<input
+								<div className="relative">
+									<Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+									<Input
 										type="text"
-										placeholder="Search locations..."
-										className="flex-1 outline-none bg-transparent"
+										placeholder="Search by name, address, or city..."
+										className="pl-9"
 										value={locationSearchTerm}
 										onChange={(e) => setLocationSearchTerm(e.target.value)}
 									/>
 									{locationSearchTerm && (
-										<button
+										<Button
 											type="button"
-											onClick={clearLocationSearch}
-											className="text-muted-foreground hover:text-foreground">
+											variant="ghost"
+											size="sm"
+											className="absolute right-0 top-0 h-full px-3"
+											onClick={clearLocationSearch}>
 											<X className="h-4 w-4" />
 											<span className="sr-only">Clear search</span>
-										</button>
+										</Button>
 									)}
 								</div>
 							</div>
@@ -360,61 +398,123 @@ export function ShiftCreationWizard({
 							{/* Location list */}
 							{loadingLocations ? (
 								<div className="flex items-center justify-center h-[300px] text-muted-foreground">
+									<div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full mr-2"></div>
 									Loading locations...
 								</div>
 							) : (
 								<div className="space-y-2 mt-4">
 									{filteredLocations.length === 0 ? (
-										<div className="text-center p-4 text-muted-foreground border rounded-md">
-											No locations found matching "{locationSearchTerm}"
-										</div>
+										<Card className="text-center">
+											<CardContent className="pt-6 pb-4 flex flex-col items-center">
+												<Search className="h-8 w-8 text-muted-foreground mb-2" />
+												<h3 className="font-medium">No locations found</h3>
+												{locationSearchTerm ? (
+													<>
+														<p className="text-muted-foreground mt-1 text-sm">
+															No locations match "{locationSearchTerm}"
+														</p>
+														<Button
+															variant="link"
+															onClick={clearLocationSearch}
+															className="mt-1">
+															Clear search
+														</Button>
+													</>
+												) : (
+													<p className="text-muted-foreground mt-1 text-sm">
+														Please add a location first
+													</p>
+												)}
+											</CardContent>
+										</Card>
 									) : (
-										filteredLocations.map((location) => (
-											<label
-												key={location.id}
-												htmlFor={`location-${location.id}`}
-												className={cn(
-													"block border rounded-md p-3 cursor-pointer",
-													locationForm.watch("locationId") === location.id
-														? "border-primary bg-primary/5"
-														: "hover:bg-accent/5"
-												)}>
-												<input
-													type="radio"
-													id={`location-${location.id}`}
-													value={location.id}
-													className="hidden"
-													{...locationForm.register("locationId", {
-														required: "Please select a location",
-													})}
-												/>
-												<div className="flex items-center justify-between">
-													<div className="flex items-center">
+										<ScrollArea className="h-[340px] pr-4">
+											<div className="space-y-4">
+												{/* Group locations by city if possible */}
+												{(() => {
+													// Group locations by city
+													const cities = [
+														...new Set(
+															filteredLocations.map(
+																(loc) => loc.city || "Other"
+															)
+														),
+													];
+
+													return cities.map((city) => (
 														<div
-															className={cn(
-																"h-8 w-8 rounded-md flex items-center justify-center mr-3",
-																locationForm.watch("locationId") === location.id
-																	? "bg-primary text-primary-foreground"
-																	: "bg-muted"
-															)}>
-															<Building2 className="h-4 w-4" />
-														</div>
-														<div>
-															<p className="font-medium">{location.name}</p>
-															{location.address && (
-																<p className="text-sm text-muted-foreground flex items-center">
-																	<MapPin className="h-3 w-3 mr-1" />
-																	{location.address}
-																</p>
+															key={city}
+															className="space-y-2">
+															{cities.length > 1 && (
+																<h4 className="text-sm font-medium text-muted-foreground ml-1 mb-2">
+																	{city}
+																</h4>
 															)}
+															{filteredLocations
+																.filter((loc) => (loc.city || "Other") === city)
+																.map((location) => (
+																	<Card
+																		key={location.id}
+																		onClick={() =>
+																			handleLocationChange(location.id)
+																		}
+																		className={cn(
+																			"cursor-pointer transition-colors",
+																			locationForm.watch("locationId") ===
+																				location.id
+																				? "border-primary bg-primary/5"
+																				: "hover:bg-accent/10"
+																		)}>
+																		<input
+																			type="radio"
+																			id={`location-${location.id}`}
+																			value={location.id}
+																			className="sr-only"
+																			{...locationForm.register("locationId")}
+																		/>
+																		<CardContent className="p-3">
+																			<div className="flex items-center justify-between">
+																				<div className="flex items-center">
+																					<div
+																						className={cn(
+																							"h-8 w-8 rounded-md flex items-center justify-center mr-3",
+																							locationForm.watch(
+																								"locationId"
+																							) === location.id
+																								? "bg-primary text-primary-foreground"
+																								: "bg-muted text-muted-foreground"
+																						)}>
+																						<Building2 className="h-4 w-4" />
+																					</div>
+																					<div>
+																						<p className="font-medium">
+																							{location.name}
+																						</p>
+																						{location.address && (
+																							<p className="text-sm text-muted-foreground flex items-center">
+																								<MapPin className="h-3 w-3 mr-1 shrink-0" />
+																								{location.address}
+																								{location.city &&
+																									`, ${location.city}`}
+																								{location.state &&
+																									` ${location.state}`}
+																							</p>
+																						)}
+																					</div>
+																				</div>
+																				{locationForm.watch("locationId") ===
+																					location.id && (
+																					<Check className="h-4 w-4 text-primary shrink-0" />
+																				)}
+																			</div>
+																		</CardContent>
+																	</Card>
+																))}
 														</div>
-													</div>
-													{locationForm.watch("locationId") === location.id && (
-														<Check className="h-4 w-4 text-primary" />
-													)}
-												</div>
-											</label>
-										))
+													));
+												})()}
+											</div>
+										</ScrollArea>
 									)}
 								</div>
 							)}
@@ -427,18 +527,17 @@ export function ShiftCreationWizard({
 						</div>
 
 						{/* Navigation Buttons */}
-						<div className="flex justify-between mt-4">
+						<div className="flex justify-between items-center">
 							<Button
 								type="button"
 								variant="outline"
 								onClick={onCancel}>
 								Cancel
 							</Button>
-							<Button
-								type="submit"
-								disabled={!locationForm.watch("locationId")}>
-								Next Step <ArrowRight className="ml-2 h-4 w-4" />
-							</Button>
+							<span className="text-muted-foreground text-sm flex items-center">
+								<Info className="h-4 w-4 mr-1" />
+								Click on a location to continue
+							</span>
 						</div>
 					</form>
 				</div>
@@ -478,39 +577,33 @@ export function ShiftCreationWizard({
 							{/* Date Selection */}
 							<div className="space-y-2">
 								<Label htmlFor="date">
-									Date <span className="text-red-500">*</span>
+									Date <span className="text-destructive">*</span>
 								</Label>
-								<input
-									type="hidden"
-									{...shiftForm.register("date", {
-										required: "Date is required",
-									})}
-								/>
 								<Popover>
 									<PopoverTrigger asChild>
 										<Button
 											variant="outline"
 											className={cn(
 												"w-full justify-start text-left font-normal",
-												!selectedDate && "text-muted-foreground"
-											)}
-											type="button">
+												!shiftForm.watch("date") && "text-muted-foreground"
+											)}>
 											<CalendarIcon className="mr-2 h-4 w-4" />
-											{selectedDate ? (
-												format(selectedDate, "PPP")
+											{shiftForm.watch("date") ? (
+												format(new Date(shiftForm.watch("date")), "PPP")
 											) : (
 												<span>Pick a date</span>
 											)}
 										</Button>
 									</PopoverTrigger>
-									<PopoverContent
-										className="w-auto p-0"
-										align="start">
+									<PopoverContent className="w-auto p-0">
 										<Calendar
 											mode="single"
-											selected={selectedDate}
+											selected={
+												shiftForm.watch("date")
+													? new Date(shiftForm.watch("date"))
+													: undefined
+											}
 											onSelect={(date) => {
-												setSelectedDate(date);
 												if (date) {
 													shiftForm.setValue(
 														"date",
@@ -523,7 +616,7 @@ export function ShiftCreationWizard({
 									</PopoverContent>
 								</Popover>
 								{shiftForm.formState.errors.date && (
-									<p className="text-sm text-red-500">
+									<p className="text-sm text-destructive">
 										{shiftForm.formState.errors.date.message}
 									</p>
 								)}
@@ -533,7 +626,7 @@ export function ShiftCreationWizard({
 							<div className="grid grid-cols-2 gap-4">
 								<div className="space-y-2">
 									<Label htmlFor="startTime">
-										Start Time <span className="text-red-500">*</span>
+										Start Time <span className="text-destructive">*</span>
 									</Label>
 									<Input
 										id="startTime"
@@ -543,7 +636,7 @@ export function ShiftCreationWizard({
 										})}
 									/>
 									{shiftForm.formState.errors.startTime && (
-										<p className="text-sm text-red-500">
+										<p className="text-sm text-destructive">
 											{shiftForm.formState.errors.startTime.message}
 										</p>
 									)}
@@ -551,7 +644,7 @@ export function ShiftCreationWizard({
 
 								<div className="space-y-2">
 									<Label htmlFor="endTime">
-										End Time <span className="text-red-500">*</span>
+										End Time <span className="text-destructive">*</span>
 									</Label>
 									<Input
 										id="endTime"
@@ -561,14 +654,14 @@ export function ShiftCreationWizard({
 										})}
 									/>
 									{shiftForm.formState.errors.endTime && (
-										<p className="text-sm text-red-500">
+										<p className="text-sm text-destructive">
 											{shiftForm.formState.errors.endTime.message}
 										</p>
 									)}
 								</div>
 							</div>
 
-							{/* Notes */}
+							{/* Notes field */}
 							<div className="space-y-2">
 								<Label htmlFor="notes">Notes (Optional)</Label>
 								<Textarea
@@ -579,21 +672,18 @@ export function ShiftCreationWizard({
 							</div>
 						</div>
 
+						{/* Separator */}
+						<Separator className="my-4" />
+
 						{/* Navigation Buttons */}
-						<div className="flex justify-between mt-4">
+						<div className="flex justify-between">
 							<Button
 								type="button"
 								variant="outline"
 								onClick={() => setStep("select-location")}>
 								<ArrowLeft className="mr-2 h-4 w-4" /> Back
 							</Button>
-							<Button
-								type="submit"
-								disabled={
-									!shiftForm.watch("date") ||
-									!shiftForm.watch("startTime") ||
-									!shiftForm.watch("endTime")
-								}>
+							<Button type="submit">
 								Next Step <ArrowRight className="ml-2 h-4 w-4" />
 							</Button>
 						</div>
@@ -605,41 +695,41 @@ export function ShiftCreationWizard({
 			{step === "assign-employee" && locationData && shiftData && (
 				<div className="flex-1 overflow-hidden flex flex-col">
 					{/* Shift summary */}
-					<div className="p-3 rounded-md bg-muted/30 mb-4">
-						<div className="flex flex-wrap gap-3 text-sm">
-							<div className="flex items-center">
-								<MapPin className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
-								<span>{getLocationName(locationData.locationId)}</span>
+					<Card className="mb-4">
+						<CardContent className="pt-6 pb-4">
+							<div className="flex flex-wrap gap-3 text-sm">
+								<div className="flex items-center">
+									<MapPin className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
+									<span>{getLocationName(locationData.locationId)}</span>
+								</div>
+								<div className="flex items-center">
+									<CalendarIcon className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
+									<span>{format(new Date(shiftData.date), "MMM d, yyyy")}</span>
+								</div>
+								<div className="flex items-center">
+									<Clock className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
+									<span>
+										{shiftData.startTime} - {shiftData.endTime}
+									</span>
+								</div>
 							</div>
-							<div className="flex items-center">
-								<CalendarIcon className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
-								<span>{format(new Date(shiftData.date), "MMM d, yyyy")}</span>
-							</div>
-							<div className="flex items-center">
-								<Clock className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
-								<span>
-									{shiftData.startTime} - {shiftData.endTime}
-								</span>
-							</div>
-						</div>
-					</div>
+						</CardContent>
+					</Card>
 
 					<form
 						onSubmit={employeeForm.handleSubmit(handleEmployeeAssignSubmit)}
 						className="flex-1 flex flex-col">
 						{/* Search and filter controls */}
 						<div className="flex gap-3 mb-4">
-							<div className="flex-1">
-								<div className="flex items-center border rounded-md px-3 py-2 focus-within:ring-1 focus-within:ring-ring">
-									<Search className="h-4 w-4 mr-2 text-muted-foreground" />
-									<input
-										type="text"
-										placeholder="Search employees..."
-										className="flex-1 outline-none bg-transparent"
-										value={searchTerm}
-										onChange={(e) => setSearchTerm(e.target.value)}
-									/>
-								</div>
+							<div className="flex-1 relative">
+								<Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+								<Input
+									type="text"
+									placeholder="Search employees..."
+									className="pl-9"
+									value={searchTerm}
+									onChange={(e) => setSearchTerm(e.target.value)}
+								/>
 							</div>
 							<Select
 								value={searchFilter}
@@ -660,49 +750,58 @@ export function ShiftCreationWizard({
 						{/* Employee list */}
 						<div className="flex-1 overflow-y-auto">
 							{loadingEmployees ? (
-								<div className="p-4 text-center text-muted-foreground">
+								<div className="flex items-center justify-center py-6 text-muted-foreground">
+									<div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full mr-2"></div>
 									Loading employees...
 								</div>
 							) : filteredEmployees.length === 0 ? (
-								<div className="p-4 text-center text-muted-foreground border rounded-md">
-									No employees match your search
-								</div>
+								<Card className="text-center">
+									<CardContent className="pt-6 pb-4">
+										No employees match your search
+									</CardContent>
+								</Card>
 							) : (
 								<div className="space-y-2">
 									{filteredEmployees.map((employee) => (
-										<label
+										<Card
 											key={employee.id}
-											htmlFor={`employee-${employee.id}`}
 											className={cn(
-												"block border rounded-md p-3 cursor-pointer",
+												"cursor-pointer",
 												employeeForm.watch("employeeId") === employee.id
 													? "border-primary bg-primary/5"
 													: "hover:bg-accent/5"
-											)}>
+											)}
+											onClick={() =>
+												employeeForm.setValue("employeeId", employee.id)
+											}>
 											<input
 												type="radio"
 												id={`employee-${employee.id}`}
 												value={employee.id}
-												className="hidden"
+												className="sr-only"
 												{...employeeForm.register("employeeId")}
 											/>
-											<div className="flex items-center justify-between">
-												<div className="flex items-center">
-													<div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center mr-3 text-primary">
-														{employee.name.charAt(0)}
+											<CardContent className="p-3">
+												<div className="flex items-center justify-between">
+													<div className="flex items-center">
+														<Avatar className="h-8 w-8 mr-3">
+															<AvatarFallback className="bg-primary/10 text-primary">
+																{employee.name.charAt(0)}
+															</AvatarFallback>
+														</Avatar>
+														<div>
+															<p className="font-medium">{employee.name}</p>
+															<p className="text-sm text-muted-foreground">
+																{employee.role || "No role"}
+															</p>
+														</div>
 													</div>
-													<div>
-														<p className="font-medium">{employee.name}</p>
-														<p className="text-sm text-muted-foreground">
-															{employee.role || "No role"}
-														</p>
-													</div>
+													{employeeForm.watch("employeeId") === employee.id && (
+														<Check className="h-4 w-4 text-primary" />
+													)}
 												</div>
-												{employeeForm.watch("employeeId") === employee.id && (
-													<Check className="h-4 w-4 text-primary" />
-												)}
-											</div>
-										</label>
+											</CardContent>
+										</Card>
 									))}
 								</div>
 							)}
@@ -721,13 +820,14 @@ export function ShiftCreationWizard({
 
 						{/* Error message */}
 						{employeeForm.formState.errors.employeeId && (
-							<p className="text-sm text-red-500">
+							<p className="text-sm text-destructive">
 								{employeeForm.formState.errors.employeeId.message}
 							</p>
 						)}
 
 						{/* Navigation buttons */}
-						<div className="flex justify-between mt-4">
+						<Separator className="my-4" />
+						<div className="flex justify-between">
 							<Button
 								type="button"
 								variant="outline"

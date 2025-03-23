@@ -1,5 +1,13 @@
 import * as React from "react";
 import { cn } from "../../lib/utils";
+import {
+	Card,
+	CardContent,
+	CardHeader,
+	CardTitle,
+	CardDescription,
+	CardFooter,
+} from "../ui/card";
 
 interface PageLayoutProps {
 	children: React.ReactNode;
@@ -20,7 +28,7 @@ interface PageHeaderProps {
 }
 
 export function PageHeader({ children, className }: PageHeaderProps) {
-	return <header className={cn("mb-6", className)}>{children}</header>;
+	return <CardHeader className={cn("mb-6", className)}>{children}</CardHeader>;
 }
 
 interface PageTitleProps {
@@ -30,9 +38,9 @@ interface PageTitleProps {
 
 export function PageTitle({ children, className }: PageTitleProps) {
 	return (
-		<h1 className={cn("text-2xl font-bold tracking-tight", className)}>
+		<CardTitle className={cn("text-2xl font-bold tracking-tight", className)}>
 			{children}
-		</h1>
+		</CardTitle>
 	);
 }
 
@@ -43,7 +51,9 @@ interface PageDescriptionProps {
 
 export function PageDescription({ children, className }: PageDescriptionProps) {
 	return (
-		<p className={cn("text-muted-foreground mt-2", className)}>{children}</p>
+		<CardDescription className={cn("mt-2", className)}>
+			{children}
+		</CardDescription>
 	);
 }
 
@@ -53,7 +63,9 @@ interface PageContentProps {
 }
 
 export function PageContent({ children, className }: PageContentProps) {
-	return <main className={cn("w-full", className)}>{children}</main>;
+	return (
+		<CardContent className={cn("w-full", className)}>{children}</CardContent>
+	);
 }
 
 interface PageFooterProps {
@@ -63,6 +75,8 @@ interface PageFooterProps {
 
 export function PageFooter({ children, className }: PageFooterProps) {
 	return (
-		<footer className={cn("mt-8 pt-4 border-t", className)}>{children}</footer>
+		<CardFooter className={cn("mt-8 pt-4 border-t", className)}>
+			{children}
+		</CardFooter>
 	);
 }
