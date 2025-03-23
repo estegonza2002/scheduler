@@ -3,6 +3,7 @@ import {
 	useLocation,
 	useNavigate,
 	useSearchParams,
+	Link,
 } from "react-router-dom";
 import {
 	Sidebar,
@@ -21,6 +22,8 @@ import {
 	Grid,
 	User,
 	MapPin,
+	RefreshCw,
+	Settings,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { format, addDays, subDays } from "date-fns";
@@ -30,6 +33,7 @@ import { ShiftCreationSheet } from "../ShiftCreationSheet";
 import { AddEmployeeDialog } from "../AddEmployeeDialog";
 import { AddLocationDialog } from "../AddLocationDialog";
 import { OrganizationsAPI, Organization } from "../../api";
+import { NotificationIcon } from "../notification-icon";
 
 export default function AppLayoutNew() {
 	const location = useLocation();
@@ -42,6 +46,9 @@ export default function AppLayoutNew() {
 	const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 	const organizationId = searchParams.get("organizationId") || "org-1";
 	const [organization, setOrganization] = useState<Organization | null>(null);
+
+	// For notifications page specific controls
+	const isNotificationsPage = location.pathname === "/notifications";
 
 	// Fetch organization
 	useEffect(() => {
@@ -88,6 +95,7 @@ export default function AppLayoutNew() {
 		if (path === "/locations") return "Locations";
 		if (path === "/business-profile") return "Business Profile";
 		if (path === "/profile") return "Profile";
+		if (path === "/notifications") return "Notifications";
 		return "Scheduler";
 	};
 
@@ -164,7 +172,22 @@ export default function AppLayoutNew() {
 						<div className="text-lg font-semibold">{getPageTitle()}</div>
 					</div>
 
-					{renderActionButton()}
+					<div className="flex items-center gap-2">
+						{!isNotificationsPage && <NotificationIcon />}
+						{isNotificationsPage && (
+							<Button
+								variant="default"
+								size="icon"
+								className="bg-black hover:bg-black/90 text-white"
+								asChild
+								title="Notification settings">
+								<Link to="/notification-settings">
+									<Settings className="h-4 w-4" />
+								</Link>
+							</Button>
+						)}
+						{renderActionButton()}
+					</div>
 				</header>
 				<main className="flex-1 overflow-auto mx-auto w-full">
 					<Outlet />

@@ -77,6 +77,21 @@ export interface Location {
 	isActive?: boolean;
 }
 
+export interface Notification {
+	id: string;
+	userId: string;
+	organizationId: string;
+	type: "shift_update" | "shift_reminder" | "request_update" | "system";
+	title: string;
+	message: string;
+	isRead: boolean;
+	isActionRequired?: boolean;
+	actionUrl?: string;
+	relatedEntityId?: string;
+	relatedEntityType?: string;
+	createdAt: string;
+}
+
 // Mock data
 const mockOrganizations: Organization[] = [
 	{
@@ -714,6 +729,102 @@ const mockShiftAssignments: ShiftAssignment[] = [
 	},
 ];
 
+// Generate mock notifications
+const mockNotifications: Notification[] = [
+	{
+		id: "notif-1",
+		userId: "user-1",
+		organizationId: "org-1",
+		type: "shift_update",
+		title: "Shift Schedule Updated",
+		message: "Your shift on Monday has been rescheduled to 9 AM - 5 PM",
+		isRead: false,
+		isActionRequired: true,
+		actionUrl: "/shifts/shift-123",
+		relatedEntityId: "shift-123",
+		relatedEntityType: "shift",
+		createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 minutes ago
+	},
+	{
+		id: "notif-2",
+		userId: "user-1",
+		organizationId: "org-1",
+		type: "shift_reminder",
+		title: "Upcoming Shift Tomorrow",
+		message:
+			"Reminder: You have a shift tomorrow from 10 AM - 6 PM at Downtown Location",
+		isRead: true,
+		actionUrl: "/shifts/shift-456",
+		relatedEntityId: "shift-456",
+		relatedEntityType: "shift",
+		createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
+	},
+	{
+		id: "notif-3",
+		userId: "user-1",
+		organizationId: "org-1",
+		type: "request_update",
+		title: "Time Off Request Approved",
+		message: "Your time off request for next Friday has been approved",
+		isRead: false,
+		actionUrl: "/profile",
+		relatedEntityId: "request-789",
+		relatedEntityType: "timeoff_request",
+		createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // 1 day ago
+	},
+	{
+		id: "notif-4",
+		userId: "user-1",
+		organizationId: "org-1",
+		type: "system",
+		title: "Profile Update Required",
+		message: "Please update your contact information in your profile",
+		isRead: false,
+		isActionRequired: true,
+		actionUrl: "/profile",
+		createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(), // 2 days ago
+	},
+	{
+		id: "notif-5",
+		userId: "user-1",
+		organizationId: "org-1",
+		type: "shift_update",
+		title: "New Shift Available",
+		message: "A new shift is available for Tuesday. Tap to claim it.",
+		isRead: false,
+		isActionRequired: true,
+		actionUrl: "/shifts/shift-789",
+		relatedEntityId: "shift-789",
+		relatedEntityType: "shift",
+		createdAt: new Date(Date.now() - 1000 * 60 * 120).toISOString(), // 2 hours ago
+	},
+	{
+		id: "notif-6",
+		userId: "user-1",
+		organizationId: "org-1",
+		type: "shift_reminder",
+		title: "Clock-in Reminder",
+		message: "Your shift started 5 minutes ago. Don't forget to clock in!",
+		isRead: false,
+		isActionRequired: true,
+		actionUrl: "/shifts/shift-101",
+		relatedEntityId: "shift-101",
+		relatedEntityType: "shift",
+		createdAt: new Date(Date.now() - 1000 * 60 * 5).toISOString(), // 5 minutes ago
+	},
+	{
+		id: "notif-7",
+		userId: "user-1",
+		organizationId: "org-1",
+		type: "system",
+		title: "Welcome to Scheduler!",
+		message: "Thank you for joining Scheduler. Explore the app to get started.",
+		isRead: true,
+		actionUrl: "/dashboard",
+		createdAt: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString(), // 3 days ago
+	},
+];
+
 // Helper function to simulate API delay
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -1142,6 +1253,92 @@ export const ShiftAssignmentsAPI = {
 
 		mockShiftAssignments.splice(index, 1);
 		toast.success("Employee removed from shift successfully!");
+	},
+};
+
+// Notifications API
+export const NotificationsAPI = {
+	getAll: async (userId: string): Promise<Notification[]> => {
+		await delay(500); // Simulate network delay
+
+		// Return copy of mock data sorted by date (newest first)
+		return [...mockNotifications]
+			.filter((notification) => notification.userId === userId)
+			.sort(
+				(a, b) =>
+					new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+			);
+	},
+
+	getUnread: async (userId: string): Promise<Notification[]> => {
+		await delay(300); // Simulate network delay
+
+		return [...mockNotifications]
+			.filter(
+				(notification) => notification.userId === userId && !notification.isRead
+			)
+			.sort(
+				(a, b) =>
+					new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+			);
+	},
+
+	markAsRead: async (notificationId: string): Promise<void> => {
+		await delay(300); // Simulate network delay
+
+		const notification = mockNotifications.find((n) => n.id === notificationId);
+		if (notification) {
+			notification.isRead = true;
+		}
+	},
+
+	markAllAsRead: async (userId: string): Promise<void> => {
+		await delay(500); // Simulate network delay
+
+		mockNotifications
+			.filter((notification) => notification.userId === userId)
+			.forEach((notification) => {
+				notification.isRead = true;
+			});
+	},
+
+	dismissNotification: async (notificationId: string): Promise<void> => {
+		await delay(300); // Simulate network delay
+
+		const index = mockNotifications.findIndex((n) => n.id === notificationId);
+		if (index !== -1) {
+			mockNotifications.splice(index, 1);
+		}
+	},
+
+	dismissAllNotifications: async (userId: string): Promise<void> => {
+		await delay(500); // Simulate network delay
+
+		const userNotifications = mockNotifications.filter(
+			(n) => n.userId === userId
+		);
+		userNotifications.forEach((notification) => {
+			const index = mockNotifications.indexOf(notification);
+			if (index !== -1) {
+				mockNotifications.splice(index, 1);
+			}
+		});
+	},
+
+	// Method to simulate creating a new notification (for demo purposes)
+	createNotification: async (
+		notification: Omit<Notification, "id" | "createdAt">
+	): Promise<Notification> => {
+		await delay(300); // Simulate network delay
+
+		const newNotification: Notification = {
+			...notification,
+			id: `notif-${generateUniqueId()}`,
+			createdAt: new Date().toISOString(),
+		};
+
+		mockNotifications.push(newNotification);
+		return newNotification;
 	},
 };
 

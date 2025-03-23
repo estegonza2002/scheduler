@@ -25,6 +25,7 @@ import { useAuth } from "../lib/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Separator } from "../components/ui/separator";
 import { ChevronLeft } from "lucide-react";
+import { Switch } from "../components/ui/switch";
 
 // Define form schema for validation
 const profileSchema = z.object({
@@ -46,8 +47,19 @@ const passwordSchema = z
 		path: ["confirmPassword"],
 	});
 
+// Define preferences schema
+const preferencesSchema = z.object({
+	emailNotifications: z.boolean().default(true),
+	smsNotifications: z.boolean().default(false),
+	pushNotifications: z.boolean().default(true),
+	scheduleUpdates: z.boolean().default(true),
+	shiftReminders: z.boolean().default(true),
+	systemAnnouncements: z.boolean().default(true),
+});
+
 type ProfileFormValues = z.infer<typeof profileSchema>;
 type PasswordFormValues = z.infer<typeof passwordSchema>;
+type PreferencesFormValues = z.infer<typeof preferencesSchema>;
 
 export default function ProfilePage() {
 	const { user } = useAuth();
@@ -72,6 +84,18 @@ export default function ProfilePage() {
 			currentPassword: "",
 			newPassword: "",
 			confirmPassword: "",
+		},
+	});
+
+	const preferencesForm = useForm<PreferencesFormValues>({
+		resolver: zodResolver(preferencesSchema),
+		defaultValues: {
+			emailNotifications: true,
+			smsNotifications: false,
+			pushNotifications: true,
+			scheduleUpdates: true,
+			shiftReminders: true,
+			systemAnnouncements: true,
 		},
 	});
 
@@ -102,6 +126,19 @@ export default function ProfilePage() {
 			});
 		} catch (error: any) {
 			toast.error("Failed to update password: " + error.message);
+		} finally {
+			setIsLoading(false);
+		}
+	}
+
+	async function onPreferencesSubmit(values: PreferencesFormValues) {
+		setIsLoading(true);
+		try {
+			// In a real implementation, this would update the user preferences in the database
+			toast.success("Preferences updated successfully");
+			console.log("Preferences update values:", values);
+		} catch (error: any) {
+			toast.error("Failed to update preferences: " + error.message);
 		} finally {
 			setIsLoading(false);
 		}
@@ -151,174 +188,310 @@ export default function ProfilePage() {
 				</TabsList>
 
 				<TabsContent value="profile">
-					<Card>
-						<CardHeader>
-							<CardTitle>Profile Information</CardTitle>
-							<CardDescription>
+					<div>
+						<div>
+							<h2 className="text-xl font-semibold mb-1">
+								Profile Information
+							</h2>
+							<p className="text-sm text-muted-foreground mb-4">
 								Update your personal information
-							</CardDescription>
-						</CardHeader>
-						<CardContent>
-							<form
-								onSubmit={profileForm.handleSubmit(onProfileSubmit)}
-								className="space-y-6">
-								<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-									<div className="space-y-2">
-										<Label htmlFor="firstName">First Name</Label>
-										<Input
-											id="firstName"
-											placeholder="Enter your first name"
-											{...profileForm.register("firstName")}
-										/>
-										{profileForm.formState.errors.firstName && (
-											<p className="text-sm text-red-500">
-												{profileForm.formState.errors.firstName.message}
-											</p>
-										)}
-									</div>
+							</p>
+						</div>
 
-									<div className="space-y-2">
-										<Label htmlFor="lastName">Last Name</Label>
-										<Input
-											id="lastName"
-											placeholder="Enter your last name"
-											{...profileForm.register("lastName")}
-										/>
-										{profileForm.formState.errors.lastName && (
-											<p className="text-sm text-red-500">
-												{profileForm.formState.errors.lastName.message}
-											</p>
-										)}
-									</div>
-								</div>
-
+						<form
+							onSubmit={profileForm.handleSubmit(onProfileSubmit)}
+							className="space-y-4">
+							<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 								<div className="space-y-2">
-									<Label htmlFor="email">Email</Label>
+									<Label htmlFor="firstName">First Name</Label>
 									<Input
-										id="email"
-										type="email"
-										placeholder="your@email.com"
-										{...profileForm.register("email")}
-										disabled // Email shouldn't be editable after registration
+										id="firstName"
+										placeholder="Enter your first name"
+										{...profileForm.register("firstName")}
 									/>
-									{profileForm.formState.errors.email && (
+									{profileForm.formState.errors.firstName && (
 										<p className="text-sm text-red-500">
-											{profileForm.formState.errors.email.message}
+											{profileForm.formState.errors.firstName.message}
 										</p>
 									)}
 								</div>
 
 								<div className="space-y-2">
-									<Label htmlFor="phone">Phone Number (Optional)</Label>
+									<Label htmlFor="lastName">Last Name</Label>
 									<Input
-										id="phone"
-										placeholder="Enter your phone number"
-										{...profileForm.register("phone")}
+										id="lastName"
+										placeholder="Enter your last name"
+										{...profileForm.register("lastName")}
 									/>
+									{profileForm.formState.errors.lastName && (
+										<p className="text-sm text-red-500">
+											{profileForm.formState.errors.lastName.message}
+										</p>
+									)}
 								</div>
+							</div>
 
-								<div className="space-y-2">
-									<Label htmlFor="position">Position/Title (Optional)</Label>
-									<Input
-										id="position"
-										placeholder="Enter your position or title"
-										{...profileForm.register("position")}
-									/>
-								</div>
+							<div className="space-y-2">
+								<Label htmlFor="email">Email</Label>
+								<Input
+									id="email"
+									type="email"
+									placeholder="your@email.com"
+									{...profileForm.register("email")}
+									disabled // Email shouldn't be editable after registration
+								/>
+								{profileForm.formState.errors.email && (
+									<p className="text-sm text-red-500">
+										{profileForm.formState.errors.email.message}
+									</p>
+								)}
+							</div>
 
-								<Button
-									type="submit"
-									className="w-full"
-									disabled={isLoading}>
-									{isLoading ? "Saving..." : "Save Changes"}
-								</Button>
-							</form>
-						</CardContent>
-					</Card>
+							<div className="space-y-2">
+								<Label htmlFor="phone">Phone Number (Optional)</Label>
+								<Input
+									id="phone"
+									placeholder="Enter your phone number"
+									{...profileForm.register("phone")}
+								/>
+							</div>
+
+							<div className="space-y-2">
+								<Label htmlFor="position">Position/Title (Optional)</Label>
+								<Input
+									id="position"
+									placeholder="Enter your position or title"
+									{...profileForm.register("position")}
+								/>
+							</div>
+
+							<Button
+								type="submit"
+								className="w-full mt-6"
+								disabled={isLoading}>
+								{isLoading ? "Saving..." : "Save Changes"}
+							</Button>
+						</form>
+					</div>
 				</TabsContent>
 
 				<TabsContent value="password">
-					<Card>
-						<CardHeader>
-							<CardTitle>Change Password</CardTitle>
-							<CardDescription>Update your account password</CardDescription>
-						</CardHeader>
-						<CardContent>
-							<form
-								onSubmit={passwordForm.handleSubmit(onPasswordSubmit)}
-								className="space-y-4">
-								<div className="space-y-2">
-									<Label htmlFor="currentPassword">Current Password</Label>
-									<Input
-										id="currentPassword"
-										type="password"
-										placeholder="Enter your current password"
-										{...passwordForm.register("currentPassword")}
-									/>
-									{passwordForm.formState.errors.currentPassword && (
-										<p className="text-sm text-red-500">
-											{passwordForm.formState.errors.currentPassword.message}
-										</p>
-									)}
-								</div>
+					<div>
+						<div>
+							<h2 className="text-xl font-semibold mb-1">Change Password</h2>
+							<p className="text-sm text-muted-foreground mb-4">
+								Update your account password
+							</p>
+						</div>
 
-								<Separator className="my-4" />
+						<form
+							onSubmit={passwordForm.handleSubmit(onPasswordSubmit)}
+							className="space-y-4">
+							<div className="space-y-2">
+								<Label htmlFor="currentPassword">Current Password</Label>
+								<Input
+									id="currentPassword"
+									type="password"
+									placeholder="Enter your current password"
+									{...passwordForm.register("currentPassword")}
+								/>
+								{passwordForm.formState.errors.currentPassword && (
+									<p className="text-sm text-red-500">
+										{passwordForm.formState.errors.currentPassword.message}
+									</p>
+								)}
+							</div>
 
-								<div className="space-y-2">
-									<Label htmlFor="newPassword">New Password</Label>
-									<Input
-										id="newPassword"
-										type="password"
-										placeholder="Enter your new password"
-										{...passwordForm.register("newPassword")}
-									/>
-									{passwordForm.formState.errors.newPassword && (
-										<p className="text-sm text-red-500">
-											{passwordForm.formState.errors.newPassword.message}
-										</p>
-									)}
-								</div>
+							<div className="space-y-2 mt-4">
+								<Label htmlFor="newPassword">New Password</Label>
+								<Input
+									id="newPassword"
+									type="password"
+									placeholder="Enter your new password"
+									{...passwordForm.register("newPassword")}
+								/>
+								{passwordForm.formState.errors.newPassword && (
+									<p className="text-sm text-red-500">
+										{passwordForm.formState.errors.newPassword.message}
+									</p>
+								)}
+							</div>
 
-								<div className="space-y-2">
-									<Label htmlFor="confirmPassword">Confirm New Password</Label>
-									<Input
-										id="confirmPassword"
-										type="password"
-										placeholder="Confirm your new password"
-										{...passwordForm.register("confirmPassword")}
-									/>
-									{passwordForm.formState.errors.confirmPassword && (
-										<p className="text-sm text-red-500">
-											{passwordForm.formState.errors.confirmPassword.message}
-										</p>
-									)}
-								</div>
+							<div className="space-y-2">
+								<Label htmlFor="confirmPassword">Confirm New Password</Label>
+								<Input
+									id="confirmPassword"
+									type="password"
+									placeholder="Confirm your new password"
+									{...passwordForm.register("confirmPassword")}
+								/>
+								{passwordForm.formState.errors.confirmPassword && (
+									<p className="text-sm text-red-500">
+										{passwordForm.formState.errors.confirmPassword.message}
+									</p>
+								)}
+							</div>
 
-								<Button
-									type="submit"
-									className="w-full"
-									disabled={isLoading}>
-									{isLoading ? "Updating..." : "Update Password"}
-								</Button>
-							</form>
-						</CardContent>
-					</Card>
+							<Button
+								type="submit"
+								className="w-full mt-6"
+								disabled={isLoading}>
+								{isLoading ? "Updating..." : "Update Password"}
+							</Button>
+						</form>
+					</div>
 				</TabsContent>
 
 				<TabsContent value="notifications">
-					<Card>
-						<CardHeader>
-							<CardTitle>Notification Preferences</CardTitle>
-							<CardDescription>
-								Manage how you receive notifications
-							</CardDescription>
-						</CardHeader>
-						<CardContent>
-							<p className="text-center py-10 text-muted-foreground">
-								Notification preferences will be available in a future update.
+					<div>
+						<div>
+							<h2 className="text-xl font-semibold mb-1">
+								Notification Preferences
+							</h2>
+							<p className="text-sm text-muted-foreground mb-4">
+								Manage your notification settings and preferences
 							</p>
-						</CardContent>
-					</Card>
+						</div>
+
+						<form
+							onSubmit={preferencesForm.handleSubmit(onPreferencesSubmit)}
+							className="space-y-4">
+							<div className="space-y-3">
+								<h3 className="text-lg font-medium">Notification Channels</h3>
+
+								<div className="flex items-center justify-between py-2">
+									<div className="space-y-0.5">
+										<Label
+											htmlFor="emailNotifications"
+											className="text-base font-medium">
+											Email Notifications
+										</Label>
+										<p className="text-sm text-muted-foreground">
+											Receive updates and alerts via email
+										</p>
+									</div>
+									<Switch
+										id="emailNotifications"
+										checked={preferencesForm.watch("emailNotifications")}
+										onCheckedChange={(checked) =>
+											preferencesForm.setValue("emailNotifications", checked)
+										}
+									/>
+								</div>
+
+								<div className="flex items-center justify-between py-2">
+									<div className="space-y-0.5">
+										<Label
+											htmlFor="smsNotifications"
+											className="text-base font-medium">
+											SMS Notifications
+										</Label>
+										<p className="text-sm text-muted-foreground">
+											Receive updates and alerts via text message
+										</p>
+									</div>
+									<Switch
+										id="smsNotifications"
+										checked={preferencesForm.watch("smsNotifications")}
+										onCheckedChange={(checked) =>
+											preferencesForm.setValue("smsNotifications", checked)
+										}
+									/>
+								</div>
+
+								<div className="flex items-center justify-between py-2">
+									<div className="space-y-0.5">
+										<Label
+											htmlFor="pushNotifications"
+											className="text-base font-medium">
+											Push Notifications
+										</Label>
+										<p className="text-sm text-muted-foreground">
+											Receive push notifications on your device
+										</p>
+									</div>
+									<Switch
+										id="pushNotifications"
+										checked={preferencesForm.watch("pushNotifications")}
+										onCheckedChange={(checked) =>
+											preferencesForm.setValue("pushNotifications", checked)
+										}
+									/>
+								</div>
+							</div>
+
+							<div className="space-y-3 mt-6">
+								<h3 className="text-lg font-medium">Notification Types</h3>
+
+								<div className="flex items-center justify-between py-2">
+									<div className="space-y-0.5">
+										<Label
+											htmlFor="scheduleUpdates"
+											className="text-base font-medium">
+											Schedule Updates
+										</Label>
+										<p className="text-sm text-muted-foreground">
+											Get notified when your schedule changes
+										</p>
+									</div>
+									<Switch
+										id="scheduleUpdates"
+										checked={preferencesForm.watch("scheduleUpdates")}
+										onCheckedChange={(checked) =>
+											preferencesForm.setValue("scheduleUpdates", checked)
+										}
+									/>
+								</div>
+
+								<div className="flex items-center justify-between py-2">
+									<div className="space-y-0.5">
+										<Label
+											htmlFor="shiftReminders"
+											className="text-base font-medium">
+											Shift Reminders
+										</Label>
+										<p className="text-sm text-muted-foreground">
+											Receive reminders before your scheduled shifts
+										</p>
+									</div>
+									<Switch
+										id="shiftReminders"
+										checked={preferencesForm.watch("shiftReminders")}
+										onCheckedChange={(checked) =>
+											preferencesForm.setValue("shiftReminders", checked)
+										}
+									/>
+								</div>
+
+								<div className="flex items-center justify-between py-2">
+									<div className="space-y-0.5">
+										<Label
+											htmlFor="systemAnnouncements"
+											className="text-base font-medium">
+											System Announcements
+										</Label>
+										<p className="text-sm text-muted-foreground">
+											Stay informed about important system updates
+										</p>
+									</div>
+									<Switch
+										id="systemAnnouncements"
+										checked={preferencesForm.watch("systemAnnouncements")}
+										onCheckedChange={(checked) =>
+											preferencesForm.setValue("systemAnnouncements", checked)
+										}
+									/>
+								</div>
+							</div>
+
+							<Button
+								type="submit"
+								className="w-full mt-6"
+								disabled={isLoading}>
+								{isLoading ? "Saving..." : "Save Notifications"}
+							</Button>
+						</form>
+					</div>
 				</TabsContent>
 			</Tabs>
 		</div>

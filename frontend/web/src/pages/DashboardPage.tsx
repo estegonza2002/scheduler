@@ -7,11 +7,33 @@ import {
 	CardHeader,
 	CardTitle,
 } from "../components/ui/card";
-import { CalendarCheck, Clock, FileText } from "lucide-react";
+import { CalendarCheck, Clock, FileText, Bell } from "lucide-react";
 import { Link } from "react-router-dom";
+import { NotificationsAPI } from "../api";
+import { toast } from "sonner";
 
 export default function DashboardPage() {
 	const { user } = useAuth();
+
+	const createDemoNotification = async () => {
+		try {
+			const notification = await NotificationsAPI.createNotification({
+				userId: "user-1", // In a real app, this would be the actual user ID
+				organizationId: "org-1",
+				type: "system",
+				title: "Demo Notification",
+				message: "This is a test notification created from the dashboard.",
+				isRead: false,
+				isActionRequired: true,
+				actionUrl: "/notifications",
+			});
+
+			toast.success("Demo notification created successfully!");
+		} catch (error) {
+			console.error("Error creating demo notification:", error);
+			toast.error("Failed to create demo notification");
+		}
+	};
 
 	return (
 		<div className="py-6 px-4 sm:px-6 lg:px-8">
@@ -109,6 +131,16 @@ export default function DashboardPage() {
 					</div>
 				</CardContent>
 			</Card>
+
+			<div className="mt-6 flex justify-center">
+				<Button
+					onClick={createDemoNotification}
+					variant="outline"
+					className="flex gap-2 items-center">
+					<Bell className="h-4 w-4" />
+					Create Demo Notification
+				</Button>
+			</div>
 		</div>
 	);
 }
