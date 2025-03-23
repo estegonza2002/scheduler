@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { Button } from "../components/ui/button";
 import {
@@ -35,6 +35,10 @@ export default function AdminDashboardPage() {
 	const [organization, setOrganization] = useState<Organization | null>(null);
 	const [employees, setEmployees] = useState<Employee[]>([]);
 	const [loading, setLoading] = useState<boolean>(true);
+	const [organizations, setOrganizations] = useState<Organization[]>([]);
+	const [viewMode, setViewMode] = useState<"card" | "list">("card");
+	const [selectedOrganization, setSelectedOrganization] = useState<string>("");
+	const navigate = useNavigate();
 
 	useEffect(() => {
 		const fetchData = async () => {
@@ -256,49 +260,47 @@ export default function AdminDashboardPage() {
 									{employees.map((employee) => (
 										<Card
 											key={employee.id}
-											className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer">
-											<EmployeeDetailDialog
-												employee={employee}
-												trigger={
-													<div className="w-full">
-														<CardHeader className="p-4">
-															<div className="flex items-center gap-3">
-																<div className="relative">
-																	<div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-																		<span className="text-primary font-medium">
-																			{employee.name
-																				.split(" ")
-																				.map((n) => n[0])
-																				.join("")
-																				.toUpperCase()}
-																		</span>
-																	</div>
-																</div>
-																<div>
-																	<CardTitle className="text-base">
-																		{employee.name}
-																	</CardTitle>
-																	<CardDescription>
-																		{employee.position || employee.role}
-																	</CardDescription>
-																</div>
+											className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+											onClick={() =>
+												navigate(`/employee-detail/${employee.id}`)
+											}>
+											<div className="w-full">
+												<CardHeader className="p-4">
+													<div className="flex items-center gap-3">
+														<div className="relative">
+															<div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+																<span className="text-primary font-medium">
+																	{employee.name
+																		.split(" ")
+																		.map((n) => n[0])
+																		.join("")
+																		.toUpperCase()}
+																</span>
 															</div>
-														</CardHeader>
-														<div className="p-4 border-t bg-muted/10">
-															<div className="flex items-center text-sm mb-1">
-																<Mail className="h-4 w-4 mr-2 text-muted-foreground" />
-																<span>{employee.email}</span>
-															</div>
-															{employee.phone && (
-																<div className="flex items-center text-sm">
-																	<Phone className="h-4 w-4 mr-2 text-muted-foreground" />
-																	<span>{employee.phone}</span>
-																</div>
-															)}
+														</div>
+														<div>
+															<CardTitle className="text-base">
+																{employee.name}
+															</CardTitle>
+															<CardDescription>
+																{employee.position || employee.role}
+															</CardDescription>
 														</div>
 													</div>
-												}
-											/>
+												</CardHeader>
+												<div className="p-4 border-t bg-muted/10">
+													<div className="flex items-center text-sm mb-1">
+														<Mail className="h-4 w-4 mr-2 text-muted-foreground" />
+														<span>{employee.email}</span>
+													</div>
+													{employee.phone && (
+														<div className="flex items-center text-sm">
+															<Phone className="h-4 w-4 mr-2 text-muted-foreground" />
+															<span>{employee.phone}</span>
+														</div>
+													)}
+												</div>
+											</div>
 										</Card>
 									))}
 								</div>

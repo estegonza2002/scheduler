@@ -39,7 +39,12 @@ export function ProtectedRoute({
 	const path = location.pathname;
 
 	// Admin-only routes
-	const adminRoutes = ["/admin-dashboard", "/employees", "/business-profile"];
+	const adminRoutes = [
+		"/admin-dashboard",
+		"/employees",
+		"/business-profile",
+		"/locations",
+	];
 
 	// Check if we're trying to access an admin route without admin privileges
 	if (!isAdmin && adminRoutes.includes(path)) {

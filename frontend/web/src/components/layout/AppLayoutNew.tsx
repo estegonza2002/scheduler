@@ -19,6 +19,7 @@ export default function AppLayoutNew() {
 		if (path === "/schedule") return "Schedule";
 		if (path.startsWith("/daily-shifts")) return "Daily Shifts";
 		if (path === "/employees") return "Employees";
+		if (path === "/locations") return "Locations";
 		if (path === "/business-profile") return "Business Profile";
 		if (path === "/profile") return "Profile";
 		return "Scheduler";

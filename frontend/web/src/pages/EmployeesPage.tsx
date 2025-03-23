@@ -1,14 +1,40 @@
-import { useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "../components/ui/card";
 import {
 	Table,
 	TableBody,
+	TableCaption,
 	TableCell,
 	TableHead,
 	TableHeader,
 	TableRow,
 } from "../components/ui/table";
+import { Input } from "../components/ui/input";
+import { Badge } from "../components/ui/badge";
+import { Employee, EmployeesAPI, OrganizationsAPI, Organization } from "../api";
+import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
+import {
+	Edit,
+	Search,
+	Plus,
+	MoreVertical,
+	User,
+	Mail,
+	Phone,
+	DollarSign,
+} from "lucide-react";
+import { toast } from "sonner";
+import { AddEmployeeDialog } from "../components/AddEmployeeDialog";
+import { EditEmployeeDialog } from "../components/EditEmployeeDialog";
+import { DeleteEmployeeDialog } from "../components/DeleteEmployeeDialog";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -17,31 +43,20 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
-import { Employee, EmployeesAPI, OrganizationsAPI, Organization } from "../api";
-import { AddEmployeeDialog } from "../components/AddEmployeeDialog";
-import { EmployeeDetailDialog } from "../components/EmployeeDetailDialog";
-import { EditEmployeeDialog } from "../components/EditEmployeeDialog";
-import { DeleteEmployeeDialog } from "../components/DeleteEmployeeDialog";
-import {
-	Mail,
-	Phone,
-	MoreVertical,
-	Search,
-	Plus,
-	DollarSign,
-} from "lucide-react";
 
 export default function EmployeesPage() {
-	const [loading, setLoading] = useState<boolean>(true);
 	const [employees, setEmployees] = useState<Employee[]>([]);
+	const [searchParams] = useSearchParams();
+	const [searchTerm, setSearchTerm] = useState("");
+	const [isLoading, setIsLoading] = useState(true);
+	const navigate = useNavigate();
 	const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
 	const [organization, setOrganization] = useState<Organization | null>(null);
-	const [searchQuery, setSearchQuery] = useState<string>("");
 
 	useEffect(() => {
 		const fetchData = async () => {
 			try {
-				setLoading(true);
+				setIsLoading(true);
 				// In a real implementation, we would get the user's organization
 				// For now, we'll use the first organization from the mock data
 				const orgs = await OrganizationsAPI.getAll();
@@ -54,7 +69,7 @@ export default function EmployeesPage() {
 			} catch (error) {
 				console.error("Error fetching employees:", error);
 			} finally {
-				setLoading(false);
+				setIsLoading(false);
 			}
 		};
 
@@ -63,10 +78,10 @@ export default function EmployeesPage() {
 
 	useEffect(() => {
 		// Filter employees when search query changes
-		if (searchQuery.trim() === "") {
+		if (searchTerm.trim() === "") {
 			setFilteredEmployees(employees);
 		} else {
-			const query = searchQuery.toLowerCase();
+			const query = searchTerm.toLowerCase();
 			const filtered = employees.filter(
 				(employee) =>
 					employee.name.toLowerCase().includes(query) ||
@@ -76,7 +91,7 @@ export default function EmployeesPage() {
 			);
 			setFilteredEmployees(filtered);
 		}
-	}, [searchQuery, employees]);
+	}, [searchTerm, employees]);
 
 	const handleEmployeesAdded = (newEmployees: Employee[]) => {
 		setEmployees((prev) => [...prev, ...newEmployees]);
@@ -92,7 +107,7 @@ export default function EmployeesPage() {
 		setEmployees((prev) => prev.filter((emp) => emp.id !== employeeId));
 	};
 
-	if (loading) {
+	if (isLoading) {
 		return (
 			<div className="flex items-center justify-center h-[calc(100vh-4rem)]">
 				<div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
@@ -126,22 +141,10 @@ export default function EmployeesPage() {
 							type="search"
 							placeholder="Search employees..."
 							className="pl-8"
-							value={searchQuery}
-							onChange={(e) => setSearchQuery(e.target.value)}
+							value={searchTerm}
+							onChange={(e) => setSearchTerm(e.target.value)}
 						/>
 					</div>
-					{organization && (
-						<AddEmployeeDialog
-							organizationId={organization.id}
-							onEmployeesAdded={handleEmployeesAdded}
-							trigger={
-								<Button size="sm">
-									<Plus className="h-4 w-4 mr-2" />
-									Add
-								</Button>
-							}
-						/>
-					)}
 				</div>
 			</div>
 
@@ -184,7 +187,10 @@ export default function EmployeesPage() {
 						</TableHeader>
 						<TableBody>
 							{filteredEmployees.map((employee) => (
-								<TableRow key={employee.id}>
+								<TableRow
+									key={employee.id}
+									className="cursor-pointer hover:bg-muted/50"
+									onClick={() => navigate(`/employee-detail/${employee.id}`)}>
 									<TableCell className="font-medium">
 										<div className="flex items-center gap-3">
 											<div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
@@ -224,7 +230,7 @@ export default function EmployeesPage() {
 											"-"
 										)}
 									</TableCell>
-									<TableCell>
+									<TableCell onClick={(e) => e.stopPropagation()}>
 										<DropdownMenu>
 											<DropdownMenuTrigger asChild>
 												<Button
@@ -236,15 +242,12 @@ export default function EmployeesPage() {
 											</DropdownMenuTrigger>
 											<DropdownMenuContent align="end">
 												<DropdownMenuLabel>Actions</DropdownMenuLabel>
-												<EmployeeDetailDialog
-													employee={employee}
-													trigger={
-														<DropdownMenuItem
-															onSelect={(e) => e.preventDefault()}>
-															View Details
-														</DropdownMenuItem>
-													}
-												/>
+												<DropdownMenuItem
+													onClick={() =>
+														navigate(`/employee-detail/${employee.id}`)
+													}>
+													View Details
+												</DropdownMenuItem>
 												<EditEmployeeDialog
 													employee={employee}
 													onEmployeeUpdated={handleEmployeeUpdated}

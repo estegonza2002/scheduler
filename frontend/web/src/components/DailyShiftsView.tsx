@@ -1,143 +1,185 @@
 import { format, parseISO } from "date-fns";
-import { Shift, LocationsAPI, Location, EmployeesAPI, Employee } from "../api";
-import { cn } from "../lib/utils";
-import { useState, useEffect } from "react";
+import { Shift, Location, Employee } from "../api";
+import { useState, useEffect, useMemo } from "react";
 import {
-	MapPin,
+	Filter,
+	X,
 	Clock,
-	User,
-	Briefcase,
+	AlertCircle,
+	Search,
+	ChevronLeft,
 	ChevronRight,
-	DollarSign,
 } from "lucide-react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "./ui/select";
+import {
+	Card,
+	CardHeader,
+	CardTitle,
+	CardDescription,
+	CardContent,
+	CardFooter,
+} from "./ui/card";
+import { Avatar, AvatarFallback } from "./ui/avatar";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
 
-// Format time from ISO string
-const formatShiftTime = (isoString: string) => {
-	return format(parseISO(isoString), "h:mm a");
+// Helper functions
+const formatTime = (date: Date): string => {
+	return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 };
 
-// Format time in a more readable way for the shift cards
-const formatTime = (isoString: string) => {
-	return format(parseISO(isoString), "h:mm a");
+const truncateText = (text: string, maxLength: number): string => {
+	return text.length > maxLength ? `${text.substring(0, maxLength)}...` : text;
 };
 
 interface DailyShiftsViewProps {
 	date: Date;
 	shifts: Shift[];
+	locations: Location[];
+	employees: Employee[];
 }
 
-export function DailyShiftsView({ date, shifts }: DailyShiftsViewProps) {
-	const [locations, setLocations] = useState<Record<string, Location>>({});
-	const [employees, setEmployees] = useState<Record<string, Employee>>({});
-	const [loading, setLoading] = useState(false);
+export function DailyShiftsView({
+	date,
+	shifts,
+	locations = [],
+	employees = [],
+}: DailyShiftsViewProps) {
+	const navigate = useNavigate();
+	const [locationFilter, setLocationFilter] = useState<string | null>(null);
+	const [roleFilter, setRoleFilter] = useState<string | null>(null);
+	const [searchTerm, setSearchTerm] = useState<string>("");
+	const [currentPage, setCurrentPage] = useState<number>(1);
+	const [shiftsPerPage, setShiftsPerPage] = useState<number>(50);
 
-	// Fetch locations and employees for the shifts
+	// Reset to first page when filters change
 	useEffect(() => {
-		async function fetchData() {
-			setLoading(true);
-			try {
-				// Get all location IDs from shifts
-				const locationIds = [
-					...new Set(
-						shifts.map((shift) => shift.locationId).filter(Boolean) as string[]
-					),
-				];
+		setCurrentPage(1);
+	}, [locationFilter, roleFilter, searchTerm]);
 
-				// Get all employee IDs from shifts
-				const employeeIds = [
-					...new Set(
-						shifts.map((shift) => shift.employeeId).filter(Boolean) as string[]
-					),
-				];
+	// Helper functions
+	const getLocationName = (locationId: string | null | undefined): string => {
+		if (!locationId) return "Unassigned";
+		const location = locations.find((loc) => loc.id === locationId);
+		return location ? location.name : "Unknown Location";
+	};
 
-				// Skip if no IDs
-				if (locationIds.length === 0 && employeeIds.length === 0) {
-					setLoading(false);
-					return;
-				}
+	const getEmployeeName = (employeeId: string | null | undefined): string => {
+		if (!employeeId) return "Unassigned";
+		const employee = employees.find((emp) => emp.id === employeeId);
+		return employee ? employee.name : "Unknown Employee";
+	};
 
-				// Build lookup maps
-				const locationsMap: Record<string, Location> = {};
-				const employeesMap: Record<string, Employee> = {};
+	const getEmployeeInitials = (
+		employeeId: string | null | undefined
+	): string => {
+		if (!employeeId) return "UN";
+		const employee = employees.find((emp) => emp.id === employeeId);
+		if (!employee) return "??";
 
-				// Fetch locations - in a real app, this would be a batch API call
-				for (const locationId of locationIds) {
-					try {
-						const location = await LocationsAPI.getById(locationId);
-						if (location) {
-							locationsMap[locationId] = location;
-						}
-					} catch (error) {
-						console.error(`Error fetching location ${locationId}:`, error);
-					}
-				}
-
-				// Fetch employees - in a real app, this would be a batch API call
-				for (const employeeId of employeeIds) {
-					try {
-						const employee = await EmployeesAPI.getById(employeeId);
-						if (employee) {
-							employeesMap[employeeId] = employee;
-						}
-					} catch (error) {
-						console.error(`Error fetching employee ${employeeId}:`, error);
-					}
-				}
-
-				setLocations(locationsMap);
-				setEmployees(employeesMap);
-			} catch (error) {
-				console.error("Error fetching data:", error);
-			} finally {
-				setLoading(false);
-			}
+		const nameParts = employee.name.split(" ");
+		if (nameParts.length >= 2) {
+			return `${nameParts[0][0]}${nameParts[1][0]}`.toUpperCase();
 		}
+		return employee.name.substring(0, 2).toUpperCase();
+	};
 
-		fetchData();
+	// Get unique location IDs for the filter
+	const uniqueLocationIds = useMemo(() => {
+		return [
+			...new Set(shifts.map((shift) => shift.locationId).filter(Boolean)),
+		].filter((id) => id !== null && id !== undefined) as string[];
 	}, [shifts]);
 
-	// Get location-based color class for section headers
-	const getLocationColor = (locationId: string) => {
-		// Generate consistent colors based on locationId
-		const locationColors: Record<string, string> = {
-			"loc-1": "bg-blue-50 border-blue-200",
-			"loc-2": "bg-purple-50 border-purple-200",
-			"loc-3": "bg-green-50 border-green-200",
-			"loc-4": "bg-amber-50 border-amber-200",
-			"loc-5": "bg-red-50 border-red-200",
+	// Get unique roles for the filter
+	const uniqueRoles = useMemo(() => {
+		return [
+			...new Set(shifts.map((shift) => shift.role).filter(Boolean)),
+		].filter((role) => role !== null && role !== undefined) as string[];
+	}, [shifts]);
+
+	// Filter shifts by location, role, and search term
+	const filteredShifts = useMemo(() => {
+		return shifts.filter((shift) => {
+			// Apply location filter
+			if (locationFilter && shift.locationId !== locationFilter) {
+				return false;
+			}
+
+			// Apply role filter
+			if (roleFilter && shift.role !== roleFilter) {
+				return false;
+			}
+
+			// Apply search filter (search in notes, employee name, location name)
+			if (searchTerm) {
+				const lowercaseSearch = searchTerm.toLowerCase();
+				const locationName = getLocationName(shift.locationId).toLowerCase();
+				const employeeName = getEmployeeName(shift.employeeId).toLowerCase();
+				const notes = (shift.notes || "").toLowerCase();
+				const role = (shift.role || "").toLowerCase();
+
+				return (
+					locationName.includes(lowercaseSearch) ||
+					employeeName.includes(lowercaseSearch) ||
+					notes.includes(lowercaseSearch) ||
+					role.includes(lowercaseSearch)
+				);
+			}
+
+			return true;
+		});
+	}, [
+		shifts,
+		locationFilter,
+		roleFilter,
+		searchTerm,
+		getLocationName,
+		getEmployeeName,
+	]);
+
+	// Pagination
+	const totalPages = Math.ceil(filteredShifts.length / shiftsPerPage);
+	const indexOfLastShift = currentPage * shiftsPerPage;
+	const indexOfFirstShift = indexOfLastShift - shiftsPerPage;
+	const currentShifts = filteredShifts.slice(
+		indexOfFirstShift,
+		indexOfLastShift
+	);
+
+	// Group shifts by time of day
+	const groupedShifts = useMemo(() => {
+		const groupedData = {
+			morning: [] as Shift[],
+			afternoon: [] as Shift[],
+			evening: [] as Shift[],
 		};
 
-		// Use hash of locationId to select a color for unknown locations
-		const hash = locationId
-			.split("")
-			.reduce((acc, char) => acc + char.charCodeAt(0), 0);
-		const colorKeys = Object.keys(locationColors);
-		const defaultKey = colorKeys[hash % colorKeys.length];
+		currentShifts.forEach((shift) => {
+			const startHour = parseISO(shift.startTime).getHours();
 
-		return locationColors[locationId] || locationColors[defaultKey];
-	};
+			if (startHour < 12) {
+				groupedData.morning.push(shift);
+			} else if (startHour < 17) {
+				groupedData.afternoon.push(shift);
+			} else {
+				groupedData.evening.push(shift);
+			}
+		});
 
-	// Get employee name from ID
-	const getEmployeeName = (employeeId: string) => {
-		const employee = employees[employeeId];
-		return employee ? employee.name : `Employee ${employeeId.substring(4)}`;
-	};
+		return groupedData;
+	}, [currentShifts]);
 
-	// Get employee role from ID
-	const getEmployeeRole = (employeeId: string) => {
-		const employee = employees[employeeId];
-		return employee?.role || null;
-	};
-
-	// Get employee hourly rate from ID
-	const getEmployeeRate = (employeeId: string) => {
-		const employee = employees[employeeId];
-		return employee?.hourlyRate || null;
-	};
-
+	// Show empty state if no shifts
 	if (shifts.length === 0) {
 		return (
 			<div className="p-6 text-center text-muted-foreground">
@@ -148,198 +190,269 @@ export function DailyShiftsView({ date, shifts }: DailyShiftsViewProps) {
 		);
 	}
 
-	// Group shifts by location
-	const shiftsByLocation: Record<string, Shift[]> = {};
-	const unknownLocationShifts: Shift[] = [];
-
-	shifts.forEach((shift) => {
-		if (shift.locationId) {
-			if (!shiftsByLocation[shift.locationId]) {
-				shiftsByLocation[shift.locationId] = [];
-			}
-			shiftsByLocation[shift.locationId].push(shift);
-		} else {
-			unknownLocationShifts.push(shift);
-		}
-	});
-
 	return (
 		<div className="space-y-6">
-			{loading && (
-				<div className="text-center text-muted-foreground py-4">
-					Loading shift details...
+			{/* Search and Filters */}
+			<div className="bg-white p-4 rounded-lg shadow-sm border space-y-4">
+				{/* Search */}
+				<div className="relative">
+					<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+					<Input
+						placeholder="Search shifts by location, employee, role or notes..."
+						className="pl-10"
+						value={searchTerm}
+						onChange={(e) => setSearchTerm(e.target.value)}
+					/>
+				</div>
+
+				{/* Filters */}
+				<div className="flex flex-wrap gap-4">
+					<div className="flex flex-col gap-1">
+						<span className="text-sm font-medium">Location</span>
+						<Select
+							value={locationFilter || "all"}
+							onValueChange={(value) =>
+								setLocationFilter(value === "all" ? null : value)
+							}>
+							<SelectTrigger className="w-[220px]">
+								<SelectValue placeholder="All locations" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="all">
+									All locations ({shifts.length} shifts)
+								</SelectItem>
+								{uniqueLocationIds.map((id) => (
+									<SelectItem
+										key={id}
+										value={id}>
+										{getLocationName(id)} (
+										{shifts.filter((s) => s.locationId === id).length})
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					</div>
+
+					<div className="flex flex-col gap-1">
+						<span className="text-sm font-medium">Role</span>
+						<Select
+							value={roleFilter || "all"}
+							onValueChange={(value) =>
+								setRoleFilter(value === "all" ? null : value)
+							}>
+							<SelectTrigger className="w-[220px]">
+								<SelectValue placeholder="All roles" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="all">
+									All roles ({shifts.length} shifts)
+								</SelectItem>
+								{uniqueRoles.map((role) => (
+									<SelectItem
+										key={role}
+										value={role}>
+										{role} ({shifts.filter((s) => s.role === role).length})
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					</div>
+
+					<div className="flex flex-col gap-1">
+						<span className="text-sm font-medium">Shifts per page</span>
+						<Select
+							value={shiftsPerPage.toString()}
+							onValueChange={(value) => {
+								setShiftsPerPage(parseInt(value, 10));
+								setCurrentPage(1);
+							}}>
+							<SelectTrigger className="w-[100px]">
+								<SelectValue placeholder="50" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="10">10</SelectItem>
+								<SelectItem value="20">20</SelectItem>
+								<SelectItem value="50">50</SelectItem>
+								<SelectItem value="100">100</SelectItem>
+							</SelectContent>
+						</Select>
+					</div>
+
+					{/* Clear all filters button */}
+					{(locationFilter || roleFilter || searchTerm) && (
+						<div className="flex items-end">
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => {
+									setLocationFilter(null);
+									setRoleFilter(null);
+									setSearchTerm("");
+								}}
+								className="h-9">
+								<X className="h-4 w-4 mr-2" />
+								Clear all filters
+							</Button>
+						</div>
+					)}
+
+					{/* Results info */}
+					<div className="ml-auto flex items-end">
+						<div className="text-sm text-muted-foreground">
+							Showing {currentShifts.length} of {filteredShifts.length} filtered
+							shifts (from total {shifts.length})
+						</div>
+					</div>
+				</div>
+			</div>
+
+			{/* Pagination top */}
+			{totalPages > 1 && (
+				<div className="flex justify-between items-center bg-muted/30 p-2 rounded-md">
+					<div className="text-sm text-muted-foreground">
+						Page {currentPage} of {totalPages}
+					</div>
+					<div className="flex items-center gap-2">
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+							disabled={currentPage === 1}>
+							<ChevronLeft className="h-4 w-4 mr-1" />
+							Previous
+						</Button>
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={() =>
+								setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+							}
+							disabled={currentPage === totalPages}>
+							Next
+							<ChevronRight className="h-4 w-4 ml-1" />
+						</Button>
+					</div>
 				</div>
 			)}
 
-			{/* Render shifts grouped by location */}
-			{Object.entries(shiftsByLocation).map(([locationId, locationShifts]) => {
-				const location = locations[locationId];
-				const locationName =
-					location?.name || `Location ${locationId.substring(4)}`;
-				const colorClass = getLocationColor(locationId);
-
-				return (
-					<div
-						key={locationId}
-						className="rounded-md overflow-hidden border">
+			{/* Time-based sections */}
+			<div className="space-y-6">
+				{Object.entries(groupedShifts).map(([time, timeShifts]) =>
+					timeShifts.length > 0 ? (
 						<div
-							className={cn(
-								"px-4 py-3 font-medium flex items-center justify-between",
-								colorClass
-							)}>
-							<div className="flex items-center">
-								<MapPin className="h-4 w-4 mr-2" />
-								<h3 className="text-base font-semibold">{locationName}</h3>
-							</div>
-							<span className="text-sm bg-background/80 rounded-full px-2 py-0.5">
-								{locationShifts.length} shift
-								{locationShifts.length !== 1 ? "s" : ""}
-							</span>
-						</div>
-
-						<div className="divide-y">
-							{locationShifts.map((shift) => (
-								<div
-									key={shift.id}
-									className="p-4 hover:bg-accent/20 transition-colors">
-									<div className="flex flex-col sm:flex-row gap-3">
-										{/* Left column - time */}
-										<div className="flex-1">
-											<div className="flex items-center text-sm font-medium mb-2">
-												<Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-												{formatTime(shift.startTime)} -{" "}
-												{formatTime(shift.endTime)}
-											</div>
-										</div>
-
-										{/* Right column - employee */}
-										<div className="flex items-center text-sm bg-muted/30 px-3 py-2 rounded sm:ml-auto">
-											<div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center mr-2 text-primary text-xs">
-												{getEmployeeName(shift.employeeId).charAt(0)}
-											</div>
-											<div>
-												<span>{getEmployeeName(shift.employeeId)}</span>
-												<div className="flex items-center gap-2 mt-0.5">
-													{getEmployeeRole(shift.employeeId) && (
-														<p className="text-xs text-muted-foreground flex items-center">
-															<Briefcase className="h-3 w-3 mr-1" />
-															{getEmployeeRole(shift.employeeId)}
-														</p>
-													)}
-													{getEmployeeRate(shift.employeeId) && (
-														<Badge
-															variant="outline"
-															size="sm"
-															className="text-xs py-0 h-4 flex items-center">
-															<DollarSign className="h-2.5 w-2.5 mr-0.5" />
-															{getEmployeeRate(shift.employeeId)?.toFixed(2)}/hr
-														</Badge>
-													)}
+							key={time}
+							className="space-y-2">
+							<h3 className="text-lg font-semibold flex items-center">
+								<Clock className="h-4 w-4 mr-2 text-muted-foreground" />
+								{time} ({timeShifts.length})
+							</h3>
+							<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+								{timeShifts.map((shift) => (
+									<Card
+										key={shift.id}
+										className="overflow-hidden hover:shadow-md hover:border-primary/50 hover:bg-muted/30 transition-all cursor-pointer"
+										onClick={() => navigate(`/shifts/${shift.id}`)}>
+										<CardHeader className="p-4 pb-0 border-b">
+											<div className="flex justify-between items-start">
+												<div>
+													<div className="flex items-center gap-2">
+														<CardTitle className="text-base">
+															{formatTime(new Date(shift.startTime))} -{" "}
+															{formatTime(new Date(shift.endTime))}
+														</CardTitle>
+														{shift.notes?.includes("Urgent") && (
+															<Badge
+																variant="destructive"
+																className="h-5">
+																Urgent
+															</Badge>
+														)}
+													</div>
+													<CardDescription>
+														{getLocationName(shift.locationId)}
+													</CardDescription>
 												</div>
+
+												<Badge
+													variant="outline"
+													className="capitalize">
+													{shift.role || "No role"}
+												</Badge>
 											</div>
-										</div>
-									</div>
-
-									{shift.notes && (
-										<p className="text-sm text-muted-foreground mt-3 bg-muted/30 p-3 rounded border-l-2 border-primary/30">
-											{shift.notes}
-										</p>
-									)}
-
-									<div className="mt-3 flex justify-end">
-										<Button
-											variant="ghost"
-											size="sm"
-											className="text-xs"
-											asChild>
-											<Link to={`/shifts/${shift.id}${window.location.search}`}>
-												View Details <ChevronRight className="h-3 w-3 ml-1" />
-											</Link>
-										</Button>
-									</div>
-								</div>
-							))}
-						</div>
-					</div>
-				);
-			})}
-
-			{/* Render shifts with unknown location */}
-			{unknownLocationShifts.length > 0 && (
-				<div className="rounded-md overflow-hidden border">
-					<div className="px-4 py-3 font-medium flex items-center justify-between bg-muted">
-						<div className="flex items-center">
-							<MapPin className="h-4 w-4 mr-2" />
-							<h3 className="text-base font-semibold">Unassigned Location</h3>
-						</div>
-						<span className="text-sm bg-background/80 rounded-full px-2 py-0.5">
-							{unknownLocationShifts.length} shift
-							{unknownLocationShifts.length !== 1 ? "s" : ""}
-						</span>
-					</div>
-
-					<div className="divide-y">
-						{unknownLocationShifts.map((shift) => (
-							<div
-								key={shift.id}
-								className="p-4 hover:bg-accent/20 transition-colors">
-								<div className="flex flex-col sm:flex-row gap-3">
-									{/* Left column - time */}
-									<div className="flex-1">
-										<div className="flex items-center text-sm font-medium mb-2">
-											<Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-											{formatTime(shift.startTime)} -{" "}
-											{formatTime(shift.endTime)}
-										</div>
-									</div>
-
-									{/* Right column - employee */}
-									<div className="flex items-center text-sm bg-muted/30 px-3 py-2 rounded sm:ml-auto">
-										<div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center mr-2 text-primary text-xs">
-											{getEmployeeName(shift.employeeId).charAt(0)}
-										</div>
-										<div>
-											<span>{getEmployeeName(shift.employeeId)}</span>
-											<div className="flex items-center gap-2 mt-0.5">
-												{getEmployeeRole(shift.employeeId) && (
-													<p className="text-xs text-muted-foreground flex items-center">
-														<Briefcase className="h-3 w-3 mr-1" />
-														{getEmployeeRole(shift.employeeId)}
-													</p>
-												)}
-												{getEmployeeRate(shift.employeeId) && (
-													<Badge
-														variant="outline"
-														size="sm"
-														className="text-xs py-0 h-4 flex items-center">
-														<DollarSign className="h-2.5 w-2.5 mr-0.5" />
-														{getEmployeeRate(shift.employeeId)?.toFixed(2)}/hr
-													</Badge>
+										</CardHeader>
+										<CardContent className="p-4">
+											<div className="flex flex-col space-y-2">
+												<div className="flex items-center justify-between">
+													<div className="text-sm text-muted-foreground">
+														Assigned:
+													</div>
+													<div className="flex -space-x-2">
+														{shift.employeeId ? (
+															<Avatar className="h-6 w-6 border-2 border-background">
+																<AvatarFallback className="text-[10px]">
+																	{getEmployeeInitials(shift.employeeId)}
+																</AvatarFallback>
+															</Avatar>
+														) : (
+															<span className="text-sm text-muted-foreground">
+																Unassigned
+															</span>
+														)}
+													</div>
+												</div>
+												{shift.notes && (
+													<div className="text-sm">
+														<span className="font-medium">Notes:</span>{" "}
+														{truncateText(shift.notes, 80)}
+													</div>
 												)}
 											</div>
-										</div>
-									</div>
-								</div>
-
-								{shift.notes && (
-									<p className="text-sm text-muted-foreground mt-3 bg-muted/30 p-3 rounded border-l-2 border-primary/30">
-										{shift.notes}
-									</p>
-								)}
-
-								<div className="mt-3 flex justify-end">
-									<Button
-										variant="ghost"
-										size="sm"
-										className="text-xs"
-										asChild>
-										<Link to={`/shifts/${shift.id}${window.location.search}`}>
-											View Details <ChevronRight className="h-3 w-3 ml-1" />
-										</Link>
-									</Button>
-								</div>
+										</CardContent>
+									</Card>
+								))}
 							</div>
-						))}
+						</div>
+					) : null
+				)}
+
+				{currentShifts.length === 0 && (
+					<div className="bg-muted/50 rounded-lg p-8 text-center">
+						<AlertCircle className="h-8 w-8 mx-auto mb-4 text-muted-foreground" />
+						<h3 className="text-lg font-medium mb-1">No shifts found</h3>
+						<p className="text-muted-foreground">
+							{locationFilter || roleFilter || searchTerm
+								? "Try adjusting your filters or search term"
+								: "There are no shifts scheduled for this date"}
+						</p>
+					</div>
+				)}
+			</div>
+
+			{/* Pagination bottom */}
+			{totalPages > 1 && (
+				<div className="flex justify-between items-center bg-muted/30 p-2 rounded-md">
+					<div className="text-sm text-muted-foreground">
+						Page {currentPage} of {totalPages}
+					</div>
+					<div className="flex items-center gap-2">
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+							disabled={currentPage === 1}>
+							<ChevronLeft className="h-4 w-4 mr-1" />
+							Previous
+						</Button>
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={() =>
+								setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+							}
+							disabled={currentPage === totalPages}>
+							Next
+							<ChevronRight className="h-4 w-4 ml-1" />
+						</Button>
 					</div>
 				</div>
 			)}

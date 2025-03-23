@@ -76,10 +76,9 @@ import { Checkbox } from "../components/ui/checkbox";
 import {
 	Tooltip,
 	TooltipContent,
-	TooltipProvider,
 	TooltipTrigger,
 } from "../components/ui/tooltip";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon } from "@radix-ui/react-icons";
 import {
 	Popover,
 	PopoverContent,
@@ -281,7 +280,6 @@ export default function ShiftDetailsPage() {
 	const [editStartTime, setEditStartTime] = useState("");
 	const [editEndTime, setEditEndTime] = useState("");
 	const [editLocationId, setEditLocationId] = useState("");
-	const [editNotes, setEditNotes] = useState("");
 	const [editCheckInTasks, setEditCheckInTasks] = useState<CheckInTask[]>([]);
 	const [editCheckOutTasks, setEditCheckOutTasks] = useState<CheckOutTask[]>(
 		[]
@@ -469,67 +467,47 @@ export default function ShiftDetailsPage() {
 		try {
 			setLoading(true);
 
-			// Create assignments for all selected employees
-			// Track successful assignments
-			let successCount = 0;
+			const newAssignments = [];
 
-			// Process each employee
+			// Create new assignments for each selected employee
 			for (const employeeId of selectedEmployeeIds) {
-				try {
-					// Create the assignment
-					const newAssignment = await ShiftAssignmentsAPI.create({
-						shiftId: shift.id,
-						employeeId,
-						role: "", // Default role is empty
-						notes: "", // Default notes are empty
-					});
+				// Create new assignment
+				const newAssignment = await ShiftAssignmentsAPI.create({
+					shiftId: shift.id,
+					employeeId: employeeId,
+					role: allEmployees.find((e) => e.id === employeeId)?.role,
+				});
 
-					if (newAssignment) {
-						successCount++;
-					}
-				} catch (error) {
-					console.error(`Error assigning employee ${employeeId}:`, error);
-				}
-			}
+				newAssignments.push(newAssignment);
 
-			if (successCount > 0) {
-				// Refresh shift assignments
-				const assignments = await ShiftAssignmentsAPI.getByShiftId(shift.id);
-
-				// Map assignments to employees
-				const assignedEmployeeData: AssignedEmployee[] = [];
-
-				// Process each assignment
-				for (const assignment of assignments) {
-					const employee = allEmployees.find(
-						(e) => e.id === assignment.employeeId
-					);
-					if (employee) {
-						assignedEmployeeData.push({
+				// Find the employee details
+				const employee = allEmployees.find((e) => e.id === employeeId);
+				if (employee) {
+					// Add to assigned employees
+					setAssignedEmployees((prev) => [
+						...prev,
+						{
 							...employee,
-							assignmentId: assignment.id,
-							assignmentRole: assignment.role,
-							assignmentNotes: assignment.notes,
-						});
-					}
+							assignmentId: newAssignment.id,
+							assignmentRole: newAssignment.role,
+							assignmentNotes: newAssignment.notes,
+						},
+					]);
 				}
-
-				// Update UI with assigned employees
-				setAssignedEmployees(assignedEmployeeData);
-
-				// Remove assigned employees from available list
-				setAvailableEmployees((prev) =>
-					prev.filter((e) => !selectedEmployeeIds.includes(e.id))
-				);
-
-				// Clear selection
-				setSelectedEmployeeIds([]);
-				setAddEmployeeDialogOpen(false);
-
-				toast.success(
-					`${successCount} employees assigned to shift successfully`
-				);
 			}
+
+			// Update available employees list
+			setAvailableEmployees((prev) =>
+				prev.filter((e) => !selectedEmployeeIds.includes(e.id))
+			);
+
+			// Reset selection
+			setSelectedEmployeeIds([]);
+			setAddEmployeeDialogOpen(false);
+
+			toast.success(
+				`${selectedEmployeeIds.length} employees assigned to shift successfully`
+			);
 		} catch (error) {
 			console.error("Error assigning employees:", error);
 			toast.error("Failed to assign employees");
@@ -540,12 +518,15 @@ export default function ShiftDetailsPage() {
 
 	// Handle removing an employee from shift
 	const handleRemoveEmployee = async () => {
-		if (!shift || !removeEmployeeId || !removeAssignmentId) return;
+		if (!removeEmployeeId || !removeAssignmentId) return;
 
 		try {
 			setLoading(true);
+
+			// Delete the assignment
 			await ShiftAssignmentsAPI.delete(removeAssignmentId);
 
+			// Update UI state
 			const removedEmployee = assignedEmployees.find(
 				(e) => e.id === removeEmployeeId
 			);
@@ -611,7 +592,6 @@ export default function ShiftDetailsPage() {
 		setEditStartTime(format(shiftDate, "HH:mm"));
 		setEditEndTime(format(parseISO(shift.endTime), "HH:mm"));
 		setEditLocationId(shift.locationId || "");
-		setEditNotes(shift.notes || "");
 		setEditCheckInTasks(shift.checkInTasks || []);
 		setEditCheckOutTasks(shift.checkOutTasks || []);
 		setNewCheckInTask("");
@@ -678,7 +658,6 @@ export default function ShiftDetailsPage() {
 				startTime: startDateTime,
 				endTime: endDateTime,
 				locationId: editLocationId || undefined,
-				notes: editNotes,
 			});
 
 			// Update local state
@@ -1236,6 +1215,7 @@ export default function ShiftDetailsPage() {
 					<Button
 						variant="default"
 						size="sm"
+						onClick={() => setAddEmployeeDialogOpen(true)}
 						disabled={availableEmployees.length === 0}>
 						<Plus className="h-4 w-4 mr-1" /> Assign
 					</Button>
@@ -1261,7 +1241,9 @@ export default function ShiftDetailsPage() {
 						<p className="text-sm text-muted-foreground mb-4">
 							Add check-in tasks to track work needed at the start of a shift.
 						</p>
-						<Button disabled={availableEmployees.length === 0}>
+						<Button
+							onClick={() => setAddEmployeeDialogOpen(true)}
+							disabled={availableEmployees.length === 0}>
 							<Plus className="h-4 w-4 mr-2" /> Assign Employee
 						</Button>
 					</div>
@@ -1792,7 +1774,115 @@ export default function ShiftDetailsPage() {
 			)}
 
 			{/* Dialog for adding employees */}
-			<Dialog></Dialog>
+			<Dialog
+				open={addEmployeeDialogOpen}
+				onOpenChange={(open) => {
+					setAddEmployeeDialogOpen(open);
+					if (!open) {
+						setSelectedEmployeeIds([]);
+						setSearchTerm("");
+					}
+				}}>
+				<DialogContent className="sm:max-w-[500px]">
+					<DialogHeader>
+						<DialogTitle>Assign Employees to Shift</DialogTitle>
+						<DialogDescription>
+							Select employees to assign to this shift on{" "}
+							{format(
+								parseISO(shift?.startTime || new Date().toISOString()),
+								"MMM d, yyyy"
+							)}
+							from{" "}
+							{format(
+								parseISO(shift?.startTime || new Date().toISOString()),
+								"h:mm a"
+							)}{" "}
+							to{" "}
+							{format(
+								parseISO(shift?.endTime || new Date().toISOString()),
+								"h:mm a"
+							)}
+						</DialogDescription>
+					</DialogHeader>
+
+					<div className="py-2">
+						<Label
+							htmlFor="employeeSearch"
+							className="text-sm">
+							Search employees
+						</Label>
+						<Input
+							id="employeeSearch"
+							placeholder="Search by name or role..."
+							value={searchTerm}
+							onChange={(e) => setSearchTerm(e.target.value)}
+							className="mb-2"
+						/>
+
+						<ScrollArea className="h-72 border">
+							{availableEmployees.length === 0 ? (
+								<div className="p-4 text-center text-muted-foreground">
+									{searchTerm
+										? "No employees match your search"
+										: "No available employees"}
+								</div>
+							) : (
+								<div className="divide-y">
+									{availableEmployees.map((emp) => (
+										<div
+											key={emp.id}
+											className={`p-3 flex items-center gap-3 cursor-pointer hover:bg-accent/20 transition-colors ${
+												selectedEmployeeIds.includes(emp.id)
+													? "bg-accent/40"
+													: ""
+											}`}
+											onClick={() => toggleEmployeeSelection(emp.id)}>
+											<Checkbox
+												id={`employee-${emp.id}`}
+												checked={selectedEmployeeIds.includes(emp.id)}
+												onCheckedChange={() => toggleEmployeeSelection(emp.id)}
+												className="mr-1"
+											/>
+											<Avatar className="h-8 w-8">
+												<AvatarFallback>{emp.name.charAt(0)}</AvatarFallback>
+												{emp.avatar && <AvatarImage src={emp.avatar} />}
+											</Avatar>
+											<div className="flex-1">
+												<div className="font-medium text-sm">{emp.name}</div>
+												<div className="text-xs text-muted-foreground">
+													{emp.role}
+												</div>
+											</div>
+											<div className="text-xs">
+												{emp.hourlyRate
+													? `$${emp.hourlyRate.toFixed(2)}/hr`
+													: "-"}
+											</div>
+										</div>
+									))}
+								</div>
+							)}
+						</ScrollArea>
+					</div>
+
+					<DialogFooter>
+						<div className="mr-auto text-sm">
+							{selectedEmployeeIds.length} employee
+							{selectedEmployeeIds.length !== 1 ? "s" : ""} selected
+						</div>
+						<Button
+							variant="outline"
+							onClick={() => setAddEmployeeDialogOpen(false)}>
+							Cancel
+						</Button>
+						<Button
+							disabled={selectedEmployeeIds.length === 0}
+							onClick={handleAssignEmployees}>
+							Assign Employees
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 
 			{/* Alert dialog for removing employee */}
 			<AlertDialog
@@ -1844,14 +1934,8 @@ export default function ShiftDetailsPage() {
 							<Input
 								id="date"
 								type="date"
-								value={editDate ? format(editDate, "yyyy-MM-dd") : ""}
-								onChange={(e) => {
-									if (e.target.value) {
-										setEditDate(parseISO(e.target.value));
-									} else {
-										setEditDate(null);
-									}
-								}}
+								value={editDate}
+								onChange={(e) => setEditDate(e.target.value)}
 								required
 							/>
 						</div>

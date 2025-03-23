@@ -8,6 +8,7 @@ import {
 	Building2,
 	User,
 	LogOut,
+	MapPin,
 } from "lucide-react";
 
 import {
@@ -50,6 +51,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 			href: "/schedule",
 			isActive:
 				location.pathname === "/schedule" ||
+				location.pathname === "/schedule/monthly" ||
 				location.pathname.startsWith("/daily-shifts"),
 		},
 		{
@@ -57,6 +59,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 			label: "Employees",
 			href: "/employees",
 			isActive: location.pathname === "/employees",
+			adminOnly: true,
+		},
+		{
+			icon: <MapPin className="h-5 w-5" />,
+			label: "Locations",
+			href: "/locations",
+			isActive: location.pathname === "/locations",
 			adminOnly: true,
 		},
 	];

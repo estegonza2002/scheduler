@@ -35,6 +35,10 @@ import SchedulePage from "./pages/SchedulePage";
 import DailyShiftsPage from "./pages/DailyShiftsPage";
 import EmployeesPage from "./pages/EmployeesPage";
 import ShiftDetailsPage from "./pages/ShiftDetailsPage";
+import EditShiftPage from "./pages/EditShiftPage";
+import LocationsPage from "./pages/LocationsPage";
+import EmployeeDetailPage from "./pages/EmployeeDetailPage";
+import LocationDetailPage from "./pages/LocationDetailPage";
 
 // Root redirect component that checks user role
 function RootRedirect() {
@@ -99,6 +103,17 @@ function App() {
 							/>
 							<Route
 								path="/schedule"
+								element={
+									<Navigate
+										to={`/daily-shifts?date=${
+											new Date().toISOString().split("T")[0]
+										}`}
+										replace
+									/>
+								}
+							/>
+							<Route
+								path="/schedule/monthly"
 								element={<SchedulePage />}
 							/>
 							<Route
@@ -129,8 +144,24 @@ function App() {
 								element={<EmployeesPage />}
 							/>
 							<Route
+								path="/locations"
+								element={<LocationsPage />}
+							/>
+							<Route
 								path="/shifts/:shiftId"
 								element={<ShiftDetailsPage />}
+							/>
+							<Route
+								path="/edit-shift/:shiftId"
+								element={<EditShiftPage />}
+							/>
+							<Route
+								path="/employee-detail/:employeeId"
+								element={<EmployeeDetailPage />}
+							/>
+							<Route
+								path="/location-detail/:locationId"
+								element={<LocationDetailPage />}
 							/>
 							{/* Add more protected routes here */}
 						</Route>
