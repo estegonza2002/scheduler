@@ -39,7 +39,7 @@ export default function AppLayoutNew() {
 					/>
 					<div className="text-lg font-semibold">{getPageTitle()}</div>
 				</header>
-				<main className="flex-1 overflow-auto">
+				<main className="flex-1 overflow-auto mx-auto w-full">
 					<Outlet />
 				</main>
 			</SidebarInset>

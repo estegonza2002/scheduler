@@ -156,7 +156,7 @@ export default function DailyShiftsPage() {
 	};
 
 	return (
-		<div className="max-w-screen-2xl mx-auto px-4 sm:px-6 py-6">
+		<div className="px-4 sm:px-6 py-6">
 			{/* Header with view switcher */}
 			<div className="flex items-center justify-between mb-4">
 				<h1 className="text-xl font-semibold">Daily Shifts</h1>

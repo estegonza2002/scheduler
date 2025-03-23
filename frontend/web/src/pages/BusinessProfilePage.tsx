@@ -175,299 +175,286 @@ export default function BusinessProfilePage() {
 	}
 
 	return (
-		<div className="container mx-auto py-10 px-4">
-			<div className="max-w-4xl mx-auto">
-				<Button
-					variant="ghost"
-					className="mb-6 flex items-center text-muted-foreground"
-					onClick={goBack}>
-					<ChevronLeft className="h-4 w-4 mr-2" />
-					Back to Dashboard
-				</Button>
+		<div className="px-4 sm:px-6 lg:px-8 py-6">
+			<Button
+				variant="ghost"
+				className="mb-6 flex items-center text-muted-foreground"
+				onClick={goBack}>
+				<ChevronLeft className="h-4 w-4 mr-2" />
+				Back to Dashboard
+			</Button>
 
-				<div className="flex items-center mb-8">
-					<Avatar className="h-20 w-20 mr-6">
-						<AvatarImage src={""} />{" "}
-						{/* Add business logo URL when available */}
-						<AvatarFallback className="text-xl">
-							{getBusinessInitials()}
-						</AvatarFallback>
-					</Avatar>
-					<div>
-						<h1 className="text-3xl font-bold text-primary">
-							{organization?.name || "Your Business"}
-						</h1>
-						<p className="text-muted-foreground mt-1">
-							{organization?.description || "No description provided"}
+			<div className="flex items-center mb-8">
+				<Avatar className="h-20 w-20 mr-6">
+					<AvatarImage src={""} /> {/* Add business logo URL when available */}
+					<AvatarFallback className="text-xl">
+						{getBusinessInitials()}
+					</AvatarFallback>
+				</Avatar>
+				<div>
+					<h1 className="text-3xl font-bold text-primary">
+						{organization?.name || "Your Business"}
+					</h1>
+					<p className="text-muted-foreground mt-1">
+						{organization?.description || "No description provided"}
+					</p>
+				</div>
+			</div>
+
+			<Tabs
+				defaultValue="profile"
+				className="w-full">
+				<TabsList className="mb-6 w-full">
+					<TabsTrigger value="profile">Business Profile</TabsTrigger>
+					<TabsTrigger value="branding">Branding</TabsTrigger>
+					<TabsTrigger value="subscription">Subscription</TabsTrigger>
+				</TabsList>
+
+				<TabsContent value="profile">
+					<div className="mb-6">
+						<h2 className="text-2xl font-bold tracking-tight">
+							Business Information
+						</h2>
+						<p className="text-sm text-muted-foreground">
+							Update your business details and contact information
 						</p>
 					</div>
-				</div>
+					<form
+						onSubmit={form.handleSubmit(onSubmit)}
+						className="space-y-6">
+						<div className="space-y-2">
+							<Label htmlFor="name">Business Name</Label>
+							<Input
+								id="name"
+								placeholder="Enter your business name"
+								{...form.register("name")}
+							/>
+							{form.formState.errors.name && (
+								<p className="text-sm text-red-500">
+									{form.formState.errors.name.message}
+								</p>
+							)}
+						</div>
 
-				<Tabs
-					defaultValue="profile"
-					className="w-full">
-					<TabsList className="mb-6 w-full sm:w-auto">
-						<TabsTrigger value="profile">Business Profile</TabsTrigger>
-						<TabsTrigger value="branding">Branding</TabsTrigger>
-						<TabsTrigger value="subscription">Subscription</TabsTrigger>
-					</TabsList>
+						<div className="space-y-2">
+							<Label htmlFor="description">Business Description</Label>
+							<Textarea
+								id="description"
+								placeholder="Enter a description of your business"
+								rows={4}
+								{...form.register("description")}
+							/>
+						</div>
 
-					<TabsContent value="profile">
-						<Card>
-							<CardHeader>
-								<CardTitle>Business Information</CardTitle>
-								<CardDescription>
-									Update your business details and contact information
-								</CardDescription>
-							</CardHeader>
-							<CardContent>
-								<form
-									onSubmit={form.handleSubmit(onSubmit)}
-									className="space-y-6">
+						<div className="border-t border-border pt-6 mt-6">
+							<h3 className="text-lg font-medium mb-4 flex items-center">
+								<Phone className="h-4 w-4 mr-2 text-muted-foreground" />
+								Contact Information
+							</h3>
+
+							<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+								<div className="space-y-2">
+									<Label htmlFor="contactEmail">Contact Email</Label>
+									<Input
+										id="contactEmail"
+										type="email"
+										placeholder="contact@yourbusiness.com"
+										{...form.register("contactEmail")}
+									/>
+									{form.formState.errors.contactEmail && (
+										<p className="text-sm text-red-500">
+											{form.formState.errors.contactEmail.message}
+										</p>
+									)}
+								</div>
+
+								<div className="space-y-2">
+									<Label htmlFor="contactPhone">Contact Phone</Label>
+									<Input
+										id="contactPhone"
+										placeholder="(123) 456-7890"
+										{...form.register("contactPhone")}
+									/>
+								</div>
+							</div>
+						</div>
+
+						<div className="border-t border-border pt-6 mt-6">
+							<h3 className="text-lg font-medium mb-4 flex items-center">
+								<MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
+								Address
+							</h3>
+
+							<div className="space-y-4">
+								<div className="space-y-2">
+									<Label htmlFor="address">Street Address</Label>
+									<Input
+										id="address"
+										placeholder="123 Main St"
+										{...form.register("address")}
+									/>
+								</div>
+
+								<div className="grid grid-cols-2 gap-4">
 									<div className="space-y-2">
-										<Label htmlFor="name">Business Name</Label>
+										<Label htmlFor="city">City</Label>
 										<Input
-											id="name"
-											placeholder="Enter your business name"
-											{...form.register("name")}
+											id="city"
+											placeholder="City"
+											{...form.register("city")}
 										/>
-										{form.formState.errors.name && (
-											<p className="text-sm text-red-500">
-												{form.formState.errors.name.message}
-											</p>
-										)}
 									</div>
 
 									<div className="space-y-2">
-										<Label htmlFor="description">Business Description</Label>
-										<Textarea
-											id="description"
-											placeholder="Enter a description of your business"
-											rows={4}
-											{...form.register("description")}
+										<Label htmlFor="state">State/Province</Label>
+										<Input
+											id="state"
+											placeholder="State"
+											{...form.register("state")}
+										/>
+									</div>
+								</div>
+
+								<div className="grid grid-cols-2 gap-4">
+									<div className="space-y-2">
+										<Label htmlFor="zipCode">ZIP/Postal Code</Label>
+										<Input
+											id="zipCode"
+											placeholder="ZIP"
+											{...form.register("zipCode")}
 										/>
 									</div>
 
-									<div className="border-t border-border pt-6 mt-6">
-										<h3 className="text-lg font-medium mb-4 flex items-center">
-											<Phone className="h-4 w-4 mr-2 text-muted-foreground" />
-											Contact Information
-										</h3>
-
-										<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-											<div className="space-y-2">
-												<Label htmlFor="contactEmail">Contact Email</Label>
-												<Input
-													id="contactEmail"
-													type="email"
-													placeholder="contact@yourbusiness.com"
-													{...form.register("contactEmail")}
-												/>
-												{form.formState.errors.contactEmail && (
-													<p className="text-sm text-red-500">
-														{form.formState.errors.contactEmail.message}
-													</p>
-												)}
-											</div>
-
-											<div className="space-y-2">
-												<Label htmlFor="contactPhone">Contact Phone</Label>
-												<Input
-													id="contactPhone"
-													placeholder="(123) 456-7890"
-													{...form.register("contactPhone")}
-												/>
-											</div>
-										</div>
+									<div className="space-y-2">
+										<Label htmlFor="country">Country</Label>
+										<Input
+											id="country"
+											placeholder="Country"
+											{...form.register("country")}
+										/>
 									</div>
-
-									<div className="border-t border-border pt-6 mt-6">
-										<h3 className="text-lg font-medium mb-4 flex items-center">
-											<MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-											Address
-										</h3>
-
-										<div className="space-y-4">
-											<div className="space-y-2">
-												<Label htmlFor="address">Street Address</Label>
-												<Input
-													id="address"
-													placeholder="123 Main St"
-													{...form.register("address")}
-												/>
-											</div>
-
-											<div className="grid grid-cols-2 gap-4">
-												<div className="space-y-2">
-													<Label htmlFor="city">City</Label>
-													<Input
-														id="city"
-														placeholder="City"
-														{...form.register("city")}
-													/>
-												</div>
-
-												<div className="space-y-2">
-													<Label htmlFor="state">State/Province</Label>
-													<Input
-														id="state"
-														placeholder="State"
-														{...form.register("state")}
-													/>
-												</div>
-											</div>
-
-											<div className="grid grid-cols-2 gap-4">
-												<div className="space-y-2">
-													<Label htmlFor="zipCode">ZIP/Postal Code</Label>
-													<Input
-														id="zipCode"
-														placeholder="ZIP"
-														{...form.register("zipCode")}
-													/>
-												</div>
-
-												<div className="space-y-2">
-													<Label htmlFor="country">Country</Label>
-													<Input
-														id="country"
-														placeholder="Country"
-														{...form.register("country")}
-													/>
-												</div>
-											</div>
-										</div>
-									</div>
-
-									<div className="border-t border-border pt-6 mt-6">
-										<h3 className="text-lg font-medium mb-4 flex items-center">
-											<Globe className="h-4 w-4 mr-2 text-muted-foreground" />
-											Online Presence
-										</h3>
-
-										<div className="space-y-2">
-											<Label htmlFor="website">Website</Label>
-											<Input
-												id="website"
-												placeholder="https://www.example.com"
-												{...form.register("website")}
-											/>
-											{form.formState.errors.website && (
-												<p className="text-sm text-red-500">
-													{form.formState.errors.website.message}
-												</p>
-											)}
-										</div>
-									</div>
-
-									<div className="border-t border-border pt-6 mt-6">
-										<h3 className="text-lg font-medium mb-4 flex items-center">
-											<Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-											Business Hours
-										</h3>
-
-										<div className="space-y-2">
-											<Label htmlFor="businessHours">Hours of Operation</Label>
-											<Textarea
-												id="businessHours"
-												placeholder="Monday-Friday: 9am-5pm&#10;Saturday: 10am-3pm&#10;Sunday: Closed"
-												rows={3}
-												{...form.register("businessHours")}
-											/>
-										</div>
-									</div>
-
-									<Button
-										type="submit"
-										className="w-full"
-										disabled={isLoading}>
-										{isLoading ? "Saving..." : "Save Changes"}
-									</Button>
-								</form>
-							</CardContent>
-						</Card>
-					</TabsContent>
-
-					<TabsContent value="branding">
-						<Card>
-							<CardHeader>
-								<CardTitle>Branding</CardTitle>
-								<CardDescription>
-									Customize your business branding elements
-								</CardDescription>
-							</CardHeader>
-							<CardContent>
-								<div className="space-y-6">
-									<div>
-										<h3 className="text-lg font-medium mb-2">Business Logo</h3>
-										<p className="text-sm text-muted-foreground mb-4">
-											Upload your business logo. Recommended size: 400x400px.
-										</p>
-										<div className="flex items-center gap-4">
-											<Avatar className="h-24 w-24">
-												<AvatarFallback className="text-2xl">
-													{getBusinessInitials()}
-												</AvatarFallback>
-											</Avatar>
-											<Button variant="outline">Upload Logo</Button>
-										</div>
-									</div>
-
-									<div className="border-t border-border pt-6 mt-6">
-										<h3 className="text-lg font-medium mb-2">Company Colors</h3>
-										<p className="text-sm text-muted-foreground mb-4">
-											Choose colors that represent your brand. These colors will
-											be displayed throughout your account.
-										</p>
-										<div className="flex items-center gap-4">
-											<div className="space-y-2">
-												<Label htmlFor="primaryColor">Primary Color</Label>
-												<div className="flex items-center gap-2">
-													<div className="h-10 w-10 rounded-md bg-primary" />
-													<Input
-														id="primaryColor"
-														value="Primary Theme Color"
-														disabled
-													/>
-												</div>
-											</div>
-										</div>
-									</div>
-
-									<p className="text-center text-muted-foreground pt-4">
-										Advanced branding options will be available in a future
-										update.
-									</p>
 								</div>
-							</CardContent>
-						</Card>
-					</TabsContent>
+							</div>
+						</div>
 
-					<TabsContent value="subscription">
-						<Card>
-							<CardHeader>
-								<CardTitle>Subscription Plan</CardTitle>
-								<CardDescription>
-									Manage your subscription and billing information
-								</CardDescription>
-							</CardHeader>
-							<CardContent>
-								<div className="py-10 text-center">
-									<p className="text-muted-foreground mb-4">
-										Your business is currently on the <strong>Free</strong>{" "}
-										plan.
+						<div className="border-t border-border pt-6 mt-6">
+							<h3 className="text-lg font-medium mb-4 flex items-center">
+								<Globe className="h-4 w-4 mr-2 text-muted-foreground" />
+								Online Presence
+							</h3>
+
+							<div className="space-y-2">
+								<Label htmlFor="website">Website</Label>
+								<Input
+									id="website"
+									placeholder="https://www.example.com"
+									{...form.register("website")}
+								/>
+								{form.formState.errors.website && (
+									<p className="text-sm text-red-500">
+										{form.formState.errors.website.message}
 									</p>
-									<p className="text-muted-foreground mb-6">
-										Upgrade to unlock premium features such as advanced
-										scheduling, reporting, and more.
-									</p>
-									<Button>View Pricing Plans</Button>
+								)}
+							</div>
+						</div>
+
+						<div className="border-t border-border pt-6 mt-6">
+							<h3 className="text-lg font-medium mb-4 flex items-center">
+								<Clock className="h-4 w-4 mr-2 text-muted-foreground" />
+								Business Hours
+							</h3>
+
+							<div className="space-y-2">
+								<Label htmlFor="businessHours">Hours of Operation</Label>
+								<Textarea
+									id="businessHours"
+									placeholder="Monday-Friday: 9am-5pm&#10;Saturday: 10am-3pm&#10;Sunday: Closed"
+									rows={3}
+									{...form.register("businessHours")}
+								/>
+							</div>
+						</div>
+
+						<Button
+							type="submit"
+							className="w-full"
+							disabled={isLoading}>
+							{isLoading ? "Saving..." : "Save Changes"}
+						</Button>
+					</form>
+				</TabsContent>
+
+				<TabsContent value="branding">
+					<div className="mb-6">
+						<h2 className="text-2xl font-bold tracking-tight">Branding</h2>
+						<p className="text-sm text-muted-foreground">
+							Customize your business branding elements
+						</p>
+					</div>
+					<div className="space-y-6">
+						<div>
+							<h3 className="text-lg font-medium mb-2">Business Logo</h3>
+							<p className="text-sm text-muted-foreground mb-4">
+								Upload your business logo. Recommended size: 400x400px.
+							</p>
+							<div className="flex items-center gap-4">
+								<Avatar className="h-24 w-24">
+									<AvatarFallback className="text-2xl">
+										{getBusinessInitials()}
+									</AvatarFallback>
+								</Avatar>
+								<Button variant="outline">Upload Logo</Button>
+							</div>
+						</div>
+
+						<div className="border-t border-border pt-6 mt-6">
+							<h3 className="text-lg font-medium mb-2">Company Colors</h3>
+							<p className="text-sm text-muted-foreground mb-4">
+								Choose colors that represent your brand. These colors will be
+								displayed throughout your account.
+							</p>
+							<div className="flex items-center gap-4">
+								<div className="space-y-2">
+									<Label htmlFor="primaryColor">Primary Color</Label>
+									<div className="flex items-center gap-2">
+										<div className="h-10 w-10 rounded-md bg-primary" />
+										<Input
+											id="primaryColor"
+											value="Primary Theme Color"
+											disabled
+										/>
+									</div>
 								</div>
-							</CardContent>
-						</Card>
-					</TabsContent>
-				</Tabs>
-			</div>
+							</div>
+						</div>
+
+						<p className="text-center text-muted-foreground pt-4">
+							Advanced branding options will be available in a future update.
+						</p>
+					</div>
+				</TabsContent>
+
+				<TabsContent value="subscription">
+					<div className="mb-6">
+						<h2 className="text-2xl font-bold tracking-tight">
+							Subscription Plan
+						</h2>
+						<p className="text-sm text-muted-foreground">
+							Manage your subscription and billing information
+						</p>
+					</div>
+					<div className="py-10 text-center">
+						<p className="text-muted-foreground mb-4">
+							Your business is currently on the <strong>Free</strong> plan.
+						</p>
+						<p className="text-muted-foreground mb-6">
+							Upgrade to unlock premium features such as advanced scheduling,
+							reporting, and more.
+						</p>
+						<Button>View Pricing Plans</Button>
+					</div>
+				</TabsContent>
+			</Tabs>
 		</div>
 	);
 }

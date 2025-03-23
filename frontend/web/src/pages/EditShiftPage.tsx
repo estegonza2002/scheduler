@@ -12,7 +12,7 @@ import {
 } from "../components/ui/card";
 import { Shift, ShiftsAPI, LocationsAPI, Location } from "../api";
 import { format, parseISO } from "date-fns";
-import { ArrowLeft, Clock, MapPin, Save } from "lucide-react";
+import { ArrowLeft, Clock, MapPin, Save, ChevronLeft } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 
@@ -99,7 +99,7 @@ export default function EditShiftPage() {
 			});
 
 			toast.success("Shift updated successfully");
-			navigate(`/shifts/${shiftId}${window.location.search}`);
+			navigate(`/shifts/${shiftId}`);
 		} catch (error) {
 			console.error("Error saving shift:", error);
 			toast.error("Failed to update shift");
@@ -117,18 +117,10 @@ export default function EditShiftPage() {
 	}
 
 	return (
-		<div className="max-w-screen-lg mx-auto px-4 sm:px-6 py-6">
+		<div className="px-4 sm:px-6 py-6">
 			{/* Header */}
-			<div className="flex items-center justify-between mb-6">
+			<div className="mb-6">
 				<h1 className="text-2xl font-bold">Edit Shift</h1>
-				<Button
-					variant="outline"
-					onClick={() =>
-						navigate(`/shifts/${shiftId}${window.location.search}`)
-					}
-					className="h-9">
-					<ArrowLeft className="h-4 w-4 mr-2" /> Back to Details
-				</Button>
 			</div>
 
 			<Card>
@@ -211,9 +203,7 @@ export default function EditShiftPage() {
 							<Button
 								type="button"
 								variant="outline"
-								onClick={() =>
-									navigate(`/shifts/${shiftId}${window.location.search}`)
-								}>
+								onClick={() => navigate(`/shifts/${shiftId}`)}>
 								Cancel
 							</Button>
 							<Button

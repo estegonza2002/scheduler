@@ -24,6 +24,7 @@ import {
 	ArrowLeft,
 	Edit,
 	Trash,
+	ChevronLeft,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -116,7 +117,17 @@ export default function EmployeeDetailPage() {
 	const initials = getInitials(employee.name);
 
 	return (
-		<div className="max-w-screen-lg mx-auto px-4 sm:px-6 py-6">
+		<div className="px-4 sm:px-6 py-6">
+			<div className="mb-6 flex items-center gap-2">
+				<Button
+					variant="ghost"
+					size="sm"
+					onClick={() => navigate("/employees")}
+					className="flex items-center">
+					<ChevronLeft className="h-4 w-4 mr-1" /> Back to Employees
+				</Button>
+			</div>
+
 			{/* Header with navigation and actions */}
 			<div className="flex items-center justify-between mb-6">
 				<div className="flex items-center space-x-2">

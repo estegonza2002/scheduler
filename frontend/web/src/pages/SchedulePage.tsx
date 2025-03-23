@@ -33,7 +33,7 @@ export default function SchedulePage() {
 	};
 
 	return (
-		<div className="max-w-screen-2xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+		<div className="px-4 sm:px-6 py-6 space-y-6">
 			{/* Header with Today's view link */}
 			<div className="flex justify-between items-center mb-4">
 				<Button

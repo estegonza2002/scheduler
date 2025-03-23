@@ -219,12 +219,12 @@ export default function LocationsPage() {
 	}
 
 	return (
-		<div className="p-6 max-w-7xl mx-auto">
+		<div className="p-6">
 			<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
 				<div>
 					<h1 className="text-3xl font-bold text-primary">Locations</h1>
 					<p className="text-muted-foreground mt-1">
-						Manage your business locations with Google Places integration
+						Manage store locations and their details
 					</p>
 				</div>
 				{organization && (

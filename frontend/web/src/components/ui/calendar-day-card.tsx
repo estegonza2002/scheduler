@@ -22,7 +22,7 @@ export function CalendarDayCard({
 	return (
 		<div
 			className={cn(
-				"h-[120px] p-2 border hover:bg-accent/50 transition-colors relative cursor-pointer overflow-hidden",
+				"h-[120px] p-2 border rounded-md hover:bg-accent/50 transition-colors relative cursor-pointer overflow-hidden",
 				!isCurrentMonth && "bg-muted/50 text-muted-foreground",
 				isSelected && "bg-accent",
 				className
