@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
@@ -10,20 +10,26 @@ import {
 	CardHeader,
 	CardTitle,
 } from "../components/ui/card";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "../components/ui/select";
 import { Shift, ShiftsAPI, LocationsAPI, Location } from "../api";
 import { format, parseISO } from "date-fns";
-import { ArrowLeft, Clock, MapPin, Save, ChevronLeft } from "lucide-react";
+import { ArrowLeft, Clock, MapPin, Save } from "lucide-react";
 import { toast } from "sonner";
-import { Link } from "react-router-dom";
 
 export default function EditShiftPage() {
 	const { shiftId } = useParams<{ shiftId: string }>();
-	const navigate = useNavigate();
 	const [searchParams] = useSearchParams();
 	const [shift, setShift] = useState<Shift | null>(null);
 	const [locations, setLocations] = useState<Location[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [saving, setSaving] = useState(false);
+	const [redirectPath, setRedirectPath] = useState<string | null>(null);
 
 	// Form fields
 	const [date, setDate] = useState("");
@@ -44,7 +50,7 @@ export default function EditShiftPage() {
 				const shiftData = await ShiftsAPI.getById(shiftId);
 				if (!shiftData) {
 					toast.error("Shift not found");
-					navigate("/schedule");
+					setRedirectPath("/schedule");
 					return;
 				}
 
@@ -71,7 +77,7 @@ export default function EditShiftPage() {
 		}
 
 		loadShiftData();
-	}, [shiftId, navigate, searchParams]);
+	}, [shiftId, searchParams]);
 
 	// Handle form submission
 	const handleSubmit = async (e: React.FormEvent) => {
@@ -90,7 +96,7 @@ export default function EditShiftPage() {
 			const endDateTime = new Date(`${date}T${endTime}`).toISOString();
 
 			// Update shift
-			await ShiftsAPI.update(shiftId, {
+			await ShiftsAPI.update({
 				...shift,
 				startTime: startDateTime,
 				endTime: endDateTime,
@@ -99,7 +105,7 @@ export default function EditShiftPage() {
 			});
 
 			toast.success("Shift updated successfully");
-			navigate(`/shifts/${shiftId}`);
+			setRedirectPath(`/shifts/${shiftId}`);
 		} catch (error) {
 			console.error("Error saving shift:", error);
 			toast.error("Failed to update shift");
@@ -107,6 +113,13 @@ export default function EditShiftPage() {
 			setSaving(false);
 		}
 	};
+
+	// Handle redirect after successful update
+	useEffect(() => {
+		if (redirectPath) {
+			window.location.href = redirectPath;
+		}
+	}, [redirectPath]);
 
 	if (loading) {
 		return (
@@ -119,8 +132,13 @@ export default function EditShiftPage() {
 	return (
 		<div className="px-4 sm:px-6 py-6">
 			{/* Header */}
-			<div className="mb-6">
+			<div className="flex items-center justify-between mb-6">
 				<h1 className="text-2xl font-bold">Edit Shift</h1>
+				<Link
+					to={`/shifts/${shiftId}`}
+					className="inline-flex items-center gap-2 h-9 px-4 py-2 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground">
+					<ArrowLeft className="h-4 w-4" /> Back to Details
+				</Link>
 			</div>
 
 			<Card>
@@ -170,20 +188,23 @@ export default function EditShiftPage() {
 						{/* Location */}
 						<div className="space-y-2">
 							<Label htmlFor="location">Location</Label>
-							<select
-								id="location"
-								className="w-full h-10 px-3 py-2 border rounded-md"
+							<Select
 								value={locationId}
-								onChange={(e) => setLocationId(e.target.value)}>
-								<option value="">No location</option>
-								{locations.map((loc) => (
-									<option
-										key={loc.id}
-										value={loc.id}>
-										{loc.name}
-									</option>
-								))}
-							</select>
+								onValueChange={setLocationId}>
+								<SelectTrigger id="location">
+									<SelectValue placeholder="Select a location" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="">No location</SelectItem>
+									{locations.map((loc) => (
+										<SelectItem
+											key={loc.id}
+											value={loc.id}>
+											{loc.name}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
 						</div>
 
 						{/* Notes */}
@@ -200,12 +221,11 @@ export default function EditShiftPage() {
 
 						{/* Actions */}
 						<div className="flex justify-end gap-2 pt-4">
-							<Button
-								type="button"
-								variant="outline"
-								onClick={() => navigate(`/shifts/${shiftId}`)}>
+							<Link
+								to={`/shifts/${shiftId}`}
+								className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
 								Cancel
-							</Button>
+							</Link>
 							<Button
 								type="submit"
 								disabled={saving}

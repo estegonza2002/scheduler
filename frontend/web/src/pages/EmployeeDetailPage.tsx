@@ -131,14 +131,6 @@ export default function EmployeeDetailPage() {
 			{/* Header with navigation and actions */}
 			<div className="flex items-center justify-between mb-6">
 				<div className="flex items-center space-x-2">
-					<Button
-						variant="outline"
-						size="sm"
-						onClick={() => navigate("/employees")}
-						className="h-9">
-						<ArrowLeft className="h-4 w-4 mr-2" />
-						Back to Employees
-					</Button>
 					<h1 className="text-2xl font-bold ml-2">Employee Profile</h1>
 				</div>
 
@@ -204,11 +196,9 @@ export default function EmployeeDetailPage() {
 				</div>
 
 				{/* Contact Information */}
-				<Card>
-					<CardHeader>
-						<CardTitle>Contact Information</CardTitle>
-					</CardHeader>
-					<CardContent className="space-y-4">
+				<div className="bg-white rounded-lg shadow-sm border p-6">
+					<h2 className="text-lg font-semibold mb-4">Contact Information</h2>
+					<div className="space-y-4">
 						<div className="flex items-center gap-3">
 							<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
 								<Mail className="h-5 w-5 text-primary" />
@@ -242,15 +232,13 @@ export default function EmployeeDetailPage() {
 								</div>
 							</div>
 						)}
-					</CardContent>
-				</Card>
+					</div>
+				</div>
 
 				{/* Employment Details */}
-				<Card>
-					<CardHeader>
-						<CardTitle>Employment Details</CardTitle>
-					</CardHeader>
-					<CardContent className="space-y-4">
+				<div className="bg-white rounded-lg shadow-sm border p-6">
+					<h2 className="text-lg font-semibold mb-4">Employment Details</h2>
+					<div className="space-y-4">
 						<div className="flex items-center gap-3">
 							<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
 								<User className="h-5 w-5 text-primary" />
@@ -300,16 +288,14 @@ export default function EmployeeDetailPage() {
 								</div>
 							</div>
 						)}
-					</CardContent>
-				</Card>
+					</div>
+				</div>
 
 				{/* Additional Information */}
 				{(employee.emergencyContact || employee.notes) && (
-					<Card>
-						<CardHeader>
-							<CardTitle>Additional Information</CardTitle>
-						</CardHeader>
-						<CardContent className="space-y-4">
+					<div className="space-y-4">
+						<h2 className="text-xl font-semibold">Additional Information</h2>
+						<div className="space-y-4">
 							{employee.emergencyContact && (
 								<div className="flex items-center gap-3">
 									<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
@@ -335,8 +321,8 @@ export default function EmployeeDetailPage() {
 									</div>
 								</div>
 							)}
-						</CardContent>
-					</Card>
+						</div>
+					</div>
 				)}
 			</div>
 		</div>
