@@ -76,7 +76,8 @@ export function DataTable<TData, TValue>({
 
 	return (
 		<div>
-			<div className="flex items-center justify-between py-4">
+			{/* Search Controls - Top Section */}
+			<div className="flex items-center py-4">
 				{searchKey && (
 					<Input
 						placeholder={searchPlaceholder}
@@ -90,28 +91,9 @@ export function DataTable<TData, TValue>({
 					/>
 				)}
 				{!searchKey && <div />}
-				<div className="flex items-center space-x-2">
-					<p className="text-sm text-muted-foreground">Items per page</p>
-					<Select
-						value={`${table.getState().pagination.pageSize}`}
-						onValueChange={(value) => {
-							table.setPageSize(Number(value));
-						}}>
-						<SelectTrigger className="h-8 w-[70px]">
-							<SelectValue placeholder={table.getState().pagination.pageSize} />
-						</SelectTrigger>
-						<SelectContent side="top">
-							{[10, 20, 30, 40, 50].map((pageSize) => (
-								<SelectItem
-									key={pageSize}
-									value={`${pageSize}`}>
-									{pageSize}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
-				</div>
 			</div>
+
+			{/* Table */}
 			<div className="rounded-lg border">
 				<Table>
 					<TableHeader>
@@ -160,22 +142,51 @@ export function DataTable<TData, TValue>({
 					</TableBody>
 				</Table>
 			</div>
-			<div className="flex items-center justify-between space-x-2 py-4">
-				<div className="text-sm text-muted-foreground">
-					Showing{" "}
-					{table.getFilteredRowModel().rows.length > 0
-						? table.getState().pagination.pageIndex *
-								table.getState().pagination.pageSize +
-						  1
-						: 0}{" "}
-					to{" "}
-					{Math.min(
-						(table.getState().pagination.pageIndex + 1) *
-							table.getState().pagination.pageSize,
-						table.getFilteredRowModel().rows.length
-					)}{" "}
-					of {table.getFilteredRowModel().rows.length} entries
+
+			{/* Pagination Controls - Bottom Section */}
+			<div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0 sm:space-x-2 py-4">
+				<div className="flex items-center space-x-6">
+					<div className="text-sm text-muted-foreground">
+						Showing{" "}
+						{table.getFilteredRowModel().rows.length > 0
+							? table.getState().pagination.pageIndex *
+									table.getState().pagination.pageSize +
+							  1
+							: 0}{" "}
+						to{" "}
+						{Math.min(
+							(table.getState().pagination.pageIndex + 1) *
+								table.getState().pagination.pageSize,
+							table.getFilteredRowModel().rows.length
+						)}{" "}
+						of {table.getFilteredRowModel().rows.length} entries
+					</div>
+
+					<div className="flex items-center space-x-2">
+						<p className="text-sm text-muted-foreground">Items per page</p>
+						<Select
+							value={`${table.getState().pagination.pageSize}`}
+							onValueChange={(value) => {
+								table.setPageSize(Number(value));
+							}}>
+							<SelectTrigger className="h-8 w-[70px]">
+								<SelectValue
+									placeholder={table.getState().pagination.pageSize}
+								/>
+							</SelectTrigger>
+							<SelectContent side="top">
+								{[10, 20, 30, 40, 50].map((pageSize) => (
+									<SelectItem
+										key={pageSize}
+										value={`${pageSize}`}>
+										{pageSize}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					</div>
 				</div>
+
 				<div className="flex items-center space-x-2">
 					<Button
 						variant="outline"

@@ -157,97 +157,76 @@ export default function DailyShiftsPage() {
 
 	return (
 		<div className="px-4 sm:px-6 py-6">
-			{/* Header with view switcher */}
-			<div className="flex items-center justify-between mb-4">
-				<h1 className="text-xl font-semibold">Daily Shifts</h1>
-				<Button
-					variant="outline"
-					size="sm"
-					className="text-sm flex items-center"
-					onClick={() => navigate("/schedule/monthly")}>
-					<Grid className="h-4 w-4 mr-2" /> View Monthly Calendar
-				</Button>
-			</div>
+			{/* Date navigation controls */}
+			<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+				<div className="flex flex-col">
+					<h1 className="text-xl font-semibold">
+						Shifts for {format(currentDate, "EEEE, MMMM d, yyyy")}
+					</h1>
+					{loading && (
+						<div className="flex items-center text-sm text-muted-foreground gap-2 mt-1">
+							<Loader2 className="h-3 w-3 animate-spin" />
+							<span>
+								{loadingPhase === "shifts"
+									? "Loading shifts..."
+									: loadingPhase === "locations"
+									? "Loading locations..."
+									: "Loading employees..."}
+							</span>
+						</div>
+					)}
+				</div>
 
-			{/* Date navigation bar - improved UI */}
-			<div className="bg-white rounded-lg shadow-sm border mb-6">
-				<div className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-					<div className="flex flex-col">
-						<h2 className="text-xl font-bold">
-							Shifts for {format(currentDate, "EEEE, MMMM d, yyyy")}
-						</h2>
-						{loading && (
-							<div className="flex items-center text-sm text-muted-foreground gap-2 mt-1">
-								<Loader2 className="h-3 w-3 animate-spin" />
-								<span>
-									{loadingPhase === "shifts"
-										? "Loading shifts..."
-										: loadingPhase === "locations"
-										? "Loading locations..."
-										: "Loading employees..."}
-								</span>
-							</div>
-						)}
-					</div>
+				<div className="flex items-center space-x-2 mt-2 sm:mt-0">
+					<Button
+						variant="outline"
+						size="icon"
+						onClick={() => updateDate(subDays(currentDate, 1))}>
+						<ChevronLeft className="h-4 w-4" />
+					</Button>
 
-					<div className="flex items-center space-x-2">
-						<Button
-							variant="outline"
-							size="icon"
-							onClick={() => updateDate(subDays(currentDate, 1))}>
-							<ChevronLeft className="h-4 w-4" />
-						</Button>
+					<Popover
+						open={isCalendarOpen}
+						onOpenChange={setIsCalendarOpen}>
+						<PopoverTrigger asChild>
+							<Button
+								variant="outline"
+								className="flex items-center min-w-[110px] justify-center">
+								<CalendarIcon className="mr-2 h-4 w-4" />
+								Today
+							</Button>
+						</PopoverTrigger>
+						<PopoverContent
+							className="w-auto p-0"
+							align="center">
+							<Calendar
+								mode="single"
+								selected={currentDate}
+								onSelect={(date) => {
+									if (date) {
+										updateDate(date);
+										setIsCalendarOpen(false);
+									}
+								}}
+								initialFocus
+							/>
+						</PopoverContent>
+					</Popover>
 
-						<Popover
-							open={isCalendarOpen}
-							onOpenChange={setIsCalendarOpen}>
-							<PopoverTrigger asChild>
-								<Button
-									variant="outline"
-									className="flex items-center min-w-[110px] justify-center">
-									<CalendarIcon className="mr-2 h-4 w-4" />
-									Today
-								</Button>
-							</PopoverTrigger>
-							<PopoverContent
-								className="w-auto p-0"
-								align="center">
-								<Calendar
-									mode="single"
-									selected={currentDate}
-									onSelect={(date) => {
-										if (date) {
-											updateDate(date);
-											setIsCalendarOpen(false);
-										}
-									}}
-									initialFocus
-								/>
-							</PopoverContent>
-						</Popover>
+					<Button
+						variant="outline"
+						size="icon"
+						onClick={() => updateDate(addDays(currentDate, 1))}>
+						<ChevronRight className="h-4 w-4" />
+					</Button>
 
-						<Button
-							variant="outline"
-							size="icon"
-							onClick={() => updateDate(addDays(currentDate, 1))}>
-							<ChevronRight className="h-4 w-4" />
-						</Button>
-
-						<ShiftCreationDialog
-							scheduleId={selectedSchedule || "sch-4"}
-							organizationId={organizationId}
-							initialDate={currentDate}
-							onShiftCreated={fetchShifts}
-							trigger={
-								<Button
-									variant="default"
-									className="bg-black hover:bg-black/90 text-white ml-2">
-									<Plus className="h-4 w-4 mr-2" />
-									New Shift
-								</Button>
-							}
-						/>
-					</div>
+					<Button
+						variant="outline"
+						size="sm"
+						className="text-sm flex items-center"
+						onClick={() => navigate("/schedule/monthly")}>
+						<Grid className="h-4 w-4 mr-2" /> View Calendar
+					</Button>
 				</div>
 			</div>
 

@@ -17,6 +17,7 @@ import {
 	Edit,
 	Trash,
 	ChevronLeft,
+	Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -30,12 +31,14 @@ import {
 	AlertDialogTitle,
 	AlertDialogTrigger,
 } from "../components/ui/alert-dialog";
+import { Skeleton } from "../components/ui/skeleton";
 
 export default function EmployeeDetailPage() {
 	const { employeeId } = useParams<{ employeeId: string }>();
 	const navigate = useNavigate();
 	const [employee, setEmployee] = useState<Employee | null>(null);
 	const [loading, setLoading] = useState<boolean>(true);
+	const [loadingPhase, setLoadingPhase] = useState<string>("employee");
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
 
 	useEffect(() => {
@@ -44,6 +47,7 @@ export default function EmployeeDetailPage() {
 
 			try {
 				setLoading(true);
+				setLoadingPhase("employee");
 				const employeeData = await EmployeesAPI.getById(employeeId);
 				if (!employeeData) {
 					toast.error("Employee not found");
@@ -56,6 +60,7 @@ export default function EmployeeDetailPage() {
 				toast.error("Failed to load employee details");
 			} finally {
 				setLoading(false);
+				setLoadingPhase("");
 			}
 		};
 
@@ -84,24 +89,45 @@ export default function EmployeeDetailPage() {
 			.toUpperCase();
 	};
 
-	if (loading) {
+	// Render loading skeleton
+	const renderLoadingSkeleton = () => {
 		return (
-			<div className="flex items-center justify-center min-h-screen">
-				<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+			<div className="space-y-6">
+				<Skeleton className="h-10 w-48" />
+
+				<div className="space-y-2">
+					<div className="flex items-center justify-between">
+						<Skeleton className="h-8 w-64" />
+						<div className="flex gap-2">
+							<Skeleton className="h-9 w-20" />
+							<Skeleton className="h-9 w-24" />
+						</div>
+					</div>
+				</div>
+
+				<Skeleton className="h-32 w-full rounded-md" />
+				<Skeleton className="h-48 w-full rounded-md" />
+				<Skeleton className="h-48 w-full rounded-md" />
 			</div>
 		);
+	};
+
+	if (loading) {
+		return <div className="px-4 sm:px-6 py-6">{renderLoadingSkeleton()}</div>;
 	}
 
 	if (!employee) {
 		return (
-			<div className="container py-8">
-				<h1 className="text-2xl font-bold">Employee not found</h1>
-				<Button
-					variant="outline"
-					onClick={() => navigate("/employees")}
-					className="mt-4">
-					<ArrowLeft className="mr-2 h-4 w-4" /> Back to Employees
-				</Button>
+			<div className="px-4 sm:px-6 py-6">
+				<div className="bg-white rounded-lg shadow-sm border p-6">
+					<h1 className="text-xl font-semibold mb-4">Employee not found</h1>
+					<Button
+						variant="outline"
+						onClick={() => navigate("/employees")}
+						className="mt-2">
+						<ArrowLeft className="mr-2 h-4 w-4" /> Back to Employees
+					</Button>
+				</div>
 			</div>
 		);
 	}
@@ -121,49 +147,60 @@ export default function EmployeeDetailPage() {
 			</div>
 
 			{/* Header with navigation and actions */}
-			<div className="flex items-center justify-between mb-6">
-				<div className="flex items-center space-x-2">
-					<h1 className="text-2xl font-bold ml-2">Employee Profile</h1>
-				</div>
+			<div className="bg-white rounded-lg shadow-sm border mb-6">
+				<div className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+					<div className="flex flex-col">
+						<h1 className="text-xl font-bold">Employee Profile</h1>
+						<p className="text-sm text-muted-foreground mt-1">
+							View and manage employee information
+						</p>
+						{loading && (
+							<div className="flex items-center text-sm text-muted-foreground gap-2 mt-1">
+								<Loader2 className="h-3 w-3 animate-spin" />
+								<span>Loading employee details...</span>
+							</div>
+						)}
+					</div>
 
-				<div className="flex items-center gap-2">
-					<Button
-						variant="outline"
-						size="sm"
-						className="h-9 gap-1"
-						onClick={() => navigate(`/edit-employee/${employee.id}`)}>
-						<Edit className="h-4 w-4" /> Edit
-					</Button>
+					<div className="flex items-center gap-2">
+						<Button
+							variant="outline"
+							size="sm"
+							className="h-9 gap-1"
+							onClick={() => navigate(`/edit-employee/${employee.id}`)}>
+							<Edit className="h-4 w-4" /> Edit
+						</Button>
 
-					<AlertDialog
-						open={deleteDialogOpen}
-						onOpenChange={setDeleteDialogOpen}>
-						<AlertDialogTrigger asChild>
-							<Button
-								variant="outline"
-								size="sm"
-								className="h-9 text-destructive border-destructive/30">
-								<Trash className="h-4 w-4 mr-2" /> Delete
-							</Button>
-						</AlertDialogTrigger>
-						<AlertDialogContent>
-							<AlertDialogHeader>
-								<AlertDialogTitle>Are you sure?</AlertDialogTitle>
-								<AlertDialogDescription>
-									This will permanently delete this employee record. This action
-									cannot be undone.
-								</AlertDialogDescription>
-							</AlertDialogHeader>
-							<AlertDialogFooter>
-								<AlertDialogCancel>Cancel</AlertDialogCancel>
-								<AlertDialogAction
-									onClick={handleDeleteEmployee}
-									className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-									Delete
-								</AlertDialogAction>
-							</AlertDialogFooter>
-						</AlertDialogContent>
-					</AlertDialog>
+						<AlertDialog
+							open={deleteDialogOpen}
+							onOpenChange={setDeleteDialogOpen}>
+							<AlertDialogTrigger asChild>
+								<Button
+									variant="outline"
+									size="sm"
+									className="h-9 text-destructive border-destructive/30">
+									<Trash className="h-4 w-4 mr-2" /> Delete
+								</Button>
+							</AlertDialogTrigger>
+							<AlertDialogContent>
+								<AlertDialogHeader>
+									<AlertDialogTitle>Are you sure?</AlertDialogTitle>
+									<AlertDialogDescription>
+										This will permanently delete this employee record. This
+										action cannot be undone.
+									</AlertDialogDescription>
+								</AlertDialogHeader>
+								<AlertDialogFooter>
+									<AlertDialogCancel>Cancel</AlertDialogCancel>
+									<AlertDialogAction
+										onClick={handleDeleteEmployee}
+										className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+										Delete
+									</AlertDialogAction>
+								</AlertDialogFooter>
+							</AlertDialogContent>
+						</AlertDialog>
+					</div>
 				</div>
 			</div>
 
@@ -285,8 +322,10 @@ export default function EmployeeDetailPage() {
 
 				{/* Additional Information */}
 				{(employee.emergencyContact || employee.notes) && (
-					<div className="space-y-4">
-						<h2 className="text-xl font-semibold">Additional Information</h2>
+					<div className="bg-white rounded-lg shadow-sm border p-6">
+						<h2 className="text-lg font-semibold mb-4">
+							Additional Information
+						</h2>
 						<div className="space-y-4">
 							{employee.emergencyContact && (
 								<div className="flex items-center gap-3">

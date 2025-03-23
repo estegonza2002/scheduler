@@ -4,12 +4,6 @@ import { Location, LocationsAPI } from "../api";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import {
-	Card,
-	CardContent,
-	CardHeader,
-	CardTitle,
-} from "../components/ui/card";
-import {
 	MapPin,
 	Building2,
 	Mail,
@@ -18,6 +12,7 @@ import {
 	Edit,
 	Trash,
 	ChevronLeft,
+	Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -31,6 +26,7 @@ import {
 	AlertDialogTitle,
 	AlertDialogTrigger,
 } from "../components/ui/alert-dialog";
+import { Skeleton } from "../components/ui/skeleton";
 
 // Update Location type to include optional fields
 interface ExtendedLocation extends Location {
@@ -46,6 +42,7 @@ export default function LocationDetailPage() {
 	const navigate = useNavigate();
 	const [location, setLocation] = useState<ExtendedLocation | null>(null);
 	const [loading, setLoading] = useState<boolean>(true);
+	const [loadingPhase, setLoadingPhase] = useState<string>("location");
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
 
 	useEffect(() => {
@@ -54,6 +51,7 @@ export default function LocationDetailPage() {
 
 			try {
 				setLoading(true);
+				setLoadingPhase("location");
 				const locationData = await LocationsAPI.getById(locationId);
 				if (!locationData) {
 					toast.error("Location not found");
@@ -66,6 +64,7 @@ export default function LocationDetailPage() {
 				toast.error("Failed to load location details");
 			} finally {
 				setLoading(false);
+				setLoadingPhase("");
 			}
 		};
 
@@ -85,24 +84,45 @@ export default function LocationDetailPage() {
 		}
 	};
 
-	if (loading) {
+	// Render loading skeleton
+	const renderLoadingSkeleton = () => {
 		return (
-			<div className="flex items-center justify-center min-h-screen">
-				<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+			<div className="space-y-6">
+				<Skeleton className="h-10 w-48" />
+
+				<div className="space-y-2">
+					<div className="flex items-center justify-between">
+						<Skeleton className="h-8 w-64" />
+						<div className="flex gap-2">
+							<Skeleton className="h-9 w-20" />
+							<Skeleton className="h-9 w-24" />
+						</div>
+					</div>
+				</div>
+
+				<Skeleton className="h-32 w-full rounded-md" />
+				<Skeleton className="h-48 w-full rounded-md" />
+				<Skeleton className="h-40 w-full rounded-md" />
 			</div>
 		);
+	};
+
+	if (loading) {
+		return <div className="px-4 sm:px-6 py-6">{renderLoadingSkeleton()}</div>;
 	}
 
 	if (!location) {
 		return (
-			<div className="container py-8">
-				<h1 className="text-2xl font-bold">Location not found</h1>
-				<Button
-					variant="outline"
-					onClick={() => navigate("/locations")}
-					className="mt-4">
-					<ArrowLeft className="mr-2 h-4 w-4" /> Back to Locations
-				</Button>
+			<div className="px-4 sm:px-6 py-6">
+				<div className="bg-white rounded-lg shadow-sm border p-6">
+					<h1 className="text-xl font-semibold mb-4">Location not found</h1>
+					<Button
+						variant="outline"
+						onClick={() => navigate("/locations")}
+						className="mt-2">
+						<ArrowLeft className="mr-2 h-4 w-4" /> Back to Locations
+					</Button>
+				</div>
 			</div>
 		);
 	}
@@ -120,57 +140,60 @@ export default function LocationDetailPage() {
 			</div>
 
 			{/* Header with navigation and actions */}
-			<div className="flex items-center justify-between mb-6">
-				<div className="flex items-center space-x-2">
-					<Button
-						variant="outline"
-						size="sm"
-						onClick={() => navigate("/locations")}
-						className="h-9">
-						<ArrowLeft className="h-4 w-4 mr-2" />
-						Back to Locations
-					</Button>
-					<h1 className="text-2xl font-bold ml-2">Location Details</h1>
-				</div>
+			<div className="bg-white rounded-lg shadow-sm border mb-6">
+				<div className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+					<div className="flex flex-col">
+						<h1 className="text-xl font-bold">Location Details</h1>
+						<p className="text-sm text-muted-foreground mt-1">
+							View and manage location information
+						</p>
+						{loading && (
+							<div className="flex items-center text-sm text-muted-foreground gap-2 mt-1">
+								<Loader2 className="h-3 w-3 animate-spin" />
+								<span>Loading location details...</span>
+							</div>
+						)}
+					</div>
 
-				<div className="flex items-center gap-2">
-					<Button
-						variant="outline"
-						size="sm"
-						className="h-9 gap-1"
-						onClick={() => navigate(`/edit-location/${location.id}`)}>
-						<Edit className="h-4 w-4" /> Edit
-					</Button>
+					<div className="flex items-center gap-2">
+						<Button
+							variant="outline"
+							size="sm"
+							className="h-9 gap-1"
+							onClick={() => navigate(`/edit-location/${location.id}`)}>
+							<Edit className="h-4 w-4" /> Edit
+						</Button>
 
-					<AlertDialog
-						open={deleteDialogOpen}
-						onOpenChange={setDeleteDialogOpen}>
-						<AlertDialogTrigger asChild>
-							<Button
-								variant="outline"
-								size="sm"
-								className="h-9 text-destructive border-destructive/30">
-								<Trash className="h-4 w-4 mr-2" /> Delete
-							</Button>
-						</AlertDialogTrigger>
-						<AlertDialogContent>
-							<AlertDialogHeader>
-								<AlertDialogTitle>Are you sure?</AlertDialogTitle>
-								<AlertDialogDescription>
-									This will permanently delete this location. This action cannot
-									be undone.
-								</AlertDialogDescription>
-							</AlertDialogHeader>
-							<AlertDialogFooter>
-								<AlertDialogCancel>Cancel</AlertDialogCancel>
-								<AlertDialogAction
-									onClick={handleDeleteLocation}
-									className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-									Delete
-								</AlertDialogAction>
-							</AlertDialogFooter>
-						</AlertDialogContent>
-					</AlertDialog>
+						<AlertDialog
+							open={deleteDialogOpen}
+							onOpenChange={setDeleteDialogOpen}>
+							<AlertDialogTrigger asChild>
+								<Button
+									variant="outline"
+									size="sm"
+									className="h-9 text-destructive border-destructive/30">
+									<Trash className="h-4 w-4 mr-2" /> Delete
+								</Button>
+							</AlertDialogTrigger>
+							<AlertDialogContent>
+								<AlertDialogHeader>
+									<AlertDialogTitle>Are you sure?</AlertDialogTitle>
+									<AlertDialogDescription>
+										This will permanently delete this location. This action
+										cannot be undone.
+									</AlertDialogDescription>
+								</AlertDialogHeader>
+								<AlertDialogFooter>
+									<AlertDialogCancel>Cancel</AlertDialogCancel>
+									<AlertDialogAction
+										onClick={handleDeleteLocation}
+										className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+										Delete
+									</AlertDialogAction>
+								</AlertDialogFooter>
+							</AlertDialogContent>
+						</AlertDialog>
+					</div>
 				</div>
 			</div>
 
@@ -193,11 +216,9 @@ export default function LocationDetailPage() {
 				</div>
 
 				{/* Address Information */}
-				<Card>
-					<CardHeader>
-						<CardTitle>Address Information</CardTitle>
-					</CardHeader>
-					<CardContent className="space-y-4">
+				<div className="bg-white rounded-lg shadow-sm border p-6">
+					<h2 className="text-lg font-semibold mb-4">Address Information</h2>
+					<div className="space-y-4">
 						{location.address && (
 							<div className="flex items-center gap-3">
 								<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
@@ -249,15 +270,13 @@ export default function LocationDetailPage() {
 								</div>
 							</div>
 						)}
-					</CardContent>
-				</Card>
+					</div>
+				</div>
 
 				{/* Additional Information */}
-				<Card>
-					<CardHeader>
-						<CardTitle>Organization Details</CardTitle>
-					</CardHeader>
-					<CardContent className="space-y-4">
+				<div className="bg-white rounded-lg shadow-sm border p-6">
+					<h2 className="text-lg font-semibold mb-4">Organization Details</h2>
+					<div className="space-y-4">
 						<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 							<div>
 								<div className="text-sm font-medium">Organization ID</div>
@@ -284,21 +303,17 @@ export default function LocationDetailPage() {
 								</div>
 							)}
 						</div>
-					</CardContent>
-				</Card>
+					</div>
+				</div>
 
 				{/* Additional Notes */}
 				{location.notes && (
-					<Card>
-						<CardHeader>
-							<CardTitle>Notes</CardTitle>
-						</CardHeader>
-						<CardContent>
-							<div className="text-sm text-muted-foreground">
-								{location.notes}
-							</div>
-						</CardContent>
-					</Card>
+					<div className="bg-white rounded-lg shadow-sm border p-6">
+						<h2 className="text-lg font-semibold mb-4">Notes</h2>
+						<div className="text-sm text-muted-foreground">
+							{location.notes}
+						</div>
+					</div>
 				)}
 			</div>
 		</div>

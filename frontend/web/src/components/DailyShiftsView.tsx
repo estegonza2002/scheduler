@@ -60,7 +60,7 @@ export function DailyShiftsView({
 	const [roleFilter, setRoleFilter] = useState<string | null>(null);
 	const [searchTerm, setSearchTerm] = useState<string>("");
 	const [currentPage, setCurrentPage] = useState<number>(1);
-	const [shiftsPerPage, setShiftsPerPage] = useState<number>(50);
+	const [shiftsPerPage, setShiftsPerPage] = useState<number>(10);
 
 	// Reset to first page when filters change
 	useEffect(() => {
@@ -191,161 +191,180 @@ export function DailyShiftsView({
 		);
 	}
 
+	// Pagination component to avoid repetition
+	const PaginationControls = () => (
+		<div className="flex items-center justify-between mt-6">
+			<div className="text-sm text-muted-foreground">
+				Showing {currentShifts.length > 0 ? indexOfFirstShift + 1 : 0}-
+				{Math.min(indexOfLastShift, filteredShifts.length)} of{" "}
+				{filteredShifts.length} shifts
+			</div>
+			<div className="flex items-center space-x-2">
+				<Select
+					value={shiftsPerPage.toString()}
+					onValueChange={(value) => {
+						setShiftsPerPage(parseInt(value));
+						setCurrentPage(1);
+					}}>
+					<SelectTrigger className="h-8 w-[70px]">
+						<SelectValue placeholder="10" />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="10">10</SelectItem>
+						<SelectItem value="20">20</SelectItem>
+						<SelectItem value="50">50</SelectItem>
+					</SelectContent>
+				</Select>
+				<Button
+					variant="outline"
+					size="icon"
+					onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+					disabled={currentPage === 1}
+					className="h-8 w-8">
+					<ChevronLeft className="h-4 w-4" />
+				</Button>
+				<div className="text-sm">
+					Page {currentPage} of {totalPages}
+				</div>
+				<Button
+					variant="outline"
+					size="icon"
+					onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+					disabled={currentPage === totalPages}
+					className="h-8 w-8">
+					<ChevronRight className="h-4 w-4" />
+				</Button>
+			</div>
+		</div>
+	);
+
 	return (
-		<div className="space-y-6">
-			{/* Search and Filters */}
-			<div className="bg-white p-4 rounded-lg shadow-sm border space-y-4">
-				{/* Search */}
-				<div className="relative">
-					<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-					<Input
-						placeholder="Search shifts by location, employee, role or notes..."
-						className="pl-10"
-						value={searchTerm}
-						onChange={(e) => setSearchTerm(e.target.value)}
-					/>
-				</div>
-
-				{/* Filters */}
-				<div className="flex flex-wrap gap-4">
-					<div className="flex flex-col gap-1">
-						<span className="text-sm font-medium">Location</span>
-						<Select
-							value={locationFilter || "all"}
-							onValueChange={(value) =>
-								setLocationFilter(value === "all" ? null : value)
-							}>
-							<SelectTrigger className="w-[220px]">
-								<SelectValue placeholder="All locations" />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value="all">
-									All locations ({shifts.length} shifts)
-								</SelectItem>
-								{uniqueLocationIds.map((id) => (
-									<SelectItem
-										key={id}
-										value={id}>
-										{getLocationName(id)} (
-										{shifts.filter((s) => s.locationId === id).length})
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-					</div>
-
-					<div className="flex flex-col gap-1">
-						<span className="text-sm font-medium">Role</span>
-						<Select
-							value={roleFilter || "all"}
-							onValueChange={(value) =>
-								setRoleFilter(value === "all" ? null : value)
-							}>
-							<SelectTrigger className="w-[220px]">
-								<SelectValue placeholder="All roles" />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value="all">
-									All roles ({shifts.length} shifts)
-								</SelectItem>
-								{uniqueRoles.map((role) => (
-									<SelectItem
-										key={role}
-										value={role}>
-										{role} ({shifts.filter((s) => s.role === role).length})
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-					</div>
-
-					<div className="flex flex-col gap-1">
-						<span className="text-sm font-medium">Shifts per page</span>
-						<Select
-							value={shiftsPerPage.toString()}
-							onValueChange={(value) => {
-								setShiftsPerPage(parseInt(value, 10));
-								setCurrentPage(1);
-							}}>
-							<SelectTrigger className="w-[100px]">
-								<SelectValue placeholder="50" />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value="10">10</SelectItem>
-								<SelectItem value="20">20</SelectItem>
-								<SelectItem value="50">50</SelectItem>
-								<SelectItem value="100">100</SelectItem>
-							</SelectContent>
-						</Select>
-					</div>
-
-					{/* Clear all filters button */}
-					{(locationFilter || roleFilter || searchTerm) && (
-						<div className="flex items-end">
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={() => {
-									setLocationFilter(null);
-									setRoleFilter(null);
-									setSearchTerm("");
-								}}
-								className="h-9">
-								<X className="h-4 w-4 mr-2" />
-								Clear all filters
-							</Button>
-						</div>
-					)}
-
-					{/* Results info */}
-					<div className="ml-auto flex items-end">
-						<div className="text-sm text-muted-foreground">
-							Showing {currentShifts.length} of {filteredShifts.length} filtered
-							shifts (from total {shifts.length})
-						</div>
-					</div>
-				</div>
+		<div className="space-y-4">
+			{/* Search - without encapsulation */}
+			<div className="relative mb-4">
+				<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+				<Input
+					placeholder="Search shifts by location, employee, role or notes..."
+					className="pl-10"
+					value={searchTerm}
+					onChange={(e) => setSearchTerm(e.target.value)}
+				/>
 			</div>
 
-			{/* Pagination top */}
-			{totalPages > 1 && (
-				<div className="flex justify-between items-center bg-muted/30 p-2 rounded-md">
-					<div className="text-sm text-muted-foreground">
-						Page {currentPage} of {totalPages}
-					</div>
-					<div className="flex items-center gap-2">
-						<Button
+			{/* Filters - horizontal layout and consistent styling */}
+			<div className="flex flex-wrap items-center gap-x-6 gap-y-2 mb-4">
+				<div className="flex items-center">
+					<Filter className="h-4 w-4 mr-2 text-muted-foreground" />
+					<span className="text-sm font-medium">Filters</span>
+				</div>
+
+				<div className="flex items-center">
+					<span className="text-sm mr-2">Location</span>
+					<Select
+						value={locationFilter || "all"}
+						onValueChange={(value) =>
+							setLocationFilter(value === "all" ? null : value)
+						}>
+						<SelectTrigger className="w-[160px] h-8">
+							<SelectValue placeholder="All locations" />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="all">All locations</SelectItem>
+							{uniqueLocationIds.map((id) => (
+								<SelectItem
+									key={id}
+									value={id}>
+									{getLocationName(id)}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				</div>
+
+				<div className="flex items-center">
+					<span className="text-sm mr-2">Role</span>
+					<Select
+						value={roleFilter || "all"}
+						onValueChange={(value) =>
+							setRoleFilter(value === "all" ? null : value)
+						}>
+						<SelectTrigger className="w-[160px] h-8">
+							<SelectValue placeholder="All roles" />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="all">All roles</SelectItem>
+							{uniqueRoles.map((role) => (
+								<SelectItem
+									key={role}
+									value={role}>
+									{role}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				</div>
+
+				{/* Clear filters button */}
+				<Button
+					variant="ghost"
+					size="sm"
+					onClick={() => {
+						setLocationFilter(null);
+						setRoleFilter(null);
+						setSearchTerm("");
+					}}
+					disabled={!locationFilter && !roleFilter && !searchTerm}
+					className="h-8 ml-auto">
+					<X className="h-4 w-4 mr-1" />
+					Clear
+				</Button>
+			</div>
+
+			{/* Active filters badges */}
+			{(locationFilter || roleFilter) && (
+				<div className="flex flex-wrap gap-2 mb-4">
+					{locationFilter && (
+						<Badge
 							variant="outline"
-							size="sm"
-							onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-							disabled={currentPage === 1}>
-							<ChevronLeft className="h-4 w-4 mr-1" />
-							Previous
-						</Button>
-						<Button
+							className="flex items-center gap-1 bg-muted/40 py-1 px-2">
+							Location: {getLocationName(locationFilter)}
+							<Button
+								variant="ghost"
+								size="icon"
+								className="h-4 w-4 ml-1 p-0"
+								onClick={() => setLocationFilter(null)}>
+								<X className="h-3 w-3" />
+							</Button>
+						</Badge>
+					)}
+					{roleFilter && (
+						<Badge
 							variant="outline"
-							size="sm"
-							onClick={() =>
-								setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-							}
-							disabled={currentPage === totalPages}>
-							Next
-							<ChevronRight className="h-4 w-4 ml-1" />
-						</Button>
-					</div>
+							className="flex items-center gap-1 bg-muted/40 py-1 px-2">
+							Role: {roleFilter}
+							<Button
+								variant="ghost"
+								size="icon"
+								className="h-4 w-4 ml-1 p-0"
+								onClick={() => setRoleFilter(null)}>
+								<X className="h-3 w-3" />
+							</Button>
+						</Badge>
+					)}
 				</div>
 			)}
 
 			{/* Time-based sections */}
-			<div className="space-y-6">
+			<div className="space-y-5">
 				{Object.entries(groupedShifts).map(([time, timeShifts]) =>
 					timeShifts.length > 0 ? (
 						<div
 							key={time}
-							className="space-y-2">
-							<h3 className="text-lg font-semibold flex items-center">
-								<Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-								{time} ({timeShifts.length})
+							className="space-y-3">
+							<h3 className="text-sm font-medium flex items-center text-muted-foreground">
+								<Clock className="h-4 w-4 mr-2" />
+								{time.charAt(0).toUpperCase() + time.slice(1)} (
+								{timeShifts.length})
 							</h3>
 							<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
 								{timeShifts.map((shift) => (
@@ -362,10 +381,10 @@ export function DailyShiftsView({
 				)}
 
 				{currentShifts.length === 0 && (
-					<div className="bg-muted/50 rounded-lg p-8 text-center">
-						<AlertCircle className="h-8 w-8 mx-auto mb-4 text-muted-foreground" />
-						<h3 className="text-lg font-medium mb-1">No shifts found</h3>
-						<p className="text-muted-foreground">
+					<div className="bg-muted/30 rounded-lg p-6 text-center">
+						<AlertCircle className="h-5 w-5 mx-auto mb-2 text-muted-foreground" />
+						<h3 className="text-base font-medium mb-1">No shifts found</h3>
+						<p className="text-sm text-muted-foreground">
 							{locationFilter || roleFilter || searchTerm
 								? "Try adjusting your filters or search term"
 								: "There are no shifts scheduled for this date"}
@@ -374,34 +393,8 @@ export function DailyShiftsView({
 				)}
 			</div>
 
-			{/* Pagination bottom */}
-			{totalPages > 1 && (
-				<div className="flex justify-between items-center bg-muted/30 p-2 rounded-md">
-					<div className="text-sm text-muted-foreground">
-						Page {currentPage} of {totalPages}
-					</div>
-					<div className="flex items-center gap-2">
-						<Button
-							variant="outline"
-							size="sm"
-							onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-							disabled={currentPage === 1}>
-							<ChevronLeft className="h-4 w-4 mr-1" />
-							Previous
-						</Button>
-						<Button
-							variant="outline"
-							size="sm"
-							onClick={() =>
-								setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-							}
-							disabled={currentPage === totalPages}>
-							Next
-							<ChevronRight className="h-4 w-4 ml-1" />
-						</Button>
-					</div>
-				</div>
-			)}
+			{/* Pagination - only at the bottom */}
+			{currentShifts.length > 0 && <PaginationControls />}
 		</div>
 	);
 }
