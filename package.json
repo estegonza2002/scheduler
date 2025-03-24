@@ -6,9 +6,7 @@
 		"dev": "next dev",
 		"build": "next build",
 		"start": "next start",
-		"lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-		"storybook": "storybook dev -p 6006",
-		"build-storybook": "storybook build"
+		"lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
 	},
 	"dependencies": {
 		"@react-navigation/bottom-tabs": "^6.6.1",
@@ -18,14 +16,11 @@
 		"react-native": "0.75.4"
 	},
 	"devDependencies": {
-		"@storybook/addon-essentials": "^7.0.0",
-		"@storybook/react": "^7.0.0",
 		"@typescript-eslint/eslint-plugin": "^5.62.0",
 		"@typescript-eslint/parser": "^5.62.0",
 		"eslint": "^8.57.1",
 		"eslint-plugin-react-hooks": "latest",
 		"eslint-plugin-react-refresh": "^0.4.19",
-		"eslint-plugin-storybook": "latest",
 		"typescript": "^5.1.6"
 	}
 }
