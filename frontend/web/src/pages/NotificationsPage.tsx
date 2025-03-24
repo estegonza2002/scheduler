@@ -12,15 +12,7 @@ import {
 } from "../components/ui/select";
 import { Input } from "../components/ui/input";
 import { cn } from "../lib/utils";
-import {
-	AlertTriangle,
-	Bell,
-	Check,
-	Clock,
-	Search,
-	Trash2,
-	RefreshCw,
-} from "lucide-react";
+import { Bell, Check, Search, Trash2, RefreshCw, Settings } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { Notification } from "../api";
 import { Link } from "react-router-dom";
@@ -33,6 +25,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
+import { getNotificationIcon } from "../utils/notifications";
 
 export default function NotificationsPage() {
 	const {
@@ -120,21 +113,6 @@ export default function NotificationsPage() {
 		dismissAllNotifications();
 	};
 
-	const getNotificationIcon = (type: string) => {
-		switch (type) {
-			case "shift_update":
-				return <Clock className="h-5 w-5 text-blue-500" />;
-			case "shift_reminder":
-				return <Bell className="h-5 w-5 text-purple-500" />;
-			case "request_update":
-				return <Check className="h-5 w-5 text-green-500" />;
-			case "system":
-				return <AlertTriangle className="h-5 w-5 text-amber-500" />;
-			default:
-				return <Bell className="h-5 w-5 text-gray-500" />;
-		}
-	};
-
 	return (
 		<>
 			<Helmet>
@@ -142,6 +120,10 @@ export default function NotificationsPage() {
 			</Helmet>
 
 			<div className="px-4 sm:px-6 lg:px-8 py-6">
+				<div className="flex justify-between items-center mb-6">
+					<h1 className="text-2xl font-semibold">Notifications</h1>
+				</div>
+
 				<div className="flex flex-col md:flex-row gap-4 mb-6">
 					<div className="flex-1 relative">
 						<Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -223,7 +205,7 @@ export default function NotificationsPage() {
 							Mark all as read
 						</Button>
 						<Button
-							variant="ghost"
+							variant="outline"
 							size="sm"
 							onClick={handleClearAll}
 							disabled={loading || notifications.length === 0}>

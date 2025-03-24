@@ -33,7 +33,7 @@ import { ShiftCreationSheet } from "../ShiftCreationSheet";
 import { AddEmployeeDialog } from "../AddEmployeeDialog";
 import { AddLocationDialog } from "../AddLocationDialog";
 import { OrganizationsAPI, Organization } from "../../api";
-import { NotificationIcon } from "../notification-icon";
+import { NotificationSheet } from "../notification-sheet";
 
 export default function AppLayoutNew() {
 	const location = useLocation();
@@ -173,18 +173,16 @@ export default function AppLayoutNew() {
 					</div>
 
 					<div className="flex items-center gap-2">
-						{!isNotificationsPage && <NotificationIcon />}
-						{isNotificationsPage && (
-							<Button
-								variant="default"
-								size="icon"
-								className="bg-black hover:bg-black/90 text-white"
-								asChild
-								title="Notification settings">
-								<Link to="/notification-settings">
-									<Settings className="h-4 w-4" />
-								</Link>
-							</Button>
+						{!isNotificationsPage && (
+							<>
+								<NotificationSheet />
+								<Button
+									variant="outline"
+									size="sm"
+									asChild>
+									<Link to="/notifications">View all</Link>
+								</Button>
+							</>
 						)}
 						{renderActionButton()}
 					</div>

@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import * as z from "zod";
 import { toast } from "sonner";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -24,8 +24,17 @@ import {
 import { useAuth } from "../lib/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Separator } from "../components/ui/separator";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, RotateCcw } from "lucide-react";
 import { Switch } from "../components/ui/switch";
+import {
+	Form,
+	FormControl,
+	FormDescription,
+	FormField,
+	FormItem,
+	FormLabel,
+	FormMessage,
+} from "../components/ui/form";
 
 // Define form schema for validation
 const profileSchema = z.object({
@@ -51,10 +60,12 @@ const passwordSchema = z
 const preferencesSchema = z.object({
 	emailNotifications: z.boolean().default(true),
 	smsNotifications: z.boolean().default(false),
-	pushNotifications: z.boolean().default(true),
+	pushNotifications: z.boolean().default(false),
 	scheduleUpdates: z.boolean().default(true),
 	shiftReminders: z.boolean().default(true),
 	systemAnnouncements: z.boolean().default(true),
+	requestUpdates: z.boolean().default(true),
+	newSchedulePublished: z.boolean().default(true),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -64,7 +75,11 @@ type PreferencesFormValues = z.infer<typeof preferencesSchema>;
 export default function ProfilePage() {
 	const { user } = useAuth();
 	const navigate = useNavigate();
+	const searchParams = useSearchParams()[0];
+	const tabParam = searchParams.get("tab");
+
 	const [isLoading, setIsLoading] = useState(false);
+	const [activeDeliveryTab, setActiveDeliveryTab] = useState("email");
 
 	// Initialize form with user data from auth context
 	const profileForm = useForm<ProfileFormValues>({
@@ -92,10 +107,12 @@ export default function ProfilePage() {
 		defaultValues: {
 			emailNotifications: true,
 			smsNotifications: false,
-			pushNotifications: true,
+			pushNotifications: false,
 			scheduleUpdates: true,
 			shiftReminders: true,
 			systemAnnouncements: true,
+			requestUpdates: true,
+			newSchedulePublished: true,
 		},
 	});
 
@@ -343,154 +360,267 @@ export default function ProfilePage() {
 				</TabsContent>
 
 				<TabsContent value="notifications">
-					<div>
-						<div>
-							<h2 className="text-xl font-semibold mb-1">
-								Notification Preferences
-							</h2>
+					<div className="flex justify-between items-center mb-8">
+						<h2 className="text-xl font-semibold">Notification Settings</h2>
+						<div className="flex gap-3">
+							<Button
+								asChild
+								variant="outline"
+								className="flex items-center gap-1">
+								<Link to="/notifications">
+									<ChevronLeft className="h-4 w-4" />
+									Back to Notifications
+								</Link>
+							</Button>
+							<Button
+								variant="outline"
+								className="flex items-center gap-1"
+								onClick={() => {
+									preferencesForm.reset();
+									toast.success("Preferences reset to default");
+								}}>
+								<RotateCcw className="h-4 w-4" />
+								Reset to Default
+							</Button>
+							<Button
+								className="bg-black hover:bg-black/90 text-white"
+								onClick={preferencesForm.handleSubmit(onPreferencesSubmit)}>
+								{isLoading ? "Saving..." : "Save Changes"}
+							</Button>
+						</div>
+					</div>
+
+					<div className="rounded-lg border">
+						<div className="p-6">
+							<h3 className="text-lg font-medium mb-2">
+								Notification Delivery
+							</h3>
 							<p className="text-sm text-muted-foreground mb-4">
-								Manage your notification settings and preferences
+								Choose how you would like to receive different types of
+								notifications
 							</p>
+
+							<div className="mt-4">
+								<div className="inline-flex w-full justify-stretch rounded-lg bg-muted p-1">
+									<div className="flex-1 text-center">
+										<button
+											type="button"
+											className={`flex w-full items-center justify-center space-x-2 rounded-md py-2.5 px-3 text-sm font-medium ${
+												activeDeliveryTab === "email"
+													? "bg-background border shadow-sm"
+													: "hover:bg-background/80"
+											}`}
+											onClick={() => setActiveDeliveryTab("email")}>
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												width="18"
+												height="18"
+												viewBox="0 0 24 24"
+												fill="none"
+												stroke="currentColor"
+												strokeWidth="2"
+												strokeLinecap="round"
+												strokeLinejoin="round"
+												className="mr-1">
+												<rect
+													width="20"
+													height="16"
+													x="2"
+													y="4"
+													rx="2"
+												/>
+												<path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+											</svg>
+											Email (5/5)
+										</button>
+									</div>
+									<div className="flex-1 text-center">
+										<button
+											type="button"
+											className={`flex w-full items-center justify-center space-x-2 rounded-md py-2.5 px-3 text-sm font-medium ${
+												activeDeliveryTab === "sms"
+													? "bg-background border shadow-sm"
+													: "hover:bg-background/80"
+											}`}
+											onClick={() => setActiveDeliveryTab("sms")}>
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												width="18"
+												height="18"
+												viewBox="0 0 24 24"
+												fill="none"
+												stroke="currentColor"
+												strokeWidth="2"
+												strokeLinecap="round"
+												strokeLinejoin="round"
+												className="mr-1">
+												<rect
+													width="14"
+													height="20"
+													x="5"
+													y="2"
+													rx="2"
+													ry="2"
+												/>
+												<path d="M12 18h.01" />
+											</svg>
+											SMS (2/4)
+										</button>
+									</div>
+									<div className="flex-1 text-center">
+										<button
+											type="button"
+											className={`flex w-full items-center justify-center space-x-2 rounded-md py-2.5 px-3 text-sm font-medium ${
+												activeDeliveryTab === "inapp"
+													? "bg-background border shadow-sm"
+													: "hover:bg-background/80"
+											}`}
+											onClick={() => setActiveDeliveryTab("inapp")}>
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												width="18"
+												height="18"
+												viewBox="0 0 24 24"
+												fill="none"
+												stroke="currentColor"
+												strokeWidth="2"
+												strokeLinecap="round"
+												strokeLinejoin="round"
+												className="mr-1">
+												<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+												<path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+											</svg>
+											In-App (7/7)
+										</button>
+									</div>
+									<div className="flex-1 text-center">
+										<button
+											type="button"
+											className={`flex w-full items-center justify-center space-x-2 rounded-md py-2.5 px-3 text-sm font-medium ${
+												activeDeliveryTab === "push"
+													? "bg-background border shadow-sm"
+													: "hover:bg-background/80"
+											}`}
+											onClick={() => setActiveDeliveryTab("push")}>
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												width="18"
+												height="18"
+												viewBox="0 0 24 24"
+												fill="none"
+												stroke="currentColor"
+												strokeWidth="2"
+												strokeLinecap="round"
+												strokeLinejoin="round"
+												className="mr-1">
+												<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+												<path d="M13.73 21a2 2 0 0 1-3.46 0" />
+											</svg>
+											Push (4/4)
+										</button>
+									</div>
+								</div>
+							</div>
 						</div>
 
-						<form
-							onSubmit={preferencesForm.handleSubmit(onPreferencesSubmit)}
-							className="space-y-4">
-							<div className="space-y-3">
-								<h3 className="text-lg font-medium">Notification Channels</h3>
-
-								<div className="flex items-center justify-between py-2">
-									<div className="space-y-0.5">
-										<Label
-											htmlFor="emailNotifications"
-											className="text-base font-medium">
-											Email Notifications
-										</Label>
-										<p className="text-sm text-muted-foreground">
-											Receive updates and alerts via email
-										</p>
-									</div>
-									<Switch
-										id="emailNotifications"
-										checked={preferencesForm.watch("emailNotifications")}
-										onCheckedChange={(checked) =>
-											preferencesForm.setValue("emailNotifications", checked)
-										}
-									/>
+						<div className="border-t p-6">
+							<div className="flex items-center justify-between py-4">
+								<div>
+									<h3 className="text-base font-medium">Shift Updates</h3>
+									<p className="text-sm text-muted-foreground">
+										Receive notifications when your shifts are updated
+									</p>
 								</div>
-
-								<div className="flex items-center justify-between py-2">
-									<div className="space-y-0.5">
-										<Label
-											htmlFor="smsNotifications"
-											className="text-base font-medium">
-											SMS Notifications
-										</Label>
-										<p className="text-sm text-muted-foreground">
-											Receive updates and alerts via text message
-										</p>
-									</div>
-									<Switch
-										id="smsNotifications"
-										checked={preferencesForm.watch("smsNotifications")}
-										onCheckedChange={(checked) =>
-											preferencesForm.setValue("smsNotifications", checked)
-										}
-									/>
-								</div>
-
-								<div className="flex items-center justify-between py-2">
-									<div className="space-y-0.5">
-										<Label
-											htmlFor="pushNotifications"
-											className="text-base font-medium">
-											Push Notifications
-										</Label>
-										<p className="text-sm text-muted-foreground">
-											Receive push notifications on your device
-										</p>
-									</div>
-									<Switch
-										id="pushNotifications"
-										checked={preferencesForm.watch("pushNotifications")}
-										onCheckedChange={(checked) =>
-											preferencesForm.setValue("pushNotifications", checked)
-										}
-									/>
-								</div>
+								<Switch
+									id="scheduleUpdates"
+									checked={preferencesForm.watch("scheduleUpdates")}
+									onCheckedChange={(checked) =>
+										preferencesForm.setValue("scheduleUpdates", checked)
+									}
+								/>
 							</div>
 
-							<div className="space-y-3 mt-6">
-								<h3 className="text-lg font-medium">Notification Types</h3>
-
-								<div className="flex items-center justify-between py-2">
-									<div className="space-y-0.5">
-										<Label
-											htmlFor="scheduleUpdates"
-											className="text-base font-medium">
-											Schedule Updates
-										</Label>
-										<p className="text-sm text-muted-foreground">
-											Get notified when your schedule changes
-										</p>
-									</div>
-									<Switch
-										id="scheduleUpdates"
-										checked={preferencesForm.watch("scheduleUpdates")}
-										onCheckedChange={(checked) =>
-											preferencesForm.setValue("scheduleUpdates", checked)
-										}
-									/>
+							<div className="flex items-center justify-between py-4 border-t">
+								<div>
+									<h3 className="text-base font-medium">Shift Reminders</h3>
+									<p className="text-sm text-muted-foreground">
+										Receive reminders about upcoming shifts
+									</p>
 								</div>
-
-								<div className="flex items-center justify-between py-2">
-									<div className="space-y-0.5">
-										<Label
-											htmlFor="shiftReminders"
-											className="text-base font-medium">
-											Shift Reminders
-										</Label>
-										<p className="text-sm text-muted-foreground">
-											Receive reminders before your scheduled shifts
-										</p>
-									</div>
-									<Switch
-										id="shiftReminders"
-										checked={preferencesForm.watch("shiftReminders")}
-										onCheckedChange={(checked) =>
-											preferencesForm.setValue("shiftReminders", checked)
-										}
-									/>
-								</div>
-
-								<div className="flex items-center justify-between py-2">
-									<div className="space-y-0.5">
-										<Label
-											htmlFor="systemAnnouncements"
-											className="text-base font-medium">
-											System Announcements
-										</Label>
-										<p className="text-sm text-muted-foreground">
-											Stay informed about important system updates
-										</p>
-									</div>
-									<Switch
-										id="systemAnnouncements"
-										checked={preferencesForm.watch("systemAnnouncements")}
-										onCheckedChange={(checked) =>
-											preferencesForm.setValue("systemAnnouncements", checked)
-										}
-									/>
-								</div>
+								<Switch
+									id="shiftReminders"
+									checked={preferencesForm.watch("shiftReminders")}
+									onCheckedChange={(checked) =>
+										preferencesForm.setValue("shiftReminders", checked)
+									}
+								/>
 							</div>
 
-							<Button
-								type="submit"
-								className="w-full mt-6"
-								disabled={isLoading}>
-								{isLoading ? "Saving..." : "Save Notifications"}
-							</Button>
-						</form>
+							<div className="flex items-center justify-between py-4 border-t">
+								<div>
+									<h3 className="text-base font-medium">Request Updates</h3>
+									<p className="text-sm text-muted-foreground">
+										Receive updates about your time-off and shift swap requests
+									</p>
+								</div>
+								<Switch
+									id="requestUpdates"
+									checked={preferencesForm.watch("requestUpdates")}
+									onCheckedChange={(checked) =>
+										preferencesForm.setValue("requestUpdates", checked)
+									}
+								/>
+							</div>
+
+							<div className="flex items-center justify-between py-4 border-t">
+								<div>
+									<h3 className="text-base font-medium">
+										System Announcements
+									</h3>
+									<p className="text-sm text-muted-foreground">
+										Receive important system announcements
+									</p>
+								</div>
+								<Switch
+									id="systemAnnouncements"
+									checked={preferencesForm.watch("systemAnnouncements")}
+									onCheckedChange={(checked) =>
+										preferencesForm.setValue("systemAnnouncements", checked)
+									}
+								/>
+							</div>
+
+							<div className="flex items-center justify-between py-4 border-t">
+								<div>
+									<h3 className="text-base font-medium">
+										New Schedule Published
+									</h3>
+									<p className="text-sm text-muted-foreground">
+										Receive notifications when a new schedule is published
+									</p>
+								</div>
+								<Switch
+									id="newSchedulePublished"
+									checked={preferencesForm.watch("newSchedulePublished")}
+									onCheckedChange={(checked) =>
+										preferencesForm.setValue("newSchedulePublished", checked)
+									}
+								/>
+							</div>
+						</div>
+					</div>
+
+					<div className="flex items-center justify-between mt-6">
+						<p className="text-sm text-muted-foreground">
+							Note: Some notification types may be required and cannot be
+							disabled
+						</p>
+						<Button
+							onClick={preferencesForm.handleSubmit(onPreferencesSubmit)}
+							className="bg-black hover:bg-black/90 text-white"
+							disabled={isLoading}>
+							{isLoading ? "Saving..." : "Save Changes"}
+						</Button>
 					</div>
 				</TabsContent>
 			</Tabs>

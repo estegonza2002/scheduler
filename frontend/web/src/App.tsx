@@ -42,7 +42,6 @@ import LocationsPage from "./pages/LocationsPage";
 import EmployeeDetailPage from "./pages/EmployeeDetailPage";
 import LocationDetailPage from "./pages/LocationDetailPage";
 import NotificationsPage from "./pages/NotificationsPage";
-import NotificationSettingsPage from "./pages/NotificationSettingsPage";
 
 // Root redirect component that checks user role
 function RootRedirect() {
@@ -159,10 +158,6 @@ function App() {
 								<Route
 									path="/notifications"
 									element={<NotificationsPage />}
-								/>
-								<Route
-									path="/notification-settings"
-									element={<NotificationSettingsPage />}
 								/>
 								<Route
 									path="/shifts/:shiftId"
