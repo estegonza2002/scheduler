@@ -2,12 +2,14 @@ import { useState, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Input } from "../ui/input";
 import { Search } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 
 type MessageListProps = {
 	type: "chats" | "groups" | "active-shifts" | "one-to-one";
 	onSelectConversation: (id: string) => void;
 	selectedId: string | null;
 	fullWidth?: boolean;
+	useSampleData?: boolean;
 };
 
 type Conversation = {
@@ -24,13 +26,19 @@ export function MessageList({
 	onSelectConversation,
 	selectedId,
 	fullWidth,
+	useSampleData = true,
 }: MessageListProps) {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [conversations, setConversations] = useState<Conversation[]>([]);
 
 	useEffect(() => {
-		// In a real app, this would be an API call to fetch conversations based on type
-		// For now, we'll use mock data
+		if (!useSampleData) {
+			// In a real app, this would be an API call to fetch conversations
+			setConversations([]);
+			return;
+		}
+
+		// Mock data for sample conversations
 		const mockConversations: Record<string, Conversation[]> = {
 			chats: [
 				{
@@ -167,7 +175,7 @@ export function MessageList({
 		});
 
 		setConversations(conversations);
-	}, [type]);
+	}, [type, useSampleData]);
 
 	const filteredConversations = conversations.filter(
 		(conversation) =>
@@ -190,7 +198,17 @@ export function MessageList({
 			</div>
 
 			<div className="flex-1 overflow-y-auto">
-				{filteredConversations.length > 0 ? (
+				{!useSampleData && conversations.length === 0 ? (
+					<div className="flex flex-col items-center justify-center h-full text-muted-foreground p-8">
+						<div className="bg-muted/30 p-4 rounded-full mb-4">
+							<MessageSquare className="h-10 w-10" />
+						</div>
+						<h3 className="text-lg font-medium mb-2">No conversations yet</h3>
+						<p className="text-sm text-center max-w-sm">
+							Start a new conversation or wait for others to message you
+						</p>
+					</div>
+				) : filteredConversations.length > 0 ? (
 					<ul className="divide-y">
 						{filteredConversations.map((conversation) => (
 							<li

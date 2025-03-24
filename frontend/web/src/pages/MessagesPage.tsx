@@ -1,22 +1,20 @@
 import { useState, useEffect } from "react";
 import { Tabs, TabsList, TabsTrigger } from "../components/ui/tabs";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "../components/ui/card";
 import { MessageList } from "../components/messages/MessageList";
 import { ChatView } from "../components/messages/ChatView";
+import { MessageSquare } from "lucide-react";
+import { toast } from "sonner";
+import { NewConversationModal } from "../components/messages/NewConversationModal";
+import { useNotifications } from "../lib/notification-context";
 
-type MessageTab = "chats" | "groups" | "active-shifts";
+type MessageTab = "chats" | "groups" | "active-shifts" | "one-to-one";
 
 export default function MessagesPage() {
 	const [activeTab, setActiveTab] = useState<MessageTab>("chats");
 	const [selectedConversation, setSelectedConversation] = useState<
 		string | null
 	>(null);
+	const { useSampleData } = useNotifications();
 
 	useEffect(() => {
 		// Get latest conversation from localStorage if available
@@ -27,14 +25,12 @@ export default function MessagesPage() {
 			setActiveTab(storedTab as MessageTab);
 		}
 
-		if (storedConversation) {
+		if (storedConversation && useSampleData) {
 			setSelectedConversation(storedConversation);
 		} else {
-			// If no stored conversation, select the first conversation with unread messages
-			// For this demo, we'll select the first active shift as they're typically more urgent
-			setSelectedConversation("shift-1");
+			setSelectedConversation(null);
 		}
-	}, []);
+	}, [useSampleData]);
 
 	// Store the selected conversation and tab whenever they change
 	useEffect(() => {
@@ -44,25 +40,65 @@ export default function MessagesPage() {
 		localStorage.setItem("lastActiveMessageTab", activeTab);
 	}, [selectedConversation, activeTab]);
 
+	const handleStartConversation = (
+		userId: string,
+		isGroup: boolean = false
+	) => {
+		if (isGroup) {
+			setActiveTab("groups");
+			setSelectedConversation(`group-${Date.now()}`);
+			toast.success(`Group "${userId}" created`);
+		} else {
+			setActiveTab("one-to-one");
+			setSelectedConversation(userId);
+			toast.success("New conversation started");
+		}
+	};
+
+	const getEmptyStateMessage = () => {
+		if (!useSampleData) {
+			return {
+				title: "No messages yet",
+				description:
+					"Your messages will appear here once you start or receive conversations.",
+			};
+		}
+		return {
+			title: "No conversation selected",
+			description:
+				"Select a conversation from the list or start a new one to begin messaging",
+		};
+	};
+
+	const emptyState = getEmptyStateMessage();
+
 	return (
 		<div className="h-[calc(100vh-64px)]">
 			<div className="h-full flex flex-col">
 				<div className="flex flex-1 min-h-0">
 					{/* Left column - Conversation list */}
 					<div className="w-1/3 border-r min-h-0 flex flex-col">
-						<div className="p-2 border-b">
+						<div className="p-4 border-b space-y-4">
 							<Tabs
 								defaultValue={activeTab}
 								value={activeTab}
 								onValueChange={(value) => {
 									setActiveTab(value as MessageTab);
-								}}>
+								}}
+								className="w-full">
 								<TabsList className="grid w-full grid-cols-3">
 									<TabsTrigger value="chats">Chats</TabsTrigger>
 									<TabsTrigger value="groups">Groups</TabsTrigger>
 									<TabsTrigger value="active-shifts">Active Shifts</TabsTrigger>
 								</TabsList>
 							</Tabs>
+							{useSampleData && (
+								<div className="w-full">
+									<NewConversationModal
+										onStartConversation={handleStartConversation}
+									/>
+								</div>
+							)}
 						</div>
 
 						<div className="flex-1 min-h-0 overflow-hidden">
@@ -71,6 +107,7 @@ export default function MessagesPage() {
 									type="chats"
 									onSelectConversation={setSelectedConversation}
 									selectedId={selectedConversation}
+									useSampleData={useSampleData}
 								/>
 							)}
 							{activeTab === "groups" && (
@@ -78,6 +115,7 @@ export default function MessagesPage() {
 									type="groups"
 									onSelectConversation={setSelectedConversation}
 									selectedId={selectedConversation}
+									useSampleData={useSampleData}
 								/>
 							)}
 							{activeTab === "active-shifts" && (
@@ -85,6 +123,15 @@ export default function MessagesPage() {
 									type="active-shifts"
 									onSelectConversation={setSelectedConversation}
 									selectedId={selectedConversation}
+									useSampleData={useSampleData}
+								/>
+							)}
+							{activeTab === "one-to-one" && (
+								<MessageList
+									type="one-to-one"
+									onSelectConversation={setSelectedConversation}
+									selectedId={selectedConversation}
+									useSampleData={useSampleData}
 								/>
 							)}
 						</div>
@@ -92,14 +139,21 @@ export default function MessagesPage() {
 
 					{/* Right column - Chat window */}
 					<div className="w-2/3 min-h-0">
-						{selectedConversation ? (
+						{selectedConversation && useSampleData ? (
 							<ChatView
 								conversationId={selectedConversation}
 								conversationType={activeTab}
+								useSampleData={useSampleData}
 							/>
 						) : (
-							<div className="h-full flex items-center justify-center text-muted-foreground">
-								Select a conversation to start messaging
+							<div className="h-full flex flex-col items-center justify-center text-muted-foreground p-8">
+								<div className="bg-muted/30 p-4 rounded-full mb-4">
+									<MessageSquare className="h-10 w-10" />
+								</div>
+								<h3 className="text-lg font-medium mb-2">{emptyState.title}</h3>
+								<p className="text-sm text-center max-w-sm">
+									{emptyState.description}
+								</p>
 							</div>
 						)}
 					</div>

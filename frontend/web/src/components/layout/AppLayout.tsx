@@ -52,6 +52,8 @@ export default function AppLayout() {
 
 	// For notifications page specific controls
 	const isNotificationsPage = location.pathname === "/notifications";
+	const isMessagesPage = location.pathname === "/messages";
+	const shouldShowSampleData = isNotificationsPage || isMessagesPage;
 
 	// Fetch organization
 	useEffect(() => {
@@ -177,7 +179,7 @@ export default function AppLayout() {
 					</div>
 
 					<div className="flex items-center gap-2">
-						{isNotificationsPage && (
+						{shouldShowSampleData && (
 							<div className="flex items-center gap-3 bg-muted/50 p-1.5 pl-3 rounded-full">
 								<span className="text-sm font-medium">Sample Data</span>
 								<Switch
@@ -187,7 +189,7 @@ export default function AppLayout() {
 							</div>
 						)}
 						{renderActionButton()}
-						{!isNotificationsPage && <NotificationSheet />}
+						{!isNotificationsPage && !isMessagesPage && <NotificationSheet />}
 					</div>
 				</header>
 				<main className="flex-1 overflow-auto mx-auto w-full">

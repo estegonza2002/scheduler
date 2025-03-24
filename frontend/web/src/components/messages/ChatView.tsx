@@ -2,12 +2,13 @@ import { useState, useEffect, useRef } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
-import { Paperclip, Send, Smile } from "lucide-react";
+import { Paperclip, Send, Smile, MessageSquare } from "lucide-react";
 import { useAuth } from "../../lib/auth";
 
 type ChatViewProps = {
 	conversationId: string;
 	conversationType: "chats" | "groups" | "active-shifts" | "one-to-one";
+	useSampleData?: boolean;
 };
 
 type Message = {
@@ -28,7 +29,11 @@ type Conversation = {
 	isActive?: boolean;
 };
 
-export function ChatView({ conversationId, conversationType }: ChatViewProps) {
+export function ChatView({
+	conversationId,
+	conversationType,
+	useSampleData = true,
+}: ChatViewProps) {
 	const { user } = useAuth();
 	const [message, setMessage] = useState("");
 	const [messages, setMessages] = useState<Message[]>([]);
@@ -36,9 +41,15 @@ export function ChatView({ conversationId, conversationType }: ChatViewProps) {
 	const messagesEndRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
-		// In a real app, this would fetch the conversation details from an API
+		if (!useSampleData) {
+			// In a real app, this would fetch the conversation details from an API
+			setConversation(null);
+			setMessages([]);
+			return;
+		}
+
+		// Mock conversation data based on type and ID
 		const fetchConversationDetails = () => {
-			// Mock conversation data based on type and ID
 			const mockConversations: Record<string, Conversation> = {
 				"chat-1": {
 					id: "chat-1",
@@ -121,7 +132,6 @@ export function ChatView({ conversationId, conversationType }: ChatViewProps) {
 
 		// Mock messages based on conversation
 		const fetchMessages = () => {
-			// In a real app, these would come from an API
 			const mockMessages: Message[] = [
 				{
 					id: "msg-1",
@@ -180,7 +190,7 @@ export function ChatView({ conversationId, conversationType }: ChatViewProps) {
 
 		fetchConversationDetails();
 		fetchMessages();
-	}, [conversationId, conversationType, user]);
+	}, [conversationId, conversationType, user, useSampleData]);
 
 	useEffect(() => {
 		// Scroll to bottom whenever messages change
@@ -211,8 +221,16 @@ export function ChatView({ conversationId, conversationType }: ChatViewProps) {
 
 	if (!conversation) {
 		return (
-			<div className="h-full flex items-center justify-center text-muted-foreground">
-				Conversation not found
+			<div className="h-full flex flex-col items-center justify-center text-muted-foreground p-8">
+				<div className="bg-muted/30 p-4 rounded-full mb-4">
+					<MessageSquare className="h-10 w-10" />
+				</div>
+				<h3 className="text-lg font-medium mb-2">Conversation not found</h3>
+				<p className="text-sm text-center max-w-sm">
+					{useSampleData
+						? "This conversation doesn't exist in the sample data"
+						: "This conversation doesn't exist or you don't have access to it"}
+				</p>
 			</div>
 		);
 	}
