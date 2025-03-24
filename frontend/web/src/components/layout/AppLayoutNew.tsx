@@ -173,18 +173,8 @@ export default function AppLayoutNew() {
 					</div>
 
 					<div className="flex items-center gap-2">
-						{!isNotificationsPage && (
-							<>
-								<NotificationSheet />
-								<Button
-									variant="outline"
-									size="sm"
-									asChild>
-									<Link to="/notifications">View all</Link>
-								</Button>
-							</>
-						)}
 						{renderActionButton()}
+						{!isNotificationsPage && <NotificationSheet />}
 					</div>
 				</header>
 				<main className="flex-1 overflow-auto mx-auto w-full">

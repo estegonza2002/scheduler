@@ -301,14 +301,12 @@ export function NotificationSheet() {
 				<Button
 					variant="ghost"
 					size="icon"
-					className="relative">
+					className="relative border rounded-md">
 					<Bell className="h-5 w-5" />
 					{displayUnreadCount > 0 && (
 						<Badge
 							variant="destructive"
-							className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs">
-							{displayUnreadCount > 9 ? "9+" : displayUnreadCount}
-						</Badge>
+							className="absolute -top-1 -right-1 h-3 w-3 flex items-center justify-center p-0 rounded-full"></Badge>
 					)}
 				</Button>
 			</SheetTrigger>
