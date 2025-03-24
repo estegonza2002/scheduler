@@ -81,7 +81,17 @@ export interface Notification {
 	id: string;
 	userId: string;
 	organizationId: string;
-	type: "shift_update" | "shift_reminder" | "request_update" | "system";
+	type:
+		| "shift_update"
+		| "shift_reminder"
+		| "request_update"
+		| "system"
+		| "message"
+		| "document"
+		| "calendar"
+		| "user"
+		| "email"
+		| "task";
 	title: string;
 	message: string;
 	isRead: boolean;
@@ -816,12 +826,106 @@ const mockNotifications: Notification[] = [
 		id: "notif-7",
 		userId: "user-1",
 		organizationId: "org-1",
-		type: "system",
-		title: "Welcome to Scheduler!",
-		message: "Thank you for joining Scheduler. Explore the app to get started.",
+		type: "message",
+		title: "New Message from Manager",
+		message: "Can you cover Sarah's shift on Thursday? She's out sick.",
+		isRead: false,
+		isActionRequired: true,
+		actionUrl: "/messages/123",
+		createdAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(), // 15 minutes ago
+	},
+	{
+		id: "notif-8",
+		userId: "user-1",
+		organizationId: "org-1",
+		type: "document",
+		title: "Document Needs Signature",
+		message: "New company policy document requires your signature by Friday",
+		isRead: false,
+		isActionRequired: true,
+		actionUrl: "/documents/policy-update",
+		createdAt: new Date(Date.now() - 1000 * 60 * 360).toISOString(), // 6 hours ago
+	},
+	{
+		id: "notif-9",
+		userId: "user-1",
+		organizationId: "org-1",
+		type: "calendar",
+		title: "Team Meeting Added",
+		message: "Monthly team meeting scheduled for next Monday at 10 AM",
+		isRead: false,
+		actionUrl: "/calendar/events/team-meeting",
+		createdAt: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(), // 3 hours ago
+	},
+	{
+		id: "notif-10",
+		userId: "user-1",
+		organizationId: "org-1",
+		type: "user",
+		title: "New Employee Joined",
+		message: "Michael Johnson has joined the team. Send a welcome message!",
 		isRead: true,
-		actionUrl: "/dashboard",
+		actionUrl: "/team/michael-johnson",
+		createdAt: new Date(Date.now() - 1000 * 60 * 60 * 25).toISOString(), // 25 hours ago
+	},
+	{
+		id: "notif-11",
+		userId: "user-1",
+		organizationId: "org-1",
+		type: "email",
+		title: "Important Email Received",
+		message:
+			"You have a new email from Regional Manager about next month's schedule",
+		isRead: true,
+		actionUrl: "/messages/emails/123",
+		createdAt: new Date(Date.now() - 1000 * 60 * 60 * 28).toISOString(), // 28 hours ago
+	},
+	{
+		id: "notif-12",
+		userId: "user-1",
+		organizationId: "org-1",
+		type: "task",
+		title: "Task Assigned: Inventory Check",
+		message:
+			"You've been assigned to complete monthly inventory check by Wednesday",
+		isRead: false,
+		isActionRequired: true,
+		actionUrl: "/tasks/inventory-check",
+		createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(), // 2 days ago
+	},
+	{
+		id: "notif-13",
+		userId: "user-1",
+		organizationId: "org-1",
+		type: "system",
+		title: "System Maintenance",
+		message: "The system will be down for maintenance on Sunday from 2-4 AM",
+		isRead: true,
+		actionUrl: "/announcements/system-maintenance",
 		createdAt: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString(), // 3 days ago
+	},
+	{
+		id: "notif-14",
+		userId: "user-1",
+		organizationId: "org-1",
+		type: "shift_update",
+		title: "Shift Location Changed",
+		message: "Your Friday shift has been moved to Downtown location",
+		isRead: false,
+		isActionRequired: true,
+		actionUrl: "/shifts/shift-456",
+		createdAt: new Date(Date.now() - 1000 * 60 * 180).toISOString(), // 3 hours ago
+	},
+	{
+		id: "notif-15",
+		userId: "user-1",
+		organizationId: "org-1",
+		type: "request_update",
+		title: "Swap Request Accepted",
+		message: "James accepted your request to swap shifts on Tuesday",
+		isRead: false,
+		actionUrl: "/shifts/swap-requests",
+		createdAt: new Date(Date.now() - 1000 * 60 * 40).toISOString(), // 40 minutes ago
 	},
 ];
 

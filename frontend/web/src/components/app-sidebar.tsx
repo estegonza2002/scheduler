@@ -8,6 +8,7 @@ import {
 	Building2,
 	MapPin,
 	Bell,
+	MessageSquare,
 } from "lucide-react";
 
 import {
@@ -20,7 +21,6 @@ import {
 	SidebarMenuItem,
 	SidebarSeparator,
 } from "./ui/sidebar";
-import { MiniCalendar } from "./MiniCalendar";
 import { NavUser } from "./nav-user";
 import { useState, useEffect } from "react";
 import { OrganizationsAPI, type Organization } from "../api";
@@ -88,6 +88,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 			adminOnly: true,
 		},
 		{
+			icon: <MessageSquare className="h-5 w-5" />,
+			label: "Messages",
+			href: "/messages",
+			isActive: location.pathname === "/messages",
+		},
+		{
 			icon: <Bell className="h-5 w-5" />,
 			label: "Notifications",
 			href: "/notifications",
@@ -112,13 +118,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 				</div>
 			</SidebarHeader>
 			<SidebarContent>
-				{/* Mini Calendar at the top */}
-				<div className="w-full">
-					<MiniCalendar />
-				</div>
-
-				<SidebarSeparator className="mx-0 my-2" />
-
 				<SidebarMenu>
 					{navItems.map((item, index) => {
 						// Don't render admin-only items for non-admin users

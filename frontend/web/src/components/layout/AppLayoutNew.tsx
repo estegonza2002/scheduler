@@ -34,6 +34,8 @@ import { AddEmployeeDialog } from "../AddEmployeeDialog";
 import { AddLocationDialog } from "../AddLocationDialog";
 import { OrganizationsAPI, Organization } from "../../api";
 import { NotificationSheet } from "../notification-sheet";
+import { useNotifications } from "../../lib/notification-context";
+import { Switch } from "../ui/switch";
 
 export default function AppLayoutNew() {
 	const location = useLocation();
@@ -46,6 +48,7 @@ export default function AppLayoutNew() {
 	const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 	const organizationId = searchParams.get("organizationId") || "org-1";
 	const [organization, setOrganization] = useState<Organization | null>(null);
+	const { useSampleData, toggleSampleData } = useNotifications();
 
 	// For notifications page specific controls
 	const isNotificationsPage = location.pathname === "/notifications";
@@ -96,6 +99,7 @@ export default function AppLayoutNew() {
 		if (path === "/business-profile") return "Business Profile";
 		if (path === "/profile") return "Profile";
 		if (path === "/notifications") return "Notifications";
+		if (path === "/messages") return "Messages";
 		return "Scheduler";
 	};
 
@@ -173,6 +177,15 @@ export default function AppLayoutNew() {
 					</div>
 
 					<div className="flex items-center gap-2">
+						{isNotificationsPage && (
+							<div className="flex items-center gap-3 bg-muted/50 p-1.5 pl-3 rounded-full">
+								<span className="text-sm font-medium">Sample Data</span>
+								<Switch
+									checked={useSampleData}
+									onCheckedChange={toggleSampleData}
+								/>
+							</div>
+						)}
 						{renderActionButton()}
 						{!isNotificationsPage && <NotificationSheet />}
 					</div>

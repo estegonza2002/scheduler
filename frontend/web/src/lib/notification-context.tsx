@@ -13,6 +13,8 @@ type NotificationContextType = {
 	dismissNotification: (id: string) => Promise<void>;
 	dismissAllNotifications: () => Promise<void>;
 	refreshNotifications: () => Promise<void>;
+	useSampleData: boolean;
+	toggleSampleData: () => void;
 };
 
 const NotificationContext = createContext<NotificationContextType | undefined>(
@@ -26,6 +28,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
 	const [notifications, setNotifications] = useState<Notification[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<Error | null>(null);
+	const [useSampleData, setUseSampleData] = useState(true);
 
 	const unreadCount = notifications.filter((n) => !n.isRead).length;
 
@@ -37,7 +40,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
 			setNotifications([]);
 			setLoading(false);
 		}
-	}, [user]);
+	}, [user, useSampleData]);
 
 	// Set up a polling mechanism for real-time updates
 	useEffect(() => {
@@ -170,6 +173,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
 				dismissNotification,
 				dismissAllNotifications,
 				refreshNotifications,
+				useSampleData,
+				toggleSampleData: () => setUseSampleData((prev) => !prev),
 			}}>
 			{children}
 		</NotificationContext.Provider>

@@ -1,16 +1,5 @@
 import { useState } from "react";
-import {
-	Bell,
-	AlertTriangle,
-	Check,
-	Clock,
-	MessageCircle,
-	User,
-	Calendar,
-	Mail,
-	Briefcase,
-	FileEdit,
-} from "lucide-react";
+import { Bell } from "lucide-react";
 import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
 import { useNotifications } from "../lib/notification-context";
@@ -26,37 +15,10 @@ import {
 	SheetTitle,
 	SheetTrigger,
 } from "./ui/sheet";
-
-// Internal helper for notification icons
-const getNotificationIcon = (type: string) => {
-	switch (type) {
-		case "shift_update":
-			return <Clock className="h-5 w-5 text-blue-500" />;
-		case "shift_reminder":
-			return <Bell className="h-5 w-5 text-purple-500" />;
-		case "request_update":
-			return <Check className="h-5 w-5 text-green-500" />;
-		case "system":
-			return <AlertTriangle className="h-5 w-5 text-amber-500" />;
-		case "message":
-			return <MessageCircle className="h-5 w-5 text-indigo-500" />;
-		case "document":
-			return <FileEdit className="h-5 w-5 text-rose-500" />;
-		case "calendar":
-			return <Calendar className="h-5 w-5 text-cyan-500" />;
-		case "user":
-			return <User className="h-5 w-5 text-emerald-500" />;
-		case "email":
-			return <Mail className="h-5 w-5 text-orange-500" />;
-		case "task":
-			return <Briefcase className="h-5 w-5 text-violet-500" />;
-		default:
-			return <Bell className="h-5 w-5 text-gray-500" />;
-	}
-};
+import { getNotificationIcon } from "../utils/notifications";
 
 // Sample notifications for mockup purposes only
-const sampleNotifications = [
+export const sampleNotifications = [
 	{
 		id: "notif-1",
 		userId: "user-1",
@@ -254,22 +216,21 @@ export function NotificationSheet() {
 		markAllAsRead,
 		dismissNotification,
 		dismissAllNotifications,
+		useSampleData,
 	} = useNotifications();
 
 	const [open, setOpen] = useState(false);
-	// State to toggle between real notifications and sample notifications
-	const [showSampleNotifications, setShowSampleNotifications] = useState(true);
 
-	const displayNotifications = showSampleNotifications
+	const displayNotifications = useSampleData
 		? sampleNotifications
 		: notifications;
 
-	const displayUnreadCount = showSampleNotifications
+	const displayUnreadCount = useSampleData
 		? sampleNotifications.filter((n) => !n.isRead).length
 		: unreadCount;
 
 	const handleMarkAllAsRead = () => {
-		if (showSampleNotifications) {
+		if (useSampleData) {
 			// Just for demonstration - no actual action
 		} else {
 			markAllAsRead();
@@ -277,7 +238,7 @@ export function NotificationSheet() {
 	};
 
 	const handleDismissAll = () => {
-		if (showSampleNotifications) {
+		if (useSampleData) {
 			// Just for demonstration - no actual action
 		} else {
 			dismissAllNotifications();
@@ -285,7 +246,7 @@ export function NotificationSheet() {
 	};
 
 	const handleNotificationClick = (id: string, url?: string) => {
-		if (!showSampleNotifications) {
+		if (!useSampleData) {
 			markAsRead(id);
 		}
 		if (url) {
@@ -299,59 +260,74 @@ export function NotificationSheet() {
 			onOpenChange={setOpen}>
 			<SheetTrigger asChild>
 				<Button
-					variant="ghost"
+					variant="outline"
 					size="icon"
-					className="relative border rounded-md">
+					className="relative rounded-full">
 					<Bell className="h-5 w-5" />
 					{displayUnreadCount > 0 && (
 						<Badge
 							variant="destructive"
-							className="absolute -top-1 -right-1 h-3 w-3 flex items-center justify-center p-0 rounded-full"></Badge>
+							className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 rounded-full">
+							{displayUnreadCount > 9 ? "9+" : displayUnreadCount}
+						</Badge>
 					)}
 				</Button>
 			</SheetTrigger>
 			<SheetContent className="sm:max-w-md p-0 flex flex-col h-[100dvh]">
-				<>
-					<SheetHeader className="p-0">
-						<div className="px-4 py-3 flex items-center justify-between">
-							<SheetTitle>Notifications</SheetTitle>
+				<div className="flex flex-col h-full">
+					<div className="px-4 py-3 flex items-center justify-between border-b">
+						<div className="flex items-center gap-2">
+							<div className="bg-primary/10 p-1.5 rounded-full">
+								<Bell className="h-5 w-5 text-primary" />
+							</div>
+							<SheetTitle className="text-lg">Notifications</SheetTitle>
 						</div>
-					</SheetHeader>
+					</div>
 
-					<div className="flex items-center px-4 py-2">
-						<Button
-							variant="outline"
-							size="sm"
-							className="text-sm h-8 mr-2"
-							onClick={handleMarkAllAsRead}
-							disabled={
-								loading ||
-								displayNotifications.length === 0 ||
-								displayNotifications.every((n) => n.isRead)
-							}>
-							Mark all read
-						</Button>
-						<Button
-							variant="outline"
-							size="sm"
-							className="text-sm h-8 text-muted-foreground"
-							onClick={handleDismissAll}
-							disabled={loading || displayNotifications.length === 0}>
-							Clear all
-						</Button>
-						<div className="flex-1"></div>
+					<div className="flex items-center justify-between px-4 py-2 border-b">
+						<div className="flex items-center gap-2">
+							<Button
+								variant="outline"
+								size="sm"
+								className="text-sm h-8 rounded-full"
+								onClick={handleMarkAllAsRead}
+								disabled={
+									loading ||
+									displayNotifications.length === 0 ||
+									displayNotifications.every((n) => n.isRead)
+								}>
+								Mark all read
+							</Button>
+							<Button
+								variant="outline"
+								size="sm"
+								className="text-sm h-8 rounded-full"
+								onClick={handleDismissAll}
+								disabled={loading || displayNotifications.length === 0}>
+								Clear all
+							</Button>
+						</div>
+						{displayUnreadCount > 0 && (
+							<Badge
+								variant="secondary"
+								className="px-2.5">
+								{displayUnreadCount} unread
+							</Badge>
+						)}
 					</div>
 
 					<ScrollArea className="flex-1">
-						<CardContent className="p-0">
+						<div className="p-0">
 							{loading ? (
-								<div className="flex items-center justify-center p-4">
+								<div className="flex items-center justify-center p-6">
 									<div className="animate-spin rounded-full h-5 w-5 border-2 border-b-transparent border-primary"></div>
 								</div>
 							) : displayNotifications.length === 0 ? (
-								<div className="flex flex-col items-center justify-center p-6 text-center">
-									<Bell className="h-8 w-8 text-muted-foreground mb-2" />
-									<h3 className="text-lg font-medium">No notifications</h3>
+								<div className="flex flex-col items-center justify-center p-8 text-center">
+									<div className="bg-muted/30 p-3 rounded-full mb-3">
+										<Bell className="h-7 w-7 text-muted-foreground" />
+									</div>
+									<h3 className="text-base font-medium">No notifications</h3>
 									<p className="text-sm text-muted-foreground mt-1">
 										You don't have any notifications yet
 									</p>
@@ -362,15 +338,16 @@ export function NotificationSheet() {
 										<div
 											key={notification.id}
 											className={cn(
-												"px-4 py-3 border-b last:border-b-0 hover:bg-muted/50 transition-colors",
-												!notification.isRead && "bg-muted/20"
+												"px-4 py-3 border-b last:border-b-0 hover:bg-muted/50 transition-colors border-l-4",
+												!notification.isRead && "bg-muted/20 border-l-primary",
+												notification.isRead && "border-l-muted"
 											)}>
 											<div className="flex gap-3">
-												<div className="flex-shrink-0">
+												<div className="flex-shrink-0 bg-muted/30 p-2 rounded-full h-fit">
 													{getNotificationIcon(notification.type)}
 												</div>
 												<div className="flex-1 min-w-0">
-													<div className="flex justify-between items-start">
+													<div className="flex justify-between items-start gap-2">
 														<h3
 															className={cn(
 																"text-sm font-medium",
@@ -378,21 +355,21 @@ export function NotificationSheet() {
 															)}>
 															{notification.title}
 														</h3>
-														<div className="flex items-center gap-1">
-															<time
-																dateTime={notification.createdAt}
-																className="text-xs text-muted-foreground">
+														<div className="flex items-center gap-1 flex-shrink-0">
+															<Badge
+																variant="outline"
+																className="text-xs px-1.5 py-0 h-5">
 																{formatDistanceToNow(
 																	new Date(notification.createdAt),
 																	{
 																		addSuffix: true,
 																	}
 																)}
-															</time>
+															</Badge>
 															<Button
 																variant="ghost"
 																size="icon"
-																className="h-6 w-6"
+																className="h-6 w-6 rounded-full"
 																onClick={() =>
 																	dismissNotification(notification.id)
 																}>
@@ -404,19 +381,19 @@ export function NotificationSheet() {
 													<p className="text-sm text-muted-foreground mt-1">
 														{notification.message}
 													</p>
-													<div className="mt-2">
+													<div className="mt-3 flex flex-wrap items-center gap-2">
 														{notification.isActionRequired && (
 															<Badge
-																variant="outline"
-																className="mr-2">
+																variant="secondary"
+																className="mr-1">
 																Action Required
 															</Badge>
 														)}
 														{notification.actionUrl && (
 															<Button
-																variant="link"
+																variant="outline"
 																size="sm"
-																className="p-0 h-auto text-sm"
+																className="h-7 rounded-full"
 																onClick={() =>
 																	handleNotificationClick(
 																		notification.id,
@@ -436,9 +413,9 @@ export function NotificationSheet() {
 									))}
 								</div>
 							)}
-						</CardContent>
+						</div>
 					</ScrollArea>
-				</>
+				</div>
 			</SheetContent>
 		</Sheet>
 	);

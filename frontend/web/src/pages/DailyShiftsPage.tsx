@@ -18,6 +18,8 @@ import {
 	Plus,
 	Grid,
 	Loader2,
+	Minimize2,
+	Maximize2,
 } from "lucide-react";
 import { ShiftCreationSheet } from "../components/ShiftCreationSheet";
 import { useNavigate } from "react-router-dom";
@@ -28,6 +30,7 @@ import {
 } from "../components/ui/popover";
 import { Calendar } from "../components/ui/calendar";
 import { Skeleton } from "../components/ui/skeleton";
+import { Card, CardContent } from "../components/ui/card";
 
 export default function DailyShiftsPage() {
 	const [searchParams, setSearchParams] = useSearchParams();
@@ -44,6 +47,7 @@ export default function DailyShiftsPage() {
 	const [selectedSchedule, setSelectedSchedule] = useState<string | null>(null);
 	const organizationId = searchParams.get("organizationId") || "org-1"; // Default to first org
 	const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+	const [showPermanentCalendar, setShowPermanentCalendar] = useState(true);
 
 	// Get date from URL param or use today's date
 	useEffect(() => {
@@ -193,7 +197,7 @@ export default function DailyShiftsPage() {
 								variant="outline"
 								className="flex items-center min-w-[110px] justify-center">
 								<CalendarIcon className="mr-2 h-4 w-4" />
-								Today
+								Select Date
 							</Button>
 						</PopoverTrigger>
 						<PopoverContent
@@ -227,21 +231,49 @@ export default function DailyShiftsPage() {
 						onClick={() => navigate("/schedule/monthly")}>
 						<Grid className="h-4 w-4 mr-2" /> View Calendar
 					</Button>
+
+					<Button
+						variant="outline"
+						size="icon"
+						onClick={() => setShowPermanentCalendar(!showPermanentCalendar)}>
+						{showPermanentCalendar ? (
+							<Minimize2 className="h-4 w-4" />
+						) : (
+							<Maximize2 className="h-4 w-4" />
+						)}
+					</Button>
 				</div>
 			</div>
 
-			{/* Shifts View */}
-			<div>
-				{loading ? (
-					renderLoadingSkeleton()
-				) : (
-					<DailyShiftsView
-						date={currentDate}
-						shifts={shifts}
-						locations={locations}
-						employees={employees}
-					/>
+			<div className="flex flex-col md:flex-row gap-6">
+				{/* Calendar Sidebar */}
+				{showPermanentCalendar && (
+					<div className="md:w-72 flex-shrink-0">
+						<div className="p-4 bg-card border rounded-lg shadow-sm">
+							<Calendar
+								mode="single"
+								selected={currentDate}
+								onSelect={(date) => date && updateDate(date)}
+								className="w-full"
+							/>
+						</div>
+					</div>
 				)}
+
+				{/* Main Content */}
+				<div className="flex-1">
+					{/* Shifts View */}
+					{loading ? (
+						renderLoadingSkeleton()
+					) : (
+						<DailyShiftsView
+							date={currentDate}
+							shifts={shifts}
+							locations={locations}
+							employees={employees}
+						/>
+					)}
+				</div>
 			</div>
 		</div>
 	);
