@@ -20,6 +20,11 @@ import {
 	Filter,
 	X,
 	AlertCircle,
+	LayoutGrid,
+	List,
+	Phone,
+	Mail,
+	Building2,
 } from "lucide-react";
 import { Badge } from "../components/ui/badge";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -31,6 +36,14 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "../components/ui/select";
+import {
+	Card,
+	CardHeader,
+	CardTitle,
+	CardDescription,
+	CardContent,
+	CardFooter,
+} from "../components/ui/card";
 
 // Import our dialog components
 import { AddLocationDialog } from "../components/AddLocationDialog";
@@ -48,6 +61,7 @@ export default function LocationsPage() {
 	const [searchTerm, setSearchTerm] = useState<string>("");
 	const [stateFilter, setStateFilter] = useState<string | null>(null);
 	const [statusFilter, setStatusFilter] = useState<string | null>(null);
+	const [viewMode, setViewMode] = useState<"table" | "cards">("table");
 	const navigate = useNavigate();
 
 	// Dialog states
@@ -345,79 +359,34 @@ export default function LocationsPage() {
 				</div>
 			) : (
 				<div className="space-y-4">
-					{/* Search bar */}
-					<div className="relative mb-4">
-						<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-						<Input
-							placeholder="Search locations by name, address, city or state..."
-							className="pl-10"
-							value={searchTerm}
-							onChange={(e) => setSearchTerm(e.target.value)}
-						/>
-					</div>
-
-					{/* Filter controls in a simplified row */}
-					<div className="flex flex-wrap items-center gap-x-6 gap-y-2 mb-4">
-						<div className="flex items-center">
-							<Filter className="h-4 w-4 mr-2 text-muted-foreground" />
-							<span className="text-sm font-medium">Filters</span>
+					{/* Search and view mode controls */}
+					<div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+						<div className="relative flex-1 max-w-sm">
+							<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+							<Input
+								placeholder="Search locations..."
+								className="pl-10"
+								value={searchTerm}
+								onChange={(e) => setSearchTerm(e.target.value)}
+							/>
 						</div>
-
-						<div className="flex items-center">
-							<span className="text-sm mr-2">State</span>
-							<Select
-								value={stateFilter || "all"}
-								onValueChange={(value) =>
-									setStateFilter(value === "all" ? null : value)
-								}>
-								<SelectTrigger className="w-[160px] h-8">
-									<SelectValue placeholder="All states" />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value="all">All states</SelectItem>
-									{uniqueStates.map((state) => (
-										<SelectItem
-											key={state}
-											value={state}>
-											{state}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-						</div>
-
-						<div className="flex items-center">
-							<span className="text-sm mr-2">Status</span>
-							<Select
-								value={statusFilter || "all"}
-								onValueChange={(value) =>
-									setStatusFilter(value === "all" ? null : value)
-								}>
-								<SelectTrigger className="w-[160px] h-8">
-									<SelectValue placeholder="All statuses" />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value="all">All statuses</SelectItem>
-									<SelectItem value="active">Active</SelectItem>
-									<SelectItem value="inactive">Inactive</SelectItem>
-								</SelectContent>
-							</Select>
-						</div>
-
-						{/* Clear filters button */}
-						{(stateFilter || statusFilter || searchTerm) && (
+						<div className="flex items-center gap-2">
 							<Button
-								variant="ghost"
-								size="sm"
-								onClick={handleClearFilters}
-								className="h-8 ml-auto">
-								<X className="h-4 w-4 mr-1" />
-								Clear
+								variant={viewMode === "cards" ? "default" : "outline"}
+								size="icon"
+								onClick={() => setViewMode("cards")}>
+								<LayoutGrid className="h-4 w-4" />
 							</Button>
-						)}
+							<Button
+								variant={viewMode === "table" ? "default" : "outline"}
+								size="icon"
+								onClick={() => setViewMode("table")}>
+								<List className="h-4 w-4" />
+							</Button>
+						</div>
 					</div>
 
-					{/* Active filters badges */}
+					{/* Filter badges */}
 					{(stateFilter || statusFilter) && (
 						<div className="flex flex-wrap gap-2 mb-4">
 							{stateFilter && (
@@ -451,7 +420,7 @@ export default function LocationsPage() {
 						</div>
 					)}
 
-					{/* Employee Table */}
+					{/* Content */}
 					{filteredLocations.length === 0 ? (
 						<div className="bg-muted/30 rounded-lg p-6 text-center">
 							<AlertCircle className="h-5 w-5 mx-auto mb-2 text-muted-foreground" />
@@ -464,10 +433,67 @@ export default function LocationsPage() {
 						</div>
 					) : (
 						<>
-							<DataTable
-								columns={columns}
-								data={filteredLocations}
-							/>
+							{/* Table View */}
+							{viewMode === "table" && (
+								<DataTable
+									columns={columns}
+									data={filteredLocations}
+								/>
+							)}
+
+							{/* Card View */}
+							{viewMode === "cards" && (
+								<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+									{filteredLocations.map((location) => (
+										<Card
+											key={location.id}
+											className="hover:shadow-md transition-shadow cursor-pointer"
+											onClick={() =>
+												navigate(`/location-detail/${location.id}`)
+											}>
+											<CardHeader>
+												<CardTitle className="flex items-center gap-2">
+													<MapPin className="h-4 w-4 text-primary" />
+													{location.name}
+												</CardTitle>
+												<CardDescription>{location.address}</CardDescription>
+											</CardHeader>
+											<CardContent>
+												<div className="space-y-2">
+													<div className="flex items-center gap-2 text-sm">
+														<Building2 className="h-4 w-4 text-muted-foreground" />
+														<span>{location.address || "No address"}</span>
+													</div>
+													<div className="flex items-center gap-2 text-sm">
+														<MapPin className="h-4 w-4 text-muted-foreground" />
+														<span>
+															{location.city}
+															{location.city && location.state ? ", " : ""}
+															{location.state}
+															{location.zipCode ? ` ${location.zipCode}` : ""}
+														</span>
+													</div>
+												</div>
+											</CardContent>
+											<CardFooter className="flex justify-between items-center">
+												<Badge
+													variant={location.isActive ? "default" : "secondary"}>
+													{location.isActive ? "Active" : "Inactive"}
+												</Badge>
+												<Button
+													variant="ghost"
+													size="sm"
+													onClick={(e) => {
+														e.stopPropagation();
+														navigate(`/location-detail/${location.id}`);
+													}}>
+													View Details
+												</Button>
+											</CardFooter>
+										</Card>
+									))}
+								</div>
+							)}
 						</>
 					)}
 				</div>

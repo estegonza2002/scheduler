@@ -18,6 +18,10 @@ import {
 	Filter,
 	X,
 	AlertCircle,
+	LayoutGrid,
+	List,
+	Building2,
+	ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AddEmployeeDialog } from "../components/AddEmployeeDialog";
@@ -42,6 +46,14 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "../components/ui/select";
+import {
+	Card,
+	CardHeader,
+	CardTitle,
+	CardDescription,
+	CardContent,
+	CardFooter,
+} from "../components/ui/card";
 
 export default function EmployeesPage() {
 	const [employees, setEmployees] = useState<Employee[]>([]);
@@ -50,6 +62,7 @@ export default function EmployeesPage() {
 	const [positionFilter, setPositionFilter] = useState<string | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
 	const [loadingPhase, setLoadingPhase] = useState<string>("organization");
+	const [viewMode, setViewMode] = useState<"table" | "cards">("table");
 	const navigate = useNavigate();
 	const [organization, setOrganization] = useState<Organization | null>(null);
 
@@ -341,82 +354,34 @@ export default function EmployeesPage() {
 				</div>
 			) : (
 				<div className="space-y-4">
-					{/* Search bar */}
-					<div className="relative mb-4">
-						<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-						<Input
-							placeholder="Search employees by name, email, role or position..."
-							className="pl-10"
-							value={searchTerm}
-							onChange={(e) => setSearchTerm(e.target.value)}
-						/>
-					</div>
-
-					{/* Filter controls in a simplified row */}
-					<div className="flex flex-wrap items-center gap-x-6 gap-y-2 mb-4">
-						<div className="flex items-center">
-							<Filter className="h-4 w-4 mr-2 text-muted-foreground" />
-							<span className="text-sm font-medium">Filters</span>
+					{/* Search and view mode controls */}
+					<div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+						<div className="relative flex-1 max-w-sm">
+							<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+							<Input
+								placeholder="Search employees..."
+								className="pl-10"
+								value={searchTerm}
+								onChange={(e) => setSearchTerm(e.target.value)}
+							/>
 						</div>
-
-						<div className="flex items-center">
-							<span className="text-sm mr-2">Position</span>
-							<Select
-								value={positionFilter || "all"}
-								onValueChange={(value) =>
-									setPositionFilter(value === "all" ? null : value)
-								}>
-								<SelectTrigger className="w-[160px] h-8">
-									<SelectValue placeholder="All positions" />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value="all">All positions</SelectItem>
-									{uniquePositions.map((position) => (
-										<SelectItem
-											key={position}
-											value={position}>
-											{position}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-						</div>
-
-						{/* Clear filters button */}
-						{(positionFilter || searchTerm) && (
+						<div className="flex items-center gap-2">
 							<Button
-								variant="ghost"
-								size="sm"
-								onClick={() => {
-									setPositionFilter(null);
-									setSearchTerm("");
-								}}
-								className="h-8 ml-auto">
-								<X className="h-4 w-4 mr-1" />
-								Clear
+								variant={viewMode === "cards" ? "default" : "outline"}
+								size="icon"
+								onClick={() => setViewMode("cards")}>
+								<LayoutGrid className="h-4 w-4" />
 							</Button>
-						)}
+							<Button
+								variant={viewMode === "table" ? "default" : "outline"}
+								size="icon"
+								onClick={() => setViewMode("table")}>
+								<List className="h-4 w-4" />
+							</Button>
+						</div>
 					</div>
 
-					{/* Active filters badges */}
-					{positionFilter && (
-						<div className="flex flex-wrap gap-2 mb-4">
-							<Badge
-								variant="outline"
-								className="flex items-center gap-1 bg-muted/40 py-1 px-2">
-								Position: {positionFilter}
-								<Button
-									variant="ghost"
-									size="icon"
-									className="h-4 w-4 ml-1 p-0"
-									onClick={() => setPositionFilter(null)}>
-									<X className="h-3 w-3" />
-								</Button>
-							</Badge>
-						</div>
-					)}
-
-					{/* Employee Table */}
+					{/* Content */}
 					{filteredEmployees.length === 0 ? (
 						<div className="bg-muted/30 rounded-lg p-6 text-center">
 							<AlertCircle className="h-5 w-5 mx-auto mb-2 text-muted-foreground" />
@@ -429,10 +394,72 @@ export default function EmployeesPage() {
 						</div>
 					) : (
 						<>
-							<DataTable
-								columns={columns}
-								data={filteredEmployees}
-							/>
+							{/* Table View */}
+							{viewMode === "table" && (
+								<DataTable
+									columns={columns}
+									data={filteredEmployees}
+								/>
+							)}
+
+							{/* Card View */}
+							{viewMode === "cards" && (
+								<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+									{filteredEmployees.map((employee) => (
+										<Card
+											key={employee.id}
+											className="hover:shadow-md transition-shadow cursor-pointer group relative overflow-hidden"
+											onClick={() =>
+												navigate(`/employee-detail/${employee.id}`)
+											}>
+											<div className="absolute inset-0 bg-gradient-to-t from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+											<div className="p-4">
+												<div className="flex items-start gap-4">
+													<Avatar className="h-12 w-12 border-2 border-primary/10">
+														<AvatarImage src={employee.avatar} />
+														<AvatarFallback className="bg-primary/10 text-primary">
+															{employee.name
+																.split(" ")
+																.map((n) => n[0])
+																.join("")
+																.toUpperCase()}
+														</AvatarFallback>
+													</Avatar>
+													<div className="flex-1 min-w-0">
+														<div className="flex items-center justify-between gap-2 group/name">
+															<CardTitle className="text-lg truncate">
+																{employee.name}
+															</CardTitle>
+															<ChevronRight className="h-5 w-5 text-muted-foreground/50 transition-colors group-hover/name:text-primary shrink-0" />
+														</div>
+														<span className="text-sm text-muted-foreground">
+															{employee.position || employee.role || "No role"}
+														</span>
+													</div>
+												</div>
+											</div>
+											<div className="border-t px-4 py-3 space-y-2">
+												<div className="flex items-center gap-3 text-sm">
+													<Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+													<span className="truncate">
+														{employee.email || "No email"}
+													</span>
+												</div>
+												<div className="flex items-center gap-3 text-sm">
+													<Phone className="h-4 w-4 text-muted-foreground shrink-0" />
+													<span>{employee.phone || "No phone"}</span>
+												</div>
+												{employee.hourlyRate !== undefined && (
+													<div className="flex items-center gap-3 text-sm">
+														<DollarSign className="h-4 w-4 text-muted-foreground shrink-0" />
+														<span>${employee.hourlyRate.toFixed(2)}/hr</span>
+													</div>
+												)}
+											</div>
+										</Card>
+									))}
+								</div>
+							)}
 						</>
 					)}
 				</div>

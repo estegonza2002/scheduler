@@ -16,6 +16,7 @@ import {
 	SheetTrigger,
 } from "./ui/sheet";
 import { getNotificationIcon } from "../utils/notifications";
+import { NotificationItem } from "./notification-item";
 
 // Sample notifications for mockup purposes only
 export const sampleNotifications = [
@@ -335,81 +336,14 @@ export function NotificationSheet() {
 							) : (
 								<div>
 									{displayNotifications.map((notification) => (
-										<div
+										<NotificationItem
 											key={notification.id}
-											className={cn(
-												"px-4 py-3 border-b last:border-b-0 hover:bg-muted/50 transition-colors border-l-4",
-												!notification.isRead && "bg-muted/20 border-l-primary",
-												notification.isRead && "border-l-muted"
-											)}>
-											<div className="flex gap-3">
-												<div className="flex-shrink-0 bg-muted/30 p-2 rounded-full h-fit">
-													{getNotificationIcon(notification.type)}
-												</div>
-												<div className="flex-1 min-w-0">
-													<div className="flex justify-between items-start gap-2">
-														<h3
-															className={cn(
-																"text-sm font-medium",
-																!notification.isRead && "font-semibold"
-															)}>
-															{notification.title}
-														</h3>
-														<div className="flex items-center gap-1 flex-shrink-0">
-															<Badge
-																variant="outline"
-																className="text-xs px-1.5 py-0 h-5">
-																{formatDistanceToNow(
-																	new Date(notification.createdAt),
-																	{
-																		addSuffix: true,
-																	}
-																)}
-															</Badge>
-															<Button
-																variant="ghost"
-																size="icon"
-																className="h-6 w-6 rounded-full"
-																onClick={() =>
-																	dismissNotification(notification.id)
-																}>
-																<span className="sr-only">Dismiss</span>
-																<span className="text-xs">×</span>
-															</Button>
-														</div>
-													</div>
-													<p className="text-sm text-muted-foreground mt-1">
-														{notification.message}
-													</p>
-													<div className="mt-3 flex flex-wrap items-center gap-2">
-														{notification.isActionRequired && (
-															<Badge
-																variant="secondary"
-																className="mr-1">
-																Action Required
-															</Badge>
-														)}
-														{notification.actionUrl && (
-															<Button
-																variant="outline"
-																size="sm"
-																className="h-7 rounded-full"
-																onClick={() =>
-																	handleNotificationClick(
-																		notification.id,
-																		notification.actionUrl
-																	)
-																}
-																asChild>
-																<Link to={notification.actionUrl}>
-																	View Details
-																</Link>
-															</Button>
-														)}
-													</div>
-												</div>
-											</div>
-										</div>
+											notification={notification}
+											onMarkAsRead={markAsRead}
+											onDismiss={dismissNotification}
+											useSampleData={useSampleData}
+											compact={true}
+										/>
 									))}
 								</div>
 							)}

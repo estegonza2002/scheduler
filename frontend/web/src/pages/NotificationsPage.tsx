@@ -50,6 +50,7 @@ import {
 	User,
 } from "lucide-react";
 import { Checkbox } from "../components/ui/checkbox";
+import { NotificationItem } from "../components/notification-item";
 
 export default function NotificationsPage() {
 	const {
@@ -445,97 +446,13 @@ export default function NotificationsPage() {
 												{date}
 											</div>
 											{notifications.map((notification) => (
-												<div
+												<NotificationItem
 													key={notification.id}
-													className="p-4 hover:bg-muted/50 transition-colors border-b last:border-b-0">
-													<div className="flex gap-4">
-														<div className="flex-shrink-0">
-															{getNotificationIcon(notification.type)}
-														</div>
-														<div className="flex-1 min-w-0">
-															<div className="flex justify-between items-start gap-2">
-																<h3
-																	className={cn(
-																		"text-sm font-medium",
-																		!notification.isRead && "font-semibold"
-																	)}>
-																	{notification.title}
-																</h3>
-																<div className="flex items-center gap-1 flex-shrink-0">
-																	<span className="text-xs text-muted-foreground">
-																		{formatDistanceToNow(
-																			new Date(notification.createdAt),
-																			{
-																				addSuffix: true,
-																			}
-																		)}
-																	</span>
-																	<DropdownMenu>
-																		<DropdownMenuTrigger asChild>
-																			<Button
-																				variant="ghost"
-																				size="icon"
-																				className="h-6 w-6">
-																				<span className="sr-only">Actions</span>
-																				<span className="h-1 w-1 rounded-full bg-foreground inline-block"></span>
-																				<span className="h-1 w-1 rounded-full bg-foreground inline-block ml-0.5"></span>
-																				<span className="h-1 w-1 rounded-full bg-foreground inline-block ml-0.5"></span>
-																			</Button>
-																		</DropdownMenuTrigger>
-																		<DropdownMenuContent align="end">
-																			<DropdownMenuLabel>
-																				Actions
-																			</DropdownMenuLabel>
-																			<DropdownMenuSeparator />
-																			{!notification.isRead && (
-																				<DropdownMenuItem
-																					onClick={() =>
-																						handleMarkAsRead(notification.id)
-																					}
-																					disabled={useSampleData}>
-																					<Check className="h-4 w-4 mr-2" />
-																					Mark as read
-																				</DropdownMenuItem>
-																			)}
-																			<DropdownMenuItem
-																				onClick={() =>
-																					handleDismiss(notification.id)
-																				}
-																				disabled={useSampleData}>
-																				<Trash2 className="h-4 w-4 mr-2" />
-																				Delete
-																			</DropdownMenuItem>
-																		</DropdownMenuContent>
-																	</DropdownMenu>
-																</div>
-															</div>
-															<p className="text-sm text-muted-foreground mt-1">
-																{notification.message}
-															</p>
-															<div className="mt-3 flex items-center gap-2">
-																{notification.isActionRequired && (
-																	<Button
-																		variant="secondary"
-																		size="sm"
-																		className="h-8 bg-muted/50 hover:bg-muted">
-																		Action Required
-																	</Button>
-																)}
-																{notification.actionUrl && (
-																	<Button
-																		variant="outline"
-																		size="sm"
-																		className="h-8 border-muted"
-																		asChild>
-																		<Link to={notification.actionUrl}>
-																			View Details
-																		</Link>
-																	</Button>
-																)}
-															</div>
-														</div>
-													</div>
-												</div>
+													notification={notification}
+													onMarkAsRead={handleMarkAsRead}
+													onDismiss={handleDismiss}
+													useSampleData={useSampleData}
+												/>
 											))}
 										</div>
 									)
