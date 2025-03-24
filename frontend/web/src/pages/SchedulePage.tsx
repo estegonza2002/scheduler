@@ -3,7 +3,7 @@ import { ScheduleCalendar } from "../components/ScheduleCalendar";
 import { Button } from "../components/ui/button";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
-import { Shift } from "../api";
+import { Shift, Location, Employee, LocationsAPI, EmployeesAPI } from "../api";
 import {
 	Calendar as CalendarIcon,
 	ArrowRight,
@@ -11,16 +11,42 @@ import {
 	ListTodo,
 } from "lucide-react";
 import { ShiftCreationSheet } from "../components/ShiftCreationSheet";
+import { DailyShiftsView } from "../components/DailyShiftsView";
 
 export default function SchedulePage() {
 	const [searchParams] = useSearchParams();
 	const navigate = useNavigate();
 	const organizationId = searchParams.get("organizationId") || "org-1"; // Default to first org
 	const scheduleId = "schedule-1"; // For demo purposes
+	const [viewMode, setViewMode] = useState<"calendar" | "daily">("calendar");
 
 	// Track selected date and its shifts
 	const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 	const [selectedDateShifts, setSelectedDateShifts] = useState<Shift[]>([]);
+	const [locations, setLocations] = useState<Location[]>([]);
+	const [employees, setEmployees] = useState<Employee[]>([]);
+	const [loading, setLoading] = useState(true);
+
+	// Fetch locations and employees
+	useEffect(() => {
+		const fetchData = async () => {
+			try {
+				setLoading(true);
+				const [fetchedLocations, fetchedEmployees] = await Promise.all([
+					LocationsAPI.getAll(organizationId),
+					EmployeesAPI.getAll(organizationId),
+				]);
+				setLocations(fetchedLocations);
+				setEmployees(fetchedEmployees);
+			} catch (error) {
+				console.error("Error fetching data:", error);
+			} finally {
+				setLoading(false);
+			}
+		};
+
+		fetchData();
+	}, [organizationId]);
 
 	const handleDateSelect = (date: Date, shifts: Shift[]) => {
 		setSelectedDate(date);
@@ -73,6 +99,22 @@ export default function SchedulePage() {
 				</div>
 			</div>
 
+			{/* View mode toggle */}
+			<div className="flex items-center gap-2">
+				<Button
+					variant={viewMode === "calendar" ? "default" : "outline"}
+					size="icon"
+					onClick={() => setViewMode("calendar")}>
+					<CalendarIcon className="h-4 w-4" />
+				</Button>
+				<Button
+					variant={viewMode === "daily" ? "default" : "outline"}
+					size="icon"
+					onClick={() => setViewMode("daily")}>
+					<ListTodo className="h-4 w-4" />
+				</Button>
+			</div>
+
 			{/* Date selection info */}
 			{selectedDateShifts.length > 0 && (
 				<div className="bg-muted/30 p-4 rounded-lg mb-6">
@@ -94,10 +136,19 @@ export default function SchedulePage() {
 				</div>
 			)}
 
-			{/* Calendar */}
-			<div className="bg-white rounded-lg shadow overflow-hidden">
-				<ScheduleCalendar onDateSelect={handleDateSelect} />
-			</div>
+			{/* Content based on view mode */}
+			{viewMode === "calendar" ? (
+				<div className="bg-white rounded-lg shadow overflow-hidden">
+					<ScheduleCalendar onDateSelect={handleDateSelect} />
+				</div>
+			) : (
+				<DailyShiftsView
+					date={selectedDate}
+					shifts={selectedDateShifts}
+					locations={locations}
+					employees={employees}
+				/>
+			)}
 		</div>
 	);
 }

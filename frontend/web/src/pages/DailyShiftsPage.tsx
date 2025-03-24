@@ -18,8 +18,7 @@ import {
 	Plus,
 	Grid,
 	Loader2,
-	Minimize2,
-	Maximize2,
+	RotateCcw,
 } from "lucide-react";
 import { ShiftCreationSheet } from "../components/ShiftCreationSheet";
 import { useNavigate } from "react-router-dom";
@@ -47,7 +46,6 @@ export default function DailyShiftsPage() {
 	const [selectedSchedule, setSelectedSchedule] = useState<string | null>(null);
 	const organizationId = searchParams.get("organizationId") || "org-1"; // Default to first org
 	const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-	const [showPermanentCalendar, setShowPermanentCalendar] = useState(true);
 
 	// Get date from URL param or use today's date
 	useEffect(() => {
@@ -160,120 +158,91 @@ export default function DailyShiftsPage() {
 	};
 
 	return (
-		<div className="px-4 sm:px-6 py-6">
-			{/* Date navigation controls */}
-			<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
-				<div className="flex flex-col">
-					<h1 className="text-xl font-semibold">
-						Shifts for {format(currentDate, "EEEE, MMMM d, yyyy")}
-					</h1>
-					{loading && (
-						<div className="flex items-center text-sm text-muted-foreground gap-2 mt-1">
-							<Loader2 className="h-3 w-3 animate-spin" />
-							<span>
-								{loadingPhase === "shifts"
-									? "Loading shifts..."
-									: loadingPhase === "locations"
-									? "Loading locations..."
-									: "Loading employees..."}
-							</span>
-						</div>
-					)}
-				</div>
-
-				<div className="flex items-center space-x-2 mt-2 sm:mt-0">
-					<Button
-						variant="outline"
-						size="icon"
-						onClick={() => updateDate(subDays(currentDate, 1))}>
-						<ChevronLeft className="h-4 w-4" />
-					</Button>
-
-					<Popover
-						open={isCalendarOpen}
-						onOpenChange={setIsCalendarOpen}>
-						<PopoverTrigger asChild>
-							<Button
-								variant="outline"
-								className="flex items-center min-w-[110px] justify-center">
-								<CalendarIcon className="mr-2 h-4 w-4" />
-								Select Date
-							</Button>
-						</PopoverTrigger>
-						<PopoverContent
-							className="w-auto p-0"
-							align="center">
-							<Calendar
-								mode="single"
-								selected={currentDate}
-								onSelect={(date) => {
-									if (date) {
-										updateDate(date);
-										setIsCalendarOpen(false);
-									}
-								}}
-								initialFocus
-							/>
-						</PopoverContent>
-					</Popover>
-
-					<Button
-						variant="outline"
-						size="icon"
-						onClick={() => updateDate(addDays(currentDate, 1))}>
-						<ChevronRight className="h-4 w-4" />
-					</Button>
-
-					<Button
-						variant="outline"
-						size="sm"
-						className="text-sm flex items-center"
-						onClick={() => navigate("/schedule/monthly")}>
-						<Grid className="h-4 w-4 mr-2" /> View Calendar
-					</Button>
-
-					<Button
-						variant="outline"
-						size="icon"
-						onClick={() => setShowPermanentCalendar(!showPermanentCalendar)}>
-						{showPermanentCalendar ? (
-							<Minimize2 className="h-4 w-4" />
-						) : (
-							<Maximize2 className="h-4 w-4" />
-						)}
-					</Button>
+		<div className="flex h-screen">
+			{/* Calendar Sidebar */}
+			<div className="flex-shrink-0 border-r">
+				<div className="sticky top-0 px-4 py-6">
+					<div className="flex items-center justify-between mb-4">
+						<h2 className="text-sm font-semibold text-muted-foreground">
+							Calendar
+						</h2>
+						<Button
+							variant="ghost"
+							size="icon"
+							className="h-8 w-8"
+							onClick={() => updateDate(new Date())}
+							title="Go to today">
+							<RotateCcw className="h-4 w-4" />
+						</Button>
+					</div>
+					<Calendar
+						mode="single"
+						selected={currentDate}
+						onSelect={(date) => date && updateDate(date)}
+						className="w-full"
+						showOutsideDays
+					/>
 				</div>
 			</div>
 
-			<div className="flex flex-col md:flex-row gap-6">
-				{/* Calendar Sidebar */}
-				{showPermanentCalendar && (
-					<div className="md:w-72 flex-shrink-0">
-						<div className="p-4 bg-card border rounded-lg shadow-sm">
-							<Calendar
-								mode="single"
-								selected={currentDate}
-								onSelect={(date) => date && updateDate(date)}
-								className="w-full"
-							/>
-						</div>
+			{/* Main Content */}
+			<div className="flex-1 px-4 sm:px-6 py-6 overflow-auto">
+				{/* Date navigation controls */}
+				<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+					<div className="flex flex-col">
+						<h1 className="text-xl font-semibold">
+							Shifts for {format(currentDate, "EEEE, MMMM d, yyyy")}
+						</h1>
+						{loading && (
+							<div className="flex items-center text-sm text-muted-foreground gap-2 mt-1">
+								<Loader2 className="h-3 w-3 animate-spin" />
+								<span>
+									{loadingPhase === "shifts"
+										? "Loading shifts..."
+										: loadingPhase === "locations"
+										? "Loading locations..."
+										: "Loading employees..."}
+								</span>
+							</div>
+						)}
 					</div>
-				)}
 
-				{/* Main Content */}
-				<div className="flex-1">
-					{/* Shifts View */}
-					{loading ? (
-						renderLoadingSkeleton()
-					) : (
-						<DailyShiftsView
-							date={currentDate}
-							shifts={shifts}
-							locations={locations}
-							employees={employees}
-						/>
-					)}
+					<div className="flex items-center space-x-2 mt-2 sm:mt-0">
+						<Button
+							variant="outline"
+							size="icon"
+							onClick={() => updateDate(subDays(currentDate, 1))}>
+							<ChevronLeft className="h-4 w-4" />
+						</Button>
+
+						<Button
+							variant="outline"
+							size="icon"
+							onClick={() => updateDate(addDays(currentDate, 1))}>
+							<ChevronRight className="h-4 w-4" />
+						</Button>
+
+						<Button
+							variant="outline"
+							size="sm"
+							className="text-sm flex items-center"
+							onClick={() => navigate("/schedule/monthly")}>
+							<Grid className="h-4 w-4 mr-2" /> View Calendar
+						</Button>
+					</div>
 				</div>
+
+				{/* Shifts View */}
+				{loading ? (
+					renderLoadingSkeleton()
+				) : (
+					<DailyShiftsView
+						date={currentDate}
+						shifts={shifts}
+						locations={locations}
+						employees={employees}
+					/>
+				)}
 			</div>
 		</div>
 	);

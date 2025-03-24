@@ -62,7 +62,7 @@ export default function EmployeesPage() {
 	const [positionFilter, setPositionFilter] = useState<string | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
 	const [loadingPhase, setLoadingPhase] = useState<string>("organization");
-	const [viewMode, setViewMode] = useState<"table" | "cards">("table");
+	const [viewMode, setViewMode] = useState<"table" | "cards">("cards");
 	const navigate = useNavigate();
 	const [organization, setOrganization] = useState<Organization | null>(null);
 

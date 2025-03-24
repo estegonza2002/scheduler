@@ -25,6 +25,7 @@ import {
 	Phone,
 	Mail,
 	Building2,
+	ChevronRight,
 } from "lucide-react";
 import { Badge } from "../components/ui/badge";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -61,7 +62,7 @@ export default function LocationsPage() {
 	const [searchTerm, setSearchTerm] = useState<string>("");
 	const [stateFilter, setStateFilter] = useState<string | null>(null);
 	const [statusFilter, setStatusFilter] = useState<string | null>(null);
-	const [viewMode, setViewMode] = useState<"table" | "cards">("table");
+	const [viewMode, setViewMode] = useState<"table" | "cards">("cards");
 	const navigate = useNavigate();
 
 	// Dialog states
@@ -447,49 +448,46 @@ export default function LocationsPage() {
 									{filteredLocations.map((location) => (
 										<Card
 											key={location.id}
-											className="hover:shadow-md transition-shadow cursor-pointer"
+											className="hover:shadow-md transition-shadow cursor-pointer group relative overflow-hidden"
 											onClick={() =>
 												navigate(`/location-detail/${location.id}`)
 											}>
-											<CardHeader>
-												<CardTitle className="flex items-center gap-2">
-													<MapPin className="h-4 w-4 text-primary" />
-													{location.name}
-												</CardTitle>
-												<CardDescription>{location.address}</CardDescription>
-											</CardHeader>
-											<CardContent>
-												<div className="space-y-2">
-													<div className="flex items-center gap-2 text-sm">
-														<Building2 className="h-4 w-4 text-muted-foreground" />
-														<span>{location.address || "No address"}</span>
+											<div className="absolute inset-0 bg-gradient-to-t from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+											<div className="p-4">
+												<div className="flex items-start gap-4">
+													<div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+														<MapPin className="h-6 w-6 text-primary" />
 													</div>
-													<div className="flex items-center gap-2 text-sm">
-														<MapPin className="h-4 w-4 text-muted-foreground" />
-														<span>
-															{location.city}
-															{location.city && location.state ? ", " : ""}
-															{location.state}
-															{location.zipCode ? ` ${location.zipCode}` : ""}
+													<div className="flex-1 min-w-0">
+														<div className="flex items-center justify-between gap-2 group/name">
+															<CardTitle className="text-lg truncate">
+																{location.name}
+															</CardTitle>
+															<ChevronRight className="h-5 w-5 text-muted-foreground/50 transition-colors group-hover/name:text-primary shrink-0" />
+														</div>
+														<span className="text-sm text-muted-foreground">
+															{location.address || "No address"}
 														</span>
 													</div>
 												</div>
-											</CardContent>
-											<CardFooter className="flex justify-between items-center">
-												<Badge
-													variant={location.isActive ? "default" : "secondary"}>
-													{location.isActive ? "Active" : "Inactive"}
-												</Badge>
-												<Button
-													variant="ghost"
-													size="sm"
-													onClick={(e) => {
-														e.stopPropagation();
-														navigate(`/location-detail/${location.id}`);
-													}}>
-													View Details
-												</Button>
-											</CardFooter>
+											</div>
+											<div className="border-t px-4 py-3 space-y-2">
+												<div className="flex items-center gap-3 text-sm">
+													<Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
+													<span className="truncate">
+														{location.address || "No address"}
+													</span>
+												</div>
+												<div className="flex items-center gap-3 text-sm">
+													<MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+													<span>
+														{location.city}
+														{location.city && location.state ? ", " : ""}
+														{location.state}
+														{location.zipCode ? ` ${location.zipCode}` : ""}
+													</span>
+												</div>
+											</div>
 										</Card>
 									))}
 								</div>
