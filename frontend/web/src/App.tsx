@@ -6,7 +6,7 @@ import {
 } from "react-router-dom";
 import { AuthProvider, useAuth } from "./lib/auth";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
-import AppLayoutNew from "./components/layout/AppLayoutNew";
+import AppLayout from "./components/layout/AppLayout";
 import { NotificationProvider } from "./lib/notification-context";
 
 // Import our pages
@@ -82,7 +82,7 @@ function App() {
 
 						{/* Protected Routes */}
 						<Route element={<ProtectedRoute />}>
-							<Route element={<AppLayoutNew />}>
+							<Route element={<AppLayout />}>
 								<Route
 									path="/dashboard"
 									element={<DashboardPage />}

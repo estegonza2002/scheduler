@@ -38,7 +38,7 @@ import {
 } from "../components/ui/dropdown-menu";
 import { getNotificationIcon } from "../utils/notifications";
 import { Switch } from "../components/ui/switch";
-import { sampleNotifications } from "../components/notification-sheet";
+import { sampleNotifications } from "../components/NotificationSheet";
 import {
 	AlertTriangle,
 	Briefcase,
@@ -50,7 +50,7 @@ import {
 	User,
 } from "lucide-react";
 import { Checkbox } from "../components/ui/checkbox";
-import { NotificationItem } from "../components/notification-item";
+import { NotificationItem } from "../components/NotificationItem";
 
 export default function NotificationsPage() {
 	const {

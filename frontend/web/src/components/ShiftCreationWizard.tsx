@@ -15,7 +15,7 @@ import {
 	EmployeeAssignmentStep,
 	WizardProgressBar,
 	WizardStep,
-} from "./ShiftWizard";
+} from "./shift-wizard";
 
 interface ShiftCreationWizardProps {
 	scheduleId: string;

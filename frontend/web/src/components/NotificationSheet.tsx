@@ -16,7 +16,7 @@ import {
 	SheetTrigger,
 } from "./ui/sheet";
 import { getNotificationIcon } from "../utils/notifications";
-import { NotificationItem } from "./notification-item";
+import { NotificationItem } from "./NotificationItem";
 
 // Sample notifications for mockup purposes only
 export const sampleNotifications = [

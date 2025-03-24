@@ -21,7 +21,7 @@ import {
 	SidebarMenuItem,
 	SidebarSeparator,
 } from "./ui/sidebar";
-import { NavUser } from "./nav-user";
+import { NavUser } from "./NavUser";
 import { useState, useEffect } from "react";
 import { OrganizationsAPI, type Organization } from "../api";
 
