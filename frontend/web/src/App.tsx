@@ -1,24 +1,9 @@
-import { Button } from "./components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardFooter,
-	CardHeader,
-	CardTitle,
-} from "./components/ui/card";
 import {
 	BrowserRouter as Router,
 	Routes,
 	Route,
-	Link,
 	Navigate,
 } from "react-router-dom";
-import { useState } from "react";
-import { ScheduleCalendar } from "./components/ScheduleCalendar";
-import { OrganizationSelector } from "./components/OrganizationSelector";
-import { Input } from "./components/ui/input";
-import { Label } from "./components/ui/label";
 import { AuthProvider, useAuth } from "./lib/auth";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import AppLayoutNew from "./components/layout/AppLayoutNew";

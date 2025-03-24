@@ -1,0 +1,27 @@
+{
+	"extends": ["../../.eslintrc.json"],
+	"rules": {
+		"@typescript-eslint/no-unused-vars": "off",
+		"react-hooks/rules-of-hooks": "off",
+		"react-hooks/exhaustive-deps": "off",
+		"@typescript-eslint/no-explicit-any": "off",
+		"react/prop-types": "off",
+		"react/display-name": "off",
+		"react-refresh/only-export-components": "off",
+		"react/jsx-key": "off",
+		"react/no-unescaped-entities": "off",
+		"no-unused-vars": "off",
+		"@typescript-eslint/ban-ts-comment": "off",
+		"@typescript-eslint/no-empty-function": "off",
+		"storybook/default-exports": "off",
+		"storybook/hierarchy-separator": "off",
+		"storybook/no-redundant-story-name": "off",
+		"storybook/no-stories-of": "off",
+		"storybook/story-exports": "off",
+		"storybook/use-storybook-expect": "off",
+		"storybook/await-interactions": "off",
+		"storybook/context-in-play-function": "off",
+		"storybook/csf-component": "off",
+		"storybook/no-title-property-in-meta": "off"
+	}
+}

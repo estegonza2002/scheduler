@@ -1,0 +1,51 @@
+{
+	"root": true,
+	"env": {
+		"browser": true,
+		"es2020": true
+	},
+	"extends": [
+		"eslint:recommended",
+		"plugin:@typescript-eslint/recommended",
+		"plugin:react-hooks/recommended",
+		"plugin:storybook/recommended"
+	],
+	"ignorePatterns": ["dist", ".eslintrc.json"],
+	"parser": "@typescript-eslint/parser",
+	"plugins": ["react-refresh", "@typescript-eslint", "react-hooks"],
+	"rules": {
+		"react-refresh/only-export-components": [
+			"warn",
+			{ "allowConstantExport": true }
+		],
+		"@typescript-eslint/no-unused-vars": [
+			"error",
+			{
+				"argsIgnorePattern": "^_",
+				"varsIgnorePattern": "^_",
+				"ignoreRestSiblings": true
+			}
+		],
+		"@typescript-eslint/no-explicit-any": "warn",
+		"@typescript-eslint/no-empty-interface": "warn",
+		"react-hooks/rules-of-hooks": "warn",
+		"react-hooks/exhaustive-deps": "warn"
+	},
+	"overrides": [
+		{
+			"files": ["**/*.stories.tsx", "**/*.stories.ts"],
+			"rules": {
+				"@typescript-eslint/no-unused-vars": "off",
+				"react-hooks/rules-of-hooks": "off",
+				"react-hooks/exhaustive-deps": "off",
+				"@typescript-eslint/no-explicit-any": "off",
+				"react-refresh/only-export-components": "off"
+			}
+		}
+	],
+	"settings": {
+		"react": {
+			"version": "detect"
+		}
+	}
+}

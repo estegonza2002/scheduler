@@ -1,0 +1,17 @@
+{
+	"extends": "../tsconfig.json",
+	"compilerOptions": {
+		"emitDecoratorMetadata": true,
+		"experimentalDecorators": true,
+		"esModuleInterop": true,
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"outDir": "",
+		"baseUrl": "../",
+		"paths": {
+			"@/*": ["src/*"]
+		}
+	},
+	"exclude": ["../**/*.test.ts", "../**/*.test.tsx"],
+	"include": ["../src/**/*", "*.ts", "*.tsx"]
+}
