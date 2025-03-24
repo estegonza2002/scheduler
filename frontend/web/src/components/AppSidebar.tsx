@@ -25,7 +25,7 @@ import { NavUser } from "./NavUser";
 import { useState, useEffect } from "react";
 import { OrganizationsAPI, type Organization } from "../api";
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 	const { user } = useAuth();
 	const location = useLocation();
 	const [organization, setOrganization] = useState<Organization | null>(null);
@@ -110,7 +110,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 	};
 
 	return (
-		<>
+		<Sidebar {...props}>
 			<SidebarHeader className="h-16 border-b border-sidebar-border">
 				<div className="flex items-center gap-2 px-4 py-3">
 					<Calendar className="h-5 w-5 text-primary" />
@@ -150,6 +150,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 					/>
 				</div>
 			</SidebarFooter>
-		</>
+		</Sidebar>
 	);
 }

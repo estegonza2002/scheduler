@@ -37,7 +37,7 @@ import { NotificationSheet } from "../NotificationSheet";
 import { useNotifications } from "../../lib/notification-context";
 import { Switch } from "../ui/switch";
 
-export default function AppLayoutNew() {
+export default function AppLayout() {
 	const location = useLocation();
 	const navigate = useNavigate();
 	const [searchParams, setSearchParams] = useSearchParams();
