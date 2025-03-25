@@ -58,6 +58,7 @@ import {
 	AlertDialogTitle,
 	AlertDialogTrigger,
 } from "../ui/alert-dialog";
+import { getHeaderActions } from "../../pages/DailyShiftsPage";
 
 // Layout content component that can access the sidebar context
 function LayoutContent({
@@ -79,7 +80,7 @@ function LayoutContent({
 
 	return (
 		<SidebarInset>
-			<header className="sticky top-0 flex h-14 shrink-0 items-center border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 z-40">
+			<header className="sticky top-0 flex h-16 shrink-0 items-center border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 z-40">
 				<div className="flex flex-1 items-center">
 					<div className="flex items-center gap-2">
 						<SidebarTrigger className="-ml-1" />
@@ -87,13 +88,13 @@ function LayoutContent({
 					<div className="mx-4">
 						<h1 className="text-lg font-semibold">{getHeaderTitle()}</h1>
 						{pageHeader.description && (
-							<p className="text-sm text-muted-foreground">
+							<p className="text-xs text-muted-foreground">
 								{pageHeader.description}
 							</p>
 						)}
 					</div>
 				</div>
-				<div className="flex items-center justify-end">
+				<div className="flex items-center justify-end gap-3">
 					{renderHeaderActions()}
 				</div>
 			</header>
@@ -267,6 +268,8 @@ export default function AppLayout() {
 							</AlertDialogFooter>
 						</AlertDialogContent>
 					</AlertDialog>
+				) : isDailyShiftsPage ? (
+					getHeaderActions()
 				) : (
 					!isNotificationsPage && !isMessagesPage && <NotificationSheet />
 				)}

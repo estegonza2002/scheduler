@@ -41,6 +41,14 @@ interface DataTableProps<TData, TValue> {
 	searchKey?: string;
 	searchPlaceholder?: string;
 	hidePagination?: boolean;
+	hideTable?: boolean;
+	externalPagination?: {
+		pageIndex: number;
+		pageSize: number;
+		totalItems: number;
+		setPageIndex: (pageIndex: number) => void;
+		setPageSize: (pageSize: number) => void;
+	};
 }
 
 export function DataTable<TData, TValue>({
@@ -49,6 +57,8 @@ export function DataTable<TData, TValue>({
 	searchKey,
 	searchPlaceholder = "Search...",
 	hidePagination = false,
+	hideTable = false,
+	externalPagination,
 }: DataTableProps<TData, TValue>) {
 	const [sorting, setSorting] = React.useState<SortingState>([]);
 	const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -56,25 +66,50 @@ export function DataTable<TData, TValue>({
 	);
 	const [pagination, setPagination] = React.useState<PaginationState>({
 		pageIndex: 0,
-		pageSize: 10,
+		pageSize: 25,
 	});
+
+	const isExternalPagination = !!externalPagination;
 
 	const table = useReactTable({
 		data,
 		columns,
 		getCoreRowModel: getCoreRowModel(),
-		getPaginationRowModel: getPaginationRowModel(),
+		...(isExternalPagination
+			? {}
+			: { getPaginationRowModel: getPaginationRowModel() }),
 		onSortingChange: setSorting,
 		getSortedRowModel: getSortedRowModel(),
 		onColumnFiltersChange: setColumnFilters,
 		getFilteredRowModel: getFilteredRowModel(),
-		onPaginationChange: setPagination,
+		onPaginationChange: isExternalPagination
+			? () => {
+					// This will be handled externally
+			  }
+			: setPagination,
+		manualPagination: isExternalPagination,
+		pageCount: isExternalPagination
+			? Math.ceil(externalPagination.totalItems / externalPagination.pageSize)
+			: undefined,
 		state: {
 			sorting,
 			columnFilters,
-			pagination,
+			pagination: isExternalPagination
+				? {
+						pageIndex: externalPagination.pageIndex,
+						pageSize: externalPagination.pageSize,
+				  }
+				: pagination,
 		},
 	});
+
+	const renderRows = () => {
+		if (isExternalPagination) {
+			return table.getRowModel().rows;
+		} else {
+			return table.getRowModel().rows;
+		}
+	};
 
 	return (
 		<div>
@@ -95,54 +130,60 @@ export function DataTable<TData, TValue>({
 			)}
 
 			{/* Table */}
-			<div className="rounded-lg border">
-				<Table>
-					<TableHeader>
-						{table.getHeaderGroups().map((headerGroup: HeaderGroup<TData>) => (
-							<TableRow key={headerGroup.id}>
-								{headerGroup.headers.map((header: Header<TData, unknown>) => {
-									return (
-										<TableHead key={header.id}>
-											{header.isPlaceholder
-												? null
-												: flexRender(
-														header.column.columnDef.header,
-														header.getContext()
-												  )}
-										</TableHead>
-									);
-								})}
-							</TableRow>
-						))}
-					</TableHeader>
-					<TableBody>
-						{table.getRowModel().rows?.length ? (
-							table.getRowModel().rows.map((row: Row<TData>) => (
-								<TableRow
-									key={row.id}
-									data-state={row.getIsSelected() && "selected"}>
-									{row.getVisibleCells().map((cell: Cell<TData, unknown>) => (
-										<TableCell key={cell.id}>
-											{flexRender(
-												cell.column.columnDef.cell,
-												cell.getContext()
-											)}
-										</TableCell>
-									))}
+			{!hideTable && (
+				<div className="rounded-lg border">
+					<Table>
+						<TableHeader>
+							{table
+								.getHeaderGroups()
+								.map((headerGroup: HeaderGroup<TData>) => (
+									<TableRow key={headerGroup.id}>
+										{headerGroup.headers.map(
+											(header: Header<TData, unknown>) => {
+												return (
+													<TableHead key={header.id}>
+														{header.isPlaceholder
+															? null
+															: flexRender(
+																	header.column.columnDef.header,
+																	header.getContext()
+															  )}
+													</TableHead>
+												);
+											}
+										)}
+									</TableRow>
+								))}
+						</TableHeader>
+						<TableBody>
+							{renderRows().length ? (
+								renderRows().map((row: Row<TData>) => (
+									<TableRow
+										key={row.id}
+										data-state={row.getIsSelected() && "selected"}>
+										{row.getVisibleCells().map((cell: Cell<TData, unknown>) => (
+											<TableCell key={cell.id}>
+												{flexRender(
+													cell.column.columnDef.cell,
+													cell.getContext()
+												)}
+											</TableCell>
+										))}
+									</TableRow>
+								))
+							) : (
+								<TableRow>
+									<TableCell
+										colSpan={columns.length}
+										className="h-24 text-center">
+										No results.
+									</TableCell>
 								</TableRow>
-							))
-						) : (
-							<TableRow>
-								<TableCell
-									colSpan={columns.length}
-									className="h-24 text-center">
-									No results.
-								</TableCell>
-							</TableRow>
-						)}
-					</TableBody>
-				</Table>
-			</div>
+							)}
+						</TableBody>
+					</Table>
+				</div>
+			)}
 
 			{/* Pagination Controls - Bottom Section */}
 			{!hidePagination && (
@@ -150,34 +191,67 @@ export function DataTable<TData, TValue>({
 					<div className="flex items-center space-x-6">
 						<div className="text-sm text-muted-foreground">
 							Showing{" "}
-							{table.getFilteredRowModel().rows.length > 0
-								? table.getState().pagination.pageIndex *
-										table.getState().pagination.pageSize +
-								  1
-								: 0}{" "}
-							to{" "}
-							{Math.min(
-								(table.getState().pagination.pageIndex + 1) *
-									table.getState().pagination.pageSize,
-								table.getFilteredRowModel().rows.length
-							)}{" "}
-							of {table.getFilteredRowModel().rows.length} entries
+							{isExternalPagination ? (
+								<>
+									{externalPagination.totalItems > 0
+										? externalPagination.pageIndex *
+												externalPagination.pageSize +
+										  1
+										: 0}{" "}
+									to{" "}
+									{Math.min(
+										(externalPagination.pageIndex + 1) *
+											externalPagination.pageSize,
+										externalPagination.totalItems
+									)}{" "}
+									of {externalPagination.totalItems} entries
+								</>
+							) : (
+								<>
+									{table.getFilteredRowModel().rows.length > 0
+										? table.getState().pagination.pageIndex *
+												table.getState().pagination.pageSize +
+										  1
+										: 0}{" "}
+									to{" "}
+									{Math.min(
+										(table.getState().pagination.pageIndex + 1) *
+											table.getState().pagination.pageSize,
+										table.getFilteredRowModel().rows.length
+									)}{" "}
+									of {table.getFilteredRowModel().rows.length} entries
+								</>
+							)}
 						</div>
 
 						<div className="flex items-center space-x-2">
 							<p className="text-sm text-muted-foreground">Items per page</p>
 							<Select
-								value={`${table.getState().pagination.pageSize}`}
+								value={
+									isExternalPagination
+										? `${externalPagination.pageSize}`
+										: `${table.getState().pagination.pageSize}`
+								}
 								onValueChange={(value) => {
-									table.setPageSize(Number(value));
+									const newPageSize = Number(value);
+									if (isExternalPagination) {
+										externalPagination.setPageSize(newPageSize);
+										externalPagination.setPageIndex(0);
+									} else {
+										table.setPageSize(newPageSize);
+									}
 								}}>
-								<SelectTrigger className="h-8 w-[70px]">
+								<SelectTrigger className="h-8 w-[80px]">
 									<SelectValue
-										placeholder={table.getState().pagination.pageSize}
+										placeholder={
+											isExternalPagination
+												? externalPagination.pageSize
+												: table.getState().pagination.pageSize
+										}
 									/>
 								</SelectTrigger>
 								<SelectContent side="top">
-									{[10, 20, 30, 40, 50].map((pageSize) => (
+									{[25, 50, 100, 200].map((pageSize) => (
 										<SelectItem
 											key={pageSize}
 											value={`${pageSize}`}>
@@ -193,16 +267,64 @@ export function DataTable<TData, TValue>({
 						<Button
 							variant="outline"
 							size="sm"
-							onClick={() => table.previousPage()}
-							disabled={!table.getCanPreviousPage()}>
+							onClick={() => {
+								if (isExternalPagination) {
+									externalPagination.setPageIndex(
+										Math.max(0, externalPagination.pageIndex - 1)
+									);
+								} else {
+									table.previousPage();
+								}
+							}}
+							disabled={
+								isExternalPagination
+									? externalPagination.pageIndex === 0
+									: !table.getCanPreviousPage()
+							}>
 							<ChevronLeft className="h-4 w-4 mr-1" />
 							Previous
 						</Button>
+
+						<div className="text-sm">
+							Page{" "}
+							{isExternalPagination
+								? externalPagination.pageIndex + 1
+								: table.getState().pagination.pageIndex + 1}{" "}
+							of{" "}
+							{isExternalPagination
+								? Math.ceil(
+										externalPagination.totalItems / externalPagination.pageSize
+								  ) || 1
+								: table.getPageCount() || 1}
+						</div>
+
 						<Button
 							variant="outline"
 							size="sm"
-							onClick={() => table.nextPage()}
-							disabled={!table.getCanNextPage()}>
+							onClick={() => {
+								if (isExternalPagination) {
+									const maxPage =
+										Math.ceil(
+											externalPagination.totalItems /
+												externalPagination.pageSize
+										) - 1;
+									externalPagination.setPageIndex(
+										Math.min(maxPage, externalPagination.pageIndex + 1)
+									);
+								} else {
+									table.nextPage();
+								}
+							}}
+							disabled={
+								isExternalPagination
+									? externalPagination.pageIndex >=
+									  Math.ceil(
+											externalPagination.totalItems /
+												externalPagination.pageSize
+									  ) -
+											1
+									: !table.getCanNextPage()
+							}>
 							Next
 							<ChevronRight className="h-4 w-4 ml-1" />
 						</Button>

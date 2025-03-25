@@ -89,7 +89,7 @@ export function ContentSection({
 	}
 
 	return (
-		<Card className={cn("mb-6", className)}>
+		<Card className={cn("mb-0", className)}>
 			<CardHeader>
 				<div className="flex items-center justify-between">
 					<div>
