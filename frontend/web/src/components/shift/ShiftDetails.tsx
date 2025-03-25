@@ -6,6 +6,11 @@ import {
 	Location,
 	CheckInTask,
 	CheckOutTask,
+	ShiftsAPI,
+	LocationsAPI,
+	EmployeesAPI,
+	ShiftAssignmentsAPI,
+	ShiftAssignment,
 } from "../../api";
 import { toast } from "sonner";
 import { ShiftHeader } from "./ShiftHeader";
@@ -27,70 +32,57 @@ import { Loader2, ArrowLeft } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { Button } from "../ui/button";
 
-// Define direct API functions instead of using api object
-const getShift = async (shiftId: string): Promise<Shift> => {
-	const response = await fetch(`/api/shifts/${shiftId}`);
-	if (!response.ok) throw new Error("Failed to load shift");
-	return response.json();
+// Define direct API functions but use mock API implementation instead of fetch
+const getShift = async (shiftId: string): Promise<Shift | null> => {
+	console.log(`Getting shift with ID: ${shiftId}`);
+	return ShiftsAPI.getById(shiftId);
 };
 
-const getLocation = async (locationId: string): Promise<Location> => {
-	const response = await fetch(`/api/locations/${locationId}`);
-	if (!response.ok) throw new Error("Failed to load location");
-	return response.json();
+const getLocation = async (locationId: string): Promise<Location | null> => {
+	console.log(`Getting location with ID: ${locationId}`);
+	return LocationsAPI.getById(locationId);
 };
 
-const getShiftAssignments = async (shiftId: string): Promise<any[]> => {
-	const response = await fetch(`/api/shifts/${shiftId}/assignments`);
-	if (!response.ok) throw new Error("Failed to load shift assignments");
-	return response.json();
+const getShiftAssignments = async (
+	shiftId: string
+): Promise<ShiftAssignment[]> => {
+	console.log(`Getting assignments for shift: ${shiftId}`);
+	return ShiftAssignmentsAPI.getByShiftId(shiftId);
 };
 
-const getEmployee = async (employeeId: string): Promise<Employee> => {
-	const response = await fetch(`/api/employees/${employeeId}`);
-	if (!response.ok) throw new Error("Failed to load employee details");
-	return response.json();
+const getEmployee = async (employeeId: string): Promise<Employee | null> => {
+	console.log(`Getting employee with ID: ${employeeId}`);
+	return EmployeesAPI.getById(employeeId);
 };
 
 const getEmployees = async (orgId: string): Promise<Employee[]> => {
-	const response = await fetch(`/api/organizations/${orgId}/employees`);
-	if (!response.ok) throw new Error("Failed to load employees");
-	return response.json();
+	console.log(`Getting employees for org: ${orgId}`);
+	return EmployeesAPI.getAll(orgId);
 };
 
 const updateShift = async (
 	shiftId: string,
 	shiftData: Partial<Shift>
-): Promise<Shift> => {
-	const response = await fetch(`/api/shifts/${shiftId}`, {
-		method: "PUT",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify(shiftData),
-	});
-	if (!response.ok) throw new Error("Failed to update shift");
-	return response.json();
+): Promise<Shift | null> => {
+	console.log(`Updating shift with ID: ${shiftId}`);
+	return ShiftsAPI.update({ id: shiftId, ...shiftData });
 };
 
-const deleteShift = async (shiftId: string): Promise<void> => {
-	const response = await fetch(`/api/shifts/${shiftId}`, { method: "DELETE" });
-	if (!response.ok) throw new Error("Failed to delete shift");
+const deleteShift = async (shiftId: string): Promise<boolean> => {
+	console.log(`Deleting shift with ID: ${shiftId}`);
+	return ShiftsAPI.delete(shiftId);
 };
 
-const createShiftAssignment = async (assignmentData: any): Promise<any> => {
-	const response = await fetch(`/api/shift-assignments`, {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify(assignmentData),
-	});
-	if (!response.ok) throw new Error("Failed to create assignment");
-	return response.json();
+const createShiftAssignment = async (
+	assignmentData: Omit<ShiftAssignment, "id">
+): Promise<ShiftAssignment> => {
+	console.log(`Creating assignment for shift: ${assignmentData.shiftId}`);
+	return ShiftAssignmentsAPI.create(assignmentData);
 };
 
 const deleteShiftAssignment = async (assignmentId: string): Promise<void> => {
-	const response = await fetch(`/api/shift-assignments/${assignmentId}`, {
-		method: "DELETE",
-	});
-	if (!response.ok) throw new Error("Failed to delete assignment");
+	console.log(`Deleting assignment with ID: ${assignmentId}`);
+	return ShiftAssignmentsAPI.delete(assignmentId);
 };
 
 export function ShiftDetails() {
@@ -125,6 +117,11 @@ export function ShiftDetails() {
 			const shiftData = await getShift(shiftId);
 			setShift(shiftData);
 
+			// If shift not found, just return - we'll show the not found UI
+			if (!shiftData) {
+				return;
+			}
+
 			// Fetch location if the shift has a locationId
 			if (shiftData.locationId) {
 				const locationData = await getLocation(shiftData.locationId);
@@ -137,17 +134,21 @@ export function ShiftDetails() {
 				// Fetch full employee details for each assignment
 				const assignedEmployeePromises = assignments.map(async (assignment) => {
 					const employee = await getEmployee(assignment.employeeId);
+					if (!employee) {
+						// Skip if employee not found
+						return null;
+					}
 					return {
 						...employee,
 						assignmentId: assignment.id,
 						assignmentRole: assignment.role || employee.position || "Staff",
 						assignmentNotes: assignment.notes || "",
-					};
+					} as AssignedEmployee;
 				});
 
-				const assignedEmployeeData = await Promise.all(
-					assignedEmployeePromises
-				);
+				const assignedEmployeeData = (
+					await Promise.all(assignedEmployeePromises)
+				).filter((emp): emp is AssignedEmployee => emp !== null);
 				setAssignedEmployees(assignedEmployeeData);
 			}
 
@@ -377,33 +378,25 @@ export function ShiftDetails() {
 	if (!shift) {
 		return (
 			<div className="p-6">
-				<div className="flex items-center justify-center mb-4">
-					<Button
-						variant="ghost"
-						size="sm"
-						onClick={() => navigate(-1)}
-						className="mr-auto">
-						<ArrowLeft className="h-4 w-4 mr-2" />
-						Back
-					</Button>
-				</div>
-				<div className="text-center">
-					<h1 className="text-xl font-bold mb-2">Shift not found</h1>
-					<p className="text-muted-foreground mb-4">
-						The requested shift could not be found.
-					</p>
-					<button
-						onClick={() => navigate("/schedule")}
-						className="text-primary hover:underline">
-						Return to Schedule
-					</button>
+				<div className="flex flex-col items-center justify-center h-[70vh]">
+					<div className="text-center max-w-md mx-auto">
+						<h1 className="text-2xl font-bold mb-2">Shift not found</h1>
+						<p className="text-muted-foreground mb-6">
+							The requested shift could not be found.
+						</p>
+						<Button
+							onClick={() => navigate("/schedule")}
+							className="min-w-[150px]">
+							Return to Schedule
+						</Button>
+					</div>
 				</div>
 			</div>
 		);
 	}
 
 	return (
-		<div className="container mx-auto max-w-5xl pb-12">
+		<div className="w-full pb-12">
 			<ShiftHeader
 				shift={shift}
 				assignedEmployeesCount={assignedEmployees.length}
@@ -423,32 +416,28 @@ export function ShiftDetails() {
 				/>
 			</div>
 
-			<div className="bg-white border rounded-lg shadow-sm overflow-hidden mb-6">
-				<div className="p-5">
-					<EmployeesSection
-						assignedEmployees={assignedEmployees}
-						availableEmployees={availableEmployees}
-						shift={shift}
-						onRemoveEmployeeClick={handleRemoveEmployee}
-						onAssignClick={() => setAssignEmployeeDialogOpen(true)}
-					/>
+			<EmployeesSection
+				assignedEmployees={assignedEmployees}
+				availableEmployees={availableEmployees}
+				shift={shift}
+				onRemoveEmployeeClick={handleRemoveEmployee}
+				onAssignClick={() => setAssignEmployeeDialogOpen(true)}
+			/>
 
-					<ShiftNotes
-						notes={shift.notes || ""}
-						onEditClick={() => setNotesDialogOpen(true)}
-						onClearClick={() => saveShift({ notes: "" })}
-					/>
+			<ShiftNotes
+				notes={shift.notes || ""}
+				onEditClick={() => setNotesDialogOpen(true)}
+				onClearClick={() => saveShift({ notes: "" })}
+			/>
 
-					<ShiftTasks
-						checkInTasks={shift.checkInTasks || []}
-						checkOutTasks={shift.checkOutTasks || []}
-						onCheckInTasksClick={() => setCheckInTasksDialogOpen(true)}
-						onCheckOutTasksClick={() => setCheckOutTasksDialogOpen(true)}
-						onToggleTaskCompletion={handleToggleTaskCompletion}
-						onRemoveTask={handleRemoveTask}
-					/>
-				</div>
-			</div>
+			<ShiftTasks
+				checkInTasks={shift.checkInTasks || []}
+				checkOutTasks={shift.checkOutTasks || []}
+				onCheckInTasksClick={() => setCheckInTasksDialogOpen(true)}
+				onCheckOutTasksClick={() => setCheckOutTasksDialogOpen(true)}
+				onToggleTaskCompletion={handleToggleTaskCompletion}
+				onRemoveTask={handleRemoveTask}
+			/>
 
 			{/* Dialogs */}
 			<AssignEmployeeDialog

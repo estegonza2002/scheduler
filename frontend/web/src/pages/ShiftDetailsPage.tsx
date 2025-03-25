@@ -9,14 +9,10 @@ import {
 
 export default function ShiftDetailsPage() {
 	return (
-		<>
-			<PageContentSpacing>
-				<ContentContainer>
-					<ContentSection title="Shift Information">
-						<ShiftDetails />
-					</ContentSection>
-				</ContentContainer>
-			</PageContentSpacing>
-		</>
+		<PageContentSpacing>
+			<ContentContainer>
+				<ShiftDetails />
+			</ContentContainer>
+		</PageContentSpacing>
 	);
 }

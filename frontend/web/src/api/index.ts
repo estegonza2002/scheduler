@@ -186,6 +186,46 @@ const generateTask = (
 // Update existing shifts with proper task objects
 export const mockShifts: Shift[] = [
 	{
+		id: "shift-61",
+		scheduleId: "sch-1",
+		employeeId: "emp-1",
+		startTime: "2023-06-01T09:00:00",
+		endTime: "2023-06-01T17:00:00",
+		role: "Manager",
+		locationId: "loc-1",
+		notes:
+			"This is a test shift for demonstration purposes.\n\nMake sure to review all tasks before completing the shift.",
+		checkInTasks: [
+			{
+				id: generateUniqueId(),
+				description: "Check security systems",
+				completed: true,
+			},
+			{
+				id: generateUniqueId(),
+				description: "Verify inventory levels",
+				completed: false,
+			},
+			{
+				id: generateUniqueId(),
+				description: "Brief staff on daily goals",
+				completed: false,
+			},
+		],
+		checkOutTasks: [
+			{
+				id: generateUniqueId(),
+				description: "Close register",
+				completed: false,
+			},
+			{
+				id: generateUniqueId(),
+				description: "Lock all doors",
+				completed: false,
+			},
+		],
+	},
+	{
 		id: "shift-203",
 		scheduleId: "sch-5",
 		employeeId: "emp-1",
@@ -676,6 +716,12 @@ const mockLocations: Location[] = [
 
 // Add mock shift assignments
 const mockShiftAssignments: ShiftAssignment[] = [
+	{
+		id: "sa-61",
+		shiftId: "shift-61",
+		employeeId: "emp-1",
+		role: "Manager",
+	},
 	{
 		id: "sa-203",
 		shiftId: "shift-203",
