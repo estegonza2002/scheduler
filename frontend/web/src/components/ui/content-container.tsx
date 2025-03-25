@@ -15,6 +15,11 @@ interface ContentContainerProps {
 	 * @default "w-full"
 	 */
 	maxWidth?: string;
+	/**
+	 * Whether to apply default padding
+	 * @default true
+	 */
+	withPadding?: boolean;
 }
 
 /**
@@ -24,10 +29,17 @@ export function ContentContainer({
 	children,
 	className,
 	maxWidth = "w-full",
+	withPadding = true,
 }: ContentContainerProps) {
 	return (
 		<div
-			className={cn("px-4 sm:px-6 lg:px-8 py-6 mx-auto", maxWidth, className)}>
+			className={cn(
+				"content-container-wrapper",
+				withPadding ? "px-4 sm:px-6 lg:px-8 py-6" : "",
+				"mx-auto",
+				maxWidth,
+				className
+			)}>
 			{children}
 		</div>
 	);

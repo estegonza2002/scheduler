@@ -24,6 +24,7 @@ import {
 	MapPin,
 	RefreshCw,
 	Settings,
+	LogOut,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { format, addDays, subDays } from "date-fns";
@@ -38,12 +39,30 @@ import { useNotifications } from "../../lib/notification-context";
 import { useLayout } from "../../lib/layout-context";
 import { Switch } from "../ui/switch";
 import { cn } from "../../lib/utils";
+import {
+	ScheduleSidebar,
+	LocationsSidebar,
+	EmployeesSidebar,
+} from "./SecondaryNavbar";
+import { useAuth } from "../../lib/auth";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+	AlertDialogTrigger,
+} from "../ui/alert-dialog";
 
 export default function AppLayout() {
 	const location = useLocation();
 	const navigate = useNavigate();
 	const [searchParams, setSearchParams] = useSearchParams();
 	const { pageHeader } = useLayout();
+	const { signOut } = useAuth();
 	const [currentDate, setCurrentDate] = useState<Date>(() => {
 		const dateParam = searchParams.get("date");
 		return dateParam ? new Date(dateParam) : new Date();
@@ -52,11 +71,24 @@ export default function AppLayout() {
 	const organizationId = searchParams.get("organizationId") || "org-1";
 	const [organization, setOrganization] = useState<Organization | null>(null);
 	const { useSampleData, toggleSampleData } = useNotifications();
+	const [showLogoutDialog, setShowLogoutDialog] = useState(false);
 
 	// For notifications page specific controls
 	const isNotificationsPage = location.pathname === "/notifications";
 	const isMessagesPage = location.pathname === "/messages";
 	const shouldShowSampleData = isNotificationsPage || isMessagesPage;
+
+	// Check if we're on specific pages
+	const isDailyShiftsPage = location.pathname.startsWith("/daily-shifts");
+	const isSchedulePage = location.pathname === "/schedule";
+	const isEmployeesPage = location.pathname === "/employees";
+	const isLocationsPage = location.pathname === "/locations";
+	const isAdminDashboardPage = location.pathname === "/admin-dashboard";
+	const isProfilePage = location.pathname === "/profile";
+
+	// Check if we need secondary navbar
+	const hasSecondaryNavbar =
+		isSchedulePage || isEmployeesPage || isLocationsPage;
 
 	// Fetch organization
 	useEffect(() => {
@@ -92,12 +124,6 @@ export default function AppLayout() {
 		});
 	};
 
-	// Check if we're on specific pages
-	const isDailyShiftsPage = location.pathname.startsWith("/daily-shifts");
-	const isEmployeesPage = location.pathname === "/employees";
-	const isLocationsPage = location.pathname === "/locations";
-	const isAdminDashboardPage = location.pathname === "/admin-dashboard";
-
 	const renderActionButton = () => {
 		// If we have actions from the page header, use those first
 		if (pageHeader.actions) {
@@ -109,6 +135,11 @@ export default function AppLayout() {
 		return null;
 	};
 
+	const handleLogout = () => {
+		signOut();
+		navigate("/");
+	};
+
 	// Combine all actions for the app header
 	const renderHeaderActions = () => {
 		// Avoid creating new React elements for actions on every render
@@ -118,6 +149,16 @@ export default function AppLayout() {
 		return (
 			<div className="flex items-center gap-2">
 				{actionButton}
+				{isMessagesPage && useSampleData && (
+					<Button
+						onClick={() =>
+							window.dispatchEvent(new CustomEvent("new-conversation-click"))
+						}
+						className="mr-2">
+						<Plus className="h-4 w-4 mr-2" />
+						New Conversation
+					</Button>
+				)}
 				{shouldShowSampleData && (
 					<div className="flex items-center gap-3 bg-muted/50 p-1.5 pl-3 rounded-full">
 						<span className="text-sm font-medium">Sample Data</span>
@@ -127,7 +168,38 @@ export default function AppLayout() {
 						/>
 					</div>
 				)}
-				{!isNotificationsPage && !isMessagesPage && <NotificationSheet />}
+				{isProfilePage ? (
+					<AlertDialog
+						open={showLogoutDialog}
+						onOpenChange={setShowLogoutDialog}>
+						<AlertDialogTrigger asChild>
+							<Button
+								variant="ghost"
+								size="icon"
+								title="Log out">
+								<LogOut className="h-5 w-5" />
+							</Button>
+						</AlertDialogTrigger>
+						<AlertDialogContent>
+							<AlertDialogHeader>
+								<AlertDialogTitle>
+									Are you sure you want to log out?
+								</AlertDialogTitle>
+								<AlertDialogDescription>
+									You will need to sign in again to access your account.
+								</AlertDialogDescription>
+							</AlertDialogHeader>
+							<AlertDialogFooter>
+								<AlertDialogCancel>Cancel</AlertDialogCancel>
+								<AlertDialogAction onClick={handleLogout}>
+									Log out
+								</AlertDialogAction>
+							</AlertDialogFooter>
+						</AlertDialogContent>
+					</AlertDialog>
+				) : (
+					!isNotificationsPage && !isMessagesPage && <NotificationSheet />
+				)}
 			</div>
 		);
 	};
@@ -158,6 +230,39 @@ export default function AppLayout() {
 		return "Scheduler";
 	};
 
+	// Render the appropriate secondary navbar based on the current route
+	const renderSecondaryNavbar = () => {
+		if (isSchedulePage) {
+			const viewMode =
+				(searchParams.get("view") as "calendar" | "daily") || "calendar";
+
+			return (
+				<ScheduleSidebar
+					viewMode={viewMode}
+					onViewModeChange={(mode) => {
+						const newParams = new URLSearchParams(searchParams);
+						newParams.set("view", mode);
+						setSearchParams(newParams);
+					}}
+					onViewToday={() => {
+						const today = new Date();
+						navigate(`/schedule?date=${format(today, "yyyy-MM-dd")}`);
+					}}
+				/>
+			);
+		}
+
+		if (isLocationsPage) {
+			return null; // We'll render this directly from the LocationsPage component
+		}
+
+		if (isEmployeesPage) {
+			return null; // We'll render this directly from the EmployeesPage component
+		}
+
+		return null;
+	};
+
 	return (
 		<SidebarProvider>
 			<Sidebar className="w-64">
@@ -182,7 +287,12 @@ export default function AppLayout() {
 						{renderHeaderActions()}
 					</div>
 				</header>
-				<main className="flex-1 overflow-auto w-full">
+				{hasSecondaryNavbar && renderSecondaryNavbar()}
+				<main
+					className={cn(
+						"flex-1 overflow-auto w-full",
+						hasSecondaryNavbar ? "ml-64" : ""
+					)}>
 					<Outlet />
 				</main>
 			</SidebarInset>

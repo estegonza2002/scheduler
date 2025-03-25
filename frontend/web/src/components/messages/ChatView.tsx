@@ -236,8 +236,8 @@ export function ChatView({
 	}
 
 	return (
-		<div className="flex flex-col h-full">
-			<div className="py-3 px-4 border-b flex items-center">
+		<div className="flex flex-col h-full overflow-hidden">
+			<div className="py-3 px-4 border-b flex items-center flex-shrink-0">
 				<div className="flex items-center gap-3">
 					<Avatar>
 						<AvatarImage src={conversation.avatar} />
@@ -254,7 +254,7 @@ export function ChatView({
 				</div>
 			</div>
 
-			<div className="flex-1 overflow-y-auto p-4">
+			<div className="flex-1 overflow-y-auto overflow-x-hidden p-4">
 				<div className="space-y-4">
 					{messages.map((msg) => (
 						<div
@@ -297,7 +297,7 @@ export function ChatView({
 				</div>
 			</div>
 
-			<div className="p-3 border-t">
+			<div className="p-3 border-t flex-shrink-0">
 				<div className="flex items-center gap-2">
 					<Button
 						variant="ghost"

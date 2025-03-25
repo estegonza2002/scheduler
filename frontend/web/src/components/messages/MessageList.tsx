@@ -184,8 +184,8 @@ export function MessageList({
 	);
 
 	return (
-		<div className="flex flex-col h-full">
-			<div className="p-3 border-b">
+		<div className="flex flex-col h-full overflow-hidden">
+			<div className="p-3 border-b flex-shrink-0">
 				<div className="relative">
 					<Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
 					<Input
@@ -197,7 +197,7 @@ export function MessageList({
 				</div>
 			</div>
 
-			<div className="flex-1 overflow-y-auto">
+			<div className="flex-1 overflow-y-auto overflow-x-hidden">
 				{!useSampleData && conversations.length === 0 ? (
 					<div className="flex flex-col items-center justify-center h-full text-muted-foreground p-8">
 						<div className="bg-muted/30 p-4 rounded-full mb-4">

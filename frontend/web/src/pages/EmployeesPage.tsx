@@ -59,6 +59,7 @@ import { SearchInput } from "../components/ui/search-input";
 import { FilterGroup } from "../components/ui/filter-group";
 import { EmptyState } from "../components/ui/empty-state";
 import { LoadingState } from "../components/ui/loading-state";
+import { EmployeesSidebar } from "../components/layout/SecondaryNavbar";
 
 export default function EmployeesPage() {
 	const [employees, setEmployees] = useState<Employee[]>([]);
@@ -309,15 +310,31 @@ export default function EmployeesPage() {
 		setEmployees((prev) => prev.filter((emp) => emp.id !== employeeId));
 	};
 
-	// Clear all filters
-	const clearFilters = () => {
-		setSearchTerm("");
+	const handleSearch = (term: string) => {
+		setSearchTerm(term);
+	};
+
+	const handleClearFilters = () => {
 		setPositionFilter(null);
+		setSearchTerm("");
+	};
+
+	// Component for sidebar
+	const renderSidebar = () => {
+		return (
+			<EmployeesSidebar
+				onSearch={handleSearch}
+				positionFilter={positionFilter}
+				onPositionFilterChange={setPositionFilter}
+				onClearFilters={handleClearFilters}
+				positions={uniquePositions}
+			/>
+		);
 	};
 
 	if (isLoading) {
 		return (
-			<ContentContainer>
+			<div>
 				<LoadingState
 					message={`Loading ${
 						loadingPhase === "organization" ? "organization" : "employees"
@@ -326,83 +343,41 @@ export default function EmployeesPage() {
 					skeletonCount={6}
 					skeletonHeight={80}
 				/>
-			</ContentContainer>
+			</div>
 		);
 	}
 
 	return (
-		<ContentContainer className="flex gap-6">
-			<div className="w-72 flex-shrink-0">
-				<Card>
-					<CardHeader>
-						<CardTitle>Filters</CardTitle>
-						<CardDescription>
-							Filter employees by their attributes
-						</CardDescription>
-					</CardHeader>
-					<CardContent className="space-y-4">
-						<div className="space-y-2">
-							<label className="text-sm font-medium">Position</label>
-							<Select
-								value={positionFilter || "all_positions"}
-								onValueChange={(value: string) =>
-									setPositionFilter(value === "all_positions" ? null : value)
-								}>
-								<SelectTrigger>
-									<SelectValue placeholder="All positions" />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value="all_positions">All positions</SelectItem>
-									{uniquePositions.map((position) => (
-										<SelectItem
-											key={position}
-											value={position}>
-											{position}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-						</div>
-					</CardContent>
-				</Card>
-			</div>
-			<div className="flex-1">
-				<div className="flex flex-col space-y-4">
-					<div className="flex items-center justify-between">
-						<SearchInput
-							placeholder="Search employees..."
-							value={searchTerm}
-							onChange={(value: string) => setSearchTerm(value)}
-							className="w-64"
+		<>
+			{renderSidebar()}
+			<div className="ml-64">
+				<div className="p-4">
+					<div className="text-right mb-4">
+						<AddEmployeeDialog
+							organizationId={organization?.id || ""}
+							onEmployeesAdded={handleEmployeesAdded}
+							trigger={
+								<Button className="mr-2">
+									<Plus className="h-4 w-4 mr-2" />
+									New Employee
+								</Button>
+							}
 						/>
-
-						<div className="flex items-center gap-2">
-							<AddEmployeeDialog
-								organizationId={organization?.id || ""}
-								onEmployeesAdded={handleEmployeesAdded}
-								trigger={
-									<Button>
-										<Plus className="h-4 w-4 mr-2" />
-										New Employee
-									</Button>
-								}
-							/>
-							<div className="flex rounded-md overflow-hidden border">
-								<Button
-									variant={viewMode === "cards" ? "secondary" : "ghost"}
-									size="sm"
-									className="rounded-none px-3"
-									onClick={() => setViewMode("cards")}>
-									<LayoutGrid className="h-4 w-4" />
-								</Button>
-								<Button
-									variant={viewMode === "table" ? "secondary" : "ghost"}
-									size="sm"
-									className="rounded-none px-3"
-									onClick={() => setViewMode("table")}>
-									<List className="h-4 w-4" />
-								</Button>
-							</div>
+						<div className="inline-flex rounded-md overflow-hidden border">
+							<Button
+								variant={viewMode === "cards" ? "secondary" : "ghost"}
+								size="sm"
+								className="rounded-none px-3"
+								onClick={() => setViewMode("cards")}>
+								<LayoutGrid className="h-4 w-4" />
+							</Button>
+							<Button
+								variant={viewMode === "table" ? "secondary" : "ghost"}
+								size="sm"
+								className="rounded-none px-3"
+								onClick={() => setViewMode("table")}>
+								<List className="h-4 w-4" />
+							</Button>
 						</div>
 					</div>
 
@@ -442,50 +417,48 @@ export default function EmployeesPage() {
 									{filteredEmployees.map((employee) => (
 										<Card
 											key={employee.id}
-											className="hover:shadow-md transition-shadow cursor-pointer group relative overflow-hidden"
+											className="cursor-pointer"
 											onClick={() =>
 												navigate(`/employee-detail/${employee.id}`)
 											}>
-											<div className="absolute inset-0 bg-gradient-to-t from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 											<div className="p-4">
-												<div className="flex items-start gap-4">
-													<Avatar className="h-12 w-12 border-2 border-primary/10">
-														<AvatarImage src={employee.avatar} />
-														<AvatarFallback className="bg-primary/10 text-primary">
+												<div className="flex items-center">
+													<div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center mr-4">
+														<span className="text-gray-700 font-medium text-xs">
 															{employee.name
 																.split(" ")
 																.map((n) => n[0])
 																.join("")
 																.toUpperCase()}
-														</AvatarFallback>
-													</Avatar>
-													<div className="flex-1 min-w-0">
-														<div className="flex items-center justify-between gap-2 group/name">
-															<CardTitle className="text-lg truncate">
+														</span>
+													</div>
+													<div className="flex-1">
+														<div className="flex items-center justify-between">
+															<h3 className="font-medium text-sm">
 																{employee.name}
-															</CardTitle>
-															<ChevronRight className="h-5 w-5 text-muted-foreground/50 transition-colors group-hover/name:text-primary shrink-0" />
+															</h3>
+															<ChevronRight className="h-5 w-5 text-gray-400" />
 														</div>
-														<span className="text-sm text-muted-foreground">
+														<span className="text-sm text-gray-500">
 															{employee.position || employee.role || "No role"}
 														</span>
 													</div>
 												</div>
 											</div>
-											<div className="border-t px-4 py-3 space-y-2">
-												<div className="flex items-center gap-3 text-sm">
-													<Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+											<div className="border-t px-4 py-2">
+												<div className="flex items-center text-sm mb-1">
+													<Mail className="h-4 w-4 mr-2 text-gray-500" />
 													<span className="truncate">
 														{employee.email || "No email"}
 													</span>
 												</div>
-												<div className="flex items-center gap-3 text-sm">
-													<Phone className="h-4 w-4 text-muted-foreground shrink-0" />
+												<div className="flex items-center text-sm mb-1">
+													<Phone className="h-4 w-4 mr-2 text-gray-500" />
 													<span>{employee.phone || "No phone"}</span>
 												</div>
 												{employee.hourlyRate !== undefined && (
-													<div className="flex items-center gap-3 text-sm">
-														<DollarSign className="h-4 w-4 text-muted-foreground shrink-0" />
+													<div className="flex items-center text-sm">
+														<DollarSign className="h-4 w-4 mr-2 text-gray-500" />
 														<span>${employee.hourlyRate.toFixed(2)}/hr</span>
 													</div>
 												)}
@@ -498,6 +471,6 @@ export default function EmployeesPage() {
 					)}
 				</div>
 			</div>
-		</ContentContainer>
+		</>
 	);
 }

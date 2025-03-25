@@ -158,18 +158,7 @@ export function NewConversationModal({
 		<Dialog
 			open={dialogOpen}
 			onOpenChange={setDialogOpen}>
-			{trigger ? (
-				<DialogTrigger asChild>{trigger}</DialogTrigger>
-			) : (
-				<DialogTrigger asChild>
-					<Button
-						variant="outline"
-						className="w-full">
-						<Plus className="h-4 w-4 mr-2" />
-						New Conversation
-					</Button>
-				</DialogTrigger>
-			)}
+			{trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
 			<DialogContent className="sm:max-w-[425px]">
 				<DialogHeader>
 					<DialogTitle>Start New Conversation</DialogTitle>

@@ -131,40 +131,8 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 		},
 	];
 
-	const settingsNavItems: NavItem[] = [
-		{
-			icon: <CreditCard className="h-5 w-5" />,
-			label: "Billing",
-			href: "/billing",
-			isActive: location.pathname === "/billing",
-			adminOnly: true,
-		},
-		{
-			icon: <Settings className="h-5 w-5" />,
-			label: "Settings",
-			href: "/profile",
-			isActive:
-				location.pathname === "/profile" ||
-				location.pathname === "/business-profile",
-		},
-	];
-
 	// New user profile items
-	const userProfileItems: NavItem[] = [
-		{
-			icon: <User className="h-5 w-5" />,
-			label: "Profile",
-			href: "/profile",
-			isActive: location.pathname === "/profile",
-		},
-		{
-			icon: <Building2 className="h-5 w-5" />,
-			label: "Business Profile",
-			href: "/business-profile",
-			isActive: location.pathname === "/business-profile",
-			adminOnly: true,
-		},
-	];
+	const userProfileItems: NavItem[] = [];
 
 	// Add the billing/upgrade option separately so we can highlight it when it's an upgrade
 	const billingItem: NavItem = {
@@ -228,15 +196,21 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 
 	return (
 		<Sidebar {...props}>
-			<SidebarHeader className="h-16">
-				<div className="flex items-center px-4 py-3">
-					<div className="flex items-center gap-2">
-						<h2 className="text-lg font-semibold text-primary">Scheduler</h2>
-					</div>
+			<SidebarHeader>
+				<div className="w-full">
+					{isAdmin ? (
+						<Link
+							to="/business-profile"
+							className="flex items-center gap-3 px-4 py-2 rounded-md text-lg font-bold text-primary hover:bg-muted/50 transition-colors ">
+							Scheduler
+						</Link>
+					) : (
+						<h2>Scheduler</h2>
+					)}
 				</div>
 			</SidebarHeader>
 
-			<SidebarContent className="pb-0">
+			<SidebarContent>
 				<SidebarGroup>
 					<SidebarGroupLabel>Main</SidebarGroupLabel>
 					<SidebarMenu>{renderMenuItems(mainNavItems)}</SidebarMenu>
@@ -251,20 +225,15 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 
 				<SidebarSeparator />
 
-				<SidebarGroup>
-					<SidebarGroupLabel>Settings</SidebarGroupLabel>
-					<SidebarMenu>{renderMenuItems(settingsNavItems)}</SidebarMenu>
-				</SidebarGroup>
-
 				{/* Spacer to push content to bottom */}
 				<div className="flex-grow" />
 
 				{/* Upgrade Banner */}
 				{!isPaidUser && (
-					<div className="px-4 py-3 mt-auto">
+					<div className="px-2 mt-auto">
 						<div className="rounded-lg border bg-card text-card-foreground shadow">
 							<div className="p-4">
-								<div className="flex items-center gap-2 mb-2">
+								<div className="flex items-center gap-2 mb-3">
 									<Sparkles className="h-5 w-5 text-primary" />
 									<h4 className="font-medium">Upgrade to Pro</h4>
 								</div>
@@ -282,57 +251,32 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 				)}
 			</SidebarContent>
 
-			{/* Border that stretches to the edges */}
-			<div className="h-px w-full bg-border"></div>
-
-			<SidebarFooter className="pt-0 bg-muted">
-				<div>
-					{/* User profile section */}
-					<div>
-						<div className="py-3">
-							<div className="flex items-center gap-3 px-4 mb-3">
-								<div className="relative">
-									<Avatar className="h-10 w-10 rounded-lg border border-border">
-										<AvatarImage
-											src={userDisplay.avatar}
-											alt={userDisplay.name}
-										/>
-										<AvatarFallback className="rounded-lg">
-											{userDisplay.name.charAt(0)}
-										</AvatarFallback>
-									</Avatar>
-									{/* Online status indicator */}
-									<span
-										className={`absolute top-0 right-0 translate-x-1 -translate-y-1 block h-3 w-3 rounded-full border-2 border-background ${
-											isOnline ? "bg-green-500" : "bg-gray-400"
-										}`}></span>
-								</div>
-								<div className="grid flex-1 text-left text-sm leading-tight">
-									<span className="truncate font-semibold">
-										{userDisplay.name}
-									</span>
-									<span className="truncate text-xs">{userDisplay.email}</span>
-								</div>
-							</div>
-
-							{/* User profile menu items */}
-							<SidebarMenu className="px-0">
-								{renderMenuItems(userProfileItems, true)}
-								{isPaidUser && renderMenuItems([billingItem], true)}
-								<SidebarMenuItem className="px-0">
-									<SidebarMenuButton
-										onClick={handleSignOut}
-										className="w-full rounded-none px-4 hover:bg-muted/80">
-										<div className="flex items-center gap-3">
-											<LogOut className="h-5 w-5" />
-											<span>Log out</span>
-										</div>
-									</SidebarMenuButton>
-								</SidebarMenuItem>
-							</SidebarMenu>
-						</div>
+			<SidebarFooter>
+				{/* User profile section - now clickable with border */}
+				<Link
+					to="/profile"
+					className="flex items-center gap-3 px-4 mb-3 py-3 border border-border rounded-md hover:bg-muted/50 transition-colors">
+					<div className="relative">
+						<Avatar className="h-10 w-10 rounded-lg border border-border">
+							<AvatarImage
+								src={userDisplay.avatar}
+								alt={userDisplay.name}
+							/>
+							<AvatarFallback className="rounded-lg">
+								{userDisplay.name.charAt(0)}
+							</AvatarFallback>
+						</Avatar>
+						{/* Online status indicator */}
+						<span
+							className={`absolute top-0 right-0 translate-x-1 -translate-y-1 block h-3 w-3 rounded-full border-2 border-background ${
+								isOnline ? "bg-green-500" : "bg-gray-400"
+							}`}></span>
 					</div>
-				</div>
+					<div className="grid flex-1 text-left text-sm leading-tight">
+						<span className="truncate font-semibold">{userDisplay.name}</span>
+						<span className="truncate text-xs">{userDisplay.email}</span>
+					</div>
+				</Link>
 			</SidebarFooter>
 		</Sidebar>
 	);

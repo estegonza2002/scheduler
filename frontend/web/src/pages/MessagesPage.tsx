@@ -35,6 +35,14 @@ export default function MessagesPage() {
 		} else {
 			setSelectedConversation(null);
 		}
+
+		// Add style to prevent body scrolling
+		document.body.style.overflow = "hidden";
+
+		return () => {
+			// Reset body overflow when component unmounts
+			document.body.style.overflow = "";
+		};
 	}, [useSampleData]);
 
 	// Store the selected conversation and tab whenever they change
@@ -44,6 +52,25 @@ export default function MessagesPage() {
 		}
 		localStorage.setItem("lastActiveMessageTab", activeTab);
 	}, [selectedConversation, activeTab]);
+
+	// Listen for the custom event from the header button
+	useEffect(() => {
+		const handleNewConversationClick = () => {
+			setIsNewConversationModalOpen(true);
+		};
+
+		window.addEventListener(
+			"new-conversation-click",
+			handleNewConversationClick
+		);
+
+		return () => {
+			window.removeEventListener(
+				"new-conversation-click",
+				handleNewConversationClick
+			);
+		};
+	}, []);
 
 	const handleStartConversation = (
 		userId: string,
@@ -78,13 +105,15 @@ export default function MessagesPage() {
 	const emptyState = getEmptyStateMessage();
 
 	return (
-		<>
-			<ContentContainer className="h-[calc(100vh-160px)] p-0">
-				<div className="h-full flex flex-col">
-					<div className="flex flex-1 min-h-0">
-						{/* Left column - Conversation list */}
-						<div className="w-1/3 border-r min-h-0 flex flex-col">
-							<div className="p-4 border-b space-y-4">
+		<ContentContainer
+			className="h-[calc(100vh-4rem)] max-h-[calc(100vh-4rem)] overflow-hidden"
+			withPadding={false}>
+			<div className="h-full w-full flex flex-col overflow-hidden">
+				<div className="flex flex-1 w-full overflow-hidden">
+					{/* Left column - Conversation list */}
+					<div className="w-1/3 border-r flex flex-col overflow-hidden">
+						<div className="p-4 border-b space-y-4 flex-shrink-0">
+							<div className="flex justify-between items-center">
 								<Tabs
 									defaultValue={activeTab}
 									value={activeTab}
@@ -101,68 +130,66 @@ export default function MessagesPage() {
 									</TabsList>
 								</Tabs>
 							</div>
-
-							<div className="flex-1 min-h-0 overflow-hidden">
-								{activeTab === "chats" && (
-									<MessageList
-										type="chats"
-										onSelectConversation={setSelectedConversation}
-										selectedId={selectedConversation}
-										useSampleData={useSampleData}
-									/>
-								)}
-								{activeTab === "groups" && (
-									<MessageList
-										type="groups"
-										onSelectConversation={setSelectedConversation}
-										selectedId={selectedConversation}
-										useSampleData={useSampleData}
-									/>
-								)}
-								{activeTab === "active-shifts" && (
-									<MessageList
-										type="active-shifts"
-										onSelectConversation={setSelectedConversation}
-										selectedId={selectedConversation}
-										useSampleData={useSampleData}
-									/>
-								)}
-								{activeTab === "one-to-one" && (
-									<MessageList
-										type="one-to-one"
-										onSelectConversation={setSelectedConversation}
-										selectedId={selectedConversation}
-										useSampleData={useSampleData}
-									/>
-								)}
-							</div>
 						</div>
 
-						{/* Right column - Chat window */}
-						<div className="w-2/3 min-h-0">
-							{selectedConversation && useSampleData ? (
-								<ChatView
-									conversationId={selectedConversation}
-									conversationType={activeTab}
+						<div className="flex-1 overflow-y-auto overflow-x-hidden">
+							{activeTab === "chats" && (
+								<MessageList
+									type="chats"
+									onSelectConversation={setSelectedConversation}
+									selectedId={selectedConversation}
 									useSampleData={useSampleData}
 								/>
-							) : (
-								<div className="h-full flex flex-col items-center justify-center text-muted-foreground p-8">
-									<div className="bg-muted/30 p-4 rounded-full mb-4">
-										<MessageSquare className="h-10 w-10" />
-									</div>
-									<h3 className="text-lg font-medium mb-2">
-										{emptyState.title}
-									</h3>
-									<p className="text-sm text-center max-w-sm">
-										{emptyState.description}
-									</p>
-								</div>
+							)}
+							{activeTab === "groups" && (
+								<MessageList
+									type="groups"
+									onSelectConversation={setSelectedConversation}
+									selectedId={selectedConversation}
+									useSampleData={useSampleData}
+								/>
+							)}
+							{activeTab === "active-shifts" && (
+								<MessageList
+									type="active-shifts"
+									onSelectConversation={setSelectedConversation}
+									selectedId={selectedConversation}
+									useSampleData={useSampleData}
+								/>
+							)}
+							{activeTab === "one-to-one" && (
+								<MessageList
+									type="one-to-one"
+									onSelectConversation={setSelectedConversation}
+									selectedId={selectedConversation}
+									useSampleData={useSampleData}
+								/>
 							)}
 						</div>
 					</div>
+
+					{/* Right column - Chat window */}
+					<div className="w-2/3 flex flex-col border-l overflow-hidden">
+						{selectedConversation && useSampleData ? (
+							<ChatView
+								conversationId={selectedConversation}
+								conversationType={activeTab}
+								useSampleData={useSampleData}
+							/>
+						) : (
+							<div className="h-full flex flex-col items-center justify-center text-muted-foreground p-8 overflow-hidden">
+								<div className="bg-muted/30 p-4 rounded-full mb-4">
+									<MessageSquare className="h-10 w-10" />
+								</div>
+								<h3 className="text-lg font-medium mb-2">{emptyState.title}</h3>
+								<p className="text-sm text-center max-w-sm">
+									{emptyState.description}
+								</p>
+							</div>
+						)}
+					</div>
 				</div>
-			</ContentContainer>
+			</div>
 
 			{useSampleData && (
 				<NewConversationModal
@@ -171,6 +198,6 @@ export default function MessagesPage() {
 					onClose={() => setIsNewConversationModalOpen(false)}
 				/>
 			)}
-		</>
+		</ContentContainer>
 	);
 }
