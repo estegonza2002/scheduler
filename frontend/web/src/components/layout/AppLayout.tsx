@@ -43,6 +43,7 @@ import {
 	ScheduleSidebar,
 	LocationsSidebar,
 	EmployeesSidebar,
+	SecondaryNavbar,
 } from "./SecondaryNavbar";
 import { useAuth } from "../../lib/auth";
 import {
@@ -85,6 +86,7 @@ export default function AppLayout() {
 	const isLocationsPage = location.pathname === "/locations";
 	const isAdminDashboardPage = location.pathname === "/admin-dashboard";
 	const isProfilePage = location.pathname === "/profile";
+	const isBillingPage = location.pathname === "/billing";
 
 	// Check if we need secondary navbar
 	const hasSecondaryNavbar =
@@ -252,12 +254,76 @@ export default function AppLayout() {
 			);
 		}
 
-		if (isLocationsPage) {
-			return null; // We'll render this directly from the LocationsPage component
+		if (isEmployeesPage) {
+			return (
+				<EmployeesSidebar
+					onSearch={(term) => {
+						const newParams = new URLSearchParams(searchParams);
+						if (term) {
+							newParams.set("search", term);
+						} else {
+							newParams.delete("search");
+						}
+						setSearchParams(newParams);
+					}}
+					positionFilter={searchParams.get("position")}
+					onPositionFilterChange={(position) => {
+						const newParams = new URLSearchParams(searchParams);
+						if (position) {
+							newParams.set("position", position);
+						} else {
+							newParams.delete("position");
+						}
+						setSearchParams(newParams);
+					}}
+					onClearFilters={() => {
+						const newParams = new URLSearchParams();
+						setSearchParams(newParams);
+					}}
+					positions={["Manager", "Cashier", "Barista", "Cook", "Server"]}
+				/>
+			);
 		}
 
-		if (isEmployeesPage) {
-			return null; // We'll render this directly from the EmployeesPage component
+		if (isLocationsPage) {
+			return (
+				<LocationsSidebar
+					onSearch={(term) => {
+						const newParams = new URLSearchParams(searchParams);
+						if (term) {
+							newParams.set("search", term);
+						} else {
+							newParams.delete("search");
+						}
+						setSearchParams(newParams);
+					}}
+					stateFilter={searchParams.get("state")}
+					onStateFilterChange={(state) => {
+						const newParams = new URLSearchParams(searchParams);
+						if (state) {
+							newParams.set("state", state);
+						} else {
+							newParams.delete("state");
+						}
+						setSearchParams(newParams);
+					}}
+					statusFilter={searchParams.get("status")}
+					onStatusFilterChange={(status) => {
+						const newParams = new URLSearchParams(searchParams);
+						if (status) {
+							newParams.set("status", status);
+						} else {
+							newParams.delete("status");
+						}
+						setSearchParams(newParams);
+					}}
+					onClearFilters={() => {
+						const newParams = new URLSearchParams();
+						setSearchParams(newParams);
+					}}
+					states={["CA", "NY", "TX", "FL", "IL"]}
+				/>
+			);
 		}
 
 		return null;

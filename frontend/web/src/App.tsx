@@ -19,6 +19,7 @@ import AdminDashboardPage from "./pages/AdminDashboardPage";
 import ProfilePage from "./pages/ProfilePage";
 import BusinessProfilePage from "./pages/BusinessProfilePage";
 import BillingPage from "./pages/BillingPage";
+import BrandingPage from "./pages/BrandingPage";
 import SchedulePage from "./pages/SchedulePage";
 import DailyShiftsPage from "./pages/DailyShiftsPage";
 import EmployeesPage from "./pages/EmployeesPage";
@@ -134,6 +135,10 @@ function App() {
 									<Route
 										path="/billing"
 										element={<BillingPage />}
+									/>
+									<Route
+										path="/branding"
+										element={<BrandingPage />}
 									/>
 									<Route
 										path="/employees"

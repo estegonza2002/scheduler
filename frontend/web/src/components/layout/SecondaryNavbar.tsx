@@ -4,6 +4,7 @@ import { MiniCalendar } from "../MiniCalendar";
 import { SidebarProvider, Sidebar, SidebarInset } from "../ui/sidebar";
 import { useLocation } from "react-router-dom";
 import { CalendarIcon, ListTodo, Calendar, CalendarDays } from "lucide-react";
+import { useAuth } from "../../lib/auth";
 import { format } from "date-fns";
 
 interface SecondaryNavbarProps {
@@ -338,6 +339,120 @@ export function EmployeesSidebar({
 						className="w-full border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-md px-3 py-2 text-sm">
 						Clear Filters
 					</button>
+				)}
+			</div>
+		</SecondaryNavbar>
+	);
+}
+
+export function ProfileSidebar({
+	activeTab,
+	onTabChange,
+}: {
+	activeTab: string;
+	onTabChange: (tab: string) => void;
+}) {
+	const { user } = useAuth();
+	const isAdmin = user?.user_metadata?.role === "admin";
+	const hasPaidSubscription = true; // For demo purposes, showing all options
+
+	return (
+		<SecondaryNavbar>
+			<div className="space-y-2">
+				<h3 className="text-sm font-medium text-muted-foreground mb-2">
+					Personal Settings
+				</h3>
+				<button
+					onClick={() => onTabChange("profile")}
+					className={`w-full text-left px-3 py-2 rounded-md ${
+						activeTab === "profile"
+							? "bg-primary/10 text-primary font-medium"
+							: "hover:bg-accent"
+					}`}>
+					Personal Information
+				</button>
+				<button
+					onClick={() => onTabChange("password")}
+					className={`w-full text-left px-3 py-2 rounded-md ${
+						activeTab === "password"
+							? "bg-primary/10 text-primary font-medium"
+							: "hover:bg-accent"
+					}`}>
+					Password
+				</button>
+				<button
+					onClick={() => onTabChange("notifications")}
+					className={`w-full text-left px-3 py-2 rounded-md ${
+						activeTab === "notifications"
+							? "bg-primary/10 text-primary font-medium"
+							: "hover:bg-accent"
+					}`}>
+					Notifications
+				</button>
+				{isAdmin && (
+					<>
+						<div className="my-6 border-t pt-4">
+							<h3 className="text-sm font-medium text-muted-foreground mb-2">
+								Business Settings
+							</h3>
+						</div>
+						<button
+							onClick={() => onTabChange("business-profile")}
+							className={`w-full text-left px-3 py-2 rounded-md ${
+								activeTab === "business-profile"
+									? "bg-primary/10 text-primary font-medium"
+									: "hover:bg-accent"
+							}`}>
+							Business Profile
+						</button>
+						<button
+							onClick={() => onTabChange("branding")}
+							className={`w-full text-left px-3 py-2 rounded-md ${
+								activeTab === "branding"
+									? "bg-primary/10 text-primary font-medium"
+									: "hover:bg-accent"
+							}`}>
+							Branding
+						</button>
+
+						{/* Billing options directly in the sidebar */}
+						<div className="my-4">
+							<h3 className="text-sm font-medium text-muted-foreground mb-2 pl-3">
+								Billing
+							</h3>
+						</div>
+						<button
+							onClick={() => onTabChange("subscription")}
+							className={`w-full text-left px-3 py-2 rounded-md ${
+								activeTab === "subscription"
+									? "bg-primary/10 text-primary font-medium"
+									: "hover:bg-accent"
+							}`}>
+							Subscription
+						</button>
+						{hasPaidSubscription && (
+							<>
+								<button
+									onClick={() => onTabChange("payment-methods")}
+									className={`w-full text-left px-3 py-2 rounded-md ${
+										activeTab === "payment-methods"
+											? "bg-primary/10 text-primary font-medium"
+											: "hover:bg-accent"
+									}`}>
+									Payment Methods
+								</button>
+								<button
+									onClick={() => onTabChange("billing-history")}
+									className={`w-full text-left px-3 py-2 rounded-md ${
+										activeTab === "billing-history"
+											? "bg-primary/10 text-primary font-medium"
+											: "hover:bg-accent"
+									}`}>
+									Billing History
+								</button>
+							</>
+						)}
+					</>
 				)}
 			</div>
 		</SecondaryNavbar>
