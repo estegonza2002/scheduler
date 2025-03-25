@@ -261,16 +261,12 @@ export function NotificationSheet() {
 			onOpenChange={setOpen}>
 			<SheetTrigger asChild>
 				<Button
-					variant="outline"
+					variant="ghost"
 					size="icon"
 					className="relative rounded-full">
 					<Bell className="h-5 w-5" />
 					{displayUnreadCount > 0 && (
-						<Badge
-							variant="destructive"
-							className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 rounded-full">
-							{displayUnreadCount > 9 ? "9+" : displayUnreadCount}
-						</Badge>
+						<div className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 bg-destructive rounded-full" />
 					)}
 				</Button>
 			</SheetTrigger>

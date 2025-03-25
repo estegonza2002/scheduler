@@ -35,12 +35,15 @@ import { AddLocationDialog } from "../AddLocationDialog";
 import { OrganizationsAPI, Organization } from "../../api";
 import { NotificationSheet } from "../NotificationSheet";
 import { useNotifications } from "../../lib/notification-context";
+import { useLayout } from "../../lib/layout-context";
 import { Switch } from "../ui/switch";
+import { cn } from "../../lib/utils";
 
 export default function AppLayout() {
 	const location = useLocation();
 	const navigate = useNavigate();
 	const [searchParams, setSearchParams] = useSearchParams();
+	const { pageHeader } = useLayout();
 	const [currentDate, setCurrentDate] = useState<Date>(() => {
 		const dateParam = searchParams.get("date");
 		return dateParam ? new Date(dateParam) : new Date();
@@ -89,77 +92,70 @@ export default function AppLayout() {
 		});
 	};
 
-	// Function to determine the current page title based on route
-	const getPageTitle = () => {
-		const path = location.pathname;
-		if (path === "/dashboard" || path === "/admin-dashboard")
-			return "Dashboard";
-		if (path === "/schedule") return "Schedule";
-		if (path.startsWith("/daily-shifts")) return "Daily Shifts";
-		if (path === "/employees") return "Employees";
-		if (path === "/locations") return "Locations";
-		if (path === "/business-profile") return "Business Profile";
-		if (path === "/profile") return "Profile";
-		if (path === "/notifications") return "Notifications";
-		if (path === "/messages") return "Messages";
-		return "Scheduler";
-	};
-
 	// Check if we're on specific pages
 	const isDailyShiftsPage = location.pathname.startsWith("/daily-shifts");
 	const isEmployeesPage = location.pathname === "/employees";
 	const isLocationsPage = location.pathname === "/locations";
+	const isAdminDashboardPage = location.pathname === "/admin-dashboard";
 
 	const renderActionButton = () => {
-		if (isDailyShiftsPage) {
-			return (
-				<ShiftCreationSheet
-					scheduleId="sch-4"
-					organizationId={organizationId}
-					initialDate={currentDate}
-					onShiftCreated={() => {}}
-					trigger={
-						<Button
-							variant="default"
-							className="bg-black hover:bg-black/90 text-white">
-							<Plus className="h-4 w-4 mr-2" />
-							New Shift
-						</Button>
-					}
-				/>
-			);
-		} else if (isEmployeesPage && organization) {
-			return (
-				<AddEmployeeDialog
-					organizationId={organization.id}
-					onEmployeesAdded={() => {}}
-					trigger={
-						<Button
-							variant="default"
-							className="bg-black hover:bg-black/90 text-white">
-							<Plus className="h-4 w-4 mr-2" />
-							New Employee
-						</Button>
-					}
-				/>
-			);
-		} else if (isLocationsPage && organization) {
-			return (
-				<AddLocationDialog
-					organizationId={organization.id}
-					onLocationsAdded={() => {}}
-					trigger={
-						<Button
-							variant="default"
-							className="bg-black hover:bg-black/90 text-white">
-							<Plus className="h-4 w-4 mr-2" />
-							New Location
-						</Button>
-					}
-				/>
-			);
+		// If we have actions from the page header, use those first
+		if (pageHeader.actions) {
+			return pageHeader.actions;
 		}
+
+		// Otherwise, fall back to the default actions based on route
+		// We've removed the specific buttons as they're now in the content area
 		return null;
+	};
+
+	// Combine all actions for the app header
+	const renderHeaderActions = () => {
+		// Avoid creating new React elements for actions on every render
+		// Instead, check if we already have actions from the page header
+		const actionButton = renderActionButton();
+
+		return (
+			<div className="flex items-center gap-2">
+				{actionButton}
+				{shouldShowSampleData && (
+					<div className="flex items-center gap-3 bg-muted/50 p-1.5 pl-3 rounded-full">
+						<span className="text-sm font-medium">Sample Data</span>
+						<Switch
+							checked={useSampleData}
+							onCheckedChange={toggleSampleData}
+						/>
+					</div>
+				)}
+				{!isNotificationsPage && !isMessagesPage && <NotificationSheet />}
+			</div>
+		);
+	};
+
+	// Get the header title, first from context, then fall back to route-based
+	const getHeaderTitle = () => {
+		if (pageHeader.title) {
+			return pageHeader.title;
+		}
+
+		const path = location.pathname;
+		if (path === "/dashboard" || path === "/admin-dashboard")
+			return "Dashboard";
+		if (
+			path === "/schedule" ||
+			path.startsWith("/daily-shifts") ||
+			path === "/schedule/monthly"
+		)
+			return "Schedule";
+		if (path === "/employees" || path.startsWith("/employee-detail"))
+			return "Employees";
+		if (path === "/locations" || path.startsWith("/location-detail"))
+			return "Locations";
+		if (path === "/messages") return "Messages";
+		if (path === "/notifications") return "Notifications";
+		if (path === "/billing") return "Billing";
+		if (path === "/profile" || path === "/business-profile") return "Settings";
+		return "Scheduler";
 	};
 
 	return (
@@ -168,31 +164,25 @@ export default function AppLayout() {
 				<AppSidebar />
 			</Sidebar>
 			<SidebarInset>
-				<header className="sticky top-0 flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4">
-					<SidebarTrigger className="-ml-1" />
-					<Separator
-						orientation="vertical"
-						className="mr-2 h-4"
-					/>
-					<div className="flex-1 flex items-center gap-3">
-						<div className="text-lg font-semibold">{getPageTitle()}</div>
+				<header className="sticky top-0 flex h-14 shrink-0 items-center border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 z-40">
+					<div className="flex flex-1 items-center">
+						<div className="flex items-center gap-2">
+							<SidebarTrigger className="-ml-1" />
+						</div>
+						<div className="mx-4">
+							<h1 className="text-lg font-semibold">{getHeaderTitle()}</h1>
+							{pageHeader.description && (
+								<p className="text-sm text-muted-foreground">
+									{pageHeader.description}
+								</p>
+							)}
+						</div>
 					</div>
-
-					<div className="flex items-center gap-2">
-						{shouldShowSampleData && (
-							<div className="flex items-center gap-3 bg-muted/50 p-1.5 pl-3 rounded-full">
-								<span className="text-sm font-medium">Sample Data</span>
-								<Switch
-									checked={useSampleData}
-									onCheckedChange={toggleSampleData}
-								/>
-							</div>
-						)}
-						{renderActionButton()}
-						{!isNotificationsPage && !isMessagesPage && <NotificationSheet />}
+					<div className="flex items-center justify-end">
+						{renderHeaderActions()}
 					</div>
 				</header>
-				<main className="flex-1 overflow-auto mx-auto w-full">
+				<main className="flex-1 overflow-auto w-full">
 					<Outlet />
 				</main>
 			</SidebarInset>

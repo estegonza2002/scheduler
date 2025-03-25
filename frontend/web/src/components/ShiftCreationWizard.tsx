@@ -16,19 +16,51 @@ import {
 	WizardProgressBar,
 	WizardStep,
 } from "./shift-wizard";
+import { Loader2 } from "lucide-react";
+import { Alert, AlertDescription } from "./ui/alert";
+import { ScrollArea } from "./ui/scroll-area";
+import { cn } from "../lib/utils";
 
+/**
+ * Props for the ShiftCreationWizard component
+ */
 interface ShiftCreationWizardProps {
+	/**
+	 * ID of the schedule to create shifts for
+	 */
 	scheduleId: string;
+	/**
+	 * ID of the organization
+	 */
 	organizationId: string;
+	/**
+	 * Optional initial date for the shift
+	 */
 	initialDate?: Date;
+	/**
+	 * Optional callback fired when wizard completes successfully
+	 */
 	onComplete?: () => void;
+	/**
+	 * Optional callback fired when wizard is cancelled
+	 */
 	onCancel?: () => void;
+	/**
+	 * Optional additional CSS class for the component
+	 */
+	className?: string;
 }
 
+/**
+ * Data structure for the location selection step
+ */
 type LocationData = {
 	locationId: string;
 };
 
+/**
+ * Data structure for the shift details step
+ */
 type ShiftData = {
 	date: string;
 	startTime: string;
@@ -36,23 +68,32 @@ type ShiftData = {
 	notes?: string;
 };
 
+/**
+ * Data structure for the employee assignment step
+ */
 type EmployeeData = {
 	employeeId: string;
 };
 
-// New type to handle multiple employee selection
+/**
+ * Data structure for a selected employee
+ */
 type SelectedEmployee = {
 	id: string;
 	name: string;
 	role?: string;
 };
 
+/**
+ * A multi-step wizard component for creating shifts
+ */
 export function ShiftCreationWizard({
 	scheduleId,
 	organizationId,
 	initialDate,
 	onComplete,
 	onCancel,
+	className,
 }: ShiftCreationWizardProps) {
 	// Current step in the wizard
 	const [step, setStep] = useState<WizardStep>("select-location");
@@ -77,6 +118,9 @@ export function ShiftCreationWizard({
 	const [selectedDate, setSelectedDate] = useState<Date | undefined>(
 		initialDate || new Date()
 	);
+
+	// Error state
+	const [error, setError] = useState<string | null>(null);
 
 	// Search functionality
 	const [searchTerm, setSearchTerm] = useState("");
@@ -119,11 +163,13 @@ export function ShiftCreationWizard({
 		async function fetchLocations() {
 			try {
 				setLoadingLocations(true);
+				setError(null);
 				const locationList = await LocationsAPI.getAll(organizationId);
 				setLocations(locationList);
 				setFilteredLocations(locationList);
 			} catch (error) {
 				console.error("Error fetching locations:", error);
+				setError("Failed to load locations. Please try again.");
 				toast.error("Failed to load locations");
 			} finally {
 				setLoadingLocations(false);
@@ -178,11 +224,13 @@ export function ShiftCreationWizard({
 		async function fetchEmployees() {
 			try {
 				setLoadingEmployees(true);
+				setError(null);
 				const employeeList = await EmployeesAPI.getAll(organizationId);
 				setEmployees(employeeList);
 				setFilteredEmployees(employeeList);
 			} catch (error) {
 				console.error("Error fetching employees:", error);
+				setError("Failed to load employees. Please try again.");
 				toast.error("Failed to load employees");
 			} finally {
 				setLoadingEmployees(false);
@@ -269,6 +317,7 @@ export function ShiftCreationWizard({
 
 		try {
 			setLoading(true);
+			setError(null);
 
 			// Combine date and time into ISO strings
 			const startDateTime = `${shiftData.date}T${shiftData.startTime}:00`;
@@ -313,6 +362,7 @@ export function ShiftCreationWizard({
 			}
 		} catch (error) {
 			console.error("Error creating shift:", error);
+			setError("Failed to create shift. Please try again.");
 			toast.error("Failed to create shift");
 		} finally {
 			setLoading(false);
@@ -367,7 +417,7 @@ export function ShiftCreationWizard({
 	};
 
 	return (
-		<div className="h-full flex flex-col">
+		<div className={cn("h-full flex flex-col", className)}>
 			{/* Progress bar at the top of the wizard */}
 			<WizardProgressBar
 				currentStep={step}
@@ -376,59 +426,69 @@ export function ShiftCreationWizard({
 				onStepClick={handleStepClick}
 			/>
 
-			<div className="flex-1 flex flex-col">
-				{/* Step 1: Select Location */}
-				{step === "select-location" && (
-					<LocationSelectionStep
-						locationForm={locationForm}
-						locations={locations}
-						filteredLocations={filteredLocations}
-						locationSearchTerm={locationSearchTerm}
-						loadingLocations={loadingLocations}
-						setLocationSearchTerm={setLocationSearchTerm}
-						handleLocationSelect={handleLocationSelect}
-						handleLocationChange={handleLocationChange}
-						clearLocationSearch={clearLocationSearch}
-						onCancel={onCancel}
-					/>
-				)}
+			{error && (
+				<Alert
+					variant="destructive"
+					className="mx-6 mb-4">
+					<AlertDescription>{error}</AlertDescription>
+				</Alert>
+			)}
 
-				{/* Step 2: Shift Details */}
-				{step === "shift-details" && locationData && (
-					<ShiftDetailsStep
-						shiftForm={shiftForm}
-						locationData={locationData}
-						getLocationById={getLocationById}
-						handleShiftDetailsSubmit={handleShiftDetailsSubmit}
-						onBack={resetLocation}
-					/>
-				)}
+			<ScrollArea className="flex-1">
+				<div className="flex-1 flex flex-col">
+					{/* Step 1: Select Location */}
+					{step === "select-location" && (
+						<LocationSelectionStep
+							locationForm={locationForm}
+							locations={locations}
+							filteredLocations={filteredLocations}
+							locationSearchTerm={locationSearchTerm}
+							loadingLocations={loadingLocations}
+							setLocationSearchTerm={setLocationSearchTerm}
+							handleLocationSelect={handleLocationSelect}
+							handleLocationChange={handleLocationChange}
+							clearLocationSearch={clearLocationSearch}
+							onCancel={onCancel}
+						/>
+					)}
 
-				{/* Step 3: Assign Employee */}
-				{step === "assign-employee" && locationData && shiftData && (
-					<EmployeeAssignmentStep
-						employeeForm={employeeForm}
-						locationData={locationData}
-						shiftData={shiftData}
-						searchTerm={searchTerm}
-						setSearchTerm={setSearchTerm}
-						searchFilter={searchFilter}
-						setSearchFilter={setSearchFilter}
-						filteredEmployees={filteredEmployees}
-						loadingEmployees={loadingEmployees}
-						getLocationName={getLocationName}
-						handleEmployeeAssignSubmit={(data) =>
-							handleEmployeeAssignSubmit(data, selectedEmployees)
-						}
-						onBack={() => setStep("shift-details")}
-						onResetLocation={resetLocation}
-						loading={loading}
-						selectedEmployees={selectedEmployees}
-						onSelectedEmployeesChange={handleSelectedEmployeesChange}
-						allEmployees={employees}
-					/>
-				)}
-			</div>
+					{/* Step 2: Shift Details */}
+					{step === "shift-details" && locationData && (
+						<ShiftDetailsStep
+							shiftForm={shiftForm}
+							locationData={locationData}
+							getLocationById={getLocationById}
+							handleShiftDetailsSubmit={handleShiftDetailsSubmit}
+							onBack={resetLocation}
+						/>
+					)}
+
+					{/* Step 3: Assign Employee */}
+					{step === "assign-employee" && locationData && shiftData && (
+						<EmployeeAssignmentStep
+							employeeForm={employeeForm}
+							locationData={locationData}
+							shiftData={shiftData}
+							searchTerm={searchTerm}
+							setSearchTerm={setSearchTerm}
+							searchFilter={searchFilter}
+							setSearchFilter={setSearchFilter}
+							filteredEmployees={filteredEmployees}
+							loadingEmployees={loadingEmployees}
+							getLocationName={getLocationName}
+							handleEmployeeAssignSubmit={(data) =>
+								handleEmployeeAssignSubmit(data, selectedEmployees)
+							}
+							onBack={() => setStep("shift-details")}
+							onResetLocation={resetLocation}
+							loading={loading}
+							selectedEmployees={selectedEmployees}
+							onSelectedEmployeesChange={handleSelectedEmployeesChange}
+							allEmployees={employees}
+						/>
+					)}
+				</div>
+			</ScrollArea>
 		</div>
 	);
 }

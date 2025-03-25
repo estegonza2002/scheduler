@@ -1,15 +1,14 @@
 import { useState, useEffect } from "react";
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import {
+	Link,
+	useParams,
+	useSearchParams,
+	useNavigate,
+} from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Textarea } from "../components/ui/textarea";
-import {
-	Card,
-	CardContent,
-	CardHeader,
-	CardTitle,
-} from "../components/ui/card";
 import {
 	Select,
 	SelectContent,
@@ -19,23 +18,27 @@ import {
 } from "../components/ui/select";
 import { Shift, ShiftsAPI, LocationsAPI, Location } from "../api";
 import { format, parseISO } from "date-fns";
-import { ArrowLeft, Save } from "lucide-react";
+import { ChevronLeft, Save } from "lucide-react";
 import { toast } from "sonner";
+
+import { ContentContainer } from "../components/ui/content-container";
+import { FormSection } from "../components/ui/form-section";
+import { LoadingState } from "../components/ui/loading-state";
 
 export default function EditShiftPage() {
 	const { shiftId } = useParams<{ shiftId: string }>();
 	const [searchParams] = useSearchParams();
+	const navigate = useNavigate();
 	const [shift, setShift] = useState<Shift | null>(null);
 	const [locations, setLocations] = useState<Location[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [saving, setSaving] = useState(false);
-	const [redirectPath, setRedirectPath] = useState<string | null>(null);
 
 	// Form fields
 	const [date, setDate] = useState("");
 	const [startTime, setStartTime] = useState("");
 	const [endTime, setEndTime] = useState("");
-	const [locationId, setLocationId] = useState("");
+	const [locationId, setLocationId] = useState("none");
 	const [notes, setNotes] = useState("");
 
 	// Load shift data
@@ -50,7 +53,7 @@ export default function EditShiftPage() {
 				const shiftData = await ShiftsAPI.getById(shiftId);
 				if (!shiftData) {
 					toast.error("Shift not found");
-					setRedirectPath("/schedule");
+					navigate("/schedule");
 					return;
 				}
 
@@ -61,7 +64,7 @@ export default function EditShiftPage() {
 				setDate(format(shiftDate, "yyyy-MM-dd"));
 				setStartTime(format(parseISO(shiftData.startTime), "HH:mm"));
 				setEndTime(format(parseISO(shiftData.endTime), "HH:mm"));
-				setLocationId(shiftData.locationId || "");
+				setLocationId(shiftData.locationId || "none");
 				setNotes(shiftData.notes || "");
 
 				// Load locations
@@ -77,7 +80,7 @@ export default function EditShiftPage() {
 		}
 
 		loadShiftData();
-	}, [shiftId, searchParams]);
+	}, [shiftId, searchParams, navigate]);
 
 	// Handle form submission
 	const handleSubmit = async (e: React.FormEvent) => {
@@ -100,12 +103,12 @@ export default function EditShiftPage() {
 				...shift,
 				startTime: startDateTime,
 				endTime: endDateTime,
-				locationId: locationId || undefined,
+				locationId: locationId === "none" ? undefined : locationId || undefined,
 				notes: notes,
 			});
 
 			toast.success("Shift updated successfully");
-			setRedirectPath(`/shifts/${shiftId}`);
+			navigate(`/shifts/${shiftId}`);
 		} catch (error) {
 			console.error("Error saving shift:", error);
 			toast.error("Failed to update shift");
@@ -114,41 +117,58 @@ export default function EditShiftPage() {
 		}
 	};
 
-	// Handle redirect after successful update
-	useEffect(() => {
-		if (redirectPath) {
-			window.location.href = redirectPath;
-		}
-	}, [redirectPath]);
+	// Back button
+	const BackButton = (
+		<Button
+			variant="ghost"
+			size="sm"
+			onClick={() => navigate(`/shifts/${shiftId}`)}
+			className="mb-2">
+			<ChevronLeft className="h-4 w-4 mr-1" /> Back to Details
+		</Button>
+	);
+
+	// Actions for the header
+	const ActionButtons = (
+		<Button
+			type="submit"
+			form="edit-shift-form"
+			disabled={saving}
+			className="gap-2">
+			{saving && (
+				<div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
+			)}
+			<Save className="h-4 w-4 mr-1" /> Save Changes
+		</Button>
+	);
 
 	if (loading) {
 		return (
-			<div className="flex items-center justify-center min-h-screen">
-				<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-			</div>
+			<ContentContainer>
+				{BackButton}
+				<LoadingState
+					type="skeleton"
+					skeletonCount={4}
+					skeletonHeight={60}
+					message="Loading shift information..."
+				/>
+			</ContentContainer>
 		);
 	}
 
 	return (
-		<div className="px-4 sm:px-6 py-6">
-			{/* Header */}
-			<div className="flex items-center justify-between mb-6">
-				<h1 className="text-2xl font-bold">Edit Shift</h1>
-				<Link
-					to={`/shifts/${shiftId}`}
-					className="inline-flex items-center gap-2 h-9 px-4 py-2 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground">
-					<ArrowLeft className="h-4 w-4" /> Back to Details
-				</Link>
-			</div>
+		<ContentContainer>
+			{BackButton}
 
-			<Card>
-				<CardHeader>
-					<CardTitle>Shift Information</CardTitle>
-				</CardHeader>
-				<CardContent>
-					<form
-						onSubmit={handleSubmit}
-						className="space-y-6">
+
+			<div className="mt-6 max-w-3xl mx-auto">
+				<form
+					id="edit-shift-form"
+					onSubmit={handleSubmit}
+					className="space-y-8">
+					<FormSection
+						title="Date and Time"
+						description="Set when this shift will start and end">
 						{/* Date */}
 						<div className="space-y-2">
 							<Label htmlFor="date">Date</Label>
@@ -162,7 +182,7 @@ export default function EditShiftPage() {
 						</div>
 
 						{/* Time Range */}
-						<div className="grid grid-cols-2 gap-4">
+						<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 							<div className="space-y-2">
 								<Label htmlFor="startTime">Start Time</Label>
 								<Input
@@ -184,8 +204,11 @@ export default function EditShiftPage() {
 								/>
 							</div>
 						</div>
+					</FormSection>
 
-						{/* Location */}
+					<FormSection
+						title="Location"
+						description="Assign a location for this shift">
 						<div className="space-y-2">
 							<Label htmlFor="location">Location</Label>
 							<Select
@@ -195,7 +218,7 @@ export default function EditShiftPage() {
 									<SelectValue placeholder="Select a location" />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value="">No location</SelectItem>
+									<SelectItem value="none">No location</SelectItem>
 									{locations.map((loc) => (
 										<SelectItem
 											key={loc.id}
@@ -206,8 +229,11 @@ export default function EditShiftPage() {
 								</SelectContent>
 							</Select>
 						</div>
+					</FormSection>
 
-						{/* Notes */}
+					<FormSection
+						title="Notes"
+						description="Add any additional information or instructions">
 						<div className="space-y-2">
 							<Label htmlFor="notes">Notes (Optional)</Label>
 							<Textarea
@@ -218,27 +244,28 @@ export default function EditShiftPage() {
 								rows={4}
 							/>
 						</div>
+					</FormSection>
 
-						{/* Actions */}
-						<div className="flex justify-end gap-2 pt-4">
-							<Link
-								to={`/shifts/${shiftId}`}
-								className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
-								Cancel
-							</Link>
-							<Button
-								type="submit"
-								disabled={saving}
-								className="gap-2">
-								{saving && (
-									<div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
-								)}
-								<Save className="h-4 w-4 mr-1" /> Save Changes
-							</Button>
-						</div>
-					</form>
-				</CardContent>
-			</Card>
-		</div>
+					{/* Form actions at the bottom */}
+					<div className="flex justify-end gap-2 pt-4 border-t">
+						<Button
+							type="button"
+							variant="outline"
+							onClick={() => navigate(`/shifts/${shiftId}`)}>
+							Cancel
+						</Button>
+						<Button
+							type="submit"
+							disabled={saving}
+							className="gap-2">
+							{saving && (
+								<div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
+							)}
+							<Save className="h-4 w-4 mr-1" /> Save Changes
+						</Button>
+					</div>
+				</form>
+			</div>
+		</ContentContainer>
 	);
 }

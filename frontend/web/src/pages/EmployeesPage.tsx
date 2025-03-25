@@ -54,6 +54,11 @@ import {
 	CardContent,
 	CardFooter,
 } from "../components/ui/card";
+import { ContentContainer } from "../components/ui/content-container";
+import { SearchInput } from "../components/ui/search-input";
+import { FilterGroup } from "../components/ui/filter-group";
+import { EmptyState } from "../components/ui/empty-state";
+import { LoadingState } from "../components/ui/loading-state";
 
 export default function EmployeesPage() {
 	const [employees, setEmployees] = useState<Employee[]>([]);
@@ -72,7 +77,7 @@ export default function EmployeesPage() {
 			...new Set(
 				employees
 					.map((employee) => employee.position || employee.role)
-					.filter(Boolean)
+					.filter((pos) => pos && pos.trim() !== "")
 			),
 		].filter(
 			(position) => position !== null && position !== undefined
@@ -287,6 +292,11 @@ export default function EmployeesPage() {
 
 	const handleEmployeesAdded = (newEmployees: Employee[]) => {
 		setEmployees((prev) => [...prev, ...newEmployees]);
+		toast.success(
+			`${newEmployees.length} employee${
+				newEmployees.length !== 1 ? "s" : ""
+			} added`
+		);
 	};
 
 	const handleEmployeeUpdated = (updatedEmployee: Employee) => {
@@ -299,99 +309,123 @@ export default function EmployeesPage() {
 		setEmployees((prev) => prev.filter((emp) => emp.id !== employeeId));
 	};
 
-	// Render loading skeleton
-	const renderLoadingSkeleton = () => {
-		return (
-			<div className="space-y-6">
-				<div className="flex items-center space-x-4">
-					<Skeleton className="h-10 w-32" />
-					<Skeleton className="h-8 w-48" />
-				</div>
-
-				<div className="space-y-3">
-					<Skeleton className="h-10 w-full" />
-					<Skeleton className="h-16 w-full rounded-md" />
-					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-						{Array.from({ length: 6 }).map((_, i) => (
-							<Skeleton
-								key={i}
-								className="h-24 w-full rounded-md"
-							/>
-						))}
-					</div>
-				</div>
-			</div>
-		);
+	// Clear all filters
+	const clearFilters = () => {
+		setSearchTerm("");
+		setPositionFilter(null);
 	};
 
 	if (isLoading) {
-		return <div className="p-6">{renderLoadingSkeleton()}</div>;
+		return (
+			<ContentContainer>
+				<LoadingState
+					message={`Loading ${
+						loadingPhase === "organization" ? "organization" : "employees"
+					}...`}
+					type="skeleton"
+					skeletonCount={6}
+					skeletonHeight={80}
+				/>
+			</ContentContainer>
+		);
 	}
 
 	return (
-		<div className="p-4">
-			{employees.length === 0 ? (
-				<div className="text-center py-12 border-2 border-dashed rounded-lg">
-					<User className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-					<h3 className="text-lg font-medium mb-2">No employees found</h3>
-					<p className="text-sm text-muted-foreground mb-4">
-						Start by adding employees to your organization
-					</p>
-					{organization && (
-						<AddEmployeeDialog
-							organizationId={organization.id}
-							onEmployeesAdded={handleEmployeesAdded}
-							trigger={
-								<Button
-									variant="default"
-									className="bg-black hover:bg-black/90 text-white">
-									<Plus className="mr-2 h-4 w-4" />
-									Add First Employee
-								</Button>
-							}
-						/>
-					)}
-				</div>
-			) : (
-				<div className="space-y-4">
-					{/* Search and view mode controls */}
-					<div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-						<div className="relative flex-1 max-w-sm">
-							<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-							<Input
-								placeholder="Search employees..."
-								className="pl-10"
-								value={searchTerm}
-								onChange={(e) => setSearchTerm(e.target.value)}
-							/>
+		<ContentContainer className="flex gap-6">
+			<div className="w-72 flex-shrink-0">
+				<Card>
+					<CardHeader>
+						<CardTitle>Filters</CardTitle>
+						<CardDescription>
+							Filter employees by their attributes
+						</CardDescription>
+					</CardHeader>
+					<CardContent className="space-y-4">
+						<div className="space-y-2">
+							<label className="text-sm font-medium">Position</label>
+							<Select
+								value={positionFilter || "all_positions"}
+								onValueChange={(value: string) =>
+									setPositionFilter(value === "all_positions" ? null : value)
+								}>
+								<SelectTrigger>
+									<SelectValue placeholder="All positions" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="all_positions">All positions</SelectItem>
+									{uniquePositions.map((position) => (
+										<SelectItem
+											key={position}
+											value={position}>
+											{position}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
 						</div>
+					</CardContent>
+				</Card>
+			</div>
+			<div className="flex-1">
+				<div className="flex flex-col space-y-4">
+					<div className="flex items-center justify-between">
+						<SearchInput
+							placeholder="Search employees..."
+							value={searchTerm}
+							onChange={(value: string) => setSearchTerm(value)}
+							className="w-64"
+						/>
+
 						<div className="flex items-center gap-2">
-							<Button
-								variant={viewMode === "cards" ? "default" : "outline"}
-								size="icon"
-								onClick={() => setViewMode("cards")}>
-								<LayoutGrid className="h-4 w-4" />
-							</Button>
-							<Button
-								variant={viewMode === "table" ? "default" : "outline"}
-								size="icon"
-								onClick={() => setViewMode("table")}>
-								<List className="h-4 w-4" />
-							</Button>
+							<AddEmployeeDialog
+								organizationId={organization?.id || ""}
+								onEmployeesAdded={handleEmployeesAdded}
+								trigger={
+									<Button>
+										<Plus className="h-4 w-4 mr-2" />
+										New Employee
+									</Button>
+								}
+							/>
+							<div className="flex rounded-md overflow-hidden border">
+								<Button
+									variant={viewMode === "cards" ? "secondary" : "ghost"}
+									size="sm"
+									className="rounded-none px-3"
+									onClick={() => setViewMode("cards")}>
+									<LayoutGrid className="h-4 w-4" />
+								</Button>
+								<Button
+									variant={viewMode === "table" ? "secondary" : "ghost"}
+									size="sm"
+									className="rounded-none px-3"
+									onClick={() => setViewMode("table")}>
+									<List className="h-4 w-4" />
+								</Button>
+							</div>
 						</div>
 					</div>
 
-					{/* Content */}
-					{filteredEmployees.length === 0 ? (
-						<div className="bg-muted/30 rounded-lg p-6 text-center">
-							<AlertCircle className="h-5 w-5 mx-auto mb-2 text-muted-foreground" />
-							<h3 className="text-base font-medium mb-1">No employees found</h3>
-							<p className="text-sm text-muted-foreground">
-								{positionFilter || searchTerm
-									? "Try adjusting your filters or search term"
-									: "There are no employees in your organization"}
-							</p>
-						</div>
+					{employees.length === 0 ? (
+						<EmptyState
+							title="No employees found"
+							description="Start by adding employees to your organization"
+							icon={<User className="h-6 w-6" />}
+							action={
+								organization && (
+									<AddEmployeeDialog
+										organizationId={organization.id}
+										onEmployeesAdded={handleEmployeesAdded}
+										trigger={
+											<Button>
+												<Plus className="mr-2 h-4 w-4" />
+												Add First Employee
+											</Button>
+										}
+									/>
+								)
+							}
+						/>
 					) : (
 						<>
 							{/* Table View */}
@@ -463,7 +497,7 @@ export default function EmployeesPage() {
 						</>
 					)}
 				</div>
-			)}
-		</div>
+			</div>
+		</ContentContainer>
 	);
 }

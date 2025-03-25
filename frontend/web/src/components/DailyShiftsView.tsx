@@ -9,6 +9,8 @@ import {
 	LayoutGrid,
 	Table,
 	Clock,
+	Calendar,
+	UserSearch,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
@@ -22,9 +24,11 @@ import {
 } from "./ui/select";
 import { Card, CardContent } from "./ui/card";
 import { Input } from "./ui/input";
-import { Label } from "./ui/label";
 import { DataTable } from "./ui/data-table";
 import { ColumnDef } from "@tanstack/react-table";
+import { FilterGroup } from "./ui/filter-group";
+import { EmptyState } from "./ui/empty-state";
+import { SearchInput } from "./ui/search-input";
 
 // Helper functions
 const formatTime = (date: Date): string => {
@@ -172,7 +176,11 @@ export function DailyShiftsView({
 	// Get unique location IDs for the filter
 	const uniqueLocationIds = useMemo(() => {
 		return [
-			...new Set(shifts.map((shift) => shift.locationId).filter(Boolean)),
+			...new Set(
+				shifts
+					.map((shift) => shift.locationId)
+					.filter((id) => id && id.trim() !== "")
+			),
 		].filter((id) => id !== null && id !== undefined) as string[];
 	}, [shifts]);
 
@@ -239,6 +247,15 @@ export function DailyShiftsView({
 
 		return groupedData;
 	}, [paginatedShifts]);
+
+	// Handle filter reset
+	const handleClearFilters = () => {
+		setLocationFilter(null);
+		setSearchTerm("");
+	};
+
+	// Check if any filters are active
+	const filtersActive = locationFilter !== null || searchTerm !== "";
 
 	// Shift Card Component
 	const ShiftCard = ({ shift }: { shift: Shift }) => {
@@ -347,167 +364,163 @@ export function DailyShiftsView({
 	// Show empty state if no shifts
 	if (shifts.length === 0) {
 		return (
-			<div className="p-6 text-center text-muted-foreground">
-				<p className="text-base">
-					No shifts scheduled for {format(date, "EEEE, MMMM d, yyyy")}
-				</p>
-			</div>
+			<EmptyState
+				title="No shifts scheduled"
+				description={`No shifts scheduled for ${format(
+					date,
+					"EEEE, MMMM d, yyyy"
+				)}`}
+				icon={<Calendar className="h-6 w-6" />}
+			/>
 		);
 	}
 
 	return (
-		<div className="space-y-4">
-			{/* Search bar */}
-			<div className="relative mb-4">
-				<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-				<Input
-					placeholder="Search shifts by location or employee..."
-					className="pl-10"
-					value={searchTerm}
-					onChange={(e) => setSearchTerm(e.target.value)}
-				/>
-			</div>
+		<Card className="shadow-sm">
+			<CardContent className="p-6">
+				<div className="space-y-4">
+					{/* Search bar */}
+					<SearchInput
+						value={searchTerm}
+						onChange={(value) => setSearchTerm(value)}
+						placeholder="Search shifts by location or employee..."
+						className="mb-2"
+					/>
 
-			{/* Filters and view toggle */}
-			<div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 mb-4">
-				<div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-					<div className="flex items-center">
-						<Filter className="h-4 w-4 mr-2 text-muted-foreground" />
-						<span className="text-sm font-medium">Filters</span>
-					</div>
-
-					<div className="flex items-center">
-						<span className="text-sm mr-2">Location</span>
-						<Select
-							value={locationFilter || "all"}
-							onValueChange={(value) =>
-								setLocationFilter(value === "all" ? null : value)
-							}>
-							<SelectTrigger className="w-[160px] h-8">
-								<SelectValue placeholder="All locations" />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value="all">All locations</SelectItem>
-								{uniqueLocationIds.map((id) => (
-									<SelectItem
-										key={id}
-										value={id}>
-										{getLocationName(id)}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-					</div>
-
-					{/* Clear filters button */}
-					{(locationFilter || searchTerm) && (
-						<Button
-							variant="ghost"
-							size="sm"
-							onClick={() => {
-								setLocationFilter(null);
-								setSearchTerm("");
-							}}
-							className="h-8">
-							<X className="h-4 w-4 mr-1" />
-							Clear
-						</Button>
-					)}
-				</div>
-
-				{/* View toggle */}
-				<div className="flex items-center gap-2">
-					<Button
-						variant={viewMode === "cards" ? "default" : "outline"}
-						size="sm"
-						onClick={() => setViewMode("cards")}
-						className="flex items-center gap-1">
-						<LayoutGrid className="h-4 w-4" />
-						<span className="hidden sm:inline">Cards</span>
-					</Button>
-					<Button
-						variant={viewMode === "table" ? "default" : "outline"}
-						size="sm"
-						onClick={() => setViewMode("table")}
-						className="flex items-center gap-1">
-						<Table className="h-4 w-4" />
-						<span className="hidden sm:inline">Table</span>
-					</Button>
-				</div>
-			</div>
-
-			{/* Active filters badges */}
-			{locationFilter && (
-				<div className="flex flex-wrap gap-2 mb-4">
-					<Badge
-						variant="outline"
-						className="flex items-center gap-1 bg-muted/40 py-1 px-2">
-						Location: {getLocationName(locationFilter)}
-						<Button
-							variant="ghost"
-							size="icon"
-							className="h-4 w-4 ml-1 p-0"
-							onClick={() => setLocationFilter(null)}>
-							<X className="h-3 w-3" />
-						</Button>
-					</Badge>
-				</div>
-			)}
-
-			{/* Empty state */}
-			{filteredShifts.length === 0 ? (
-				<div className="bg-muted/30 rounded-lg p-6 text-center">
-					<AlertCircle className="h-5 w-5 mx-auto mb-2 text-muted-foreground" />
-					<h3 className="text-base font-medium mb-1">No shifts found</h3>
-					<p className="text-sm text-muted-foreground">
-						{locationFilter || searchTerm
-							? "Try adjusting your filters or search term"
-							: "There are no shifts scheduled for this date"}
-					</p>
-				</div>
-			) : (
-				<>
-					{/* Table View */}
-					{viewMode === "table" && (
-						<DataTable
-							columns={columns}
-							data={filteredShifts}
-						/>
-					)}
-
-					{/* Card View */}
-					{viewMode === "cards" && (
-						<>
-							<div className="space-y-5">
-								{Object.entries(groupedShifts).map(([time, timeShifts]) =>
-									timeShifts.length > 0 ? (
-										<div
-											key={time}
-											className="space-y-3">
-											<h3 className="text-sm font-medium flex items-center text-muted-foreground">
-												<Clock className="h-4 w-4 mr-2" />
-												{time.charAt(0).toUpperCase() + time.slice(1)} (
-												{timeShifts.length})
-											</h3>
-											<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-												{timeShifts.map((shift) => (
-													<ShiftCard
-														key={shift.id}
-														shift={shift}
-													/>
-												))}
-											</div>
-										</div>
-									) : null
-								)}
+					{/* Filters and view toggle */}
+					<div className="flex flex-wrap items-center justify-between gap-4">
+						<FilterGroup
+							filtersActive={filtersActive}
+							onClearFilters={handleClearFilters}>
+							<div className="flex items-center">
+								<span className="text-sm mr-2">Location</span>
+								<Select
+									value={locationFilter || "all"}
+									onValueChange={(value) =>
+										setLocationFilter(value === "all" ? null : value)
+									}>
+									<SelectTrigger className="w-[160px] h-8">
+										<SelectValue placeholder="All locations" />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="all">All locations</SelectItem>
+										{uniqueLocationIds.map((id) => (
+											<SelectItem
+												key={id}
+												value={id || "unknown"}>
+												{getLocationName(id)}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
 							</div>
+						</FilterGroup>
 
-							{/* Pagination for Card View */}
-							{filteredShifts.length > 0 && <PaginationControls />}
+						{/* View toggle */}
+						<div className="flex items-center gap-2">
+							<Button
+								variant={viewMode === "cards" ? "default" : "outline"}
+								size="sm"
+								onClick={() => setViewMode("cards")}
+								className="flex items-center gap-1">
+								<LayoutGrid className="h-4 w-4" />
+								<span className="hidden sm:inline">Cards</span>
+							</Button>
+							<Button
+								variant={viewMode === "table" ? "default" : "outline"}
+								size="sm"
+								onClick={() => setViewMode("table")}
+								className="flex items-center gap-1">
+								<Table className="h-4 w-4" />
+								<span className="hidden sm:inline">Table</span>
+							</Button>
+						</div>
+					</div>
+
+					{/* Active filters badges */}
+					{locationFilter && (
+						<div className="flex flex-wrap gap-2 mb-4">
+							<Badge
+								variant="outline"
+								className="flex items-center gap-1 bg-muted/40 py-1 px-2">
+								Location: {getLocationName(locationFilter)}
+								<Button
+									variant="ghost"
+									size="icon"
+									className="h-4 w-4 ml-1 p-0"
+									onClick={() => setLocationFilter(null)}>
+									<X className="h-3 w-3" />
+								</Button>
+							</Badge>
+						</div>
+					)}
+
+					{/* Empty state */}
+					{filteredShifts.length === 0 ? (
+						<EmptyState
+							title="No shifts found"
+							description={
+								locationFilter || searchTerm
+									? "Try adjusting your filters or search term"
+									: "There are no shifts scheduled for this date"
+							}
+							icon={<UserSearch className="h-6 w-6" />}
+							action={
+								filtersActive ? (
+									<Button
+										variant="outline"
+										onClick={handleClearFilters}>
+										Clear Filters
+									</Button>
+								) : undefined
+							}
+							size="small"
+						/>
+					) : (
+						<>
+							{/* Table View */}
+							{viewMode === "table" && (
+								<DataTable
+									columns={columns}
+									data={filteredShifts}
+								/>
+							)}
+
+							{/* Card View */}
+							{viewMode === "cards" && (
+								<>
+									<div className="space-y-5">
+										{Object.entries(groupedShifts).map(([time, timeShifts]) =>
+											timeShifts.length > 0 ? (
+												<div
+													key={time}
+													className="space-y-3">
+													<h3 className="text-sm font-medium flex items-center text-muted-foreground">
+														<Clock className="h-4 w-4 mr-2" />
+														{time.charAt(0).toUpperCase() + time.slice(1)} (
+														{timeShifts.length})
+													</h3>
+													<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+														{timeShifts.map((shift) => (
+															<ShiftCard
+																key={shift.id}
+																shift={shift}
+															/>
+														))}
+													</div>
+												</div>
+											) : null
+										)}
+									</div>
+
+									{/* Pagination for Card View */}
+									{filteredShifts.length > 0 && <PaginationControls />}
+								</>
+							)}
 						</>
 					)}
-				</>
-			)}
-		</div>
+				</div>
+			</CardContent>
+		</Card>
 	);
 }

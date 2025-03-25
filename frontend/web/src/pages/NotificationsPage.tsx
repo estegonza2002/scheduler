@@ -52,6 +52,8 @@ import {
 import { Checkbox } from "../components/ui/checkbox";
 import { NotificationItem } from "../components/NotificationItem";
 
+import { ContentContainer } from "../components/ui/content-container";
+
 export default function NotificationsPage() {
 	const {
 		notifications,
@@ -242,7 +244,7 @@ export default function NotificationsPage() {
 				<title>Notifications | Scheduler</title>
 			</Helmet>
 
-			<div className="px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+			<ContentContainer>
 				<div className="space-y-4">
 					<div className="flex flex-col md:flex-row gap-4">
 						<div className="flex-1 relative">
@@ -384,38 +386,6 @@ export default function NotificationsPage() {
 										filteredNotifications.length !== 1 ? "s" : ""
 								  }${useSampleData ? " (Sample Data)" : ""}`}
 						</p>
-
-						<div className="flex items-center gap-2">
-							<Button
-								variant="ghost"
-								size="sm"
-								onClick={refreshNotifications}
-								disabled={loading || useSampleData}
-								className="flex items-center gap-1">
-								<RefreshCw className="h-3 w-3 mr-1" />
-								Refresh
-							</Button>
-							<Button
-								variant="ghost"
-								size="sm"
-								onClick={handleMarkAllAsRead}
-								disabled={
-									loading ||
-									useSampleData ||
-									displayNotifications.every((n) => n.isRead)
-								}>
-								Mark all as read
-							</Button>
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={handleClearAll}
-								disabled={
-									loading || useSampleData || displayNotifications.length === 0
-								}>
-								Clear all
-							</Button>
-						</div>
 					</div>
 
 					{loading ? (
@@ -461,7 +431,7 @@ export default function NotificationsPage() {
 						</div>
 					)}
 				</div>
-			</div>
+			</ContentContainer>
 		</>
 	);
 }

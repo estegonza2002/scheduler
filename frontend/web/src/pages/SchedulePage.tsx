@@ -9,9 +9,15 @@ import {
 	ArrowRight,
 	Plus,
 	ListTodo,
+	Loader2,
 } from "lucide-react";
 import { ShiftCreationSheet } from "../components/ShiftCreationSheet";
 import { DailyShiftsView } from "../components/DailyShiftsView";
+
+import { ContentContainer } from "../components/ui/content-container";
+import { ContentSection } from "../components/ui/content-section";
+import { LoadingState } from "../components/ui/loading-state";
+import { Card, CardContent } from "../components/ui/card";
 
 export default function SchedulePage() {
 	const [searchParams] = useSearchParams();
@@ -59,96 +65,81 @@ export default function SchedulePage() {
 	};
 
 	return (
-		<div className="px-4 sm:px-6 py-6 space-y-6">
-			{/* Header with Today's view link */}
-			<div className="flex justify-between items-center mb-4">
-				<Button
-					variant="ghost"
-					size="sm"
-					onClick={() => navigate("/schedule")}>
-					<ListTodo className="h-4 w-4 mr-2" /> View Today's Schedule
-				</Button>
-			</div>
-
-			{/* Header */}
-			<div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-				<div>
-					<h1 className="text-2xl font-bold tracking-tight">Schedule</h1>
-					<p className="text-muted-foreground">
-						View and manage employee shifts across all locations
-					</p>
-				</div>
-
-				<div className="flex items-center gap-2 flex-shrink-0">
-					<ShiftCreationSheet
-						scheduleId={scheduleId}
-						organizationId={organizationId}
-						initialDate={selectedDate}
-						trigger={
-							<Button variant="outline">
-								<Plus className="h-4 w-4 mr-2" />
-								Create Shift
-							</Button>
-						}
-					/>
-
-					<Button onClick={handleViewDailyShifts}>
-						<CalendarIcon className="h-4 w-4 mr-2" />
-						View Daily Shifts <ArrowRight className="ml-2 h-4 w-4" />
+		<>
+			<ContentContainer>
+				{/* Quick access to today's schedule */}
+				<div className="mb-4">
+					<Button
+						variant="ghost"
+						size="sm"
+						onClick={() => navigate("/schedule")}>
+						<ListTodo className="h-4 w-4 mr-2" /> View Today's Schedule
 					</Button>
 				</div>
-			</div>
 
-			{/* View mode toggle */}
-			<div className="flex items-center gap-2">
-				<Button
-					variant={viewMode === "calendar" ? "default" : "outline"}
-					size="icon"
-					onClick={() => setViewMode("calendar")}>
-					<CalendarIcon className="h-4 w-4" />
-				</Button>
-				<Button
-					variant={viewMode === "daily" ? "default" : "outline"}
-					size="icon"
-					onClick={() => setViewMode("daily")}>
-					<ListTodo className="h-4 w-4" />
-				</Button>
-			</div>
-
-			{/* Date selection info */}
-			{selectedDateShifts.length > 0 && (
-				<div className="bg-muted/30 p-4 rounded-lg mb-6">
-					<p className="flex items-center gap-2">
-						<CalendarIcon className="h-4 w-4 text-muted-foreground" />
-						<span>
-							<strong>{format(selectedDate, "MMMM d, yyyy")}</strong>:{" "}
-							{selectedDateShifts.length} shift
-							{selectedDateShifts.length !== 1 ? "s" : ""} scheduled
-						</span>
-						<Button
-							variant="ghost"
-							size="sm"
-							className="ml-auto"
-							onClick={handleViewDailyShifts}>
-							View Details <ArrowRight className="ml-1 h-3 w-3" />
-						</Button>
-					</p>
+				{/* View mode toggle */}
+				<div className="flex items-center gap-2 mb-6">
+					<Button
+						variant={viewMode === "calendar" ? "default" : "outline"}
+						size="sm"
+						onClick={() => setViewMode("calendar")}
+						className="flex items-center gap-1">
+						<CalendarIcon className="h-4 w-4" />
+						<span>Calendar</span>
+					</Button>
+					<Button
+						variant={viewMode === "daily" ? "default" : "outline"}
+						size="sm"
+						onClick={() => setViewMode("daily")}
+						className="flex items-center gap-1">
+						<ListTodo className="h-4 w-4" />
+						<span>Daily View</span>
+					</Button>
 				</div>
-			)}
 
-			{/* Content based on view mode */}
-			{viewMode === "calendar" ? (
-				<div className="bg-white rounded-lg shadow overflow-hidden">
-					<ScheduleCalendar onDateSelect={handleDateSelect} />
-				</div>
-			) : (
-				<DailyShiftsView
-					date={selectedDate}
-					shifts={selectedDateShifts}
-					locations={locations}
-					employees={employees}
-				/>
-			)}
-		</div>
+				{/* Selected date info */}
+				{selectedDateShifts.length > 0 && (
+					<Card className="mb-6">
+						<CardContent className="py-3 flex items-center">
+							<CalendarIcon className="h-4 w-4 text-muted-foreground mr-2" />
+							<span>
+								<strong>{format(selectedDate, "MMMM d, yyyy")}</strong>:{" "}
+								{selectedDateShifts.length} shift
+								{selectedDateShifts.length !== 1 ? "s" : ""} scheduled
+							</span>
+							<Button
+								variant="ghost"
+								size="sm"
+								className="ml-auto"
+								onClick={handleViewDailyShifts}>
+								View Details <ArrowRight className="ml-1 h-3 w-3" />
+							</Button>
+						</CardContent>
+					</Card>
+				)}
+
+				{/* Main content */}
+				{loading ? (
+					<LoadingState message="Loading schedule data..." />
+				) : (
+					<ContentSection
+						title={viewMode === "calendar" ? "Calendar View" : "Daily View"}
+						flat>
+						{viewMode === "calendar" ? (
+							<Card className="overflow-hidden">
+								<ScheduleCalendar onDateSelect={handleDateSelect} />
+							</Card>
+						) : (
+							<DailyShiftsView
+								date={selectedDate}
+								shifts={selectedDateShifts}
+								locations={locations}
+								employees={employees}
+							/>
+						)}
+					</ContentSection>
+				)}
+			</ContentContainer>
+		</>
 	);
 }

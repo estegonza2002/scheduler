@@ -53,6 +53,12 @@ import { DeleteLocationDialog } from "../components/DeleteLocationDialog";
 import { DataTable } from "../components/ui/data-table";
 import { ColumnDef } from "@tanstack/react-table";
 
+import { ContentContainer } from "../components/ui/content-container";
+import { SearchInput } from "../components/ui/search-input";
+import { FilterGroup } from "../components/ui/filter-group";
+import { EmptyState } from "../components/ui/empty-state";
+import { LoadingState } from "../components/ui/loading-state";
+
 export default function LocationsPage() {
 	const [searchParams] = useSearchParams();
 	const [loading, setLoading] = useState<boolean>(true);
@@ -233,7 +239,11 @@ export default function LocationsPage() {
 	// Get unique states for filter
 	const uniqueStates = useMemo(() => {
 		return [
-			...new Set(locations.map((location) => location.state).filter(Boolean)),
+			...new Set(
+				locations
+					.map((location) => location.state)
+					.filter((state) => state && state.trim() !== "")
+			),
 		].filter((state) => state !== null && state !== undefined) as string[];
 	}, [locations]);
 
@@ -305,197 +315,223 @@ export default function LocationsPage() {
 		setSearchTerm("");
 	};
 
-	// Render loading skeleton
-	const renderLoadingSkeleton = () => {
-		return (
-			<div className="space-y-6">
-				<div className="flex items-center space-x-4">
-					<Skeleton className="h-10 w-32" />
-					<Skeleton className="h-8 w-48" />
-				</div>
-
-				<div className="space-y-3">
-					<Skeleton className="h-10 w-full" />
-					<Skeleton className="h-16 w-full rounded-md" />
-					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-						{Array.from({ length: 6 }).map((_, i) => (
-							<Skeleton
-								key={i}
-								className="h-24 w-full rounded-md"
-							/>
-						))}
-					</div>
-				</div>
-			</div>
-		);
-	};
+	// Check if any filters are applied
+	const filtersActive = !!(stateFilter || statusFilter || searchTerm);
 
 	if (loading) {
-		return <div className="p-6">{renderLoadingSkeleton()}</div>;
+		return (
+			<ContentContainer>
+				<LoadingState
+					message={`Loading ${
+						loadingPhase === "organization" ? "organization" : "locations"
+					}...`}
+					type="skeleton"
+					skeletonCount={6}
+					skeletonHeight={80}
+				/>
+			</ContentContainer>
+		);
 	}
 
 	return (
-		<div className="p-4">
-			{locations.length === 0 ? (
-				<div className="text-center py-12 border-2 border-dashed rounded-lg">
-					<MapPin className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-					<h3 className="text-lg font-medium mb-2">No locations found</h3>
-					<p className="text-sm text-muted-foreground mb-4">
-						Start by adding locations to your organization
-					</p>
-					{organization && (
-						<AddLocationDialog
-							organizationId={organization.id}
-							onLocationsAdded={handleLocationsAdded}
-							trigger={
-								<Button
-									variant="default"
-									className="bg-black hover:bg-black/90 text-white">
-									<Plus className="mr-2 h-4 w-4" />
-									Add First Location
-								</Button>
-							}
-						/>
-					)}
-				</div>
-			) : (
-				<div className="space-y-4">
-					{/* Search and view mode controls */}
-					<div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-						<div className="relative flex-1 max-w-sm">
-							<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-							<Input
-								placeholder="Search locations..."
-								className="pl-10"
-								value={searchTerm}
-								onChange={(e) => setSearchTerm(e.target.value)}
-							/>
+		<ContentContainer className="flex gap-6">
+			<div className="w-72 flex-shrink-0">
+				<Card>
+					<CardHeader>
+						<CardTitle>Filters</CardTitle>
+						<CardDescription>
+							Filter locations by their attributes
+						</CardDescription>
+					</CardHeader>
+					<CardContent className="space-y-4">
+						<div className="space-y-2">
+							<label className="text-sm font-medium">State</label>
+							<Select
+								value={stateFilter || "all_states"}
+								onValueChange={(value: string) =>
+									setStateFilter(value === "all_states" ? null : value)
+								}>
+								<SelectTrigger>
+									<SelectValue placeholder="All states" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="all_states">All states</SelectItem>
+									{uniqueStates.map((state) => (
+										<SelectItem
+											key={state}
+											value={state}>
+											{state}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
 						</div>
+
+						<div className="space-y-2">
+							<label className="text-sm font-medium">Status</label>
+							<Select
+								value={statusFilter || "all_statuses"}
+								onValueChange={(value: string) =>
+									setStatusFilter(value === "all_statuses" ? null : value)
+								}>
+								<SelectTrigger>
+									<SelectValue placeholder="All statuses" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="all_statuses">All statuses</SelectItem>
+									<SelectItem value="active">Active</SelectItem>
+									<SelectItem value="inactive">Inactive</SelectItem>
+								</SelectContent>
+							</Select>
+						</div>
+					</CardContent>
+				</Card>
+			</div>
+			<div className="flex-1">
+				<div className="flex flex-col space-y-4">
+					<div className="flex items-center justify-between">
+						<SearchInput
+							placeholder="Search locations..."
+							value={searchTerm}
+							onChange={(value: string) => setSearchTerm(value)}
+							className="w-64"
+						/>
+
 						<div className="flex items-center gap-2">
-							<Button
-								variant={viewMode === "cards" ? "default" : "outline"}
-								size="icon"
-								onClick={() => setViewMode("cards")}>
-								<LayoutGrid className="h-4 w-4" />
-							</Button>
-							<Button
-								variant={viewMode === "table" ? "default" : "outline"}
-								size="icon"
-								onClick={() => setViewMode("table")}>
-								<List className="h-4 w-4" />
-							</Button>
+							<AddLocationDialog
+								organizationId={organization?.id || ""}
+								onLocationsAdded={handleLocationsAdded}
+								trigger={
+									<Button>
+										<Plus className="h-4 w-4 mr-2" />
+										New Location
+									</Button>
+								}
+							/>
+							<div className="flex rounded-md overflow-hidden border">
+								<Button
+									variant={viewMode === "cards" ? "secondary" : "ghost"}
+									size="sm"
+									className="rounded-none px-3"
+									onClick={() => setViewMode("cards")}>
+									<LayoutGrid className="h-4 w-4" />
+								</Button>
+								<Button
+									variant={viewMode === "table" ? "secondary" : "ghost"}
+									size="sm"
+									className="rounded-none px-3"
+									onClick={() => setViewMode("table")}>
+									<List className="h-4 w-4" />
+								</Button>
+							</div>
 						</div>
 					</div>
 
-					{/* Filter badges */}
-					{(stateFilter || statusFilter) && (
-						<div className="flex flex-wrap gap-2 mb-4">
-							{stateFilter && (
-								<Badge
-									variant="outline"
-									className="flex items-center gap-1 bg-muted/40 py-1 px-2">
-									State: {stateFilter}
-									<Button
-										variant="ghost"
-										size="icon"
-										className="h-4 w-4 ml-1 p-0"
-										onClick={() => setStateFilter(null)}>
-										<X className="h-3 w-3" />
-									</Button>
-								</Badge>
-							)}
-							{statusFilter && (
-								<Badge
-									variant="outline"
-									className="flex items-center gap-1 bg-muted/40 py-1 px-2">
-									Status: {statusFilter === "active" ? "Active" : "Inactive"}
-									<Button
-										variant="ghost"
-										size="icon"
-										className="h-4 w-4 ml-1 p-0"
-										onClick={() => setStatusFilter(null)}>
-										<X className="h-3 w-3" />
-									</Button>
-								</Badge>
-							)}
-						</div>
-					)}
-
-					{/* Content */}
-					{filteredLocations.length === 0 ? (
-						<div className="bg-muted/30 rounded-lg p-6 text-center">
-							<AlertCircle className="h-5 w-5 mx-auto mb-2 text-muted-foreground" />
-							<h3 className="text-base font-medium mb-1">No locations found</h3>
-							<p className="text-sm text-muted-foreground">
-								{stateFilter || statusFilter || searchTerm
-									? "Try adjusting your filters or search term"
-									: "There are no locations in your organization"}
-							</p>
-						</div>
+					{locations.length === 0 ? (
+						<EmptyState
+							title="No locations found"
+							description="Start by adding locations to your organization"
+							icon={<MapPin className="h-6 w-6" />}
+							action={
+								organization && (
+									<AddLocationDialog
+										organizationId={organization.id}
+										onLocationsAdded={handleLocationsAdded}
+										trigger={
+											<Button>
+												<Plus className="mr-2 h-4 w-4" />
+												Add First Location
+											</Button>
+										}
+									/>
+								)
+							}
+						/>
 					) : (
-						<>
-							{/* Table View */}
-							{viewMode === "table" && (
-								<DataTable
-									columns={columns}
-									data={filteredLocations}
+						<div className="space-y-4">
+							{/* Content */}
+							{filteredLocations.length === 0 ? (
+								<EmptyState
+									title="No locations found"
+									description="Try adjusting your filters or search term"
+									icon={<AlertCircle className="h-6 w-6" />}
+									size="small"
+									action={
+										filtersActive ? (
+											<Button
+												variant="outline"
+												onClick={handleClearFilters}>
+												Clear Filters
+											</Button>
+										) : undefined
+									}
 								/>
-							)}
+							) : (
+								<>
+									{/* Table View */}
+									{viewMode === "table" && (
+										<DataTable
+											columns={columns}
+											data={filteredLocations}
+										/>
+									)}
 
-							{/* Card View */}
-							{viewMode === "cards" && (
-								<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-									{filteredLocations.map((location) => (
-										<Card
-											key={location.id}
-											className="hover:shadow-md transition-shadow cursor-pointer group relative overflow-hidden"
-											onClick={() =>
-												navigate(`/location-detail/${location.id}`)
-											}>
-											<div className="absolute inset-0 bg-gradient-to-t from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-											<div className="p-4">
-												<div className="flex items-start gap-4">
-													<div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-														<MapPin className="h-6 w-6 text-primary" />
-													</div>
-													<div className="flex-1 min-w-0">
-														<div className="flex items-center justify-between gap-2 group/name">
-															<CardTitle className="text-lg truncate">
-																{location.name}
-															</CardTitle>
-															<ChevronRight className="h-5 w-5 text-muted-foreground/50 transition-colors group-hover/name:text-primary shrink-0" />
+									{/* Card View */}
+									{viewMode === "cards" && (
+										<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+											{filteredLocations.map((location) => (
+												<Card
+													key={location.id}
+													className="hover:shadow-md transition-shadow cursor-pointer group relative overflow-hidden"
+													onClick={() =>
+														navigate(`/location-detail/${location.id}`)
+													}>
+													<div className="absolute inset-0 bg-gradient-to-t from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+													<div className="p-4">
+														<div className="flex items-start gap-4">
+															<div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+																<MapPin className="h-6 w-6 text-primary" />
+															</div>
+															<div className="flex-1 min-w-0">
+																<div className="flex items-center justify-between gap-2 group/name">
+																	<CardTitle className="text-lg truncate">
+																		{location.name}
+																	</CardTitle>
+																	<ChevronRight className="h-5 w-5 text-muted-foreground/50 transition-colors group-hover/name:text-primary shrink-0" />
+																</div>
+																<span className="text-sm text-muted-foreground">
+																	{location.address || "No address"}
+																</span>
+															</div>
 														</div>
-														<span className="text-sm text-muted-foreground">
-															{location.address || "No address"}
-														</span>
 													</div>
-												</div>
-											</div>
-											<div className="border-t px-4 py-3 space-y-2">
-												<div className="flex items-center gap-3 text-sm">
-													<Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
-													<span className="truncate">
-														{location.address || "No address"}
-													</span>
-												</div>
-												<div className="flex items-center gap-3 text-sm">
-													<MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
-													<span>
-														{location.city}
-														{location.city && location.state ? ", " : ""}
-														{location.state}
-														{location.zipCode ? ` ${location.zipCode}` : ""}
-													</span>
-												</div>
-											</div>
-										</Card>
-									))}
-								</div>
+													<div className="border-t px-4 py-3 space-y-2">
+														<div className="flex items-center gap-3 text-sm">
+															<Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
+															<span className="truncate">
+																{location.address || "No address"}
+															</span>
+														</div>
+														<div className="flex items-center gap-3 text-sm">
+															<MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+															<span>
+																{location.city}
+																{location.city && location.state ? ", " : ""}
+																{location.state}
+																{location.zipCode ? ` ${location.zipCode}` : ""}
+															</span>
+														</div>
+													</div>
+												</Card>
+											))}
+										</div>
+									)}
+								</>
 							)}
-						</>
+						</div>
 					)}
 				</div>
-			)}
+			</div>
 
 			{/* Dialogs with controlled state */}
 			{selectedLocation && (
@@ -515,6 +551,6 @@ export default function LocationsPage() {
 					/>
 				</>
 			)}
-		</div>
+		</ContentContainer>
 	);
 }

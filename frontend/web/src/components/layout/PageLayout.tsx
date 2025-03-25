@@ -16,7 +16,7 @@ interface PageLayoutProps {
 
 export function PageLayout({ children, className }: PageLayoutProps) {
 	return (
-		<div className={cn("mx-auto px-4 py-6 md:px-6 lg:px-8 w-full", className)}>
+		<div className={cn("px-4 py-6 md:px-6 lg:px-8 w-full", className)}>
 			{children}
 		</div>
 	);

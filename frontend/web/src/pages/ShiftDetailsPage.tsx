@@ -1,12 +1,22 @@
 import { ShiftDetails } from "../components/shift/ShiftDetails";
-import { Card, CardContent } from "../components/ui/card";
+
+import { ContentContainer } from "../components/ui/content-container";
+import { ContentSection } from "../components/ui/content-section";
+import {
+	PageContentSpacing,
+	SectionContentSpacing,
+} from "../components/ui/header-content-spacing";
 
 export default function ShiftDetailsPage() {
 	return (
-		<Card className="w-full h-full">
-			<CardContent className="p-6">
-				<ShiftDetails />
-			</CardContent>
-		</Card>
+		<>
+			<PageContentSpacing>
+				<ContentContainer>
+					<ContentSection title="Shift Information">
+						<ShiftDetails />
+					</ContentSection>
+				</ContentContainer>
+			</PageContentSpacing>
+		</>
 	);
 }

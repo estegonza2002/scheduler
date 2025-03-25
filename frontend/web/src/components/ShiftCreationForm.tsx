@@ -3,7 +3,14 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
-import { CalendarIcon, MapPin } from "lucide-react";
+import {
+	CalendarIcon,
+	MapPin,
+	Clock,
+	User,
+	ClipboardList,
+	StickyNote,
+} from "lucide-react";
 import { useForm } from "react-hook-form";
 import {
 	ShiftsAPI,
@@ -37,6 +44,15 @@ import {
 } from "./ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Calendar } from "./ui/calendar";
+import {
+	Card,
+	CardContent,
+	CardHeader,
+	CardTitle,
+	CardDescription,
+} from "./ui/card";
+import { FormSection } from "./ui/form-section";
+import { LoadingState } from "./ui/loading-state";
 
 // Form schema
 const shiftFormSchema = z.object({
@@ -71,6 +87,7 @@ export function ShiftCreationForm({
 	const [locations, setLocations] = useState<Location[]>([]);
 	const [loadingEmployees, setLoadingEmployees] = useState(false);
 	const [loadingLocations, setLoadingLocations] = useState(false);
+	const [submitting, setSubmitting] = useState(false);
 
 	// Initialize form
 	const form = useForm<ShiftFormValues>({
@@ -131,7 +148,7 @@ export function ShiftCreationForm({
 
 	const onSubmit = async (data: ShiftFormValues) => {
 		try {
-			setLoading(true);
+			setSubmitting(true);
 
 			// Combine date and time into ISO strings
 			const startDateTime = `${format(data.date, "yyyy-MM-dd")}T${
@@ -160,203 +177,256 @@ export function ShiftCreationForm({
 			console.error("Error creating shift:", error);
 			toast.error("Failed to create shift");
 		} finally {
-			setLoading(false);
+			setSubmitting(false);
 		}
 	};
 
+	// Check if we're loading initial data
+	const isLoading = loadingEmployees || loadingLocations;
+
+	if (isLoading) {
+		return (
+			<LoadingState
+				message="Loading form data..."
+				type="skeleton"
+				skeletonCount={5}
+			/>
+		);
+	}
+
 	return (
-		<Form {...form}>
-			<form
-				onSubmit={form.handleSubmit(onSubmit)}
-				className="space-y-4">
-				<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-					{/* Date Selection */}
-					<FormField
-						control={form.control}
-						name="date"
-						render={({ field }) => (
-							<FormItem className="flex flex-col">
-								<FormLabel>Date</FormLabel>
-								<Popover>
-									<PopoverTrigger asChild>
+		<Card>
+			<CardHeader>
+				<CardTitle className="text-xl">Create New Shift</CardTitle>
+				<CardDescription>Schedule a new shift for an employee</CardDescription>
+			</CardHeader>
+			<CardContent>
+				<Form {...form}>
+					<form
+						onSubmit={form.handleSubmit(onSubmit)}
+						className="space-y-6">
+						<FormSection
+							title="Shift Date & Location"
+							description="Select when and where the shift will take place">
+							<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+								{/* Date Selection */}
+								<FormField
+									control={form.control}
+									name="date"
+									render={({ field }) => (
+										<FormItem className="flex flex-col">
+											<FormLabel>Date</FormLabel>
+											<Popover>
+												<PopoverTrigger asChild>
+													<FormControl>
+														<Button
+															variant="outline"
+															className={cn(
+																"w-full pl-3 text-left font-normal",
+																!field.value && "text-muted-foreground"
+															)}>
+															{field.value ? (
+																format(field.value, "PPP")
+															) : (
+																<span>Pick a date</span>
+															)}
+															<CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+														</Button>
+													</FormControl>
+												</PopoverTrigger>
+												<PopoverContent
+													className="w-auto p-0"
+													align="start">
+													<Calendar
+														mode="single"
+														selected={field.value}
+														onSelect={field.onChange}
+														disabled={(date) =>
+															date < new Date(new Date().setHours(0, 0, 0, 0))
+														}
+														initialFocus
+													/>
+												</PopoverContent>
+											</Popover>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								{/* Location Selection */}
+								<FormField
+									control={form.control}
+									name="locationId"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Location</FormLabel>
+											<Select
+												onValueChange={field.onChange}
+												defaultValue={field.value}>
+												<FormControl>
+													<SelectTrigger>
+														<SelectValue placeholder="Select a location" />
+													</SelectTrigger>
+												</FormControl>
+												<SelectContent>
+													{locations.map((location) => (
+														<SelectItem
+															key={location.id}
+															value={location.id}>
+															{location.name}
+														</SelectItem>
+													))}
+												</SelectContent>
+											</Select>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</div>
+						</FormSection>
+
+						<FormSection
+							title="Shift Time"
+							description="Set the start and end times for this shift">
+							<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+								{/* Start Time */}
+								<FormField
+									control={form.control}
+									name="startTime"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Start Time</FormLabel>
+											<FormControl>
+												<div className="flex items-center">
+													<Clock className="w-4 h-4 mr-2 text-muted-foreground" />
+													<Input
+														type="time"
+														{...field}
+													/>
+												</div>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								{/* End Time */}
+								<FormField
+									control={form.control}
+									name="endTime"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>End Time</FormLabel>
+											<FormControl>
+												<div className="flex items-center">
+													<Clock className="w-4 h-4 mr-2 text-muted-foreground" />
+													<Input
+														type="time"
+														{...field}
+													/>
+												</div>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</div>
+						</FormSection>
+
+						<FormSection
+							title="Employee Assignment"
+							description="Assign an employee to this shift">
+							{/* Employee Selection */}
+							<FormField
+								control={form.control}
+								name="employeeId"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Employee</FormLabel>
+										<Select
+											onValueChange={field.onChange}
+											defaultValue={field.value}>
+											<FormControl>
+												<div className="flex items-center">
+													<SelectTrigger>
+														<SelectValue placeholder="Select an employee" />
+													</SelectTrigger>
+												</div>
+											</FormControl>
+											<SelectContent>
+												{employees.map((employee) => (
+													<SelectItem
+														key={employee.id}
+														value={employee.id}>
+														{employee.name}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+
+							{/* Role */}
+							<FormField
+								control={form.control}
+								name="role"
+								render={({ field }) => (
+									<FormItem className="mt-4">
+										<FormLabel>Role (Optional)</FormLabel>
 										<FormControl>
-											<Button
-												variant="outline"
-												className={cn(
-													"w-full pl-3 text-left font-normal",
-													!field.value && "text-muted-foreground"
-												)}>
-												{field.value ? (
-													format(field.value, "PPP")
-												) : (
-													<span>Pick a date</span>
-												)}
-												<CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-											</Button>
+											<div className="flex items-center">
+												<ClipboardList className="w-4 h-4 mr-2 text-muted-foreground" />
+												<Input
+													placeholder="e.g., Shift Manager, Server"
+													{...field}
+												/>
+											</div>
 										</FormControl>
-									</PopoverTrigger>
-									<PopoverContent
-										className="w-auto p-0"
-										align="start">
-										<Calendar
-											mode="single"
-											selected={field.value}
-											onSelect={field.onChange}
-											disabled={(date) =>
-												date < new Date(new Date().setHours(0, 0, 0, 0))
-											}
-											initialFocus
-										/>
-									</PopoverContent>
-								</Popover>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						</FormSection>
 
-					{/* Location Selection */}
-					<FormField
-						control={form.control}
-						name="locationId"
-						render={({ field }) => (
-							<FormItem>
-								<FormLabel>Location</FormLabel>
-								<Select
-									onValueChange={field.onChange}
-									defaultValue={field.value}>
-									<FormControl>
-										<SelectTrigger>
-											<SelectValue placeholder="Select a location" />
-										</SelectTrigger>
-									</FormControl>
-									<SelectContent>
-										{locations.map((location) => (
-											<SelectItem
-												key={location.id}
-												value={location.id}>
-												{location.name}
-											</SelectItem>
-										))}
-									</SelectContent>
-								</Select>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
-				</div>
+						<FormSection
+							title="Additional Information"
+							description="Add any notes or special instructions for this shift">
+							{/* Notes */}
+							<FormField
+								control={form.control}
+								name="notes"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Notes (Optional)</FormLabel>
+										<FormControl>
+											<div className="flex items-start">
+												<StickyNote className="w-4 h-4 mr-2 mt-2 text-muted-foreground" />
+												<Textarea
+													placeholder="Any special instructions or details about this shift"
+													className="h-20"
+													{...field}
+												/>
+											</div>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						</FormSection>
 
-				<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-					{/* Start Time */}
-					<FormField
-						control={form.control}
-						name="startTime"
-						render={({ field }) => (
-							<FormItem>
-								<FormLabel>Start Time</FormLabel>
-								<FormControl>
-									<Input
-										type="time"
-										{...field}
-									/>
-								</FormControl>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
-
-					{/* End Time */}
-					<FormField
-						control={form.control}
-						name="endTime"
-						render={({ field }) => (
-							<FormItem>
-								<FormLabel>End Time</FormLabel>
-								<FormControl>
-									<Input
-										type="time"
-										{...field}
-									/>
-								</FormControl>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
-				</div>
-
-				{/* Employee Selection */}
-				<FormField
-					control={form.control}
-					name="employeeId"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel>Employee</FormLabel>
-							<Select
-								onValueChange={field.onChange}
-								defaultValue={field.value}>
-								<FormControl>
-									<SelectTrigger>
-										<SelectValue placeholder="Select an employee" />
-									</SelectTrigger>
-								</FormControl>
-								<SelectContent>
-									{employees.map((employee) => (
-										<SelectItem
-											key={employee.id}
-											value={employee.id}>
-											{employee.name}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
-
-				{/* Role */}
-				<FormField
-					control={form.control}
-					name="role"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel>Role (Optional)</FormLabel>
-							<FormControl>
-								<Input
-									placeholder="e.g., Shift Manager, Server"
-									{...field}
-								/>
-							</FormControl>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
-
-				{/* Notes */}
-				<FormField
-					control={form.control}
-					name="notes"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel>Notes (Optional)</FormLabel>
-							<FormControl>
-								<Textarea
-									placeholder="Any special instructions or details about this shift"
-									className="h-20"
-									{...field}
-								/>
-							</FormControl>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
-
-				<Button
-					type="submit"
-					disabled={loading}
-					className="w-full">
-					{loading ? "Creating Shift..." : "Create Shift"}
-				</Button>
-			</form>
-		</Form>
+						<div className="pt-4">
+							<Button
+								type="submit"
+								disabled={submitting}
+								className="w-full">
+								{submitting ? "Creating Shift..." : "Create Shift"}
+							</Button>
+						</div>
+					</form>
+				</Form>
+			</CardContent>
+		</Card>
 	);
 }

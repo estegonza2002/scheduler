@@ -1,0 +1,56 @@
+:root {
+	/* Header spacing variables */
+	--header-spacing-y: 1.5rem; /* 24px */
+	--header-spacing-x: 1rem; /* 16px */
+	--header-spacing-sm-x: 1.5rem; /* 24px */
+	--header-spacing-lg-x: 2rem; /* 32px */
+	--header-content-spacing: 1.5rem; /* 24px */
+	--section-header-spacing: 1rem; /* 16px */
+	--section-content-spacing: 1rem; /* 16px */
+
+	/* Typography variables */
+	--header-title-size: 1.875rem; /* 30px */
+	--header-title-weight: 700; /* bold */
+	--dialog-title-size: 1.25rem; /* 20px */
+	--dialog-title-weight: 600; /* semibold */
+	--section-title-size: 1.125rem; /* 18px */
+	--section-title-weight: 500; /* medium */
+}
+
+/* Utility classes for header spacing */
+.header-spacing-y {
+	padding-top: var(--header-spacing-y);
+	padding-bottom: var(--header-spacing-y);
+}
+
+.header-spacing-x {
+	padding-left: var(--header-spacing-x);
+	padding-right: var(--header-spacing-x);
+}
+
+@media (min-width: 640px) {
+	.header-spacing-x {
+		padding-left: var(--header-spacing-sm-x);
+		padding-right: var(--header-spacing-sm-x);
+	}
+}
+
+@media (min-width: 1024px) {
+	.header-spacing-x {
+		padding-left: var(--header-spacing-lg-x);
+		padding-right: var(--header-spacing-lg-x);
+	}
+}
+
+/* Content spacing classes */
+.page-content-spacing {
+	margin-top: var(--header-content-spacing);
+}
+
+.section-content-spacing {
+	margin-top: var(--section-header-spacing);
+}
+
+.section-spacing {
+	margin-bottom: var(--section-content-spacing);
+}

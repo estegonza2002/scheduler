@@ -1,103 +1,86 @@
-import * as React from "react";
+import React from "react";
 import { cn } from "../../lib/utils";
-import {
-	FileQuestion,
-	Search,
-	Inbox,
-	FolderPlus,
-	Users,
-	Calendar,
-	Settings,
-	AlertCircle,
-	LucideIcon,
-} from "lucide-react";
+import { AlertCircle, Search } from "lucide-react";
 
-interface EmptyStateProps extends React.HTMLAttributes<HTMLDivElement> {
-	icon?: React.ReactNode;
+interface EmptyStateProps {
+	/**
+	 * The title text to display in the empty state
+	 */
 	title: string;
+	/**
+	 * Optional description text to display under the title
+	 */
 	description?: string;
+	/**
+	 * Optional icon to display above the title
+	 * @default AlertCircle icon
+	 */
+	icon?: React.ReactNode;
+	/**
+	 * Optional action button to display below the description
+	 */
 	action?: React.ReactNode;
-	variant?: "default" | "search" | "no-data" | "no-results" | "error";
-	size?: "sm" | "default" | "lg";
-	image?: React.ReactNode;
+	/**
+	 * Optional additional className for the container
+	 */
+	className?: string;
+	/**
+	 * Optional size of the empty state component
+	 * @default "default"
+	 */
+	size?: "small" | "default" | "large";
 }
 
-const defaultIcons: Record<string, LucideIcon> = {
-	default: FileQuestion,
-	search: Search,
-	"no-data": Inbox,
-	"no-results": FolderPlus,
-	error: AlertCircle,
-};
-
+/**
+ * EmptyState component for displaying when no data is available
+ */
 export function EmptyState({
-	icon,
 	title,
 	description,
+	icon,
 	action,
 	className,
-	variant = "default",
 	size = "default",
-	image,
-	...props
 }: EmptyStateProps) {
-	const sizeClasses = {
-		sm: {
-			container: "min-h-[200px] p-4",
-			icon: "h-8 w-8",
-			title: "text-base",
-			description: "text-xs",
-		},
-		default: {
-			container: "min-h-[400px] p-8",
-			icon: "h-10 w-10",
-			title: "text-lg",
-			description: "text-sm",
-		},
-		lg: {
-			container: "min-h-[600px] p-12",
-			icon: "h-12 w-12",
-			title: "text-xl",
-			description: "text-base",
-		},
-	};
-
 	return (
 		<div
 			className={cn(
-				"flex flex-col items-center justify-center rounded-lg border border-dashed animate-in fade-in-50",
-				sizeClasses[size].container,
-				variant === "error" && "border-destructive/50",
+				"flex flex-col items-center justify-center text-center rounded-lg border border-dashed p-8",
+				size === "small" && "p-4",
+				size === "large" && "p-12",
 				className
-			)}
-			{...props}>
-			{image ? (
-				<div className="mb-4">{image}</div>
-			) : (
-				<div
-					className={cn(
-						"mx-auto flex items-center justify-center rounded-full bg-muted mb-4",
-						sizeClasses[size].icon
-					)}>
-					{icon ||
-						React.createElement(defaultIcons[variant], {
-							className: "h-1/2 w-1/2 text-muted-foreground",
-						})}
-				</div>
-			)}
+			)}>
+			<div
+				className={cn(
+					"flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground",
+					size === "small" && "h-10 w-10",
+					size === "large" && "h-16 w-16"
+				)}>
+				{icon || (
+					<AlertCircle
+						className={cn(
+							"h-6 w-6",
+							size === "small" && "h-5 w-5",
+							size === "large" && "h-8 w-8"
+						)}
+					/>
+				)}
+			</div>
 			<h3
 				className={cn(
-					"mt-2 font-semibold",
-					sizeClasses[size].title,
-					variant === "error" && "text-destructive"
+					"mt-4 font-semibold",
+					size === "small" && "text-sm",
+					size === "default" && "text-lg",
+					size === "large" && "text-xl"
 				)}>
 				{title}
 			</h3>
 			{description && (
 				<p
 					className={cn(
-						"mt-1 text-muted-foreground",
-						sizeClasses[size].description
+						"mt-2 text-sm text-muted-foreground",
+						size === "small" && "text-xs",
+						size === "large" && "text-base"
 					)}>
 					{description}
 				</p>

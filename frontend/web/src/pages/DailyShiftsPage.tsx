@@ -9,6 +9,8 @@ import {
 	EmployeesAPI,
 	Location,
 	Employee,
+	Schedule,
+	SchedulesAPI,
 } from "../api";
 import { format, parseISO, addDays, subDays } from "date-fns";
 import {
@@ -31,6 +33,18 @@ import { Calendar } from "../components/ui/calendar";
 import { Skeleton } from "../components/ui/skeleton";
 import { Card, CardContent } from "../components/ui/card";
 
+import { ContentContainer } from "../components/ui/content-container";
+import { LoadingState } from "../components/ui/loading-state";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "../components/ui/select";
+import { Label } from "../components/ui/label";
+import { ContentSection } from "../components/ui/content-section";
+
 export default function DailyShiftsPage() {
 	const [searchParams, setSearchParams] = useSearchParams();
 	const navigate = useNavigate();
@@ -41,6 +55,7 @@ export default function DailyShiftsPage() {
 	const [shifts, setShifts] = useState<Shift[]>([]);
 	const [locations, setLocations] = useState<Location[]>([]);
 	const [employees, setEmployees] = useState<Employee[]>([]);
+	const [schedules, setSchedules] = useState<Schedule[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [loadingPhase, setLoadingPhase] = useState<string>("shifts");
 	const [selectedSchedule, setSelectedSchedule] = useState<string | null>(null);
@@ -70,6 +85,9 @@ export default function DailyShiftsPage() {
 			setLoadingPhase("shifts");
 
 			// Get schedules
+			const fetchedSchedules = await SchedulesAPI.getAll(organizationId);
+			setSchedules(fetchedSchedules);
+
 			const defaultSchedule = "sch-4"; // Updated to Spring 2025 schedule
 			if (!selectedSchedule) {
 				setSelectedSchedule(defaultSchedule);
@@ -127,123 +145,145 @@ export default function DailyShiftsPage() {
 		fetchShifts();
 	}, [currentDate, organizationId, selectedSchedule]);
 
-	// Render loading skeleton
-	const renderLoadingSkeleton = () => {
-		return (
-			<div className="space-y-6">
-				<div className="flex items-center space-x-4">
-					<Skeleton className="h-8 w-32" />
-					<Skeleton className="h-8 w-48" />
-				</div>
-
-				<div className="space-y-3">
-					{Array.from({ length: 3 }).map((_, i) => (
-						<div
-							key={i}
-							className="space-y-2">
-							<Skeleton className="h-6 w-48" />
-							<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-								{Array.from({ length: 4 }).map((_, j) => (
-									<Skeleton
-										key={j}
-										className="h-40 w-full rounded-md"
-									/>
-								))}
-							</div>
-						</div>
-					))}
-				</div>
-			</div>
-		);
-	};
-
 	return (
-		<div className="flex h-screen">
-			{/* Calendar Sidebar */}
-			<div className="flex-shrink-0 border-r">
-				<div className="sticky top-0 px-4 py-6">
-					<div className="flex items-center justify-between mb-4">
-						<h2 className="text-sm font-semibold text-muted-foreground">
-							Calendar
-						</h2>
-						<Button
-							variant="ghost"
-							size="icon"
-							className="h-8 w-8"
-							onClick={() => updateDate(new Date())}
-							title="Go to today">
-							<RotateCcw className="h-4 w-4" />
-						</Button>
+		<>
+			<div className="flex flex-col h-[calc(100vh-80px)]">
+				{/* Sidebar with calendar */}
+				<div className="flex border-b">
+					<div className="w-80 h-[calc(100vh-80px)] border-r p-4 bg-card">
+						<Label htmlFor="schedule-select">Select Schedule</Label>
+						<Select
+							value={selectedSchedule || ""}
+							onValueChange={(value) => setSelectedSchedule(value)}
+							disabled={loading}>
+							<SelectTrigger
+								id="schedule-select"
+								className="mt-1 mb-4">
+								<SelectValue placeholder="Select a schedule" />
+							</SelectTrigger>
+							<SelectContent>
+								{schedules.map((schedule) => (
+									<SelectItem
+										key={schedule.id}
+										value={schedule.id}>
+										{schedule.name}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+
+						<div className="flex justify-between items-center mb-2">
+							<div className="text-sm font-medium">Calendar</div>
+							<Button
+								variant="ghost"
+								size="sm"
+								className="h-8"
+								onClick={() => updateDate(new Date())}>
+								Today
+							</Button>
+						</div>
+						<Calendar
+							mode="single"
+							selected={currentDate}
+							onSelect={(date) => date && updateDate(date)}
+							className="w-full"
+							showOutsideDays
+						/>
 					</div>
-					<Calendar
-						mode="single"
-						selected={currentDate}
-						onSelect={(date) => date && updateDate(date)}
-						className="w-full"
-						showOutsideDays
-					/>
+
+					{/* Main Content */}
+					<div className="flex-1 overflow-auto">
+						<ContentSection
+							title={format(currentDate, "EEEE, MMMM d, yyyy")}
+							description={`Shifts for ${format(currentDate, "MMM d")}`}
+							headerActions={
+								<div className="flex items-center gap-2">
+									<Button
+										variant="outline"
+										size="icon"
+										onClick={() => updateDate(subDays(currentDate, 1))}>
+										<ChevronLeft className="h-4 w-4" />
+									</Button>
+
+									<Button
+										variant="outline"
+										size="icon"
+										onClick={() => updateDate(addDays(currentDate, 1))}>
+										<ChevronRight className="h-4 w-4" />
+									</Button>
+
+									<Button
+										variant="outline"
+										size="sm"
+										className="text-sm flex items-center"
+										onClick={() => navigate("/schedule")}>
+										<Grid className="h-4 w-4 mr-2" /> View Calendar
+									</Button>
+								</div>
+							}>
+							{loading && (
+								<div className="px-8 py-2 border-b bg-muted/10">
+									<div className="flex items-center gap-2 text-sm text-muted-foreground">
+										<Loader2 className="h-3 w-3 animate-spin" />
+										<span>
+											{loadingPhase === "shifts"
+												? "Loading shifts..."
+												: loadingPhase === "locations"
+												? "Loading locations..."
+												: "Loading employees..."}
+										</span>
+									</div>
+								</div>
+							)}
+
+							{!loading && shifts.length === 0 && (
+								<div className="flex flex-col items-center justify-center py-12">
+									<div className="text-muted-foreground mb-2">
+										No shifts scheduled for this day
+									</div>
+									<ShiftCreationSheet
+										scheduleId={selectedSchedule || ""}
+										organizationId={organizationId}
+										initialDate={currentDate}
+										trigger={
+											<Button
+												size="sm"
+												className="mt-2">
+												<Plus className="h-4 w-4 mr-2" />
+												Create Shift
+											</Button>
+										}
+									/>
+								</div>
+							)}
+
+							{!loading && shifts.length > 0 && (
+								<>
+									<div className="flex justify-end p-4">
+										<ShiftCreationSheet
+											scheduleId={selectedSchedule || ""}
+											organizationId={organizationId}
+											initialDate={currentDate}
+											trigger={
+												<Button>
+													<Plus className="h-4 w-4 mr-2" />
+													Create Shift
+												</Button>
+											}
+										/>
+									</div>
+									<DailyShiftsView
+										date={currentDate}
+										shifts={shifts}
+										locations={locations}
+										employees={employees}
+									/>
+								</>
+							)}
+						</ContentSection>
+					</div>
 				</div>
 			</div>
-
-			{/* Main Content */}
-			<div className="flex-1 px-4 sm:px-6 py-6 overflow-auto">
-				{/* Date navigation controls */}
-				<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
-					<div className="flex flex-col">
-						<h1 className="text-xl font-semibold">
-							Shifts for {format(currentDate, "EEEE, MMMM d, yyyy")}
-						</h1>
-						{loading && (
-							<div className="flex items-center text-sm text-muted-foreground gap-2 mt-1">
-								<Loader2 className="h-3 w-3 animate-spin" />
-								<span>
-									{loadingPhase === "shifts"
-										? "Loading shifts..."
-										: loadingPhase === "locations"
-										? "Loading locations..."
-										: "Loading employees..."}
-								</span>
-							</div>
-						)}
-					</div>
-
-					<div className="flex items-center space-x-2 mt-2 sm:mt-0">
-						<Button
-							variant="outline"
-							size="icon"
-							onClick={() => updateDate(subDays(currentDate, 1))}>
-							<ChevronLeft className="h-4 w-4" />
-						</Button>
-
-						<Button
-							variant="outline"
-							size="icon"
-							onClick={() => updateDate(addDays(currentDate, 1))}>
-							<ChevronRight className="h-4 w-4" />
-						</Button>
-
-						<Button
-							variant="outline"
-							size="sm"
-							className="text-sm flex items-center"
-							onClick={() => navigate("/schedule/monthly")}>
-							<Grid className="h-4 w-4 mr-2" /> View Calendar
-						</Button>
-					</div>
-				</div>
-
-				{/* Shifts View */}
-				{loading ? (
-					renderLoadingSkeleton()
-				) : (
-					<DailyShiftsView
-						date={currentDate}
-						shifts={shifts}
-						locations={locations}
-						employees={employees}
-					/>
-				)}
-			</div>
-		</div>
+		</>
 	);
 }

@@ -11,9 +11,29 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
+	FormDescription,
 } from "./ui/form";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
+import {
+	Card,
+	CardContent,
+	CardHeader,
+	CardTitle,
+	CardDescription,
+} from "./ui/card";
+import { FormSection } from "./ui/form-section";
+import { LoadingState } from "./ui/loading-state";
+import {
+	User,
+	Mail,
+	Phone,
+	MapPin,
+	Calendar,
+	DollarSign,
+	BadgeAlert,
+	StickyNote,
+} from "lucide-react";
 
 const employeeFormSchema = z.object({
 	name: z.string().min(2, "Name must be at least 2 characters"),
@@ -102,207 +122,252 @@ export function EmployeeForm({
 	};
 
 	return (
-		<Form {...form}>
-			<form
-				onSubmit={form.handleSubmit(onSubmit)}
-				className="space-y-4">
-				<div className="space-y-4">
-					<h3 className="text-sm font-medium text-muted-foreground">
-						Basic Information
-					</h3>
-					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-						<FormField
-							control={form.control}
-							name="name"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Full Name</FormLabel>
-									<FormControl>
-										<Input
-											placeholder="John Doe"
-											{...field}
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
+		<Card>
+			<CardHeader>
+				<CardTitle>
+					{isEditing ? "Edit Employee" : "Add New Employee"}
+				</CardTitle>
+				<CardDescription>
+					{isEditing
+						? "Update employee information"
+						: "Enter employee details to add them to your organization"}
+				</CardDescription>
+			</CardHeader>
+			<CardContent>
+				<Form {...form}>
+					<form
+						onSubmit={form.handleSubmit(onSubmit)}
+						className="space-y-6">
+						<FormSection
+							title="Basic Information"
+							description="Enter the employee's name and primary contact details">
+							<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+								<FormField
+									control={form.control}
+									name="name"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Full Name</FormLabel>
+											<FormControl>
+												<div className="flex items-center">
+													<User className="w-4 h-4 mr-2 text-muted-foreground" />
+													<Input
+														placeholder="John Doe"
+														{...field}
+													/>
+												</div>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
 
-						<FormField
-							control={form.control}
-							name="email"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Email</FormLabel>
-									<FormControl>
-										<Input
-											placeholder="john@example.com"
-											type="email"
-											{...field}
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-					</div>
-				</div>
+								<FormField
+									control={form.control}
+									name="email"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Email</FormLabel>
+											<FormControl>
+												<div className="flex items-center">
+													<Mail className="w-4 h-4 mr-2 text-muted-foreground" />
+													<Input
+														placeholder="john@example.com"
+														type="email"
+														{...field}
+													/>
+												</div>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</div>
+						</FormSection>
 
-				<div className="space-y-4">
-					<h3 className="text-sm font-medium text-muted-foreground">
-						Contact Information
-					</h3>
-					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-						<FormField
-							control={form.control}
-							name="phone"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Phone Number</FormLabel>
-									<FormControl>
-										<Input
-											placeholder="555-123-4567"
-											{...field}
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
+						<FormSection
+							title="Contact Information"
+							description="Add contact details for communication and record-keeping">
+							<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+								<FormField
+									control={form.control}
+									name="phone"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Phone Number</FormLabel>
+											<FormControl>
+												<div className="flex items-center">
+													<Phone className="w-4 h-4 mr-2 text-muted-foreground" />
+													<Input
+														placeholder="555-123-4567"
+														{...field}
+													/>
+												</div>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
 
-						<FormField
-							control={form.control}
-							name="address"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Address</FormLabel>
-									<FormControl>
-										<Input
-											placeholder="123 Main St, Anytown, ST"
-											{...field}
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-					</div>
-				</div>
+								<FormField
+									control={form.control}
+									name="address"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Address</FormLabel>
+											<FormControl>
+												<div className="flex items-center">
+													<MapPin className="w-4 h-4 mr-2 text-muted-foreground" />
+													<Input
+														placeholder="123 Main St, Anytown, ST"
+														{...field}
+													/>
+												</div>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</div>
+						</FormSection>
 
-				<div className="space-y-4">
-					<h3 className="text-sm font-medium text-muted-foreground">
-						Employment Details
-					</h3>
-					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-						<FormField
-							control={form.control}
-							name="position"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Position</FormLabel>
-									<FormControl>
-										<Input
-											placeholder="Barista, Manager, etc."
-											{...field}
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
+						<FormSection
+							title="Employment Details"
+							description="Provide information about the employee's role and employment terms">
+							<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+								<FormField
+									control={form.control}
+									name="position"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Position</FormLabel>
+											<FormControl>
+												<div className="flex items-center">
+													<BadgeAlert className="w-4 h-4 mr-2 text-muted-foreground" />
+													<Input
+														placeholder="Barista, Manager, etc."
+														{...field}
+													/>
+												</div>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
 
-						<FormField
-							control={form.control}
-							name="hourlyRate"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Hourly Rate ($)</FormLabel>
-									<FormControl>
-										<Input
-											type="number"
-											step="0.01"
-											min="0"
-											placeholder="15.50"
-											{...field}
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
+								<FormField
+									control={form.control}
+									name="hourlyRate"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Hourly Rate ($)</FormLabel>
+											<FormControl>
+												<div className="flex items-center">
+													<DollarSign className="w-4 h-4 mr-2 text-muted-foreground" />
+													<Input
+														type="number"
+														step="0.01"
+														min="0"
+														placeholder="15.50"
+														{...field}
+													/>
+												</div>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
 
-						<FormField
-							control={form.control}
-							name="hireDate"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Hire Date</FormLabel>
-									<FormControl>
-										<Input
-											type="date"
-											{...field}
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-					</div>
-				</div>
+								<FormField
+									control={form.control}
+									name="hireDate"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Hire Date</FormLabel>
+											<FormControl>
+												<div className="flex items-center">
+													<Calendar className="w-4 h-4 mr-2 text-muted-foreground" />
+													<Input
+														type="date"
+														{...field}
+													/>
+												</div>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</div>
+						</FormSection>
 
-				<div className="space-y-4">
-					<h3 className="text-sm font-medium text-muted-foreground">
-						Additional Information
-					</h3>
-					<FormField
-						control={form.control}
-						name="emergencyContact"
-						render={({ field }) => (
-							<FormItem>
-								<FormLabel>Emergency Contact</FormLabel>
-								<FormControl>
-									<Input
-										placeholder="Name (Relationship) - Phone"
-										{...field}
-									/>
-								</FormControl>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
+						<FormSection
+							title="Additional Information"
+							description="Include emergency contact details and other relevant notes">
+							<FormField
+								control={form.control}
+								name="emergencyContact"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Emergency Contact</FormLabel>
+										<FormDescription>
+											Name, relationship, and phone number of emergency contact
+										</FormDescription>
+										<FormControl>
+											<div className="flex items-center">
+												<Phone className="w-4 h-4 mr-2 text-muted-foreground" />
+												<Input
+													placeholder="Jane Doe (Spouse) - 555-789-1234"
+													{...field}
+												/>
+											</div>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
 
-					<FormField
-						control={form.control}
-						name="notes"
-						render={({ field }) => (
-							<FormItem>
-								<FormLabel>Notes</FormLabel>
-								<FormControl>
-									<Textarea
-										placeholder="Additional information about this employee..."
-										className="h-24"
-										{...field}
-									/>
-								</FormControl>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
-				</div>
+							<FormField
+								control={form.control}
+								name="notes"
+								render={({ field }) => (
+									<FormItem className="mt-4">
+										<FormLabel>Notes</FormLabel>
+										<FormDescription>
+											Any additional information about this employee
+										</FormDescription>
+										<FormControl>
+											<div className="flex items-start">
+												<StickyNote className="w-4 h-4 mr-2 mt-2 text-muted-foreground" />
+												<Textarea
+													placeholder="Additional information about this employee..."
+													className="h-24"
+													{...field}
+												/>
+											</div>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						</FormSection>
 
-				<Button
-					type="submit"
-					className="w-full"
-					disabled={isSubmitting}>
-					{isSubmitting
-						? isEditing
-							? "Updating..."
-							: "Adding..."
-						: isEditing
-						? "Update Employee"
-						: "Add Employee"}
-				</Button>
-			</form>
-		</Form>
+						<div className="pt-4">
+							<Button
+								type="submit"
+								className="w-full"
+								disabled={isSubmitting}>
+								{isSubmitting
+									? isEditing
+										? "Updating..."
+										: "Adding..."
+									: isEditing
+									? "Update Employee"
+									: "Add Employee"}
+							</Button>
+						</div>
+					</form>
+				</Form>
+			</CardContent>
+		</Card>
 	);
 }

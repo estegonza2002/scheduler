@@ -19,6 +19,9 @@ import { Badge } from "../ui/badge";
 
 type NewConversationModalProps = {
 	onStartConversation: (userId: string, isGroup?: boolean) => void;
+	isOpen?: boolean;
+	onClose?: () => void;
+	trigger?: React.ReactNode;
 };
 
 type User = {
@@ -38,12 +41,25 @@ type Group = {
 
 export function NewConversationModal({
 	onStartConversation,
+	isOpen,
+	onClose,
+	trigger,
 }: NewConversationModalProps) {
-	const [open, setOpen] = useState(false);
+	const [internalOpen, setInternalOpen] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
 	const [groupName, setGroupName] = useState("");
 	const { user } = useAuth();
+
+	// Use external open state if provided, otherwise use internal state
+	const dialogOpen = isOpen !== undefined ? isOpen : internalOpen;
+	const setDialogOpen = (value: boolean) => {
+		if (isOpen !== undefined && onClose) {
+			if (!value) onClose();
+		} else {
+			setInternalOpen(value);
+		}
+	};
 
 	// Mock users data - in a real app, this would come from an API
 	const users: User[] = [
@@ -112,13 +128,13 @@ export function NewConversationModal({
 
 	const handleStartOneOnOne = (userId: string) => {
 		onStartConversation(userId, false);
-		setOpen(false);
+		setDialogOpen(false);
 	};
 
 	const handleStartGroup = () => {
 		if (selectedUsers.length > 0 && groupName.trim()) {
 			onStartConversation(groupName, true);
-			setOpen(false);
+			setDialogOpen(false);
 		}
 	};
 
@@ -140,16 +156,20 @@ export function NewConversationModal({
 
 	return (
 		<Dialog
-			open={open}
-			onOpenChange={setOpen}>
-			<DialogTrigger asChild>
-				<Button
-					variant="outline"
-					className="w-full">
-					<Plus className="h-4 w-4 mr-2" />
-					New Conversation
-				</Button>
-			</DialogTrigger>
+			open={dialogOpen}
+			onOpenChange={setDialogOpen}>
+			{trigger ? (
+				<DialogTrigger asChild>{trigger}</DialogTrigger>
+			) : (
+				<DialogTrigger asChild>
+					<Button
+						variant="outline"
+						className="w-full">
+						<Plus className="h-4 w-4 mr-2" />
+						New Conversation
+					</Button>
+				</DialogTrigger>
+			)}
 			<DialogContent className="sm:max-w-[425px]">
 				<DialogHeader>
 					<DialogTitle>Start New Conversation</DialogTitle>

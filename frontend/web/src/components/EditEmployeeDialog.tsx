@@ -7,35 +7,69 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
+	DialogFooter,
 } from "./ui/dialog";
 import { Button } from "./ui/button";
-import { Pencil } from "lucide-react";
+import { Pencil, User, CheckCircle } from "lucide-react";
 import { EmployeeForm } from "./EmployeeForm";
+import { ScrollArea } from "./ui/scroll-area";
+import { cn } from "../lib/utils";
 
+/**
+ * Props for the EditEmployeeDialog component
+ */
 interface EditEmployeeDialogProps {
+	/**
+	 * The employee data to be edited
+	 */
 	employee: Employee;
+	/**
+	 * Optional custom trigger element
+	 */
 	trigger?: React.ReactNode;
+	/**
+	 * Optional callback fired when employee is updated
+	 */
 	onEmployeeUpdated?: (employee: Employee) => void;
+	/**
+	 * Optional additional className for the dialog content
+	 */
+	className?: string;
 }
 
+/**
+ * Dialog component for editing an existing employee
+ */
 export function EditEmployeeDialog({
 	employee,
 	trigger,
 	onEmployeeUpdated,
+	className,
 }: EditEmployeeDialogProps) {
 	const [open, setOpen] = useState(false);
+	const [isUpdated, setIsUpdated] = useState(false);
 
 	const handleEmployeeUpdated = (updatedEmployee: Employee) => {
+		setIsUpdated(true);
 		if (onEmployeeUpdated) {
 			onEmployeeUpdated(updatedEmployee);
 		}
-		setOpen(false);
+	};
+
+	const handleOpenChange = (newOpenState: boolean) => {
+		if (!newOpenState) {
+			// Reset state when dialog closes
+			setTimeout(() => {
+				if (!open) setIsUpdated(false);
+			}, 300); // Wait for dialog close animation
+		}
+		setOpen(newOpenState);
 	};
 
 	return (
 		<Dialog
 			open={open}
-			onOpenChange={setOpen}>
+			onOpenChange={handleOpenChange}>
 			<DialogTrigger asChild>
 				{trigger || (
 					<Button
@@ -46,19 +80,46 @@ export function EditEmployeeDialog({
 					</Button>
 				)}
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-[550px]">
+			<DialogContent
+				className={cn(
+					"sm:max-w-[650px] overflow-hidden flex flex-col",
+					className
+				)}>
 				<DialogHeader>
-					<DialogTitle>Edit Employee</DialogTitle>
+					<div className="flex items-center">
+						<DialogTitle className="flex items-center">
+							<User className="h-5 w-5 mr-2 text-primary" />
+							Edit Employee
+						</DialogTitle>
+					</div>
 					<DialogDescription>
-						Update employee information for {employee.name}
+						Update information for {employee.name}
 					</DialogDescription>
 				</DialogHeader>
 
-				<EmployeeForm
-					organizationId={employee.organizationId}
-					initialData={employee}
-					onSuccess={handleEmployeeUpdated}
-				/>
+				<ScrollArea className="flex-1 overflow-auto">
+					<div className="py-1">
+						<EmployeeForm
+							organizationId={employee.organizationId}
+							initialData={employee}
+							onSuccess={handleEmployeeUpdated}
+						/>
+					</div>
+				</ScrollArea>
+
+				{isUpdated && (
+					<DialogFooter className="flex flex-col sm:flex-row px-4 py-3 mt-2 gap-2 border-t">
+						<div className="flex items-center text-sm text-muted-foreground mr-auto">
+							<CheckCircle className="h-4 w-4 mr-2 text-green-500" />
+							<span>Employee updated successfully</span>
+						</div>
+						<Button
+							variant="outline"
+							onClick={() => handleOpenChange(false)}>
+							Close
+						</Button>
+					</DialogFooter>
+				)}
 			</DialogContent>
 		</Dialog>
 	);

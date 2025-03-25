@@ -37,7 +37,20 @@ import {
 	CalendarDayItem,
 	CalendarDayMoreIndicator,
 } from "./ui/calendar-day-card";
-import { MapPin, User, FilterX, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+	MapPin,
+	User,
+	FilterX,
+	ChevronLeft,
+	ChevronRight,
+	AlertCircle,
+	Calendar,
+} from "lucide-react";
+import { LoadingState } from "./ui/loading-state";
+import { EmptyState } from "./ui/empty-state";
+import { AlertCard } from "./ui/alert-card";
+import { FilterGroup } from "./ui/filter-group";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 
 // Format time from ISO string
 const formatShiftTime = (isoString: string) => {
@@ -438,138 +451,164 @@ export function ScheduleCalendar({
 
 	if (loading) {
 		return (
-			<div className="flex items-center justify-center p-6">
-				<div className="animate-pulse text-muted-foreground">
-					Loading shifts...
-				</div>
-			</div>
+			<LoadingState
+				message="Loading schedule..."
+				type="spinner"
+			/>
 		);
 	}
 
 	if (error) {
 		return (
-			<div className="flex flex-col items-center justify-center p-6 space-y-4">
-				<div className="text-destructive">{error}</div>
-				<Button onClick={() => window.location.reload()}>Retry</Button>
-			</div>
+			<AlertCard
+				variant="error"
+				title="Failed to load schedule"
+				description={error}
+				action={
+					<Button
+						variant="outline"
+						onClick={() => window.location.reload()}>
+						Retry
+					</Button>
+				}
+			/>
 		);
 	}
 
+	const hasShifts = allShifts.length > 0;
+
 	return (
-		<div>
-			{/* Filter Controls */}
-			<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
-				<div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+		<Card>
+			<CardHeader className="pb-3">
+				<div className="flex justify-between items-center">
+					<CardTitle className="text-lg font-medium">
+						{format(currentMonth, "MMMM yyyy")}
+					</CardTitle>
 					<div className="flex items-center gap-2">
-						<MapPin className="h-4 w-4 text-muted-foreground" />
-						<Select
-							value={selectedLocationId}
-							onValueChange={setSelectedLocationId}>
-							<SelectTrigger className="w-[180px]">
-								<SelectValue placeholder="Filter by location" />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectGroup>
-									<SelectLabel>Locations</SelectLabel>
-									{locations.map((location) => (
-										<SelectItem
-											key={location.id}
-											value={location.id}>
-											{location.name}
-										</SelectItem>
-									))}
-								</SelectGroup>
-							</SelectContent>
-						</Select>
-					</div>
-
-					<div className="flex items-center gap-2">
-						<User className="h-4 w-4 text-muted-foreground" />
-						<Select
-							value={selectedEmployeeId}
-							onValueChange={setSelectedEmployeeId}>
-							<SelectTrigger className="w-[180px]">
-								<SelectValue placeholder="Filter by employee" />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectGroup>
-									<SelectLabel>Employees</SelectLabel>
-									{employees.map((employee) => (
-										<SelectItem
-											key={employee.id}
-											value={employee.id}>
-											{employee.name}
-										</SelectItem>
-									))}
-								</SelectGroup>
-							</SelectContent>
-						</Select>
-					</div>
-
-					{(selectedLocationId || selectedEmployeeId) && (
 						<Button
-							variant="ghost"
+							variant="outline"
 							size="sm"
-							onClick={handleResetFilters}
-							className="flex items-center gap-1">
-							<FilterX className="h-4 w-4" />
-							<span>Reset</span>
+							onClick={() => {
+								const prev = new Date(currentMonth);
+								prev.setMonth(prev.getMonth() - 1);
+								setCurrentMonth(prev);
+							}}>
+							<ChevronLeft className="h-4 w-4 mr-1" /> Previous
 						</Button>
-					)}
-				</div>
-			</div>
-
-			{/* Calendar header */}
-			<div className="grid grid-cols-7 border-b bg-muted/30">
-				{dayNames.map((day) => (
-					<div
-						key={day}
-						className="py-2 text-center text-sm font-medium">
-						{day}
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={() => {
+								const next = new Date(currentMonth);
+								next.setMonth(next.getMonth() + 1);
+								setCurrentMonth(next);
+							}}>
+							Next <ChevronRight className="h-4 w-4 ml-1" />
+						</Button>
 					</div>
-				))}
-			</div>
+				</div>
+			</CardHeader>
+			<CardContent>
+				{/* Filter Controls */}
+				<FilterGroup className="mb-6">
+					<div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+						<div className="flex items-center gap-2">
+							<MapPin className="h-4 w-4 text-muted-foreground" />
+							<Select
+								value={selectedLocationId}
+								onValueChange={setSelectedLocationId}>
+								<SelectTrigger className="w-[180px]">
+									<SelectValue placeholder="Filter by location" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectGroup>
+										<SelectLabel>Locations</SelectLabel>
+										{locations.map((location) => (
+											<SelectItem
+												key={location.id}
+												value={location.id}>
+												{location.name}
+											</SelectItem>
+										))}
+									</SelectGroup>
+								</SelectContent>
+							</Select>
+						</div>
 
-			{/* Calendar grid */}
-			<div className="grid grid-cols-7">
-				{days.map((day) => (
-					<CalendarDay
-						key={day.toISOString()}
-						date={day}
-						isCurrentMonth={day.getMonth() === currentMonth.getMonth()}
-						shifts={shifts}
-						onSelectDate={handleDateSelect}
-						isSelected={isSameDay(day, selectedDate)}
+						<div className="flex items-center gap-2">
+							<User className="h-4 w-4 text-muted-foreground" />
+							<Select
+								value={selectedEmployeeId}
+								onValueChange={setSelectedEmployeeId}>
+								<SelectTrigger className="w-[180px]">
+									<SelectValue placeholder="Filter by employee" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectGroup>
+										<SelectLabel>Employees</SelectLabel>
+										{employees.map((employee) => (
+											<SelectItem
+												key={employee.id}
+												value={employee.id}>
+												{employee.name}
+											</SelectItem>
+										))}
+									</SelectGroup>
+								</SelectContent>
+							</Select>
+						</div>
+
+						{(selectedLocationId || selectedEmployeeId) && (
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={handleResetFilters}
+								className="flex items-center gap-1">
+								<FilterX className="h-4 w-4" />
+								<span>Reset</span>
+							</Button>
+						)}
+					</div>
+				</FilterGroup>
+
+				{!hasShifts ? (
+					<EmptyState
+						title="No shifts scheduled"
+						description="There are no shifts scheduled for this period"
+						icon={<Calendar className="h-6 w-6" />}
+						action={
+							<Button onClick={() => window.location.reload()}>Refresh</Button>
+						}
 					/>
-				))}
-			</div>
+				) : (
+					<>
+						{/* Calendar header */}
+						<div className="grid grid-cols-7 border-b bg-muted/30">
+							{dayNames.map((day) => (
+								<div
+									key={day}
+									className="py-2 text-center text-sm font-medium">
+									{day}
+								</div>
+							))}
+						</div>
 
-			{/* Month navigation (added at the bottom) */}
-			<div className="flex justify-between items-center mt-4">
-				<Button
-					variant="outline"
-					size="sm"
-					onClick={() => {
-						const prev = new Date(currentMonth);
-						prev.setMonth(prev.getMonth() - 1);
-						setCurrentMonth(prev);
-					}}>
-					<ChevronLeft className="h-4 w-4 mr-1" /> Previous Month
-				</Button>
-				<h2 className="text-base font-medium">
-					{format(currentMonth, "MMMM yyyy")}
-				</h2>
-				<Button
-					variant="outline"
-					size="sm"
-					onClick={() => {
-						const next = new Date(currentMonth);
-						next.setMonth(next.getMonth() + 1);
-						setCurrentMonth(next);
-					}}>
-					Next Month <ChevronRight className="h-4 w-4 ml-1" />
-				</Button>
-			</div>
-		</div>
+						{/* Calendar grid */}
+						<div className="grid grid-cols-7">
+							{days.map((day) => (
+								<CalendarDay
+									key={day.toISOString()}
+									date={day}
+									isCurrentMonth={day.getMonth() === currentMonth.getMonth()}
+									shifts={shifts}
+									onSelectDate={handleDateSelect}
+									isSelected={isSameDay(day, selectedDate)}
+								/>
+							))}
+						</div>
+					</>
+				)}
+			</CardContent>
+		</Card>
 	);
 }
