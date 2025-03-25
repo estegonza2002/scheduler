@@ -136,7 +136,9 @@ export default function AppLayout() {
 	// For notifications page specific controls
 	const isNotificationsPage = location.pathname === "/notifications";
 	const isMessagesPage = location.pathname === "/messages";
-	const shouldShowSampleData = isNotificationsPage || isMessagesPage;
+	const isShiftDetailsPage = location.pathname.includes("/shifts/");
+	const shouldShowSampleData =
+		isNotificationsPage || isMessagesPage || isShiftDetailsPage;
 
 	// Check if we're on specific pages
 	const isDailyShiftsPage = location.pathname.startsWith("/daily-shifts");
@@ -271,7 +273,9 @@ export default function AppLayout() {
 				) : isDailyShiftsPage ? (
 					getHeaderActions()
 				) : (
-					!isNotificationsPage && !isMessagesPage && <NotificationSheet />
+					!isNotificationsPage &&
+					!isMessagesPage &&
+					!isShiftDetailsPage && <NotificationSheet />
 				)}
 			</div>
 		);
