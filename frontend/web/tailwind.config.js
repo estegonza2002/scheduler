@@ -103,6 +103,10 @@ export default {
 				"sidebar-collapse": "sidebar-width-collapse 0.2s ease-out",
 				"slide-in-left": "slide-in-left 0.3s ease-out",
 			},
+			spacing: {
+				76: "19rem", // 12px (collapsed sidebar) + 64px (secondary navbar) = 76px
+				128: "32rem", // 64px (expanded sidebar) + 64px (secondary navbar) = 128px
+			},
 		},
 	},
 	plugins: [require("tailwindcss-animate")],

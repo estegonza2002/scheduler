@@ -10,6 +10,7 @@ import {
 	SidebarInset,
 	SidebarProvider,
 	SidebarTrigger,
+	useSidebar,
 } from "../ui/sidebar";
 import { Separator } from "../ui/separator";
 import { AppSidebar } from "../AppSidebar";
@@ -57,6 +58,63 @@ import {
 	AlertDialogTitle,
 	AlertDialogTrigger,
 } from "../ui/alert-dialog";
+
+// Layout content component that can access the sidebar context
+function LayoutContent({
+	hasSecondaryNavbar,
+	renderSecondaryNavbar,
+	renderHeaderActions,
+	getHeaderTitle,
+	pageHeader,
+}: {
+	hasSecondaryNavbar: boolean;
+	renderSecondaryNavbar: (
+		sidebarState: "expanded" | "collapsed"
+	) => React.ReactNode;
+	renderHeaderActions: () => React.ReactNode;
+	getHeaderTitle: () => string;
+	pageHeader: any;
+}) {
+	const { state } = useSidebar();
+
+	return (
+		<SidebarInset>
+			<header className="sticky top-0 flex h-14 shrink-0 items-center border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 z-40">
+				<div className="flex flex-1 items-center">
+					<div className="flex items-center gap-2">
+						<SidebarTrigger className="-ml-1" />
+					</div>
+					<div className="mx-4">
+						<h1 className="text-lg font-semibold">{getHeaderTitle()}</h1>
+						{pageHeader.description && (
+							<p className="text-sm text-muted-foreground">
+								{pageHeader.description}
+							</p>
+						)}
+					</div>
+				</div>
+				<div className="flex items-center justify-end">
+					{renderHeaderActions()}
+				</div>
+			</header>
+			{hasSecondaryNavbar && renderSecondaryNavbar(state)}
+			<main
+				className="flex-1 overflow-auto w-full transition-all duration-200"
+				style={
+					hasSecondaryNavbar
+						? {
+								marginLeft:
+									state === "collapsed"
+										? "calc(var(--sidebar-width-icon) + 16rem)"
+										: "calc(var(--sidebar-width) + 16rem)",
+						  }
+						: {}
+				}>
+				<Outlet />
+			</main>
+		</SidebarInset>
+	);
+}
 
 export default function AppLayout() {
 	const location = useLocation();
@@ -243,7 +301,7 @@ export default function AppLayout() {
 	};
 
 	// Render the appropriate secondary navbar based on the current route
-	const renderSecondaryNavbar = () => {
+	const renderSecondaryNavbar = (sidebarState: "expanded" | "collapsed") => {
 		if (isSchedulePage) {
 			const viewMode =
 				(searchParams.get("view") as "calendar" | "daily") || "calendar";
@@ -260,6 +318,7 @@ export default function AppLayout() {
 						const today = new Date();
 						navigate(`/schedule?date=${format(today, "yyyy-MM-dd")}`);
 					}}
+					sidebarState={sidebarState}
 				/>
 			);
 		}
@@ -291,6 +350,7 @@ export default function AppLayout() {
 						setSearchParams(newParams);
 					}}
 					positions={["Manager", "Cashier", "Barista", "Cook", "Server"]}
+					sidebarState={sidebarState}
 				/>
 			);
 		}
@@ -332,6 +392,7 @@ export default function AppLayout() {
 						setSearchParams(newParams);
 					}}
 					states={["CA", "NY", "TX", "FL", "IL"]}
+					sidebarState={sidebarState}
 				/>
 			);
 		}
@@ -344,34 +405,13 @@ export default function AppLayout() {
 			<Sidebar className="w-64">
 				<AppSidebar />
 			</Sidebar>
-			<SidebarInset>
-				<header className="sticky top-0 flex h-14 shrink-0 items-center border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 z-40">
-					<div className="flex flex-1 items-center">
-						<div className="flex items-center gap-2">
-							<SidebarTrigger className="-ml-1" />
-						</div>
-						<div className="mx-4">
-							<h1 className="text-lg font-semibold">{getHeaderTitle()}</h1>
-							{pageHeader.description && (
-								<p className="text-sm text-muted-foreground">
-									{pageHeader.description}
-								</p>
-							)}
-						</div>
-					</div>
-					<div className="flex items-center justify-end">
-						{renderHeaderActions()}
-					</div>
-				</header>
-				{hasSecondaryNavbar && renderSecondaryNavbar()}
-				<main
-					className={cn(
-						"flex-1 overflow-auto w-full",
-						hasSecondaryNavbar ? "ml-64" : ""
-					)}>
-					<Outlet />
-				</main>
-			</SidebarInset>
+			<LayoutContent
+				hasSecondaryNavbar={hasSecondaryNavbar}
+				renderSecondaryNavbar={renderSecondaryNavbar}
+				renderHeaderActions={renderHeaderActions}
+				getHeaderTitle={getHeaderTitle}
+				pageHeader={pageHeader}
+			/>
 		</SidebarProvider>
 	);
 }

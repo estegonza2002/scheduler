@@ -75,3 +75,26 @@
 		@apply bg-background text-foreground;
 	}
 }
+
+/* Custom layout styles */
+@layer utilities {
+	/* Ensure the secondary navbar has a fixed width */
+	.secondary-navbar {
+		width: 16rem !important;
+	}
+
+	/* Ensure the secondary navbar has proper positioning when primary navbar is minimized */
+	.secondary-navbar-minimized {
+		left: var(--sidebar-width-icon) !important;
+	}
+
+	/* Main content margin when secondary navbar is expanded */
+	.main-with-secondary-expanded {
+		margin-left: calc(var(--sidebar-width) + 16rem) !important;
+	}
+
+	/* Main content margin when secondary navbar is minimized */
+	.main-with-secondary-minimized {
+		margin-left: calc(var(--sidebar-width-icon) + 16rem) !important;
+	}
+}

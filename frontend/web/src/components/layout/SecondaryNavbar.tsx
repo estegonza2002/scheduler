@@ -11,15 +11,28 @@ import { Button } from "../ui/button";
 interface SecondaryNavbarProps {
 	children: ReactNode;
 	className?: string;
+	sidebarState?: "expanded" | "collapsed";
 }
 
-export function SecondaryNavbar({ children, className }: SecondaryNavbarProps) {
+export function SecondaryNavbar({
+	children,
+	className,
+	sidebarState = "expanded",
+}: SecondaryNavbarProps) {
+	const isCollapsed = sidebarState === "collapsed";
+
 	return (
 		<div
 			className={cn(
-				"fixed left-64 top-14 w-64 h-[calc(100%-3.5rem)] border-r bg-background z-30",
+				"fixed top-14 h-[calc(100%-3.5rem)] border-r bg-background z-30 transition-all duration-200 secondary-navbar",
+				isCollapsed && "secondary-navbar-minimized",
 				className
-			)}>
+			)}
+			style={{
+				left: isCollapsed
+					? "var(--sidebar-width-icon)"
+					: "var(--sidebar-width)",
+			}}>
 			<aside className="flex flex-col h-full overflow-y-auto px-4 py-6">
 				{children}
 			</aside>
@@ -31,15 +44,17 @@ export function ScheduleSidebar({
 	viewMode,
 	onViewModeChange,
 	onViewToday,
+	sidebarState,
 }: {
 	viewMode: "calendar" | "daily";
 	onViewModeChange: (mode: "calendar" | "daily") => void;
 	onViewToday: () => void;
+	sidebarState?: "expanded" | "collapsed";
 }) {
 	const today = new Date();
 
 	return (
-		<SecondaryNavbar>
+		<SecondaryNavbar sidebarState={sidebarState}>
 			<div className="space-y-6">
 				{/* Schedule Selection */}
 				<div>
@@ -202,6 +217,7 @@ export function LocationsSidebar({
 	onStatusFilterChange,
 	onClearFilters,
 	states,
+	sidebarState,
 }: {
 	onSearch: (term: string) => void;
 	stateFilter: string | null;
@@ -210,9 +226,10 @@ export function LocationsSidebar({
 	onStatusFilterChange: (status: string | null) => void;
 	onClearFilters: () => void;
 	states: string[];
+	sidebarState?: "expanded" | "collapsed";
 }) {
 	return (
-		<SecondaryNavbar>
+		<SecondaryNavbar sidebarState={sidebarState}>
 			<h3 className="text-sm font-medium text-muted-foreground mb-4">
 				Filters
 			</h3>
@@ -295,15 +312,17 @@ export function EmployeesSidebar({
 	onPositionFilterChange,
 	onClearFilters,
 	positions,
+	sidebarState,
 }: {
 	onSearch: (term: string) => void;
 	positionFilter: string | null;
 	onPositionFilterChange: (position: string | null) => void;
 	onClearFilters: () => void;
 	positions: string[];
+	sidebarState?: "expanded" | "collapsed";
 }) {
 	return (
-		<SecondaryNavbar>
+		<SecondaryNavbar sidebarState={sidebarState}>
 			<h3 className="text-sm font-medium text-muted-foreground mb-4">
 				Filters
 			</h3>
@@ -365,16 +384,18 @@ export function EmployeesSidebar({
 export function ProfileSidebar({
 	activeTab,
 	onTabChange,
+	sidebarState,
 }: {
 	activeTab: string;
 	onTabChange: (tab: string) => void;
+	sidebarState?: "expanded" | "collapsed";
 }) {
 	const { user } = useAuth();
 	const isAdmin = user?.user_metadata?.role === "admin";
 	const hasPaidSubscription = true; // For demo purposes, showing all options
 
 	return (
-		<SecondaryNavbar>
+		<SecondaryNavbar sidebarState={sidebarState}>
 			<div className="space-y-1">
 				<h3 className="text-sm font-medium text-muted-foreground mb-3">
 					Personal Settings
