@@ -87,6 +87,16 @@ export default function AppLayout() {
 	const isAdminDashboardPage = location.pathname === "/admin-dashboard";
 	const isProfilePage = location.pathname === "/profile";
 	const isBillingPage = location.pathname === "/billing";
+	const isBrandingPage = location.pathname === "/branding";
+
+	// Check if page has secondary sidebar
+	const hasSecondarySidebar =
+		isProfilePage ||
+		isBillingPage ||
+		isBrandingPage ||
+		isSchedulePage ||
+		isEmployeesPage ||
+		isLocationsPage;
 
 	// Check if we need secondary navbar
 	const hasSecondaryNavbar =
@@ -170,7 +180,7 @@ export default function AppLayout() {
 						/>
 					</div>
 				)}
-				{isProfilePage ? (
+				{hasSecondarySidebar ? (
 					<AlertDialog
 						open={showLogoutDialog}
 						onOpenChange={setShowLogoutDialog}>

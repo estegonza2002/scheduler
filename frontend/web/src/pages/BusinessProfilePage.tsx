@@ -202,15 +202,6 @@ export default function BusinessProfilePage() {
 	return (
 		<>
 			<ContentContainer>
-				<div className="flex items-center mb-8">
-					<Avatar className="h-20 w-20 mr-6">
-						<AvatarImage src={""} />
-						<AvatarFallback className="text-xl">
-							{getBusinessInitials()}
-						</AvatarFallback>
-					</Avatar>
-				</div>
-
 				<Tabs
 					defaultValue="profile"
 					className="w-full">
@@ -388,11 +379,6 @@ export default function BusinessProfilePage() {
 							title="Business Logo"
 							description="Upload your business logo. Recommended size: 400x400px.">
 							<div className="flex items-center gap-4">
-								<Avatar className="h-24 w-24">
-									<AvatarFallback className="text-2xl">
-										{getBusinessInitials()}
-									</AvatarFallback>
-								</Avatar>
 								<Button variant="outline">Upload Logo</Button>
 							</div>
 						</FormSection>

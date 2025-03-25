@@ -39,6 +39,14 @@ import { ContentContainer } from "../components/ui/content-container";
 import { FormSection } from "../components/ui/form-section";
 import { ProfileSidebar } from "../components/layout/SecondaryNavbar";
 import { OrganizationsAPI, type Organization } from "../api";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from "../components/ui/dialog";
 
 // Define form schema for validation
 const profileSchema = z.object({
@@ -120,6 +128,9 @@ export default function ProfilePage() {
 	const [logoPreview, setLogoPreview] = useState<string | null>(null);
 	const [faviconFile, setFaviconFile] = useState<File | null>(null);
 	const [faviconPreview, setFaviconPreview] = useState<string | null>(null);
+	const [profilePicturePreview, setProfilePicturePreview] = useState<
+		string | null
+	>(null);
 
 	// Initialize form with user data from auth context
 	const profileForm = useForm<ProfileFormValues>({
@@ -186,10 +197,22 @@ export default function ProfilePage() {
 	async function onProfileSubmit(values: ProfileFormValues) {
 		setIsLoading(true);
 		try {
-			// In a real implementation, this would update the user profile in the database
-			// For now, we'll just show a success toast
-			toast.success("Profile updated successfully");
+			// In a real implementation, this would update the user information in the database
+			// and handle uploading the profile picture to storage
+			// For now, we'll simulate success with a delay
+			await new Promise((resolve) => setTimeout(resolve, 1000));
+
+			// Save form values
 			console.log("Profile update values:", values);
+
+			// Handle profile picture if changed
+			if (profilePicturePreview) {
+				console.log("Profile picture updated");
+				// In a real implementation, you would upload the image and update the user metadata
+				// user.user_metadata.avatar_url = uploadedImageUrl;
+			}
+
+			toast.success("Profile updated successfully");
 		} catch (error: any) {
 			toast.error("Failed to update profile: " + error.message);
 		} finally {
@@ -393,32 +416,85 @@ export default function ProfilePage() {
 		}
 	}
 
+	const handleProfilePictureChange = (
+		e: React.ChangeEvent<HTMLInputElement>
+	) => {
+		if (e.target.files && e.target.files[0]) {
+			const file = e.target.files[0];
+			const reader = new FileReader();
+			reader.onload = () => {
+				setProfilePicturePreview(reader.result as string);
+			};
+			reader.readAsDataURL(file);
+		}
+	};
+
+	const handleRemoveProfilePicture = () => {
+		setProfilePicturePreview(null);
+	};
+
 	return (
 		<>
 			{renderSidebar()}
 			<div className="ml-64">
 				<div className="p-4">
-					<div className="flex items-center mb-8">
-						<Avatar className="h-16 w-16 mr-4">
-							<AvatarImage src={user?.user_metadata?.avatar_url} />
-							<AvatarFallback>{getInitials() || "U"}</AvatarFallback>
-						</Avatar>
-					</div>
-
 					{/* Profile Tab Content */}
 					{activeTab === "profile" && (
-						<div className="space-y-6">
-							<div>
-								<h2 className="text-2xl font-bold">Profile Information</h2>
-								<p className="text-muted-foreground">
-									Update your personal information and contact details
-								</p>
-							</div>
+						<div>
+							<h2 className="text-2xl font-bold mb-6">{fullName}</h2>
 
 							<Form {...profileForm}>
 								<form
 									onSubmit={profileForm.handleSubmit(onProfileSubmit)}
 									className="space-y-6">
+									<FormSection title="Profile Picture">
+										<div className="flex items-center gap-6">
+											<Avatar className="h-24 w-24 border-2 border-muted">
+												<AvatarImage
+													src={
+														user?.user_metadata?.avatar_url ||
+														profilePicturePreview
+													}
+												/>
+												<AvatarFallback className="text-xl font-semibold">
+													{getInitials() || "U"}
+												</AvatarFallback>
+											</Avatar>
+
+											<div className="flex flex-col gap-3">
+												<label
+													htmlFor="profile-picture-upload"
+													className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
+													<Upload className="mr-2 h-4 w-4" />
+													Upload Picture
+													<input
+														id="profile-picture-upload"
+														type="file"
+														accept="image/*"
+														className="sr-only"
+														onChange={handleProfilePictureChange}
+													/>
+												</label>
+
+												{(user?.user_metadata?.avatar_url ||
+													profilePicturePreview) && (
+													<Button
+														type="button"
+														variant="outline"
+														onClick={handleRemoveProfilePicture}
+														className="justify-start">
+														<Trash2 className="mr-2 h-4 w-4" />
+														Remove Picture
+													</Button>
+												)}
+
+												<p className="text-xs text-muted-foreground mt-2">
+													Recommended: Square image, at least 200x200px.
+												</p>
+											</div>
+										</div>
+									</FormSection>
+
 									<FormSection title="Personal Details">
 										<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 											<FormField
@@ -514,90 +590,101 @@ export default function ProfilePage() {
 										/>
 									</FormSection>
 
-									<div className="flex justify-end">
-										<Button
-											type="submit"
-											disabled={isLoading}>
-											{isLoading ? "Saving..." : "Save Changes"}
-										</Button>
-									</div>
-								</form>
-							</Form>
-						</div>
-					)}
-
-					{/* Password Tab Content */}
-					{activeTab === "password" && (
-						<div className="space-y-6">
-							<div>
-								<h2 className="text-2xl font-bold">Change Password</h2>
-								<p className="text-muted-foreground">
-									Update your password to keep your account secure
-								</p>
-							</div>
-
-							<Form {...passwordForm}>
-								<form
-									onSubmit={passwordForm.handleSubmit(onPasswordSubmit)}
-									className="space-y-6">
-									<FormSection title="Password Update">
-										<div className="space-y-4">
-											<FormField
-												control={passwordForm.control}
-												name="currentPassword"
-												render={({ field }) => (
-													<FormItem>
-														<FormLabel>Current Password</FormLabel>
-														<FormControl>
-															<Input
-																type="password"
-																placeholder="Enter your current password"
-																{...field}
-															/>
-														</FormControl>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
-
-											<FormField
-												control={passwordForm.control}
-												name="newPassword"
-												render={({ field }) => (
-													<FormItem>
-														<FormLabel>New Password</FormLabel>
-														<FormControl>
-															<Input
-																type="password"
-																placeholder="Enter your new password"
-																{...field}
-															/>
-														</FormControl>
-														<FormDescription>
-															Password must be at least 8 characters long
-														</FormDescription>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
-
-											<FormField
-												control={passwordForm.control}
-												name="confirmPassword"
-												render={({ field }) => (
-													<FormItem>
-														<FormLabel>Confirm New Password</FormLabel>
-														<FormControl>
-															<Input
-																type="password"
-																placeholder="Confirm your new password"
-																{...field}
-															/>
-														</FormControl>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
+									<FormSection title="Security">
+										<div className="space-y-2">
+											<div className="flex items-center justify-between">
+												<div>
+													<h4 className="text-sm font-medium">Password</h4>
+													<p className="text-sm text-muted-foreground">
+														Update your password to keep your account secure
+													</p>
+												</div>
+												<Dialog>
+													<DialogTrigger asChild>
+														<Button
+															type="button"
+															variant="outline">
+															Update Password
+														</Button>
+													</DialogTrigger>
+													<DialogContent>
+														<DialogHeader>
+															<DialogTitle>Update Password</DialogTitle>
+															<DialogDescription>
+																Enter your current password and new password
+															</DialogDescription>
+														</DialogHeader>
+														<Form {...passwordForm}>
+															<form
+																onSubmit={passwordForm.handleSubmit(
+																	onPasswordSubmit
+																)}
+																className="space-y-6">
+																<FormField
+																	control={passwordForm.control}
+																	name="currentPassword"
+																	render={({ field }) => (
+																		<FormItem>
+																			<FormLabel>Current Password</FormLabel>
+																			<FormControl>
+																				<Input
+																					placeholder="Enter your current password"
+																					type="password"
+																					{...field}
+																				/>
+																			</FormControl>
+																			<FormMessage />
+																		</FormItem>
+																	)}
+																/>
+																<FormField
+																	control={passwordForm.control}
+																	name="newPassword"
+																	render={({ field }) => (
+																		<FormItem>
+																			<FormLabel>New Password</FormLabel>
+																			<FormControl>
+																				<Input
+																					placeholder="Enter your new password"
+																					type="password"
+																					{...field}
+																				/>
+																			</FormControl>
+																			<FormMessage />
+																		</FormItem>
+																	)}
+																/>
+																<FormField
+																	control={passwordForm.control}
+																	name="confirmPassword"
+																	render={({ field }) => (
+																		<FormItem>
+																			<FormLabel>Confirm Password</FormLabel>
+																			<FormControl>
+																				<Input
+																					placeholder="Enter your new password again"
+																					type="password"
+																					{...field}
+																				/>
+																			</FormControl>
+																			<FormMessage />
+																		</FormItem>
+																	)}
+																/>
+																<div className="flex justify-end">
+																	<Button
+																		type="submit"
+																		disabled={isLoading}>
+																		{isLoading
+																			? "Updating..."
+																			: "Update Password"}
+																	</Button>
+																</div>
+															</form>
+														</Form>
+													</DialogContent>
+												</Dialog>
+											</div>
 										</div>
 									</FormSection>
 
@@ -605,7 +692,7 @@ export default function ProfilePage() {
 										<Button
 											type="submit"
 											disabled={isLoading}>
-											{isLoading ? "Updating..." : "Update Password"}
+											{isLoading ? "Saving..." : "Save Changes"}
 										</Button>
 									</div>
 								</form>

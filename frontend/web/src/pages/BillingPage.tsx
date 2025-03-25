@@ -110,36 +110,54 @@ export default function BillingPage() {
 							<p className="text-muted-foreground">
 								Manage your subscription plan
 							</p>
+							<p className="text-sm text-muted-foreground mt-2">
+								Your current plan is highlighted. Pro plan is recommended for
+								most businesses.
+							</p>
 						</div>
 
-						<div className="rounded-lg border p-4 mb-6">
-							<h3 className="text-base font-medium mb-2 flex items-center">
-								<Package className="h-5 w-5 mr-2 text-primary" />
-								{subscriptionPlan === "free" && "Free Plan"}
-								{subscriptionPlan === "pro" && "Pro Plan"}
-								{subscriptionPlan === "business" && "Business Plan"}
-							</h3>
-							<p className="text-sm text-muted-foreground mb-4">
-								{subscriptionPlan === "free" &&
-									"Your business is currently on the free plan."}
-								{subscriptionPlan === "pro" &&
-									"Your business is subscribed to the Pro plan."}
-								{subscriptionPlan === "business" &&
-									"Your business is subscribed to the Business plan."}
+						<div>
+							<h3 className="text-lg font-medium mb-2">Available Plans</h3>
+							<p className="text-sm text-muted-foreground mb-6">
+								Choose a plan that best fits your business
 							</p>
-							<ul className="space-y-2 text-sm mb-6">
-								{subscriptionPlan === "free" && (
-									<>
+
+							<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+								{/* Free Plan */}
+								<div
+									className={`border rounded-lg p-5 transition-all ${
+										subscriptionPlan === "free"
+											? "bg-card border-primary"
+											: "bg-muted/10 hover:bg-card"
+									}`}>
+									<div className="mb-4">
+										<div className="flex justify-between items-center mb-2">
+											<h4 className="text-lg font-semibold">Free Plan</h4>
+											{subscriptionPlan === "free" && (
+												<div className="rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+													Current Plan
+												</div>
+											)}
+										</div>
+										<p className="text-sm text-muted-foreground">
+											For personal or small teams
+										</p>
+									</div>
+									<div className="mb-4">
+										<span className="text-3xl font-bold">$0</span>
+										<span className="text-muted-foreground"> / month</span>
+									</div>
+									<ul className="space-y-2 text-sm mb-6">
 										<li className="flex items-start">
-											<span className="mr-2">✓</span>
+											<Check className="h-4 w-4 mr-2 text-primary" />
 											<span>Up to 5 employees</span>
 										</li>
 										<li className="flex items-start">
-											<span className="mr-2">✓</span>
+											<Check className="h-4 w-4 mr-2 text-primary" />
 											<span>Basic scheduling features</span>
 										</li>
 										<li className="flex items-start">
-											<span className="mr-2">✓</span>
+											<Check className="h-4 w-4 mr-2 text-primary" />
 											<span>Email notifications</span>
 										</li>
 										<li className="flex items-start text-muted-foreground">
@@ -148,165 +166,166 @@ export default function BillingPage() {
 										</li>
 										<li className="flex items-start text-muted-foreground">
 											<span className="mr-2">✗</span>
-											<span>Team management tools</span>
+											<span>SMS notifications</span>
 										</li>
-									</>
-								)}
-								{subscriptionPlan === "pro" && (
-									<>
+									</ul>
+									{subscriptionPlan === "free" ? (
+										<Button
+											disabled
+											className="w-full">
+											Current Plan
+										</Button>
+									) : (
+										<Button
+											variant="outline"
+											className="w-full"
+											disabled={
+												subscriptionPlan === "pro" ||
+												subscriptionPlan === "business"
+											}
+											onClick={() => setSubscriptionPlan("free")}>
+											{subscriptionPlan === "pro" ||
+											subscriptionPlan === "business"
+												? "Downgrade"
+												: "Select Plan"}
+										</Button>
+									)}
+								</div>
+
+								{/* Pro Plan */}
+								<div
+									className={`border border-primary rounded-lg p-6 shadow-lg transform scale-105 z-10 transition-all ${
+										subscriptionPlan === "pro"
+											? "bg-card"
+											: "bg-muted/10 hover:bg-card"
+									} relative`}>
+									{subscriptionPlan !== "pro" && (
+										<div className="absolute -top-3 left-0 right-0 flex justify-center">
+											<div className="rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground">
+												Recommended
+											</div>
+										</div>
+									)}
+									<div className="mb-4">
+										<div className="flex justify-between items-center mb-2">
+											<h4 className="text-lg font-semibold">Pro Plan</h4>
+											{subscriptionPlan === "pro" && (
+												<div className="rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+													Current Plan
+												</div>
+											)}
+										</div>
+										<p className="text-sm text-muted-foreground">
+											For growing businesses
+										</p>
+									</div>
+									<div className="mb-4">
+										<span className="text-3xl font-bold">$29</span>
+										<span className="text-muted-foreground"> / month</span>
+									</div>
+									<ul className="space-y-2 text-sm mb-6">
 										<li className="flex items-start">
-											<span className="mr-2">✓</span>
+											<Check className="h-4 w-4 mr-2 text-primary" />
 											<span>Up to 25 employees</span>
 										</li>
 										<li className="flex items-start">
-											<span className="mr-2">✓</span>
+											<Check className="h-4 w-4 mr-2 text-primary" />
 											<span>Advanced scheduling features</span>
 										</li>
 										<li className="flex items-start">
-											<span className="mr-2">✓</span>
+											<Check className="h-4 w-4 mr-2 text-primary" />
 											<span>SMS notifications</span>
 										</li>
 										<li className="flex items-start">
-											<span className="mr-2">✓</span>
+											<Check className="h-4 w-4 mr-2 text-primary" />
 											<span>Basic reporting</span>
 										</li>
 										<li className="flex items-start text-muted-foreground">
 											<span className="mr-2">✗</span>
 											<span>Advanced analytics</span>
 										</li>
-									</>
-								)}
-								{subscriptionPlan === "business" && (
-									<>
-										<li className="flex items-start">
-											<span className="mr-2">✓</span>
-											<span>Unlimited employees</span>
-										</li>
-										<li className="flex items-start">
-											<span className="mr-2">✓</span>
-											<span>Premium scheduling features</span>
-										</li>
-										<li className="flex items-start">
-											<span className="mr-2">✓</span>
-											<span>SMS and email notifications</span>
-										</li>
-										<li className="flex items-start">
-											<span className="mr-2">✓</span>
-											<span>Advanced reporting & analytics</span>
-										</li>
-										<li className="flex items-start">
-											<span className="mr-2">✓</span>
+										<li className="flex items-start text-muted-foreground">
+											<span className="mr-2">✗</span>
 											<span>Priority support</span>
 										</li>
-									</>
-								)}
-							</ul>
-						</div>
-
-						{subscriptionPlan !== "business" && (
-							<div className="mb-8 flex justify-end">
-								<Button
-									disabled={isUpgrading}
-									onClick={() =>
-										subscriptionPlan === "free"
-											? handleUpgrade("pro")
-											: handleUpgrade("business")
-									}>
-									{isUpgrading
-										? "Processing..."
-										: subscriptionPlan === "free"
-										? "Upgrade to Pro"
-										: "Upgrade to Business"}
-								</Button>
-							</div>
-						)}
-
-						{subscriptionPlan === "free" && (
-							<>
-								<h3 className="text-lg font-medium mt-12 mb-2">
-									Available Plans
-								</h3>
-								<p className="text-sm text-muted-foreground mb-4">
-									Choose a plan that best fits your business
-								</p>
-
-								<div className="grid md:grid-cols-2 gap-6">
-									<div className="border rounded-lg p-5 border-primary">
-										<div className="mb-4">
-											<div className="flex justify-between items-center mb-2">
-												<h4 className="text-base font-medium">Pro Plan</h4>
-												<div className="rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
-													Recommended
-												</div>
-											</div>
-											<p className="text-sm text-muted-foreground">
-												For growing businesses
-											</p>
-										</div>
-										<div className="mb-4">
-											<span className="text-3xl font-bold">$29</span>
-											<span className="text-muted-foreground"> / month</span>
-										</div>
-										<ul className="space-y-2 text-sm mb-6">
-											<li className="flex items-start">
-												<Check className="h-4 w-4 mr-2 text-primary" />
-												<span>Up to 25 employees</span>
-											</li>
-											<li className="flex items-start">
-												<Check className="h-4 w-4 mr-2 text-primary" />
-												<span>Advanced scheduling features</span>
-											</li>
-											<li className="flex items-start">
-												<Check className="h-4 w-4 mr-2 text-primary" />
-												<span>SMS notifications</span>
-											</li>
-											<li className="flex items-start">
-												<Check className="h-4 w-4 mr-2 text-primary" />
-												<span>Basic reporting</span>
-											</li>
-										</ul>
+									</ul>
+									{subscriptionPlan === "pro" ? (
+										<Button
+											disabled
+											className="w-full">
+											Current Plan
+										</Button>
+									) : subscriptionPlan === "business" ? (
+										<Button
+											variant="outline"
+											className="w-full"
+											disabled={isUpgrading}
+											onClick={() => handleUpgrade("pro")}>
+											{isUpgrading ? "Processing..." : "Downgrade to Pro"}
+										</Button>
+									) : (
 										<Button
 											disabled={isUpgrading}
 											onClick={() => handleUpgrade("pro")}
 											className="w-full">
 											{isUpgrading ? "Processing..." : "Upgrade Now"}
 										</Button>
+									)}
+								</div>
+
+								{/* Business Plan */}
+								<div
+									className={`border rounded-lg p-5 transition-all ${
+										subscriptionPlan === "business"
+											? "bg-card border-primary"
+											: "bg-muted/10 hover:bg-card"
+									}`}>
+									<div className="mb-4">
+										<div className="flex justify-between items-center mb-2">
+											<h4 className="text-lg font-semibold">Business Plan</h4>
+											{subscriptionPlan === "business" && (
+												<div className="rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+													Current Plan
+												</div>
+											)}
+										</div>
+										<p className="text-sm text-muted-foreground">
+											For established businesses
+										</p>
 									</div>
-									<div className="border rounded-lg p-5">
-										<div className="mb-4">
-											<h4 className="text-base font-medium mb-2">
-												Business Plan
-											</h4>
-											<p className="text-sm text-muted-foreground">
-												For established businesses
-											</p>
-										</div>
-										<div className="mb-4">
-											<span className="text-3xl font-bold">$79</span>
-											<span className="text-muted-foreground"> / month</span>
-										</div>
-										<ul className="space-y-2 text-sm mb-6">
-											<li className="flex items-start">
-												<Check className="h-4 w-4 mr-2 text-primary" />
-												<span>Unlimited employees</span>
-											</li>
-											<li className="flex items-start">
-												<Check className="h-4 w-4 mr-2 text-primary" />
-												<span>Premium scheduling features</span>
-											</li>
-											<li className="flex items-start">
-												<Check className="h-4 w-4 mr-2 text-primary" />
-												<span>SMS and email notifications</span>
-											</li>
-											<li className="flex items-start">
-												<Check className="h-4 w-4 mr-2 text-primary" />
-												<span>Advanced reporting & analytics</span>
-											</li>
-											<li className="flex items-start">
-												<Check className="h-4 w-4 mr-2 text-primary" />
-												<span>Priority support</span>
-											</li>
-										</ul>
+									<div className="mb-4">
+										<span className="text-3xl font-bold">$79</span>
+										<span className="text-muted-foreground"> / month</span>
+									</div>
+									<ul className="space-y-2 text-sm mb-6">
+										<li className="flex items-start">
+											<Check className="h-4 w-4 mr-2 text-primary" />
+											<span>Unlimited employees</span>
+										</li>
+										<li className="flex items-start">
+											<Check className="h-4 w-4 mr-2 text-primary" />
+											<span>Premium scheduling features</span>
+										</li>
+										<li className="flex items-start">
+											<Check className="h-4 w-4 mr-2 text-primary" />
+											<span>SMS and email notifications</span>
+										</li>
+										<li className="flex items-start">
+											<Check className="h-4 w-4 mr-2 text-primary" />
+											<span>Advanced reporting & analytics</span>
+										</li>
+										<li className="flex items-start">
+											<Check className="h-4 w-4 mr-2 text-primary" />
+											<span>Priority support</span>
+										</li>
+									</ul>
+									{subscriptionPlan === "business" ? (
+										<Button
+											disabled
+											className="w-full">
+											Current Plan
+										</Button>
+									) : (
 										<Button
 											disabled={isUpgrading}
 											onClick={() => handleUpgrade("business")}
@@ -314,10 +333,25 @@ export default function BillingPage() {
 											variant="outline">
 											{isUpgrading ? "Processing..." : "Upgrade Now"}
 										</Button>
-									</div>
+									)}
 								</div>
-							</>
-						)}
+							</div>
+
+							<div className="text-center mt-8 text-sm text-muted-foreground">
+								<p>
+									All plans include unlimited schedule creation and basic
+									customer support.
+								</p>
+								<p className="mt-2">
+									Need a custom plan for your enterprise?{" "}
+									<Button
+										variant="link"
+										className="h-auto p-0">
+										Contact us
+									</Button>
+								</p>
+							</div>
+						</div>
 					</div>
 				)}
 

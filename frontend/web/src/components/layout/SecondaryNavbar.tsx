@@ -6,6 +6,7 @@ import { useLocation } from "react-router-dom";
 import { CalendarIcon, ListTodo, Calendar, CalendarDays } from "lucide-react";
 import { useAuth } from "../../lib/auth";
 import { format } from "date-fns";
+import { Button } from "../ui/button";
 
 interface SecondaryNavbarProps {
 	children: ReactNode;
@@ -16,12 +17,12 @@ export function SecondaryNavbar({ children, className }: SecondaryNavbarProps) {
 	return (
 		<div
 			className={cn(
-				"fixed left-64 top-14 w-64 h-[calc(100%-3.5rem)] border-r bg-background z-30 shadow-sm",
+				"fixed left-64 top-14 w-64 h-[calc(100%-3.5rem)] border-r bg-background z-30",
 				className
 			)}>
-			<div className="flex flex-col h-full overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/10">
-				<div className="p-4 space-y-1">{children}</div>
-			</div>
+			<aside className="flex flex-col h-full overflow-y-auto px-4 py-6">
+				{children}
+			</aside>
 		</div>
 	);
 }
@@ -42,7 +43,9 @@ export function ScheduleSidebar({
 			<div className="space-y-6">
 				{/* Schedule Selection */}
 				<div>
-					<h3 className="text-sm mb-2">Select Schedule</h3>
+					<h3 className="text-sm font-medium text-muted-foreground mb-3">
+						Select Schedule
+					</h3>
 					<div className="relative">
 						<select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background appearance-none">
 							<option>Spring 2025 Schedule</option>
@@ -68,31 +71,33 @@ export function ScheduleSidebar({
 
 				{/* View Tabs */}
 				<div>
-					<div className="flex border rounded-md overflow-hidden">
-						<button
+					<div className="flex rounded-md overflow-hidden shadow-sm">
+						<Button
+							variant="ghost"
 							onClick={() => onViewToday()}
-							className="flex-1 text-center py-2 text-sm border-r">
+							className="flex-1 rounded-none text-center py-2 text-sm">
 							Today
-						</button>
-						<button
+						</Button>
+						<Button
+							variant={viewMode === "calendar" ? "secondary" : "ghost"}
 							onClick={() => onViewModeChange("calendar")}
-							className={`flex-1 text-center py-2 text-sm ${
-								viewMode === "calendar"
-									? "bg-primary/10 text-primary font-medium"
-									: ""
-							}`}>
+							className="flex-1 rounded-none text-center py-2 text-sm">
 							Calendar
-						</button>
+						</Button>
 					</div>
 				</div>
 
 				{/* Mini Calendar */}
 				<div>
 					<div className="flex justify-between items-center mb-3">
-						<h3 className="text-sm">Calendar</h3>
-						<button
+						<h3 className="text-sm font-medium text-muted-foreground">
+							Calendar
+						</h3>
+						<Button
+							variant="ghost"
+							size="sm"
 							onClick={() => onViewModeChange("calendar")}
-							className="flex items-center text-sm font-medium text-primary hover:underline">
+							className="flex items-center text-sm font-medium h-7 px-2">
 							<svg
 								className="h-4 w-4 mr-1"
 								viewBox="0 0 24 24"
@@ -125,11 +130,14 @@ export function ScheduleSidebar({
 									y2="10"></line>
 							</svg>
 							View Calendar
-						</button>
+						</Button>
 					</div>
-					<div className="border rounded-md p-2">
+					<div className="rounded-md p-2 bg-muted/30">
 						<div className="flex justify-between items-center mb-2">
-							<button className="h-6 w-6 flex items-center justify-center rounded-full hover:bg-accent">
+							<Button
+								variant="ghost"
+								size="icon"
+								className="h-6 w-6 rounded-full p-0">
 								<svg
 									className="h-4 w-4"
 									viewBox="0 0 24 24"
@@ -140,9 +148,12 @@ export function ScheduleSidebar({
 									strokeLinejoin="round">
 									<polyline points="15 18 9 12 15 6"></polyline>
 								</svg>
-							</button>
+							</Button>
 							<div className="text-sm font-medium">March 2025</div>
-							<button className="h-6 w-6 flex items-center justify-center rounded-full hover:bg-accent">
+							<Button
+								variant="ghost"
+								size="icon"
+								className="h-6 w-6 rounded-full p-0">
 								<svg
 									className="h-4 w-4"
 									viewBox="0 0 24 24"
@@ -153,7 +164,7 @@ export function ScheduleSidebar({
 									strokeLinejoin="round">
 									<polyline points="9 18 15 12 9 6"></polyline>
 								</svg>
-							</button>
+							</Button>
 						</div>
 						<div className="grid grid-cols-7 text-center text-xs mb-1">
 							<div className="text-muted-foreground">Su</div>
@@ -202,7 +213,9 @@ export function LocationsSidebar({
 }) {
 	return (
 		<SecondaryNavbar>
-			<h3 className="font-medium mb-4">Filters</h3>
+			<h3 className="text-sm font-medium text-muted-foreground mb-4">
+				Filters
+			</h3>
 
 			<div className="space-y-4">
 				{/* Search input */}
@@ -264,11 +277,12 @@ export function LocationsSidebar({
 
 				{/* Clear filters button */}
 				{(stateFilter || statusFilter) && (
-					<button
+					<Button
+						variant="outline"
 						onClick={onClearFilters}
-						className="w-full border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-md px-3 py-2 text-sm">
+						className="w-full">
 						Clear Filters
-					</button>
+					</Button>
 				)}
 			</div>
 		</SecondaryNavbar>
@@ -290,7 +304,9 @@ export function EmployeesSidebar({
 }) {
 	return (
 		<SecondaryNavbar>
-			<h3 className="font-medium mb-4">Filters</h3>
+			<h3 className="text-sm font-medium text-muted-foreground mb-4">
+				Filters
+			</h3>
 
 			<div className="space-y-4">
 				{/* Search input */}
@@ -334,11 +350,12 @@ export function EmployeesSidebar({
 
 				{/* Clear filters button */}
 				{positionFilter && (
-					<button
+					<Button
+						variant="outline"
 						onClick={onClearFilters}
-						className="w-full border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-md px-3 py-2 text-sm">
+						className="w-full">
 						Clear Filters
-					</button>
+					</Button>
 				)}
 			</div>
 		</SecondaryNavbar>
@@ -358,98 +375,80 @@ export function ProfileSidebar({
 
 	return (
 		<SecondaryNavbar>
-			<div className="space-y-2">
-				<h3 className="text-sm font-medium text-muted-foreground mb-2">
+			<div className="space-y-1">
+				<h3 className="text-sm font-medium text-muted-foreground mb-3">
 					Personal Settings
 				</h3>
-				<button
+
+				<Button
+					variant={activeTab === "profile" ? "secondary" : "ghost"}
 					onClick={() => onTabChange("profile")}
-					className={`w-full text-left px-3 py-2 rounded-md ${
-						activeTab === "profile"
-							? "bg-primary/10 text-primary font-medium"
-							: "hover:bg-accent"
-					}`}>
+					className="w-full justify-start text-left font-normal">
 					Personal Information
-				</button>
-				<button
-					onClick={() => onTabChange("password")}
-					className={`w-full text-left px-3 py-2 rounded-md ${
-						activeTab === "password"
-							? "bg-primary/10 text-primary font-medium"
-							: "hover:bg-accent"
-					}`}>
-					Password
-				</button>
-				<button
+				</Button>
+
+				<Button
+					variant={activeTab === "notifications" ? "secondary" : "ghost"}
 					onClick={() => onTabChange("notifications")}
-					className={`w-full text-left px-3 py-2 rounded-md ${
-						activeTab === "notifications"
-							? "bg-primary/10 text-primary font-medium"
-							: "hover:bg-accent"
-					}`}>
+					className="w-full justify-start text-left font-normal">
 					Notifications
-				</button>
+				</Button>
+
 				{isAdmin && (
 					<>
-						<div className="my-6 border-t pt-4">
-							<h3 className="text-sm font-medium text-muted-foreground mb-2">
+						<div className="mt-8 mb-3">
+							<h3 className="text-sm font-medium text-muted-foreground">
 								Business Settings
 							</h3>
 						</div>
-						<button
-							onClick={() => onTabChange("business-profile")}
-							className={`w-full text-left px-3 py-2 rounded-md ${
-								activeTab === "business-profile"
-									? "bg-primary/10 text-primary font-medium"
-									: "hover:bg-accent"
-							}`}>
-							Business Profile
-						</button>
-						<button
-							onClick={() => onTabChange("branding")}
-							className={`w-full text-left px-3 py-2 rounded-md ${
-								activeTab === "branding"
-									? "bg-primary/10 text-primary font-medium"
-									: "hover:bg-accent"
-							}`}>
-							Branding
-						</button>
 
-						{/* Billing options directly in the sidebar */}
-						<div className="my-4">
-							<h3 className="text-sm font-medium text-muted-foreground mb-2 pl-3">
+						<Button
+							variant={activeTab === "business-profile" ? "secondary" : "ghost"}
+							onClick={() => onTabChange("business-profile")}
+							className="w-full justify-start text-left font-normal">
+							Business Profile
+						</Button>
+
+						<Button
+							variant={activeTab === "branding" ? "secondary" : "ghost"}
+							onClick={() => onTabChange("branding")}
+							className="w-full justify-start text-left font-normal">
+							Branding
+						</Button>
+
+						{/* Billing options */}
+						<div className="mt-8 mb-3">
+							<h3 className="text-sm font-medium text-muted-foreground">
 								Billing
 							</h3>
 						</div>
-						<button
+
+						<Button
+							variant={activeTab === "subscription" ? "secondary" : "ghost"}
 							onClick={() => onTabChange("subscription")}
-							className={`w-full text-left px-3 py-2 rounded-md ${
-								activeTab === "subscription"
-									? "bg-primary/10 text-primary font-medium"
-									: "hover:bg-accent"
-							}`}>
+							className="w-full justify-start text-left font-normal">
 							Subscription
-						</button>
+						</Button>
+
 						{hasPaidSubscription && (
 							<>
-								<button
+								<Button
+									variant={
+										activeTab === "payment-methods" ? "secondary" : "ghost"
+									}
 									onClick={() => onTabChange("payment-methods")}
-									className={`w-full text-left px-3 py-2 rounded-md ${
-										activeTab === "payment-methods"
-											? "bg-primary/10 text-primary font-medium"
-											: "hover:bg-accent"
-									}`}>
+									className="w-full justify-start text-left font-normal">
 									Payment Methods
-								</button>
-								<button
+								</Button>
+
+								<Button
+									variant={
+										activeTab === "billing-history" ? "secondary" : "ghost"
+									}
 									onClick={() => onTabChange("billing-history")}
-									className={`w-full text-left px-3 py-2 rounded-md ${
-										activeTab === "billing-history"
-											? "bg-primary/10 text-primary font-medium"
-											: "hover:bg-accent"
-									}`}>
+									className="w-full justify-start text-left font-normal">
 									Billing History
-								</button>
+								</Button>
 							</>
 						)}
 					</>
