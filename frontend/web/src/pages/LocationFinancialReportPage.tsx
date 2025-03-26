@@ -26,6 +26,7 @@ import { LocationFinancialReport } from "../components/LocationFinancialReport";
 import { LocationSubNav } from "../components/LocationSubNav";
 import { LoadingState } from "../components/ui/loading-state";
 import { PageHeader } from "../components/ui/page-header";
+import { PageContentSpacing } from "../components/ui/header-content-spacing";
 
 export default function LocationFinancialReportPage() {
 	const { locationId } = useParams<{ locationId: string }>();
@@ -97,37 +98,55 @@ export default function LocationFinancialReportPage() {
 
 	if (loading) {
 		return (
-			<ContentContainer>
-				<LoadingState
-					type="skeleton"
-					skeletonCount={4}
-					skeletonHeight={60}
-					message={`Loading ${loadingPhase}...`}
+			<>
+				<PageHeader
+					title="Loading..."
+					description="Retrieving financial report data"
+					showBackButton={true}
 				/>
-			</ContentContainer>
+				<PageContentSpacing>
+					<ContentContainer>
+						<LoadingState
+							type="skeleton"
+							skeletonCount={4}
+							skeletonHeight={60}
+							message={`Loading ${loadingPhase}...`}
+						/>
+					</ContentContainer>
+				</PageContentSpacing>
+			</>
 		);
 	}
 
 	if (!location) {
 		return (
-			<ContentContainer>
-				<ContentSection
+			<>
+				<PageHeader
 					title="Location not found"
-					description="The requested location could not be found."
-					footer={
-						<Button
-							variant="outline"
-							onClick={() => navigate("/locations")}
-							className="mt-2">
-							Back to Locations
-						</Button>
-					}>
-					<p>
-						The location you're looking for may have been removed or doesn't
-						exist.
-					</p>
-				</ContentSection>
-			</ContentContainer>
+					description="The requested location could not be found"
+					showBackButton={true}
+				/>
+				<PageContentSpacing>
+					<ContentContainer>
+						<ContentSection
+							title="Location not found"
+							description="The requested location could not be found."
+							footer={
+								<Button
+									variant="outline"
+									onClick={() => navigate("/locations")}
+									className="mt-2">
+									Back to Locations
+								</Button>
+							}>
+							<p>
+								The location you're looking for may have been removed or doesn't
+								exist.
+							</p>
+						</ContentSection>
+					</ContentContainer>
+				</PageContentSpacing>
+			</>
 		);
 	}
 
@@ -169,71 +188,73 @@ export default function LocationFinancialReportPage() {
 				actions={headerActions}
 				showBackButton={true}
 			/>
-			<ContentContainer>
-				<LocationSubNav
-					locationId={locationId || ""}
-					locationName={location.name}
-				/>
+			<PageContentSpacing>
+				<ContentContainer>
+					<LocationSubNav
+						locationId={locationId || ""}
+						locationName={location.name}
+					/>
 
-				<div className="grid gap-6 mt-6 px-8">
-					<div className="print:py-4">
-						<div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-							<Button
-								variant="default"
-								className="h-auto py-4 px-6 bg-green-600 hover:bg-green-700 flex flex-col items-center justify-center text-left"
-								onClick={() =>
-									navigate(`/locations/${locationId}/financial/profit-loss`)
-								}>
-								<FileBarChart className="h-8 w-8 mb-2" />
-								<div className="text-left w-full">
-									<h3 className="font-semibold text-lg">Profit & Loss</h3>
-									<p className="text-xs opacity-90">
-										Detailed P&L statements with monthly comparison
-									</p>
-								</div>
-							</Button>
+					<div className="grid gap-6 mt-6">
+						<div className="print:py-4">
+							<div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+								<Button
+									variant="default"
+									className="h-auto py-4 px-6 bg-green-600 hover:bg-green-700 flex flex-col items-center justify-center text-left"
+									onClick={() =>
+										navigate(`/locations/${locationId}/financial/profit-loss`)
+									}>
+									<FileBarChart className="h-8 w-8 mb-2" />
+									<div className="text-left w-full">
+										<h3 className="font-semibold text-lg">Profit & Loss</h3>
+										<p className="text-xs opacity-90">
+											Detailed P&L statements with monthly comparison
+										</p>
+									</div>
+								</Button>
 
-							<Button
-								variant="default"
-								className="h-auto py-4 px-6 bg-blue-600 hover:bg-blue-700 flex flex-col items-center justify-center text-left"
-								onClick={() =>
-									navigate(`/locations/${locationId}/financial/cost-revenue`)
-								}>
-								<FilePieChart className="h-8 w-8 mb-2" />
-								<div className="text-left w-full">
-									<h3 className="font-semibold text-lg">Cost vs Revenue</h3>
-									<p className="text-xs opacity-90">
-										Track all expenses against revenue streams
-									</p>
-								</div>
-							</Button>
+								<Button
+									variant="default"
+									className="h-auto py-4 px-6 bg-blue-600 hover:bg-blue-700 flex flex-col items-center justify-center text-left"
+									onClick={() =>
+										navigate(`/locations/${locationId}/financial/cost-revenue`)
+									}>
+									<FilePieChart className="h-8 w-8 mb-2" />
+									<div className="text-left w-full">
+										<h3 className="font-semibold text-lg">Cost vs Revenue</h3>
+										<p className="text-xs opacity-90">
+											Track all expenses against revenue streams
+										</p>
+									</div>
+								</Button>
 
-							<Button
-								variant="default"
-								className="h-auto py-4 px-6 bg-purple-600 hover:bg-purple-700 flex flex-col items-center justify-center text-left"
-								onClick={() =>
-									navigate(`/locations/${locationId}/financial/forecasting`)
-								}>
-								<DollarSign className="h-8 w-8 mb-2" />
-								<div className="text-left w-full">
-									<h3 className="font-semibold text-lg">
-										Financial Forecasting
-									</h3>
-									<p className="text-xs opacity-90">
-										Predictive analytics and future projections
-									</p>
-								</div>
-							</Button>
+								<Button
+									variant="default"
+									className="h-auto py-4 px-6 bg-purple-600 hover:bg-purple-700 flex flex-col items-center justify-center text-left"
+									onClick={() =>
+										navigate(`/locations/${locationId}/financial/forecasting`)
+									}>
+									<DollarSign className="h-8 w-8 mb-2" />
+									<div className="text-left w-full">
+										<h3 className="font-semibold text-lg">
+											Financial Forecasting
+										</h3>
+										<p className="text-xs opacity-90">
+											Predictive analytics and future projections
+										</p>
+									</div>
+								</Button>
+							</div>
+
+							<LocationFinancialReport
+								location={location}
+								shifts={shifts}
+								employees={assignedEmployees}
+							/>
 						</div>
-
-						<LocationFinancialReport
-							location={location}
-							shifts={shifts}
-							employees={assignedEmployees}
-						/>
 					</div>
-				</div>
-			</ContentContainer>
+				</ContentContainer>
+			</PageContentSpacing>
 		</>
 	);
 }

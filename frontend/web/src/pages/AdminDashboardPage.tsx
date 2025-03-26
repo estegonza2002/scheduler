@@ -310,13 +310,24 @@ export default function AdminDashboardPage() {
 	};
 
 	if (loading) {
-		return <ContentContainer>{renderLoadingSkeleton()}</ContentContainer>;
+		return (
+			<>
+				<PageHeader
+					title="Loading Dashboard"
+					description="Retrieving your business data"
+				/>
+				<PageContentSpacing>
+					<ContentContainer>{renderLoadingSkeleton()}</ContentContainer>
+				</PageContentSpacing>
+			</>
+		);
 	}
 
 	return (
-		<div className="flex flex-col min-h-screen">
+		<>
 			<PageHeader
 				title="Business Dashboard"
+				description="Manage your business operations and view key metrics"
 				actions={
 					<>
 						<Button
@@ -335,8 +346,8 @@ export default function AdminDashboardPage() {
 			/>
 
 			<PageContentSpacing>
-				<OnboardingReminder />
 				<ContentContainer>
+					<OnboardingReminder />
 					<Tabs defaultValue="overview">
 						<div className="flex justify-between items-center mb-4">
 							<TabsList className="w-auto">
@@ -644,6 +655,6 @@ export default function AdminDashboardPage() {
 					</Tabs>
 				</ContentContainer>
 			</PageContentSpacing>
-		</div>
+		</>
 	);
 }

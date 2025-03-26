@@ -75,6 +75,7 @@ import {
 import { calculateHours } from "../utils/time-calculations";
 import { LocationAssignmentSheet } from "../components/LocationAssignmentSheet";
 import { PageHeader } from "../components/ui/page-header";
+import { PageContentSpacing } from "../components/ui/header-content-spacing";
 
 // New component for Employee Statistics
 function EmployeeStats({
@@ -743,270 +744,275 @@ export default function EmployeeDetailPage() {
 				actions={ActionButtons}
 				showBackButton={true}
 			/>
-			<ContentContainer>
-				<div className="grid gap-6 mt-6">
-					{/* Profile Header */}
-					<ContentSection
-						title="Overview"
-						flat>
-						<div className="flex items-center gap-4">
-							<AvatarWithStatus
-								src={employeeWithPresence?.avatar}
-								alt={employeeWithPresence?.name}
-								fallback={initials}
-								size="xl"
-								isOnline={employeeWithPresence?.isOnline}
-								status={employeeWithPresence?.status as any}
-							/>
-							<div>
-								<h2 className="text-2xl font-semibold">
-									{employeeWithPresence?.name}
-								</h2>
-								<p className="text-muted-foreground text-lg">
-									{employeeWithPresence?.position || employeeWithPresence?.role}
-								</p>
-								<div className="flex items-center gap-2 mt-2">
-									<EmployeeStatusBadge
-										status={employeeWithPresence?.status as any}
-										isOnline={employeeWithPresence?.isOnline}
-										lastActive={employeeWithPresence?.lastActive}
-									/>
+			<PageContentSpacing>
+				<ContentContainer>
+					<div className="grid gap-6 mt-6">
+						{/* Profile Header */}
+						<ContentSection
+							title="Overview"
+							flat>
+							<div className="flex items-center gap-4">
+								<AvatarWithStatus
+									src={employeeWithPresence?.avatar}
+									alt={employeeWithPresence?.name}
+									fallback={initials}
+									size="xl"
+									isOnline={employeeWithPresence?.isOnline}
+									status={employeeWithPresence?.status as any}
+								/>
+								<div>
+									<h2 className="text-2xl font-semibold">
+										{employeeWithPresence?.name}
+									</h2>
+									<p className="text-muted-foreground text-lg">
+										{employeeWithPresence?.position ||
+											employeeWithPresence?.role}
+									</p>
+									<div className="flex items-center gap-2 mt-2">
+										<EmployeeStatusBadge
+											status={employeeWithPresence?.status as any}
+											isOnline={employeeWithPresence?.isOnline}
+											lastActive={employeeWithPresence?.lastActive}
+										/>
+									</div>
 								</div>
 							</div>
-						</div>
-					</ContentSection>
+						</ContentSection>
 
-					{/* Employee Statistics Section */}
-					<ContentSection
-						title="Employee Statistics"
-						description="Performance metrics and statistics based on employee data">
-						{shiftsLoading ? (
-							<div className="space-y-4">
-								<div className="h-24 bg-gray-200 rounded animate-pulse"></div>
-								<div className="h-24 bg-gray-200 rounded animate-pulse"></div>
-							</div>
-						) : (
-							employee && (
-								<EmployeeStats
-									employee={employee}
-									shifts={shifts}
-								/>
-							)
-						)}
-					</ContentSection>
+						{/* Employee Statistics Section */}
+						<ContentSection
+							title="Employee Statistics"
+							description="Performance metrics and statistics based on employee data">
+							{shiftsLoading ? (
+								<div className="space-y-4">
+									<div className="h-24 bg-gray-200 rounded animate-pulse"></div>
+									<div className="h-24 bg-gray-200 rounded animate-pulse"></div>
+								</div>
+							) : (
+								employee && (
+									<EmployeeStats
+										employee={employee}
+										shifts={shifts}
+									/>
+								)
+							)}
+						</ContentSection>
 
-					{/* Assigned Locations Section */}
-					<ContentSection
-						title="Assigned Locations"
-						description="Locations this employee is assigned to work at"
-						headerActions={
-							employee && (
-								<LocationAssignmentSheet
-									employeeId={employeeId || ""}
-									employeeName={employee.name}
-									allLocations={allLocations}
-									assignedLocationIds={assignedLocationIds}
-									onLocationsAssigned={handleLocationsAssigned}
-									trigger={
-										<Button
-											size="sm"
-											variant="outline">
-											<Plus className="h-4 w-4 mr-2" />
-											Manage Locations
-										</Button>
-									}
-								/>
-							)
-						}>
-						{locationsLoading ? (
-							<div className="space-y-4">
-								<div className="h-10 w-1/3 bg-gray-200 rounded animate-pulse"></div>
-								<div className="h-24 bg-gray-200 rounded animate-pulse"></div>
-							</div>
-						) : assignedLocationIds.length > 0 ? (
-							<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-								{assignedLocationIds.map((locationId, index) => {
-									const location = locations[locationId];
-									if (!location) return null;
+						{/* Assigned Locations Section */}
+						<ContentSection
+							title="Assigned Locations"
+							description="Locations this employee is assigned to work at"
+							headerActions={
+								employee && (
+									<LocationAssignmentSheet
+										employeeId={employeeId || ""}
+										employeeName={employee.name}
+										allLocations={allLocations}
+										assignedLocationIds={assignedLocationIds}
+										onLocationsAssigned={handleLocationsAssigned}
+										trigger={
+											<Button
+												size="sm"
+												variant="outline">
+												<Plus className="h-4 w-4 mr-2" />
+												Manage Locations
+											</Button>
+										}
+									/>
+								)
+							}>
+							{locationsLoading ? (
+								<div className="space-y-4">
+									<div className="h-10 w-1/3 bg-gray-200 rounded animate-pulse"></div>
+									<div className="h-24 bg-gray-200 rounded animate-pulse"></div>
+								</div>
+							) : assignedLocationIds.length > 0 ? (
+								<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+									{assignedLocationIds.map((locationId, index) => {
+										const location = locations[locationId];
+										if (!location) return null;
 
-									const isPrimary = index === 0; // First location is primary
+										const isPrimary = index === 0; // First location is primary
 
-									return (
-										<Card key={locationId}>
-											<CardContent className="p-4">
-												<div className="flex flex-col">
-													<div className="flex justify-between">
-														<h4 className="font-medium">{location.name}</h4>
-														{isPrimary && (
-															<Badge
-																className="ml-2"
-																variant="outline">
-																Primary
-															</Badge>
+										return (
+											<Card key={locationId}>
+												<CardContent className="p-4">
+													<div className="flex flex-col">
+														<div className="flex justify-between">
+															<h4 className="font-medium">{location.name}</h4>
+															{isPrimary && (
+																<Badge
+																	className="ml-2"
+																	variant="outline">
+																	Primary
+																</Badge>
+															)}
+														</div>
+														{location.address && (
+															<p className="text-sm text-muted-foreground">
+																{location.address}
+																{location.city && `, ${location.city}`}
+																{location.state && `, ${location.state}`}
+																{location.zipCode && ` ${location.zipCode}`}
+															</p>
 														)}
 													</div>
-													{location.address && (
-														<p className="text-sm text-muted-foreground">
-															{location.address}
-															{location.city && `, ${location.city}`}
-															{location.state && `, ${location.state}`}
-															{location.zipCode && ` ${location.zipCode}`}
-														</p>
-													)}
-												</div>
-											</CardContent>
-										</Card>
-									);
-								})}
-							</div>
-						) : (
-							<div className="text-muted-foreground p-4 border rounded-lg">
-								No locations currently assigned to this employee
-							</div>
-						)}
-					</ContentSection>
-
-					{/* Contact Information */}
-					<ContentSection title="Contact Information">
-						<div className="space-y-4">
-							<div className="flex items-center gap-3">
-								<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
-									<Mail className="h-5 w-5 text-primary" />
+												</CardContent>
+											</Card>
+										);
+									})}
 								</div>
-								<div>
-									<div className="text-sm font-medium">Email</div>
-									<div className="text-sm">{employee.email}</div>
-								</div>
-							</div>
-
-							{employee.phone && (
-								<div className="flex items-center gap-3">
-									<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
-										<Phone className="h-5 w-5 text-primary" />
-									</div>
-									<div>
-										<div className="text-sm font-medium">Phone</div>
-										<div className="text-sm">{employee.phone}</div>
-									</div>
+							) : (
+								<div className="text-muted-foreground p-4 border rounded-lg">
+									No locations currently assigned to this employee
 								</div>
 							)}
+						</ContentSection>
 
-							{employee.address && (
-								<div className="flex items-center gap-3">
-									<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
-										<MapPin className="h-5 w-5 text-primary" />
-									</div>
-									<div>
-										<div className="text-sm font-medium">Address</div>
-										<div className="text-sm">{employee.address}</div>
-									</div>
-								</div>
-							)}
-						</div>
-					</ContentSection>
-
-					{/* Employment Details */}
-					<ContentSection title="Employment Details">
-						<div className="space-y-4">
-							<div className="flex items-center gap-3">
-								<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
-									<User className="h-5 w-5 text-primary" />
-								</div>
-								<div>
-									<div className="text-sm font-medium">Role</div>
-									<div className="text-sm">{employee.role}</div>
-								</div>
-							</div>
-
-							{employee.position && (
-								<div className="flex items-center gap-3">
-									<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
-										<Info className="h-5 w-5 text-primary" />
-									</div>
-									<div>
-										<div className="text-sm font-medium">Position</div>
-										<div className="text-sm">{employee.position}</div>
-									</div>
-								</div>
-							)}
-
-							{employee.hourlyRate !== undefined && (
-								<div className="flex items-center gap-3">
-									<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
-										<DollarSign className="h-5 w-5 text-primary" />
-									</div>
-									<div>
-										<div className="text-sm font-medium">Hourly Rate</div>
-										<div className="text-sm">
-											${employee.hourlyRate.toFixed(2)}
-										</div>
-									</div>
-								</div>
-							)}
-
-							{employee.hireDate && (
-								<div className="flex items-center gap-3">
-									<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
-										<Calendar className="h-5 w-5 text-primary" />
-									</div>
-									<div>
-										<div className="text-sm font-medium">Hire Date</div>
-										<div className="text-sm">
-											{new Date(employee.hireDate).toLocaleDateString()}
-										</div>
-									</div>
-								</div>
-							)}
-						</div>
-					</ContentSection>
-
-					{/* Additional Information */}
-					{(employee.emergencyContact || employee.notes) && (
-						<ContentSection title="Additional Information">
+						{/* Contact Information */}
+						<ContentSection title="Contact Information">
 							<div className="space-y-4">
-								{employee.emergencyContact && (
+								<div className="flex items-center gap-3">
+									<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
+										<Mail className="h-5 w-5 text-primary" />
+									</div>
+									<div>
+										<div className="text-sm font-medium">Email</div>
+										<div className="text-sm">{employee.email}</div>
+									</div>
+								</div>
+
+								{employee.phone && (
 									<div className="flex items-center gap-3">
 										<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
-											<AlertCircle className="h-5 w-5 text-primary" />
+											<Phone className="h-5 w-5 text-primary" />
 										</div>
 										<div>
-											<div className="text-sm font-medium">
-												Emergency Contact
-											</div>
-											<div className="text-sm">{employee.emergencyContact}</div>
+											<div className="text-sm font-medium">Phone</div>
+											<div className="text-sm">{employee.phone}</div>
 										</div>
 									</div>
 								)}
 
-								{employee.notes && (
-									<div className="flex items-start gap-3">
-										<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center mt-1">
-											<ClipboardList className="h-5 w-5 text-primary" />
+								{employee.address && (
+									<div className="flex items-center gap-3">
+										<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
+											<MapPin className="h-5 w-5 text-primary" />
 										</div>
 										<div>
-											<div className="text-sm font-medium">Notes</div>
-											<div className="text-sm text-muted-foreground">
-												{employee.notes}
+											<div className="text-sm font-medium">Address</div>
+											<div className="text-sm">{employee.address}</div>
+										</div>
+									</div>
+								)}
+							</div>
+						</ContentSection>
+
+						{/* Employment Details */}
+						<ContentSection title="Employment Details">
+							<div className="space-y-4">
+								<div className="flex items-center gap-3">
+									<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
+										<User className="h-5 w-5 text-primary" />
+									</div>
+									<div>
+										<div className="text-sm font-medium">Role</div>
+										<div className="text-sm">{employee.role}</div>
+									</div>
+								</div>
+
+								{employee.position && (
+									<div className="flex items-center gap-3">
+										<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
+											<Info className="h-5 w-5 text-primary" />
+										</div>
+										<div>
+											<div className="text-sm font-medium">Position</div>
+											<div className="text-sm">{employee.position}</div>
+										</div>
+									</div>
+								)}
+
+								{employee.hourlyRate !== undefined && (
+									<div className="flex items-center gap-3">
+										<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
+											<DollarSign className="h-5 w-5 text-primary" />
+										</div>
+										<div>
+											<div className="text-sm font-medium">Hourly Rate</div>
+											<div className="text-sm">
+												${employee.hourlyRate.toFixed(2)}
+											</div>
+										</div>
+									</div>
+								)}
+
+								{employee.hireDate && (
+									<div className="flex items-center gap-3">
+										<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
+											<Calendar className="h-5 w-5 text-primary" />
+										</div>
+										<div>
+											<div className="text-sm font-medium">Hire Date</div>
+											<div className="text-sm">
+												{new Date(employee.hireDate).toLocaleDateString()}
 											</div>
 										</div>
 									</div>
 								)}
 							</div>
 						</ContentSection>
-					)}
 
-					{/* Shifts & Scheduling Section */}
-					<ContentSection title="Shifts & Scheduling">
-						{employee && employeeId ? (
-							<EmployeeShiftsSection employeeId={employeeId} />
-						) : (
-							<div className="text-muted-foreground">
-								No shift information available
-							</div>
+						{/* Additional Information */}
+						{(employee.emergencyContact || employee.notes) && (
+							<ContentSection title="Additional Information">
+								<div className="space-y-4">
+									{employee.emergencyContact && (
+										<div className="flex items-center gap-3">
+											<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
+												<AlertCircle className="h-5 w-5 text-primary" />
+											</div>
+											<div>
+												<div className="text-sm font-medium">
+													Emergency Contact
+												</div>
+												<div className="text-sm">
+													{employee.emergencyContact}
+												</div>
+											</div>
+										</div>
+									)}
+
+									{employee.notes && (
+										<div className="flex items-start gap-3">
+											<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center mt-1">
+												<ClipboardList className="h-5 w-5 text-primary" />
+											</div>
+											<div>
+												<div className="text-sm font-medium">Notes</div>
+												<div className="text-sm text-muted-foreground">
+													{employee.notes}
+												</div>
+											</div>
+										</div>
+									)}
+								</div>
+							</ContentSection>
 						)}
-					</ContentSection>
-				</div>
-			</ContentContainer>
+
+						{/* Shifts & Scheduling Section */}
+						<ContentSection title="Shifts & Scheduling">
+							{employee && employeeId ? (
+								<EmployeeShiftsSection employeeId={employeeId} />
+							) : (
+								<div className="text-muted-foreground">
+									No shift information available
+								</div>
+							)}
+						</ContentSection>
+					</div>
+				</ContentContainer>
+			</PageContentSpacing>
 		</>
 	);
 }

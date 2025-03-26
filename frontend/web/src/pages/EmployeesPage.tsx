@@ -72,6 +72,7 @@ import {
 import { AvatarWithStatus } from "../components/ui/avatar-with-status";
 import { cn } from "../lib/utils";
 import { PageHeader } from "../components/ui/page-header";
+import { PageContentSpacing } from "../components/ui/header-content-spacing";
 
 export default function EmployeesPage() {
 	const [organization, setOrganization] = useState<Organization | null>(null);
@@ -326,234 +327,277 @@ export default function EmployeesPage() {
 	}
 
 	return (
-		<ContentContainer>
+		<>
 			<PageHeader
 				title="Employees"
+				description="Manage your team and employee information"
 				actions={
 					<div className="flex items-center gap-2">
-						{presenceInitialized && (
-							<Badge
-								variant="outline"
-								className="mr-2">
-								<div className="w-2 h-2 rounded-full bg-green-500 mr-2" />
-								{
-									Object.values(employeePresence).filter((p) => p.isOnline)
-										.length
-								}{" "}
-								online
-							</Badge>
-						)}
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Button
+									size="icon"
+									variant="ghost"
+									onClick={() => toggleNotifications()}
+									disabled={!presenceInitialized}
+									className={cn(
+										"relative",
+										notificationsEnabled && "text-primary"
+									)}>
+									{notificationsEnabled ? (
+										<BellRing className="h-4 w-4" />
+									) : (
+										<BellOff className="h-4 w-4" />
+									)}
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent>
+								{notificationsEnabled
+									? "Disable status notifications"
+									: "Enable status notifications"}
+							</TooltipContent>
+						</Tooltip>
 
-						<TooltipProvider>
-							<Tooltip>
-								<TooltipTrigger asChild>
-									<Button
-										variant="outline"
-										size="sm"
-										className={
-											notificationsEnabled
-												? "text-primary"
-												: "text-muted-foreground"
-										}
-										onClick={toggleNotifications}>
-										{notificationsEnabled ? (
-											<BellRing className="h-4 w-4" />
-										) : (
-											<BellOff className="h-4 w-4" />
-										)}
-									</Button>
-								</TooltipTrigger>
-								<TooltipContent>
-									{notificationsEnabled
-										? "Disable login notifications"
-										: "Enable login notifications"}
-								</TooltipContent>
-							</Tooltip>
-						</TooltipProvider>
+						<EmployeeSheet
+							onEmployeeAdded={(employee) => {
+								setEmployees((prev) => [...prev, employee]);
+								toast.success(`Added ${employee.name} to the team`);
+							}}>
+							<Button>
+								<Plus className="h-4 w-4 mr-2" />
+								Add Employee
+							</Button>
+						</EmployeeSheet>
 					</div>
 				}
 			/>
-
-			<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-				<div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-					<SearchInput
-						value={searchTerm}
-						onChange={setSearchTerm}
-						placeholder="Search employees..."
-						className="md:w-72"
-					/>
-
-					{uniquePositions.length > 0 && (
-						<DropdownMenu>
-							<DropdownMenuTrigger asChild>
-								<Button
-									variant="outline"
-									className="w-full sm:w-auto gap-1"
-									size="sm">
-									<Filter className="h-4 w-4 mr-1" />
-									{getPositionFilterLabel()}
-									<ChevronDown className="h-4 w-4 ml-1" />
-								</Button>
-							</DropdownMenuTrigger>
-							<DropdownMenuContent align="end">
-								<DropdownMenuItem
-									onClick={() => setPositionFilter(null)}
-									className={cn(!positionFilter && "bg-accent")}>
-									All Positions
-								</DropdownMenuItem>
-								<DropdownMenuSeparator />
-								{uniquePositions.map((position) => (
-									<DropdownMenuItem
-										key={position}
-										onClick={() => setPositionFilter(position)}
-										className={cn(positionFilter === position && "bg-accent")}>
-										{position}
-									</DropdownMenuItem>
-								))}
-							</DropdownMenuContent>
-						</DropdownMenu>
-					)}
-
-					{hasActiveFilters && (
-						<Button
-							variant="ghost"
-							size="sm"
-							onClick={handleClearFilters}
-							className="gap-1">
-							<X className="h-4 w-4" />
-							Clear filters
-						</Button>
-					)}
-				</div>
-
-				<div className="inline-flex rounded-md overflow-hidden border">
-					<Button
-						variant={viewMode === "cards" ? "secondary" : "ghost"}
-						size="sm"
-						className="rounded-none px-3"
-						onClick={() => setViewMode("cards")}>
-						<LayoutGrid className="h-4 w-4" />
-					</Button>
-					<Button
-						variant={viewMode === "table" ? "secondary" : "ghost"}
-						size="sm"
-						className="rounded-none px-3"
-						onClick={() => setViewMode("table")}>
-						<List className="h-4 w-4" />
-					</Button>
-				</div>
-			</div>
-
-			{employees.length === 0 ? (
-				<EmptyState
-					title="No employees yet"
-					description="Add your first employee to get started"
-					icon={<User size={48} />}
-					action={
-						<Button
-							onClick={() => {
-								const addButton = document.querySelector<HTMLButtonElement>(
-									".add-employee-button"
-								);
-								if (addButton) addButton.click();
-							}}>
-							<Plus className="h-4 w-4 mr-2" />
-							Add Employee
-						</Button>
-					}
-				/>
-			) : filteredEmployees.length === 0 ? (
-				<EmptyState
-					title="No matching employees"
-					description="Try adjusting your filters"
-					icon={<AlertCircle size={48} />}
-					action={
-						<Button
-							variant="outline"
-							onClick={handleClearFilters}>
-							Clear filters
-						</Button>
-					}
-				/>
-			) : (
-				<>
-					{/* Table View */}
-					{viewMode === "table" && (
-						<DataTable
-							columns={columns}
-							data={filteredEmployees}
-							onRowClick={(employee) =>
-								navigate(`/employee-detail/${(employee as Employee).id}`)
+			<PageContentSpacing>
+				<ContentContainer>
+					{isLoading ? (
+						<LoadingState
+							message={
+								loadingPhase === "organization"
+									? "Loading organization information..."
+									: "Loading employee data..."
 							}
 						/>
-					)}
+					) : (
+						<>
+							{/* Filters and view controls */}
+							<div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+								<div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
+									<SearchInput
+										placeholder="Search employees..."
+										onChange={handleSearch}
+										className="w-full sm:w-[300px]"
+									/>
 
-					{/* Card View */}
-					{viewMode === "cards" && (
-						<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-							{filteredEmployees.map((employee) => (
-								<Card
-									key={employee.id}
-									className="cursor-pointer"
-									onClick={() => navigate(`/employee-detail/${employee.id}`)}>
-									<div className="p-4">
-										<div className="flex items-center">
-											<AvatarWithStatus
-												fallback={employee.name
-													.split(" ")
-													.map((n) => n[0])
-													.join("")
-													.toUpperCase()}
-												isOnline={employee.isOnline}
-												status={employee.status as any}
-												size="sm"
-												className="mr-4"
-											/>
-											<div className="flex-1">
-												<div className="flex items-center justify-between">
-													<div className="flex items-center gap-2">
-														<h3 className="font-medium text-sm">
-															{employee.name}
-														</h3>
-														<EmployeeStatusBadge
-															status={employee.status as any}
-															isOnline={employee.isOnline}
-															lastActive={employee.lastActive}
-															compact
-														/>
-													</div>
-													<ChevronRight className="h-5 w-5 text-gray-400" />
+									<FilterGroup>
+										<FilterGroup.Trigger
+											disabled={uniquePositions.length === 0}>
+											<Filter className="h-4 w-4 mr-2" />
+											{getPositionFilterLabel()}
+										</FilterGroup.Trigger>
+										<FilterGroup.Content>
+											<FilterGroup.Header>
+												<FilterGroup.Title>Position</FilterGroup.Title>
+												<FilterGroup.Description>
+													Filter employees by their role or position
+												</FilterGroup.Description>
+											</FilterGroup.Header>
+											<FilterGroup.List>
+												{uniquePositions.map((position) => (
+													<FilterGroup.Item
+														key={position}
+														selected={positionFilter === position}
+														onSelect={() => setPositionFilter(position)}>
+														{position}
+													</FilterGroup.Item>
+												))}
+											</FilterGroup.List>
+											<FilterGroup.Footer>
+												<Button
+													variant="ghost"
+													size="sm"
+													onClick={handleClearFilters}
+													disabled={!positionFilter}>
+													Clear filters
+												</Button>
+											</FilterGroup.Footer>
+										</FilterGroup.Content>
+									</FilterGroup>
+								</div>
+
+								<div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+									<Tooltip>
+										<TooltipTrigger asChild>
+											<Button
+												variant="outline"
+												size="icon"
+												onClick={() => setViewMode("table")}
+												className={
+													viewMode === "table" ? "bg-muted" : "bg-transparent"
+												}>
+												<List className="h-4 w-4" />
+											</Button>
+										</TooltipTrigger>
+										<TooltipContent>List view</TooltipContent>
+									</Tooltip>
+
+									<Tooltip>
+										<TooltipTrigger asChild>
+											<Button
+												variant="outline"
+												size="icon"
+												onClick={() => setViewMode("cards")}
+												className={
+													viewMode === "cards" ? "bg-muted" : "bg-transparent"
+												}>
+												<LayoutGrid className="h-4 w-4" />
+											</Button>
+										</TooltipTrigger>
+										<TooltipContent>Card view</TooltipContent>
+									</Tooltip>
+								</div>
+							</div>
+
+							{/* No employees */}
+							{employees.length === 0 && (
+								<EmptyState
+									icon={<User className="h-10 w-10" />}
+									title="No employees yet"
+									description="Add your first employee to get started"
+									actions={
+										<EmployeeSheet
+											onEmployeeAdded={(employee) => {
+												setEmployees((prev) => [...prev, employee]);
+												toast.success(`Added ${employee.name} to the team`);
+											}}>
+											<Button>
+												<Plus className="h-4 w-4 mr-2" />
+												Add Employee
+											</Button>
+										</EmployeeSheet>
+									}
+								/>
+							)}
+
+							{/* Employees exist, but none match filters */}
+							{employees.length > 0 && filteredEmployees.length === 0 && (
+								<EmptyState
+									icon={<AlertCircle className="h-10 w-10" />}
+									title="No matching employees"
+									description={`No employees match the current filters. Try adjusting your search or filters.`}
+									actions={
+										<Button
+											variant="outline"
+											onClick={handleClearFilters}>
+											Clear all filters
+										</Button>
+									}
+								/>
+							)}
+
+							{/* Table view */}
+							{filteredEmployees.length > 0 && viewMode === "table" && (
+								<DataTable
+									columns={columns}
+									data={filteredEmployees}
+									initialPageSize={10}
+								/>
+							)}
+
+							{/* Card view */}
+							{filteredEmployees.length > 0 && viewMode === "cards" && (
+								<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+									{filteredEmployees.map((employee) => (
+										<Card
+											key={employee.id}
+											className="cursor-pointer hover:shadow-md transition-shadow"
+											onClick={() => navigate(`/employees/${employee.id}`)}>
+											<CardHeader className="pb-4">
+												<div className="flex justify-between items-start">
+													<AvatarWithStatus
+														fallback={employee.name
+															.split(" ")
+															.map((n) => n[0])
+															.join("")
+															.toUpperCase()}
+														isOnline={employee.isOnline}
+														status={employee.status as any}
+													/>
+													<DropdownMenu>
+														<DropdownMenuTrigger asChild>
+															<Button
+																variant="ghost"
+																size="icon"
+																onClick={(e) => e.stopPropagation()}>
+																<MoreVertical className="h-4 w-4" />
+															</Button>
+														</DropdownMenuTrigger>
+														<DropdownMenuContent align="end">
+															<DropdownMenuItem
+																onClick={(e) => {
+																	e.stopPropagation();
+																	navigate(
+																		`/employees/${employee.id}/earnings`
+																	);
+																}}>
+																<DollarSign className="h-4 w-4 mr-2" />
+																View Earnings
+															</DropdownMenuItem>
+															{/* More dropdown items as needed */}
+														</DropdownMenuContent>
+													</DropdownMenu>
 												</div>
-												<span className="text-sm text-gray-500">
-													{employee.position || employee.role || "No role"}
-												</span>
-											</div>
-										</div>
-									</div>
-									<div className="border-t px-4 py-2">
-										<div className="flex items-center text-sm mb-1">
-											<Mail className="h-4 w-4 mr-2 text-gray-500" />
-											<span className="truncate">
-												{employee.email || "No email"}
-											</span>
-										</div>
-										<div className="flex items-center text-sm mb-1">
-											<Phone className="h-4 w-4 mr-2 text-gray-500" />
-											<span>{employee.phone || "No phone"}</span>
-										</div>
-										{employee.hourlyRate !== undefined && (
-											<div className="flex items-center text-sm">
-												<DollarSign className="h-4 w-4 mr-2 text-gray-500" />
-												<span>${employee.hourlyRate.toFixed(2)}/hr</span>
-											</div>
-										)}
-									</div>
-								</Card>
-							))}
-						</div>
+												<CardTitle className="text-base mt-3">
+													{employee.name}
+												</CardTitle>
+												{(employee.position || employee.role) && (
+													<CardDescription>
+														{employee.position || employee.role}
+													</CardDescription>
+												)}
+											</CardHeader>
+											<CardContent className="pb-4">
+												<div className="space-y-2 text-sm">
+													<div className="flex items-center text-muted-foreground">
+														<Mail className="h-4 w-4 mr-2" />
+														{employee.email}
+													</div>
+													{employee.phone && (
+														<div className="flex items-center text-muted-foreground">
+															<Phone className="h-4 w-4 mr-2" />
+															{employee.phone}
+														</div>
+													)}
+												</div>
+											</CardContent>
+											<CardFooter className="pt-0 border-t flex justify-between">
+												<EmployeeStatusBadge
+													status={employee.status as any}
+													isOnline={employee.isOnline}
+													lastActive={employee.lastActive}
+												/>
+												<Button
+													variant="ghost"
+													size="sm"
+													asChild
+													className="ml-auto">
+													<div className="flex items-center">
+														View
+														<ChevronRight className="h-4 w-4 ml-1" />
+													</div>
+												</Button>
+											</CardFooter>
+										</Card>
+									))}
+								</div>
+							)}
+						</>
 					)}
-				</>
-			)}
-		</ContentContainer>
+				</ContentContainer>
+			</PageContentSpacing>
+		</>
 	);
 }

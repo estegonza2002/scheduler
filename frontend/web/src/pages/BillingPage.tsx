@@ -7,6 +7,9 @@ import { OrganizationsAPI, type Organization } from "../api";
 import { ProfileSidebar } from "../components/layout/SecondaryNavbar";
 import { Separator } from "../components/ui/separator";
 import { PageHeader } from "../components/ui/page-header";
+import { PageContentSpacing } from "../components/ui/header-content-spacing";
+import { ContentContainer } from "../components/ui/content-container";
+import { SecondaryLayout } from "../components/layout/SecondaryLayout";
 
 export default function BillingPage() {
 	const navigate = useNavigate();
@@ -77,425 +80,401 @@ export default function BillingPage() {
 		}
 	};
 
-	const renderSidebar = () => {
-		return (
-			<ProfileSidebar
-				activeTab={activeTab}
-				onTabChange={handleTabChange}
-			/>
-		);
-	};
-
 	if (isLoading && !organization) {
 		return (
-			<>
-				{renderSidebar()}
-				<div className="ml-64">
-					<div className="flex justify-center items-center min-h-screen">
-						<div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-					</div>
-				</div>
-			</>
+			<div className="flex justify-center items-center min-h-screen">
+				<div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+			</div>
 		);
 	}
 
 	return (
-		<>
-			{renderSidebar()}
-			<div className="ml-64">
-				<PageHeader
-					title="Billing & Subscription"
-					description="Manage your billing information and subscription plan"
+		<SecondaryLayout
+			title="Billing & Subscription"
+			description="Manage your billing information and subscription plan"
+			sidebar={
+				<ProfileSidebar
+					activeTab={activeTab}
+					onTabChange={handleTabChange}
 				/>
-				<div className="p-6">
-					{/* Subscription Content */}
-					{activeTab === "subscription" && (
-						<div>
-							<div className="mb-8">
-								<h3 className="text-lg font-medium mb-2">Available Plans</h3>
-								<p className="text-sm text-muted-foreground mb-6">
-									Choose a plan that best fits your business
+			}>
+			{/* Subscription Content */}
+			{activeTab === "subscription" && (
+				<div className="space-y-6">
+					<h3 className="text-lg font-medium">Available Plans</h3>
+					<p className="text-sm text-muted-foreground">
+						Choose a plan that best fits your business
+					</p>
+
+					<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+						{/* Free Plan */}
+						<div
+							className={`border rounded-lg p-5 transition-all ${
+								subscriptionPlan === "free"
+									? "bg-card border-primary"
+									: "bg-muted/10 hover:bg-card"
+							}`}>
+							<div className="mb-4">
+								<div className="flex justify-between items-center mb-2">
+									<h4 className="text-lg font-semibold">Free Plan</h4>
+									{subscriptionPlan === "free" && (
+										<div className="rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+											Current Plan
+										</div>
+									)}
+								</div>
+								<p className="text-sm text-muted-foreground">
+									For personal or small teams
 								</p>
+							</div>
+							<div className="mb-4">
+								<span className="text-3xl font-bold">$0</span>
+								<span className="text-muted-foreground"> / month</span>
+							</div>
+							<ul className="space-y-2 text-sm mb-6">
+								<li className="flex items-start">
+									<Check className="h-4 w-4 mr-2 text-primary" />
+									<span>Up to 5 employees</span>
+								</li>
+								<li className="flex items-start">
+									<Check className="h-4 w-4 mr-2 text-primary" />
+									<span>Basic scheduling features</span>
+								</li>
+								<li className="flex items-start">
+									<Check className="h-4 w-4 mr-2 text-primary" />
+									<span>Email notifications</span>
+								</li>
+								<li className="flex items-start text-muted-foreground">
+									<span className="mr-2">✗</span>
+									<span>Advanced reporting</span>
+								</li>
+								<li className="flex items-start text-muted-foreground">
+									<span className="mr-2">✗</span>
+									<span>SMS notifications</span>
+								</li>
+							</ul>
+							{subscriptionPlan === "free" ? (
+								<Button
+									disabled
+									className="w-full">
+									Current Plan
+								</Button>
+							) : (
+								<Button
+									variant="outline"
+									className="w-full"
+									disabled={
+										subscriptionPlan === "pro" ||
+										subscriptionPlan === "business"
+									}
+									onClick={() => setSubscriptionPlan("free")}>
+									{subscriptionPlan === "pro" || subscriptionPlan === "business"
+										? "Downgrade"
+										: "Select Plan"}
+								</Button>
+							)}
+						</div>
 
-								<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-									{/* Free Plan */}
-									<div
-										className={`border rounded-lg p-5 transition-all ${
-											subscriptionPlan === "free"
-												? "bg-card border-primary"
-												: "bg-muted/10 hover:bg-card"
-										}`}>
-										<div className="mb-4">
-											<div className="flex justify-between items-center mb-2">
-												<h4 className="text-lg font-semibold">Free Plan</h4>
-												{subscriptionPlan === "free" && (
-													<div className="rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
-														Current Plan
-													</div>
-												)}
-											</div>
-											<p className="text-sm text-muted-foreground">
-												For personal or small teams
-											</p>
-										</div>
-										<div className="mb-4">
-											<span className="text-3xl font-bold">$0</span>
-											<span className="text-muted-foreground"> / month</span>
-										</div>
-										<ul className="space-y-2 text-sm mb-6">
-											<li className="flex items-start">
-												<Check className="h-4 w-4 mr-2 text-primary" />
-												<span>Up to 5 employees</span>
-											</li>
-											<li className="flex items-start">
-												<Check className="h-4 w-4 mr-2 text-primary" />
-												<span>Basic scheduling features</span>
-											</li>
-											<li className="flex items-start">
-												<Check className="h-4 w-4 mr-2 text-primary" />
-												<span>Email notifications</span>
-											</li>
-											<li className="flex items-start text-muted-foreground">
-												<span className="mr-2">✗</span>
-												<span>Advanced reporting</span>
-											</li>
-											<li className="flex items-start text-muted-foreground">
-												<span className="mr-2">✗</span>
-												<span>SMS notifications</span>
-											</li>
-										</ul>
-										{subscriptionPlan === "free" ? (
-											<Button
-												disabled
-												className="w-full">
-												Current Plan
-											</Button>
-										) : (
-											<Button
-												variant="outline"
-												className="w-full"
-												disabled={
-													subscriptionPlan === "pro" ||
-													subscriptionPlan === "business"
-												}
-												onClick={() => setSubscriptionPlan("free")}>
-												{subscriptionPlan === "pro" ||
-												subscriptionPlan === "business"
-													? "Downgrade"
-													: "Select Plan"}
-											</Button>
-										)}
-									</div>
-
-									{/* Pro Plan */}
-									<div
-										className={`border border-primary rounded-lg p-6 shadow-lg transform scale-105 z-10 transition-all ${
-											subscriptionPlan === "pro"
-												? "bg-card"
-												: "bg-muted/10 hover:bg-card"
-										} relative`}>
-										{subscriptionPlan !== "pro" && (
-											<div className="absolute -top-3 left-0 right-0 flex justify-center">
-												<div className="rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground">
-													Recommended
-												</div>
-											</div>
-										)}
-										<div className="mb-4">
-											<div className="flex justify-between items-center mb-2">
-												<h4 className="text-lg font-semibold">Pro Plan</h4>
-												{subscriptionPlan === "pro" && (
-													<div className="rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
-														Current Plan
-													</div>
-												)}
-											</div>
-											<p className="text-sm text-muted-foreground">
-												For growing businesses
-											</p>
-										</div>
-										<div className="mb-4">
-											<span className="text-3xl font-bold">$29</span>
-											<span className="text-muted-foreground"> / month</span>
-										</div>
-										<ul className="space-y-2 text-sm mb-6">
-											<li className="flex items-start">
-												<Check className="h-4 w-4 mr-2 text-primary" />
-												<span>Up to 25 employees</span>
-											</li>
-											<li className="flex items-start">
-												<Check className="h-4 w-4 mr-2 text-primary" />
-												<span>Advanced scheduling features</span>
-											</li>
-											<li className="flex items-start">
-												<Check className="h-4 w-4 mr-2 text-primary" />
-												<span>SMS notifications</span>
-											</li>
-											<li className="flex items-start">
-												<Check className="h-4 w-4 mr-2 text-primary" />
-												<span>Basic reporting</span>
-											</li>
-											<li className="flex items-start text-muted-foreground">
-												<span className="mr-2">✗</span>
-												<span>Advanced analytics</span>
-											</li>
-											<li className="flex items-start text-muted-foreground">
-												<span className="mr-2">✗</span>
-												<span>Priority support</span>
-											</li>
-										</ul>
-										{subscriptionPlan === "pro" ? (
-											<Button
-												disabled
-												className="w-full">
-												Current Plan
-											</Button>
-										) : subscriptionPlan === "business" ? (
-											<Button
-												variant="outline"
-												className="w-full"
-												disabled={isUpgrading}
-												onClick={() => handleUpgrade("pro")}>
-												{isUpgrading ? "Processing..." : "Downgrade to Pro"}
-											</Button>
-										) : (
-											<Button
-												disabled={isUpgrading}
-												onClick={() => handleUpgrade("pro")}
-												className="w-full">
-												{isUpgrading ? "Processing..." : "Upgrade Now"}
-											</Button>
-										)}
-									</div>
-
-									{/* Business Plan */}
-									<div
-										className={`border rounded-lg p-5 transition-all ${
-											subscriptionPlan === "business"
-												? "bg-card border-primary"
-												: "bg-muted/10 hover:bg-card"
-										}`}>
-										<div className="mb-4">
-											<div className="flex justify-between items-center mb-2">
-												<h4 className="text-lg font-semibold">Business Plan</h4>
-												{subscriptionPlan === "business" && (
-													<div className="rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
-														Current Plan
-													</div>
-												)}
-											</div>
-											<p className="text-sm text-muted-foreground">
-												For established businesses
-											</p>
-										</div>
-										<div className="mb-4">
-											<span className="text-3xl font-bold">$79</span>
-											<span className="text-muted-foreground"> / month</span>
-										</div>
-										<ul className="space-y-2 text-sm mb-6">
-											<li className="flex items-start">
-												<Check className="h-4 w-4 mr-2 text-primary" />
-												<span>Unlimited employees</span>
-											</li>
-											<li className="flex items-start">
-												<Check className="h-4 w-4 mr-2 text-primary" />
-												<span>Premium scheduling features</span>
-											</li>
-											<li className="flex items-start">
-												<Check className="h-4 w-4 mr-2 text-primary" />
-												<span>SMS and email notifications</span>
-											</li>
-											<li className="flex items-start">
-												<Check className="h-4 w-4 mr-2 text-primary" />
-												<span>Advanced reporting & analytics</span>
-											</li>
-											<li className="flex items-start">
-												<Check className="h-4 w-4 mr-2 text-primary" />
-												<span>Priority support</span>
-											</li>
-										</ul>
-										{subscriptionPlan === "business" ? (
-											<Button
-												disabled
-												className="w-full">
-												Current Plan
-											</Button>
-										) : (
-											<Button
-												disabled={isUpgrading}
-												onClick={() => handleUpgrade("business")}
-												className="w-full"
-												variant="outline">
-												{isUpgrading ? "Processing..." : "Upgrade Now"}
-											</Button>
-										)}
+						{/* Pro Plan */}
+						<div
+							className={`border border-primary rounded-lg p-6 shadow-lg transform scale-105 z-10 transition-all ${
+								subscriptionPlan === "pro"
+									? "bg-card"
+									: "bg-muted/10 hover:bg-card"
+							} relative`}>
+							{subscriptionPlan !== "pro" && (
+								<div className="absolute -top-3 left-0 right-0 flex justify-center">
+									<div className="rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground">
+										Recommended
 									</div>
 								</div>
+							)}
+							<div className="mb-4">
+								<div className="flex justify-between items-center mb-2">
+									<h4 className="text-lg font-semibold">Pro Plan</h4>
+									{subscriptionPlan === "pro" && (
+										<div className="rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+											Current Plan
+										</div>
+									)}
+								</div>
+								<p className="text-sm text-muted-foreground">
+									For growing businesses
+								</p>
+							</div>
+							<div className="mb-4">
+								<span className="text-3xl font-bold">$29</span>
+								<span className="text-muted-foreground"> / month</span>
+							</div>
+							<ul className="space-y-2 text-sm mb-6">
+								<li className="flex items-start">
+									<Check className="h-4 w-4 mr-2 text-primary" />
+									<span>Up to 25 employees</span>
+								</li>
+								<li className="flex items-start">
+									<Check className="h-4 w-4 mr-2 text-primary" />
+									<span>Advanced scheduling features</span>
+								</li>
+								<li className="flex items-start">
+									<Check className="h-4 w-4 mr-2 text-primary" />
+									<span>SMS notifications</span>
+								</li>
+								<li className="flex items-start">
+									<Check className="h-4 w-4 mr-2 text-primary" />
+									<span>Basic reporting</span>
+								</li>
+								<li className="flex items-start text-muted-foreground">
+									<span className="mr-2">✗</span>
+									<span>Advanced analytics</span>
+								</li>
+								<li className="flex items-start text-muted-foreground">
+									<span className="mr-2">✗</span>
+									<span>Priority support</span>
+								</li>
+							</ul>
+							{subscriptionPlan === "pro" ? (
+								<Button
+									disabled
+									className="w-full">
+									Current Plan
+								</Button>
+							) : subscriptionPlan === "business" ? (
+								<Button
+									variant="outline"
+									className="w-full"
+									disabled={isUpgrading}
+									onClick={() => handleUpgrade("pro")}>
+									{isUpgrading ? "Processing..." : "Downgrade to Pro"}
+								</Button>
+							) : (
+								<Button
+									disabled={isUpgrading}
+									onClick={() => handleUpgrade("pro")}
+									className="w-full">
+									{isUpgrading ? "Processing..." : "Upgrade Now"}
+								</Button>
+							)}
+						</div>
 
-								<div className="text-center mt-8 text-sm text-muted-foreground">
-									<p>
-										All plans include unlimited schedule creation and basic
-										customer support.
-									</p>
-									<p className="mt-2">
-										Need a custom plan for your enterprise?{" "}
+						{/* Business Plan */}
+						<div
+							className={`border rounded-lg p-5 transition-all ${
+								subscriptionPlan === "business"
+									? "bg-card border-primary"
+									: "bg-muted/10 hover:bg-card"
+							}`}>
+							<div className="mb-4">
+								<div className="flex justify-between items-center mb-2">
+									<h4 className="text-lg font-semibold">Business Plan</h4>
+									{subscriptionPlan === "business" && (
+										<div className="rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+											Current Plan
+										</div>
+									)}
+								</div>
+								<p className="text-sm text-muted-foreground">
+									For established businesses
+								</p>
+							</div>
+							<div className="mb-4">
+								<span className="text-3xl font-bold">$79</span>
+								<span className="text-muted-foreground"> / month</span>
+							</div>
+							<ul className="space-y-2 text-sm mb-6">
+								<li className="flex items-start">
+									<Check className="h-4 w-4 mr-2 text-primary" />
+									<span>Unlimited employees</span>
+								</li>
+								<li className="flex items-start">
+									<Check className="h-4 w-4 mr-2 text-primary" />
+									<span>Premium scheduling features</span>
+								</li>
+								<li className="flex items-start">
+									<Check className="h-4 w-4 mr-2 text-primary" />
+									<span>SMS and email notifications</span>
+								</li>
+								<li className="flex items-start">
+									<Check className="h-4 w-4 mr-2 text-primary" />
+									<span>Advanced reporting & analytics</span>
+								</li>
+								<li className="flex items-start">
+									<Check className="h-4 w-4 mr-2 text-primary" />
+									<span>Priority support</span>
+								</li>
+							</ul>
+							{subscriptionPlan === "business" ? (
+								<Button
+									disabled
+									className="w-full">
+									Current Plan
+								</Button>
+							) : (
+								<Button
+									disabled={isUpgrading}
+									onClick={() => handleUpgrade("business")}
+									className="w-full"
+									variant="outline">
+									{isUpgrading ? "Processing..." : "Upgrade Now"}
+								</Button>
+							)}
+						</div>
+					</div>
+
+					<div className="text-center mt-8 text-sm text-muted-foreground">
+						<p>
+							All plans include unlimited schedule creation and basic customer
+							support.
+						</p>
+						<p className="mt-2">
+							Need a custom plan for your enterprise?{" "}
+							<Button
+								variant="link"
+								className="h-auto p-0">
+								Contact us
+							</Button>
+						</p>
+					</div>
+				</div>
+			)}
+
+			{/* Payment Methods Content */}
+			{activeTab === "payment-methods" && (
+				<div className="space-y-6">
+					<h3 className="text-lg font-medium">Payment Methods</h3>
+					<p className="text-sm text-muted-foreground">
+						Manage your payment methods and billing information
+					</p>
+
+					<div className="flex items-center justify-between p-4 border rounded-lg mb-6">
+						<div className="flex items-center">
+							<CreditCard className="h-6 w-6 mr-3 text-primary" />
+							<div>
+								<p className="font-medium">Visa ending in 4242</p>
+								<p className="text-sm text-muted-foreground">Expires 12/25</p>
+							</div>
+						</div>
+						<div className="flex items-center gap-2">
+							<Button
+								variant="outline"
+								size="sm">
+								Edit
+							</Button>
+							<Button
+								variant="outline"
+								size="sm">
+								Remove
+							</Button>
+						</div>
+					</div>
+
+					<div className="flex justify-end">
+						<Button>
+							<CreditCard className="h-4 w-4 mr-2" /> Add Payment Method
+						</Button>
+					</div>
+				</div>
+			)}
+
+			{/* Billing History Content */}
+			{activeTab === "billing-history" && (
+				<div className="space-y-6">
+					<h3 className="text-lg font-medium">Billing History</h3>
+					<p className="text-sm text-muted-foreground">
+						View your past invoices and billing history
+					</p>
+
+					<div className="overflow-hidden border rounded-lg">
+						<table className="min-w-full divide-y divide-border">
+							<thead className="bg-muted/50">
+								<tr>
+									<th
+										scope="col"
+										className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+										Date
+									</th>
+									<th
+										scope="col"
+										className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+										Amount
+									</th>
+									<th
+										scope="col"
+										className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+										Status
+									</th>
+									<th
+										scope="col"
+										className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+										Invoice
+									</th>
+								</tr>
+							</thead>
+							<tbody className="bg-background divide-y divide-border">
+								<tr>
+									<td className="px-6 py-4 whitespace-nowrap text-sm">
+										Mar 15, 2025
+									</td>
+									<td className="px-6 py-4 whitespace-nowrap text-sm">
+										$29.00
+									</td>
+									<td className="px-6 py-4 whitespace-nowrap">
+										<span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+											Paid
+										</span>
+									</td>
+									<td className="px-6 py-4 whitespace-nowrap text-sm text-primary">
 										<Button
 											variant="link"
-											className="h-auto p-0">
-											Contact us
+											className="p-0 h-auto font-normal">
+											<Receipt className="h-4 w-4 mr-1" /> View
 										</Button>
-									</p>
-								</div>
-							</div>
-						</div>
-					)}
-
-					{/* Payment Methods Content */}
-					{activeTab === "payment-methods" && (
-						<div>
-							<div className="mb-8">
-								<h2 className="text-2xl font-bold">Payment Methods</h2>
-								<p className="text-muted-foreground">
-									Manage your payment methods
-								</p>
-							</div>
-
-							<div className="flex items-center justify-between p-4 border rounded-lg mb-6">
-								<div className="flex items-center">
-									<CreditCard className="h-6 w-6 mr-3 text-primary" />
-									<div>
-										<p className="font-medium">Visa ending in 4242</p>
-										<p className="text-sm text-muted-foreground">
-											Expires 12/25
-										</p>
-									</div>
-								</div>
-								<div className="flex items-center gap-2">
-									<Button
-										variant="outline"
-										size="sm">
-										Edit
-									</Button>
-									<Button
-										variant="outline"
-										size="sm">
-										Remove
-									</Button>
-								</div>
-							</div>
-
-							<div className="flex justify-end">
-								<Button>
-									<CreditCard className="h-4 w-4 mr-2" /> Add Payment Method
-								</Button>
-							</div>
-						</div>
-					)}
-
-					{/* Billing History Content */}
-					{activeTab === "billing-history" && (
-						<div>
-							<div className="mb-8">
-								<h2 className="text-2xl font-bold">Billing History</h2>
-								<p className="text-muted-foreground">
-									View your billing and payment history
-								</p>
-							</div>
-
-							<div className="overflow-hidden border rounded-lg">
-								<table className="min-w-full divide-y divide-border">
-									<thead className="bg-muted/50">
-										<tr>
-											<th
-												scope="col"
-												className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-												Date
-											</th>
-											<th
-												scope="col"
-												className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-												Amount
-											</th>
-											<th
-												scope="col"
-												className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-												Status
-											</th>
-											<th
-												scope="col"
-												className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-												Invoice
-											</th>
-										</tr>
-									</thead>
-									<tbody className="bg-background divide-y divide-border">
-										<tr>
-											<td className="px-6 py-4 whitespace-nowrap text-sm">
-												Mar 15, 2025
-											</td>
-											<td className="px-6 py-4 whitespace-nowrap text-sm">
-												$29.00
-											</td>
-											<td className="px-6 py-4 whitespace-nowrap">
-												<span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-													Paid
-												</span>
-											</td>
-											<td className="px-6 py-4 whitespace-nowrap text-sm text-primary">
-												<Button
-													variant="link"
-													className="p-0 h-auto font-normal">
-													<Receipt className="h-4 w-4 mr-1" /> View
-												</Button>
-											</td>
-										</tr>
-										<tr>
-											<td className="px-6 py-4 whitespace-nowrap text-sm">
-												Feb 15, 2025
-											</td>
-											<td className="px-6 py-4 whitespace-nowrap text-sm">
-												$29.00
-											</td>
-											<td className="px-6 py-4 whitespace-nowrap">
-												<span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-													Paid
-												</span>
-											</td>
-											<td className="px-6 py-4 whitespace-nowrap text-sm text-primary">
-												<Button
-													variant="link"
-													className="p-0 h-auto font-normal">
-													<Receipt className="h-4 w-4 mr-1" /> View
-												</Button>
-											</td>
-										</tr>
-										<tr>
-											<td className="px-6 py-4 whitespace-nowrap text-sm">
-												Jan 15, 2025
-											</td>
-											<td className="px-6 py-4 whitespace-nowrap text-sm">
-												$29.00
-											</td>
-											<td className="px-6 py-4 whitespace-nowrap">
-												<span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-													Paid
-												</span>
-											</td>
-											<td className="px-6 py-4 whitespace-nowrap text-sm text-primary">
-												<Button
-													variant="link"
-													className="p-0 h-auto font-normal">
-													<Receipt className="h-4 w-4 mr-1" /> View
-												</Button>
-											</td>
-										</tr>
-									</tbody>
-								</table>
-							</div>
-						</div>
-					)}
+									</td>
+								</tr>
+								<tr>
+									<td className="px-6 py-4 whitespace-nowrap text-sm">
+										Feb 15, 2025
+									</td>
+									<td className="px-6 py-4 whitespace-nowrap text-sm">
+										$29.00
+									</td>
+									<td className="px-6 py-4 whitespace-nowrap">
+										<span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+											Paid
+										</span>
+									</td>
+									<td className="px-6 py-4 whitespace-nowrap text-sm text-primary">
+										<Button
+											variant="link"
+											className="p-0 h-auto font-normal">
+											<Receipt className="h-4 w-4 mr-1" /> View
+										</Button>
+									</td>
+								</tr>
+								<tr>
+									<td className="px-6 py-4 whitespace-nowrap text-sm">
+										Jan 15, 2025
+									</td>
+									<td className="px-6 py-4 whitespace-nowrap text-sm">
+										$29.00
+									</td>
+									<td className="px-6 py-4 whitespace-nowrap">
+										<span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+											Paid
+										</span>
+									</td>
+									<td className="px-6 py-4 whitespace-nowrap text-sm text-primary">
+										<Button
+											variant="link"
+											className="p-0 h-auto font-normal">
+											<Receipt className="h-4 w-4 mr-1" /> View
+										</Button>
+									</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
 				</div>
-			</div>
-		</>
+			)}
+		</SecondaryLayout>
 	);
 }

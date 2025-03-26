@@ -37,6 +37,7 @@ import { Shift, Employee, Location } from "../api/mock/types";
 import { format, addDays } from "date-fns";
 import { FormulaExplainer } from "../components/ui/formula-explainer";
 import { PageHeader } from "../components/ui/page-header";
+import { Skeleton } from "../components/ui/skeleton";
 
 export default function DashboardPage() {
 	const { user } = useAuth();
@@ -211,6 +212,45 @@ export default function DashboardPage() {
 		if (hour < 18) return "Good afternoon";
 		return "Good evening";
 	};
+
+	// Add a loading skeleton
+	const renderLoadingSkeleton = () => {
+		return (
+			<div className="space-y-6">
+				<div className="flex flex-col space-y-2">
+					<Skeleton className="h-8 w-48" />
+					<Skeleton className="h-4 w-64" />
+				</div>
+
+				<Skeleton className="h-32 w-full rounded-md" />
+
+				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+					{Array.from({ length: 4 }).map((_, i) => (
+						<Skeleton
+							key={i}
+							className="h-24 w-full rounded-md"
+						/>
+					))}
+				</div>
+
+				<Skeleton className="h-64 w-full rounded-md" />
+			</div>
+		);
+	};
+
+	if (isLoading) {
+		return (
+			<>
+				<PageHeader
+					title="Dashboard"
+					description="Loading your personal dashboard"
+				/>
+				<PageContentSpacing>
+					<ContentContainer>{renderLoadingSkeleton()}</ContentContainer>
+				</PageContentSpacing>
+			</>
+		);
+	}
 
 	return (
 		<>

@@ -54,6 +54,7 @@ import { NotificationItem } from "../components/NotificationItem";
 
 import { ContentContainer } from "../components/ui/content-container";
 import { PageHeader } from "../components/ui/page-header";
+import { PageContentSpacing } from "../components/ui/header-content-spacing";
 
 export default function NotificationsPage() {
 	const {
@@ -281,194 +282,196 @@ export default function NotificationsPage() {
 				description="Manage and view all your notifications"
 				actions={headerActions}
 			/>
-			<ContentContainer>
-				<div className="space-y-4">
-					<div className="flex flex-col md:flex-row gap-4">
-						<div className="flex-1 relative">
-							<Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-							<Input
-								placeholder="Search notifications..."
-								className="pl-8"
-								value={searchQuery}
-								onChange={(e) => setSearchQuery(e.target.value)}
-							/>
-						</div>
-
-						<div className="flex flex-wrap gap-2">
-							<Select
-								value={filter}
-								onValueChange={(value) => setFilter(value as any)}>
-								<SelectTrigger className="w-[130px]">
-									<SelectValue placeholder="Filter" />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value="all">All</SelectItem>
-									<SelectItem value="unread">Unread</SelectItem>
-									<SelectItem value="read">Read</SelectItem>
-								</SelectContent>
-							</Select>
-
-							<DropdownMenu>
-								<DropdownMenuTrigger asChild>
-									<Button
-										variant="outline"
-										className="w-[150px] justify-between">
-										<span className="truncate">
-											{selectedTypes.includes("all")
-												? "All types"
-												: `${selectedTypes.length} selected`}
-										</span>
-										<ChevronDown className="h-4 w-4 opacity-50" />
-									</Button>
-								</DropdownMenuTrigger>
-								<DropdownMenuContent className="w-[220px]">
-									<DropdownMenuLabel>Notification Types</DropdownMenuLabel>
-									<DropdownMenuSeparator />
-									<ScrollArea className="h-[300px]">
-										<div className="p-1">
-											<div
-												className="relative flex cursor-default select-none items-center rounded-sm py-1.5 px-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
-												onClick={() => toggleType("all")}>
-												<div className="mr-2 h-4 w-4 flex items-center justify-center">
-													{selectedTypes.includes("all") && (
-														<Check className="h-4 w-4" />
-													)}
-												</div>
-												<span>All types</span>
-											</div>
-
-											{notificationTypes
-												.filter((t) => t.value !== "all")
-												.map((type) => (
-													<div
-														key={type.value}
-														className="relative flex cursor-default select-none items-center rounded-sm py-1.5 px-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
-														onClick={() => toggleType(type.value)}>
-														<div className="mr-2 h-4 w-4 flex items-center justify-center">
-															{selectedTypes.includes(type.value) && (
-																<Check className="h-4 w-4" />
-															)}
-														</div>
-														{type.icon}
-														<span>{type.label}</span>
-													</div>
-												))}
-										</div>
-									</ScrollArea>
-								</DropdownMenuContent>
-							</DropdownMenu>
-
-							<Select
-								value={sortBy}
-								onValueChange={(value) => setSortBy(value as any)}>
-								<SelectTrigger className="w-[150px]">
-									<SelectValue placeholder="Sort by" />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value="newest">Newest first</SelectItem>
-									<SelectItem value="oldest">Oldest first</SelectItem>
-								</SelectContent>
-							</Select>
-						</div>
-					</div>
-
-					{/* Display selected types as badges if not "all" */}
-					{!selectedTypes.includes("all") && selectedTypes.length > 0 && (
-						<div className="flex flex-wrap gap-1 items-center">
-							<span className="text-sm text-muted-foreground mr-1">
-								Filtered by:
-							</span>
-							{selectedTypes.map((typeValue) => {
-								const typeObj = notificationTypes.find(
-									(t) => t.value === typeValue
-								);
-								return (
-									<Badge
-										key={typeValue}
-										variant="outline"
-										className="flex items-center gap-1 pr-1">
-										{typeObj?.icon && (
-											<span className="scale-75">{typeObj.icon}</span>
-										)}
-										<span>
-											{typeObj?.label
-												.replace(" Updates", "")
-												.replace(" Notifications", "")}
-										</span>
-										<Button
-											variant="ghost"
-											size="icon"
-											className="h-4 w-4 ml-1 hover:bg-muted"
-											onClick={() => toggleType(typeValue)}>
-											<X className="h-3 w-3" />
-										</Button>
-									</Badge>
-								);
-							})}
-							<Button
-								variant="ghost"
-								size="sm"
-								className="text-xs h-7"
-								onClick={() => setSelectedTypes(["all"])}>
-								Clear filters
-							</Button>
-						</div>
-					)}
-
-					<div className="flex justify-between items-center">
-						<p className="text-sm text-muted-foreground font-medium bg-muted/40 px-3 py-1 rounded-full">
-							{filteredNotifications.length === 0
-								? "No notifications found"
-								: `Showing ${filteredNotifications.length} notification${
-										filteredNotifications.length !== 1 ? "s" : ""
-								  }${useSampleData ? " (Sample Data)" : ""}`}
-						</p>
-					</div>
-
-					{loading ? (
-						<div className="flex items-center justify-center p-6 border rounded-lg bg-background">
-							<div className="animate-spin rounded-full h-6 w-6 border-2 border-b-transparent border-primary"></div>
-						</div>
-					) : filteredNotifications.length === 0 ? (
-						<div className="flex flex-col items-center justify-center p-8 text-center border rounded-lg bg-background">
-							<div className="bg-muted/30 p-4 rounded-full mb-3">
-								<Bell className="h-10 w-10 text-muted-foreground" />
+			<PageContentSpacing>
+				<ContentContainer>
+					<div className="space-y-4">
+						<div className="flex flex-col md:flex-row gap-4">
+							<div className="flex-1 relative">
+								<Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+								<Input
+									placeholder="Search notifications..."
+									className="pl-8"
+									value={searchQuery}
+									onChange={(e) => setSearchQuery(e.target.value)}
+								/>
 							</div>
-							<h3 className="text-lg font-medium">No notifications found</h3>
-							<p className="text-sm text-muted-foreground mt-1 max-w-sm">
-								{notifications.length > 0
-									? "Try changing your filters to see more notifications"
-									: "You don't have any notifications yet. They'll appear here when you receive them."}
+
+							<div className="flex flex-wrap gap-2">
+								<Select
+									value={filter}
+									onValueChange={(value) => setFilter(value as any)}>
+									<SelectTrigger className="w-[130px]">
+										<SelectValue placeholder="Filter" />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="all">All</SelectItem>
+										<SelectItem value="unread">Unread</SelectItem>
+										<SelectItem value="read">Read</SelectItem>
+									</SelectContent>
+								</Select>
+
+								<DropdownMenu>
+									<DropdownMenuTrigger asChild>
+										<Button
+											variant="outline"
+											className="w-[150px] justify-between">
+											<span className="truncate">
+												{selectedTypes.includes("all")
+													? "All types"
+													: `${selectedTypes.length} selected`}
+											</span>
+											<ChevronDown className="h-4 w-4 opacity-50" />
+										</Button>
+									</DropdownMenuTrigger>
+									<DropdownMenuContent className="w-[220px]">
+										<DropdownMenuLabel>Notification Types</DropdownMenuLabel>
+										<DropdownMenuSeparator />
+										<ScrollArea className="h-[300px]">
+											<div className="p-1">
+												<div
+													className="relative flex cursor-default select-none items-center rounded-sm py-1.5 px-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+													onClick={() => toggleType("all")}>
+													<div className="mr-2 h-4 w-4 flex items-center justify-center">
+														{selectedTypes.includes("all") && (
+															<Check className="h-4 w-4" />
+														)}
+													</div>
+													<span>All types</span>
+												</div>
+
+												{notificationTypes
+													.filter((t) => t.value !== "all")
+													.map((type) => (
+														<div
+															key={type.value}
+															className="relative flex cursor-default select-none items-center rounded-sm py-1.5 px-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+															onClick={() => toggleType(type.value)}>
+															<div className="mr-2 h-4 w-4 flex items-center justify-center">
+																{selectedTypes.includes(type.value) && (
+																	<Check className="h-4 w-4" />
+																)}
+															</div>
+															{type.icon}
+															<span>{type.label}</span>
+														</div>
+													))}
+											</div>
+										</ScrollArea>
+									</DropdownMenuContent>
+								</DropdownMenu>
+
+								<Select
+									value={sortBy}
+									onValueChange={(value) => setSortBy(value as any)}>
+									<SelectTrigger className="w-[150px]">
+										<SelectValue placeholder="Sort by" />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="newest">Newest first</SelectItem>
+										<SelectItem value="oldest">Oldest first</SelectItem>
+									</SelectContent>
+								</Select>
+							</div>
+						</div>
+
+						{/* Display selected types as badges if not "all" */}
+						{!selectedTypes.includes("all") && selectedTypes.length > 0 && (
+							<div className="flex flex-wrap gap-1 items-center">
+								<span className="text-sm text-muted-foreground mr-1">
+									Filtered by:
+								</span>
+								{selectedTypes.map((typeValue) => {
+									const typeObj = notificationTypes.find(
+										(t) => t.value === typeValue
+									);
+									return (
+										<Badge
+											key={typeValue}
+											variant="outline"
+											className="flex items-center gap-1 pr-1">
+											{typeObj?.icon && (
+												<span className="scale-75">{typeObj.icon}</span>
+											)}
+											<span>
+												{typeObj?.label
+													.replace(" Updates", "")
+													.replace(" Notifications", "")}
+											</span>
+											<Button
+												variant="ghost"
+												size="icon"
+												className="h-4 w-4 ml-1 hover:bg-muted"
+												onClick={() => toggleType(typeValue)}>
+												<X className="h-3 w-3" />
+											</Button>
+										</Badge>
+									);
+								})}
+								<Button
+									variant="ghost"
+									size="sm"
+									className="text-xs h-7"
+									onClick={() => setSelectedTypes(["all"])}>
+									Clear filters
+								</Button>
+							</div>
+						)}
+
+						<div className="flex justify-between items-center">
+							<p className="text-sm text-muted-foreground font-medium bg-muted/40 px-3 py-1 rounded-full">
+								{filteredNotifications.length === 0
+									? "No notifications found"
+									: `Showing ${filteredNotifications.length} notification${
+											filteredNotifications.length !== 1 ? "s" : ""
+									  }${useSampleData ? " (Sample Data)" : ""}`}
 							</p>
 						</div>
-					) : (
-						<div className="border rounded-lg overflow-hidden bg-background">
-							<div className="h-[calc(100vh-250px)] overflow-y-auto">
-								{Object.entries(groupedNotifications).map(
-									([date, notifications]) => (
-										<div
-											key={date}
-											className="relative">
-											<div className="sticky top-0 z-20 py-2 px-4 font-medium text-primary bg-background/95 backdrop-blur-sm border-b shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-												{date}
-											</div>
-											{notifications.map((notification) => (
-												<NotificationItem
-													key={notification.id}
-													notification={notification}
-													onMarkAsRead={handleMarkAsRead}
-													onDismiss={handleDismiss}
-													useSampleData={useSampleData}
-												/>
-											))}
-										</div>
-									)
-								)}
+
+						{loading ? (
+							<div className="flex items-center justify-center p-6 border rounded-lg bg-background">
+								<div className="animate-spin rounded-full h-6 w-6 border-2 border-b-transparent border-primary"></div>
 							</div>
-						</div>
-					)}
-				</div>
-			</ContentContainer>
+						) : filteredNotifications.length === 0 ? (
+							<div className="flex flex-col items-center justify-center p-8 text-center border rounded-lg bg-background">
+								<div className="bg-muted/30 p-4 rounded-full mb-3">
+									<Bell className="h-10 w-10 text-muted-foreground" />
+								</div>
+								<h3 className="text-lg font-medium">No notifications found</h3>
+								<p className="text-sm text-muted-foreground mt-1 max-w-sm">
+									{notifications.length > 0
+										? "Try changing your filters to see more notifications"
+										: "You don't have any notifications yet. They'll appear here when you receive them."}
+								</p>
+							</div>
+						) : (
+							<div className="border rounded-lg overflow-hidden bg-background">
+								<div className="h-[calc(100vh-250px)] overflow-y-auto">
+									{Object.entries(groupedNotifications).map(
+										([date, notifications]) => (
+											<div
+												key={date}
+												className="relative">
+												<div className="sticky top-0 z-20 py-2 px-4 font-medium text-primary bg-background/95 backdrop-blur-sm border-b shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+													{date}
+												</div>
+												{notifications.map((notification) => (
+													<NotificationItem
+														key={notification.id}
+														notification={notification}
+														onMarkAsRead={handleMarkAsRead}
+														onDismiss={handleDismiss}
+														useSampleData={useSampleData}
+													/>
+												))}
+											</div>
+										)
+									)}
+								</div>
+							</div>
+						)}
+					</div>
+				</ContentContainer>
+			</PageContentSpacing>
 		</>
 	);
 }

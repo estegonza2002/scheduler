@@ -16,9 +16,11 @@ export default function ShiftDetailsPage() {
 				description="View detailed information about this shift"
 				showBackButton={true}
 			/>
-			<ContentContainer>
-				<ShiftDetails />
-			</ContentContainer>
+			<PageContentSpacing>
+				<ContentContainer>
+					<ShiftDetails />
+				</ContentContainer>
+			</PageContentSpacing>
 		</>
 	);
 }

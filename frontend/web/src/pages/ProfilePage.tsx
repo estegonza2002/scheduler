@@ -64,6 +64,8 @@ import { calculateHours } from "../utils/time-calculations";
 import { Badge } from "../components/ui/badge";
 import { cn } from "../lib/utils";
 import { PageHeader } from "../components/ui/page-header";
+import { PageContentSpacing } from "../components/ui/header-content-spacing";
+import { SecondaryLayout } from "../components/layout/SecondaryLayout";
 
 // Get the Supabase URL from environment or use a fallback
 const supabaseUrl =
@@ -965,1119 +967,1109 @@ export default function ProfilePage() {
 	}, [user]);
 
 	return (
-		<>
-			{renderSidebar()}
-			<div className="ml-64">
-				<PageHeader
-					title={`${user?.user_metadata?.firstName || ""} ${
-						user?.user_metadata?.lastName || ""
-					}'s Profile`}
-					description="Manage your personal information and preferences"
+		<SecondaryLayout
+			title={`${user?.user_metadata?.firstName || ""} ${
+				user?.user_metadata?.lastName || ""
+			}'s Profile`}
+			description="Manage your personal information and preferences"
+			sidebar={
+				<ProfileSidebar
+					activeTab={activeTab}
+					onTabChange={handleTabChange}
 				/>
-				<div className="p-4">
-					{/* Profile Tab Content */}
-					{activeTab === "profile" && (
-						<div className="md:col-span-3 space-y-8">
-							<Form {...profileForm}>
-								<form
-									onSubmit={profileForm.handleSubmit(onProfileSubmit)}
-									className="space-y-6">
-									<FormSection title="Profile Picture">
-										<div className="flex items-start gap-6">
-											<Avatar className="h-24 w-24 border">
-												<AvatarImage
-													src={
-														profilePicturePreview ||
-														user?.user_metadata?.avatar_url
-													}
-													className={cn(
-														"object-cover",
-														isAvatarRemoved && "hidden"
-													)}
-												/>
-												<AvatarFallback className="text-2xl">
-													{getInitials()}
-												</AvatarFallback>
-											</Avatar>
-
-											<div className="flex flex-col gap-3">
-												<label
-													htmlFor="profile-picture-upload"
-													className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
-													<Upload className="mr-2 h-4 w-4" />
-													Upload Picture
-													<input
-														id="profile-picture-upload"
-														type="file"
-														accept="image/*"
-														className="sr-only"
-														onChange={handleProfilePictureChange}
-													/>
-												</label>
-
-												{(user?.user_metadata?.avatar_url ||
-													profilePicturePreview) &&
-													!isAvatarRemoved && (
-														<Button
-															type="button"
-															variant="outline"
-															onClick={handleRemoveProfilePicture}
-															className="justify-start">
-															<Trash2 className="mr-2 h-4 w-4" />
-															Remove Picture
-														</Button>
-													)}
-
-												<p className="text-xs text-muted-foreground mt-2">
-													Recommended: Square image, at least 200x200px.
-												</p>
-											</div>
-										</div>
-									</FormSection>
-
-									<FormSection title="Personal Details">
-										<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-											<FormField
-												control={profileForm.control}
-												name="firstName"
-												render={({ field }) => (
-													<FormItem>
-														<FormLabel>First Name</FormLabel>
-														<FormControl>
-															<Input
-																placeholder="Enter your first name"
-																{...field}
-															/>
-														</FormControl>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
-
-											<FormField
-												control={profileForm.control}
-												name="lastName"
-												render={({ field }) => (
-													<FormItem>
-														<FormLabel>Last Name</FormLabel>
-														<FormControl>
-															<Input
-																placeholder="Enter your last name"
-																{...field}
-															/>
-														</FormControl>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
-										</div>
-									</FormSection>
-
-									<FormSection title="Contact Information">
-										<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-											<FormField
-												control={profileForm.control}
-												name="email"
-												render={({ field }) => (
-													<FormItem>
-														<FormLabel>Email Address</FormLabel>
-														<FormControl>
-															<Input
-																placeholder="Enter your email"
-																{...field}
-															/>
-														</FormControl>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
-
-											<FormField
-												control={profileForm.control}
-												name="phone"
-												render={({ field }) => (
-													<FormItem>
-														<FormLabel>Phone Number</FormLabel>
-														<FormControl>
-															<Input
-																placeholder="Enter your phone number"
-																{...field}
-															/>
-														</FormControl>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
-										</div>
-									</FormSection>
-
-									<FormSection title="Work Information">
-										<FormField
-											control={profileForm.control}
-											name="position"
-											render={({ field }) => (
-												<FormItem>
-													<FormLabel>Position / Role</FormLabel>
-													<FormControl>
-														<Input
-															placeholder="Enter your position"
-															{...field}
-														/>
-													</FormControl>
-													<FormMessage />
-												</FormItem>
+			}>
+			{/* Profile Tab Content */}
+			{activeTab === "profile" && (
+				<div className="md:col-span-3 space-y-8">
+					<Form {...profileForm}>
+						<form
+							onSubmit={profileForm.handleSubmit(onProfileSubmit)}
+							className="space-y-6">
+							<FormSection title="Profile Picture">
+								<div className="flex items-start gap-6">
+									<Avatar className="h-24 w-24 border">
+										<AvatarImage
+											src={
+												profilePicturePreview || user?.user_metadata?.avatar_url
+											}
+											className={cn(
+												"object-cover",
+												isAvatarRemoved && "hidden"
 											)}
 										/>
-									</FormSection>
+										<AvatarFallback className="text-2xl">
+											{getInitials()}
+										</AvatarFallback>
+									</Avatar>
 
-									<FormSection title="Security">
-										<div className="space-y-2">
-											<div className="flex items-center justify-between">
-												<div>
-													<h4 className="text-sm font-medium">Password</h4>
-													<p className="text-sm text-muted-foreground">
-														Update your password to keep your account secure
-													</p>
-												</div>
-												<Dialog>
-													<DialogTrigger asChild>
+									<div className="flex flex-col gap-3">
+										<label
+											htmlFor="profile-picture-upload"
+											className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
+											<Upload className="mr-2 h-4 w-4" />
+											Upload Picture
+											<input
+												id="profile-picture-upload"
+												type="file"
+												accept="image/*"
+												className="sr-only"
+												onChange={handleProfilePictureChange}
+											/>
+										</label>
+
+										{(user?.user_metadata?.avatar_url ||
+											profilePicturePreview) &&
+											!isAvatarRemoved && (
+												<Button
+													type="button"
+													variant="outline"
+													onClick={handleRemoveProfilePicture}
+													className="justify-start">
+													<Trash2 className="mr-2 h-4 w-4" />
+													Remove Picture
+												</Button>
+											)}
+
+										<p className="text-xs text-muted-foreground mt-2">
+											Recommended: Square image, at least 200x200px.
+										</p>
+									</div>
+								</div>
+							</FormSection>
+
+							<FormSection title="Personal Details">
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+									<FormField
+										control={profileForm.control}
+										name="firstName"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>First Name</FormLabel>
+												<FormControl>
+													<Input
+														placeholder="Enter your first name"
+														{...field}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+
+									<FormField
+										control={profileForm.control}
+										name="lastName"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Last Name</FormLabel>
+												<FormControl>
+													<Input
+														placeholder="Enter your last name"
+														{...field}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								</div>
+							</FormSection>
+
+							<FormSection title="Contact Information">
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+									<FormField
+										control={profileForm.control}
+										name="email"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Email Address</FormLabel>
+												<FormControl>
+													<Input
+														placeholder="Enter your email"
+														{...field}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+
+									<FormField
+										control={profileForm.control}
+										name="phone"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Phone Number</FormLabel>
+												<FormControl>
+													<Input
+														placeholder="Enter your phone number"
+														{...field}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								</div>
+							</FormSection>
+
+							<FormSection title="Work Information">
+								<FormField
+									control={profileForm.control}
+									name="position"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Position / Role</FormLabel>
+											<FormControl>
+												<Input
+													placeholder="Enter your position"
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</FormSection>
+
+							<FormSection title="Security">
+								<div className="space-y-2">
+									<div className="flex items-center justify-between">
+										<div>
+											<h4 className="text-sm font-medium">Password</h4>
+											<p className="text-sm text-muted-foreground">
+												Update your password to keep your account secure
+											</p>
+										</div>
+										<Dialog>
+											<DialogTrigger asChild>
+												<Button
+													type="button"
+													variant="outline">
+													Update Password
+												</Button>
+											</DialogTrigger>
+											<DialogContent>
+												<DialogHeader>
+													<DialogTitle>Update Password</DialogTitle>
+													<DialogDescription>
+														Enter your current password and new password
+													</DialogDescription>
+												</DialogHeader>
+												<Form {...passwordForm}>
+													<form
+														onSubmit={passwordForm.handleSubmit(
+															onPasswordSubmit
+														)}
+														className="space-y-6">
+														<FormField
+															control={passwordForm.control}
+															name="currentPassword"
+															render={({ field }) => (
+																<FormItem>
+																	<FormLabel>Current Password</FormLabel>
+																	<FormControl>
+																		<Input
+																			placeholder="Enter your current password"
+																			type="password"
+																			{...field}
+																		/>
+																	</FormControl>
+																	<FormMessage />
+																</FormItem>
+															)}
+														/>
+														<FormField
+															control={passwordForm.control}
+															name="newPassword"
+															render={({ field }) => (
+																<FormItem>
+																	<FormLabel>New Password</FormLabel>
+																	<FormControl>
+																		<Input
+																			placeholder="Enter your new password"
+																			type="password"
+																			{...field}
+																		/>
+																	</FormControl>
+																	<FormMessage />
+																</FormItem>
+															)}
+														/>
+														<FormField
+															control={passwordForm.control}
+															name="confirmPassword"
+															render={({ field }) => (
+																<FormItem>
+																	<FormLabel>Confirm Password</FormLabel>
+																	<FormControl>
+																		<Input
+																			placeholder="Confirm your new password"
+																			type="password"
+																			{...field}
+																		/>
+																	</FormControl>
+																	<FormMessage />
+																</FormItem>
+															)}
+														/>
 														<Button
-															type="button"
-															variant="outline">
+															type="submit"
+															className="w-full"
+															disabled={isLoading}>
+															{isLoading && (
+																<span className="mr-2">
+																	<svg
+																		className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+																		xmlns="http://www.w3.org/2000/svg"
+																		fill="none"
+																		viewBox="0 0 24 24">
+																		<circle
+																			className="opacity-25"
+																			cx="12"
+																			cy="12"
+																			r="10"
+																			stroke="currentColor"
+																			strokeWidth="4"></circle>
+																		<path
+																			className="opacity-75"
+																			fill="currentColor"
+																			d="M4 12a8 8 0 018-8v8z"></path>
+																	</svg>
+																</span>
+															)}
 															Update Password
 														</Button>
-													</DialogTrigger>
-													<DialogContent>
-														<DialogHeader>
-															<DialogTitle>Update Password</DialogTitle>
-															<DialogDescription>
-																Enter your current password and new password
-															</DialogDescription>
-														</DialogHeader>
-														<Form {...passwordForm}>
-															<form
-																onSubmit={passwordForm.handleSubmit(
-																	onPasswordSubmit
-																)}
-																className="space-y-6">
-																<FormField
-																	control={passwordForm.control}
-																	name="currentPassword"
-																	render={({ field }) => (
-																		<FormItem>
-																			<FormLabel>Current Password</FormLabel>
-																			<FormControl>
-																				<Input
-																					placeholder="Enter your current password"
-																					type="password"
-																					{...field}
-																				/>
-																			</FormControl>
-																			<FormMessage />
-																		</FormItem>
-																	)}
-																/>
-																<FormField
-																	control={passwordForm.control}
-																	name="newPassword"
-																	render={({ field }) => (
-																		<FormItem>
-																			<FormLabel>New Password</FormLabel>
-																			<FormControl>
-																				<Input
-																					placeholder="Enter your new password"
-																					type="password"
-																					{...field}
-																				/>
-																			</FormControl>
-																			<FormMessage />
-																		</FormItem>
-																	)}
-																/>
-																<FormField
-																	control={passwordForm.control}
-																	name="confirmPassword"
-																	render={({ field }) => (
-																		<FormItem>
-																			<FormLabel>Confirm Password</FormLabel>
-																			<FormControl>
-																				<Input
-																					placeholder="Confirm your new password"
-																					type="password"
-																					{...field}
-																				/>
-																			</FormControl>
-																			<FormMessage />
-																		</FormItem>
-																	)}
-																/>
-																<Button
-																	type="submit"
-																	className="w-full"
-																	disabled={isLoading}>
-																	{isLoading && (
-																		<span className="mr-2">
-																			<svg
-																				className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-																				xmlns="http://www.w3.org/2000/svg"
-																				fill="none"
-																				viewBox="0 0 24 24">
-																				<circle
-																					className="opacity-25"
-																					cx="12"
-																					cy="12"
-																					r="10"
-																					stroke="currentColor"
-																					strokeWidth="4"></circle>
-																				<path
-																					className="opacity-75"
-																					fill="currentColor"
-																					d="M4 12a8 8 0 018-8v8z"></path>
-																			</svg>
-																		</span>
-																	)}
-																	Update Password
-																</Button>
-															</form>
-														</Form>
-													</DialogContent>
-												</Dialog>
-											</div>
-										</div>
-									</FormSection>
-
-									{/* Form Submission */}
-									<div className="flex justify-end">
-										<Button
-											type="submit"
-											className="min-w-[150px]"
-											disabled={
-												isLoading ||
-												!profileForm.formState.isDirty ||
-												profileForm.formState.isSubmitting
-											}>
-											{isLoading ? (
-												<>
-													<svg
-														className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-														xmlns="http://www.w3.org/2000/svg"
-														fill="none"
-														viewBox="0 0 24 24">
-														<circle
-															className="opacity-25"
-															cx="12"
-															cy="12"
-															r="10"
-															stroke="currentColor"
-															strokeWidth="4"></circle>
-														<path
-															className="opacity-75"
-															fill="currentColor"
-															d="M4 12a8 8 0 018-8v8z"></path>
-													</svg>
-													Saving...
-												</>
-											) : (
-												"Save Changes"
-											)}
-										</Button>
+													</form>
+												</Form>
+											</DialogContent>
+										</Dialog>
 									</div>
-								</form>
-							</Form>
-						</div>
-					)}
-
-					{/* Shifts Section */}
-					{activeTab === "shifts" && (
-						<div className="space-y-6">
-							<div className="flex justify-between items-center">
-								<div>
-									<h2 className="text-2xl font-bold">My Shifts</h2>
-									<p className="text-muted-foreground">
-										View your current, upcoming, and previous shifts.
-									</p>
 								</div>
-							</div>
+							</FormSection>
 
-							<ShiftsSection userId={user?.id || ""} />
-						</div>
-					)}
-
-					{activeTab === "notifications" && (
-						<div className="space-y-6">
-							<div className="flex justify-between items-center">
-								<div>
-									<h2 className="text-2xl font-bold">Notifications</h2>
-									<p className="text-muted-foreground">
-										Manage your notification preferences.
-									</p>
-								</div>
-							</div>
-
-							<Form {...preferencesForm}>
-								<form
-									onSubmit={preferencesForm.handleSubmit(onPreferencesSubmit)}
-									className="space-y-6">
-									<FormSection title="Notification Channels">
-										<div className="space-y-4">
-											<div className="flex items-center justify-between">
-												<div className="space-y-0.5">
-													<Label htmlFor="email-notifications">
-														Email Notifications
-													</Label>
-													<p className="text-sm text-muted-foreground">
-														Receive notifications via email
-													</p>
-												</div>
-												<FormField
-													control={preferencesForm.control}
-													name="emailNotifications"
-													render={({ field }) => (
-														<FormItem className="flex items-center space-x-2">
-															<FormControl>
-																<Switch
-																	id="email-notifications"
-																	checked={field.value}
-																	onCheckedChange={field.onChange}
-																/>
-															</FormControl>
-														</FormItem>
-													)}
-												/>
-											</div>
-
-											<div className="flex items-center justify-between">
-												<div className="space-y-0.5">
-													<Label htmlFor="sms-notifications">
-														SMS Notifications
-													</Label>
-													<p className="text-sm text-muted-foreground">
-														Receive notifications via text message
-													</p>
-												</div>
-												<FormField
-													control={preferencesForm.control}
-													name="smsNotifications"
-													render={({ field }) => (
-														<FormItem className="flex items-center space-x-2">
-															<FormControl>
-																<Switch
-																	id="sms-notifications"
-																	checked={field.value}
-																	onCheckedChange={field.onChange}
-																/>
-															</FormControl>
-														</FormItem>
-													)}
-												/>
-											</div>
-
-											<div className="flex items-center justify-between">
-												<div className="space-y-0.5">
-													<Label htmlFor="push-notifications">
-														Push Notifications
-													</Label>
-													<p className="text-sm text-muted-foreground">
-														Receive push notifications on this device
-													</p>
-												</div>
-												<FormField
-													control={preferencesForm.control}
-													name="pushNotifications"
-													render={({ field }) => (
-														<FormItem className="flex items-center space-x-2">
-															<FormControl>
-																<Switch
-																	id="push-notifications"
-																	checked={field.value}
-																	onCheckedChange={field.onChange}
-																/>
-															</FormControl>
-														</FormItem>
-													)}
-												/>
-											</div>
-										</div>
-									</FormSection>
-
-									<FormSection title="Notification Type">
-										<div className="space-y-4">
-											<div className="flex items-center justify-between">
-												<div className="space-y-0.5">
-													<Label htmlFor="schedule-updates">
-														Schedule Updates
-													</Label>
-													<p className="text-sm text-muted-foreground">
-														Receive notifications when the schedule changes
-													</p>
-												</div>
-												<FormField
-													control={preferencesForm.control}
-													name="scheduleUpdates"
-													render={({ field }) => (
-														<FormItem className="flex items-center space-x-2">
-															<FormControl>
-																<Switch
-																	id="schedule-updates"
-																	checked={field.value}
-																	onCheckedChange={field.onChange}
-																/>
-															</FormControl>
-														</FormItem>
-													)}
-												/>
-											</div>
-
-											<div className="flex items-center justify-between">
-												<div className="space-y-0.5">
-													<Label htmlFor="shift-reminders">
-														Shift Reminders
-													</Label>
-													<p className="text-sm text-muted-foreground">
-														Receive reminders before your shifts start
-													</p>
-												</div>
-												<FormField
-													control={preferencesForm.control}
-													name="shiftReminders"
-													render={({ field }) => (
-														<FormItem className="flex items-center space-x-2">
-															<FormControl>
-																<Switch
-																	id="shift-reminders"
-																	checked={field.value}
-																	onCheckedChange={field.onChange}
-																/>
-															</FormControl>
-														</FormItem>
-													)}
-												/>
-											</div>
-
-											<div className="flex items-center justify-between">
-												<div className="space-y-0.5">
-													<Label htmlFor="system-announcements">
-														System Announcements
-													</Label>
-													<p className="text-sm text-muted-foreground">
-														Receive important system announcements
-													</p>
-												</div>
-												<FormField
-													control={preferencesForm.control}
-													name="systemAnnouncements"
-													render={({ field }) => (
-														<FormItem className="flex items-center space-x-2">
-															<FormControl>
-																<Switch
-																	id="system-announcements"
-																	checked={field.value}
-																	onCheckedChange={field.onChange}
-																/>
-															</FormControl>
-														</FormItem>
-													)}
-												/>
-											</div>
-
-											<div className="flex items-center justify-between">
-												<div className="space-y-0.5">
-													<Label htmlFor="request-updates">
-														Request Updates
-													</Label>
-													<p className="text-sm text-muted-foreground">
-														Receive updates on your time-off requests
-													</p>
-												</div>
-												<FormField
-													control={preferencesForm.control}
-													name="requestUpdates"
-													render={({ field }) => (
-														<FormItem className="flex items-center space-x-2">
-															<FormControl>
-																<Switch
-																	id="request-updates"
-																	checked={field.value}
-																	onCheckedChange={field.onChange}
-																/>
-															</FormControl>
-														</FormItem>
-													)}
-												/>
-											</div>
-
-											<div className="flex items-center justify-between">
-												<div className="space-y-0.5">
-													<Label htmlFor="new-schedule-published">
-														New Schedule Published
-													</Label>
-													<p className="text-sm text-muted-foreground">
-														Receive notification when a new schedule is
-														published
-													</p>
-												</div>
-												<FormField
-													control={preferencesForm.control}
-													name="newSchedulePublished"
-													render={({ field }) => (
-														<FormItem className="flex items-center space-x-2">
-															<FormControl>
-																<Switch
-																	id="new-schedule-published"
-																	checked={field.value}
-																	onCheckedChange={field.onChange}
-																/>
-															</FormControl>
-														</FormItem>
-													)}
-												/>
-											</div>
-										</div>
-									</FormSection>
-
-									{/* Form Submission */}
-									<div className="flex justify-end">
-										<Button
-											type="submit"
-											className="min-w-[150px]"
-											disabled={
-												isLoading ||
-												!preferencesForm.formState.isDirty ||
-												preferencesForm.formState.isSubmitting
-											}>
-											{isLoading ? (
-												<>
-													<svg
-														className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-														xmlns="http://www.w3.org/2000/svg"
-														fill="none"
-														viewBox="0 0 24 24">
-														<circle
-															className="opacity-25"
-															cx="12"
-															cy="12"
-															r="10"
-															stroke="currentColor"
-															strokeWidth="4"></circle>
-														<path
-															className="opacity-75"
-															fill="currentColor"
-															d="M4 12a8 8 0 018-8v8z"></path>
-													</svg>
-													Saving...
-												</>
-											) : (
-												"Save Preferences"
-											)}
-										</Button>
-									</div>
-								</form>
-							</Form>
-						</div>
-					)}
-
-					{/* Business Profile Tab Content */}
-					{activeTab === "business-profile" && (
-						<div className="space-y-6">
-							<div>
-								<h2 className="text-2xl font-bold">Business Profile</h2>
-								<p className="text-muted-foreground">
-									Manage your business information and settings
-								</p>
-							</div>
-
-							<Form {...businessProfileForm}>
-								<form
-									onSubmit={businessProfileForm.handleSubmit(
-										onBusinessProfileSubmit
+							{/* Form Submission */}
+							<div className="flex justify-end">
+								<Button
+									type="submit"
+									className="min-w-[150px]"
+									disabled={
+										isLoading ||
+										!profileForm.formState.isDirty ||
+										profileForm.formState.isSubmitting
+									}>
+									{isLoading ? (
+										<>
+											<svg
+												className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+												xmlns="http://www.w3.org/2000/svg"
+												fill="none"
+												viewBox="0 0 24 24">
+												<circle
+													className="opacity-25"
+													cx="12"
+													cy="12"
+													r="10"
+													stroke="currentColor"
+													strokeWidth="4"></circle>
+												<path
+													className="opacity-75"
+													fill="currentColor"
+													d="M4 12a8 8 0 018-8v8z"></path>
+											</svg>
+											Saving...
+										</>
+									) : (
+										"Save Changes"
 									)}
-									className="space-y-6">
-									<FormSection
-										title="Business Information"
-										description="Basic information about your business">
-										<div className="flex items-center gap-4 mb-6">
-											<Avatar className="h-16 w-16">
-												<AvatarFallback className="text-lg">
-													{getBusinessInitials()}
-												</AvatarFallback>
-											</Avatar>
-											<div>
-												<h3 className="text-lg font-medium">
-													{organization?.name || "Your Business"}
-												</h3>
-												<p className="text-sm text-muted-foreground">
-													{organization?.description ||
-														"No description provided"}
-												</p>
-											</div>
-										</div>
+								</Button>
+							</div>
+						</form>
+					</Form>
+				</div>
+			)}
 
-										<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-											<FormField
-												control={businessProfileForm.control}
-												name="name"
-												render={({ field }) => (
-													<FormItem>
-														<FormLabel>Business Name</FormLabel>
-														<FormControl>
-															<Input
-																placeholder="Enter your business name"
-																{...field}
-															/>
-														</FormControl>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
-										</div>
+			{/* Shifts Section */}
+			{activeTab === "shifts" && (
+				<div className="space-y-6">
+					<div className="flex justify-between items-center">
+						<div>
+							<h2 className="text-2xl font-bold">My Shifts</h2>
+							<p className="text-muted-foreground">
+								View your current, upcoming, and previous shifts.
+							</p>
+						</div>
+					</div>
 
+					<ShiftsSection userId={user?.id || ""} />
+				</div>
+			)}
+
+			{activeTab === "notifications" && (
+				<div className="space-y-6">
+					<div className="flex justify-between items-center">
+						<div>
+							<h2 className="text-2xl font-bold">Notifications</h2>
+							<p className="text-muted-foreground">
+								Manage your notification preferences.
+							</p>
+						</div>
+					</div>
+
+					<Form {...preferencesForm}>
+						<form
+							onSubmit={preferencesForm.handleSubmit(onPreferencesSubmit)}
+							className="space-y-6">
+							<FormSection title="Notification Channels">
+								<div className="space-y-4">
+									<div className="flex items-center justify-between">
+										<div className="space-y-0.5">
+											<Label htmlFor="email-notifications">
+												Email Notifications
+											</Label>
+											<p className="text-sm text-muted-foreground">
+												Receive notifications via email
+											</p>
+										</div>
 										<FormField
-											control={businessProfileForm.control}
-											name="description"
+											control={preferencesForm.control}
+											name="emailNotifications"
 											render={({ field }) => (
-												<FormItem>
-													<FormLabel>Business Description</FormLabel>
+												<FormItem className="flex items-center space-x-2">
 													<FormControl>
-														<Textarea
-															placeholder="Enter a brief description of your business"
-															className="min-h-[100px]"
-															{...field}
+														<Switch
+															id="email-notifications"
+															checked={field.value}
+															onCheckedChange={field.onChange}
 														/>
 													</FormControl>
-													<FormMessage />
 												</FormItem>
 											)}
 										/>
-									</FormSection>
-
-									<FormSection
-										title="Contact Information"
-										description="How customers and employees can reach your business">
-										<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-											<FormField
-												control={businessProfileForm.control}
-												name="contactEmail"
-												render={({ field }) => (
-													<FormItem>
-														<FormLabel>Business Email</FormLabel>
-														<FormControl>
-															<Input
-																placeholder="Enter business email"
-																{...field}
-															/>
-														</FormControl>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
-
-											<FormField
-												control={businessProfileForm.control}
-												name="contactPhone"
-												render={({ field }) => (
-													<FormItem>
-														<FormLabel>Business Phone</FormLabel>
-														<FormControl>
-															<Input
-																placeholder="Enter business phone"
-																{...field}
-															/>
-														</FormControl>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
-
-											<FormField
-												control={businessProfileForm.control}
-												name="website"
-												render={({ field }) => (
-													<FormItem>
-														<FormLabel>Website</FormLabel>
-														<FormControl>
-															<Input
-																placeholder="https://yourbusiness.com"
-																{...field}
-															/>
-														</FormControl>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
-
-											<FormField
-												control={businessProfileForm.control}
-												name="businessHours"
-												render={({ field }) => (
-													<FormItem>
-														<FormLabel>Business Hours</FormLabel>
-														<FormControl>
-															<Input
-																placeholder="Mon-Fri: 9am-5pm"
-																{...field}
-															/>
-														</FormControl>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
-										</div>
-									</FormSection>
-
-									<FormSection
-										title="Business Address"
-										description="Physical location of your business">
-										<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-											<FormField
-												control={businessProfileForm.control}
-												name="address"
-												render={({ field }) => (
-													<FormItem className="col-span-2">
-														<FormLabel>Street Address</FormLabel>
-														<FormControl>
-															<Input
-																placeholder="Enter street address"
-																{...field}
-															/>
-														</FormControl>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
-
-											<FormField
-												control={businessProfileForm.control}
-												name="city"
-												render={({ field }) => (
-													<FormItem>
-														<FormLabel>City</FormLabel>
-														<FormControl>
-															<Input
-																placeholder="Enter city"
-																{...field}
-															/>
-														</FormControl>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
-
-											<FormField
-												control={businessProfileForm.control}
-												name="state"
-												render={({ field }) => (
-													<FormItem>
-														<FormLabel>State/Province</FormLabel>
-														<FormControl>
-															<Input
-																placeholder="Enter state/province"
-																{...field}
-															/>
-														</FormControl>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
-
-											<FormField
-												control={businessProfileForm.control}
-												name="zipCode"
-												render={({ field }) => (
-													<FormItem>
-														<FormLabel>ZIP/Postal Code</FormLabel>
-														<FormControl>
-															<Input
-																placeholder="Enter ZIP/postal code"
-																{...field}
-															/>
-														</FormControl>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
-
-											<FormField
-												control={businessProfileForm.control}
-												name="country"
-												render={({ field }) => (
-													<FormItem>
-														<FormLabel>Country</FormLabel>
-														<FormControl>
-															<Input
-																placeholder="Enter country"
-																{...field}
-															/>
-														</FormControl>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
-										</div>
-									</FormSection>
-
-									<div className="flex justify-end">
-										<Button
-											type="submit"
-											disabled={isLoading}>
-											{isLoading ? "Saving..." : "Save Business Profile"}
-										</Button>
 									</div>
-								</form>
-							</Form>
-						</div>
-					)}
 
-					{/* Branding Tab Content */}
-					{activeTab === "branding" && (
-						<div className="space-y-6">
-							<div>
-								<h2 className="text-2xl font-bold">Brand Settings</h2>
-								<p className="text-muted-foreground">
-									Customize your brand appearance and assets
-								</p>
-							</div>
-
-							<Form {...brandingForm}>
-								<form
-									onSubmit={brandingForm.handleSubmit(onBrandingSubmit)}
-									className="space-y-6">
-									<FormSection
-										title="Logo & Favicon"
-										description="Upload your organization's logo and favicon">
-										<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-											<div>
-												<Label htmlFor="logo-upload">Company Logo</Label>
-												<div className="mt-2 flex flex-col gap-4">
-													<div className="flex items-center justify-center w-full h-40 rounded-md border-2 border-dashed border-muted-foreground/25 p-4 bg-muted/10">
-														{logoPreview ? (
-															<div className="relative w-full h-full flex items-center justify-center">
-																<img
-																	src={logoPreview}
-																	alt="Logo preview"
-																	className="max-h-32 max-w-full object-contain"
-																/>
-																<Button
-																	type="button"
-																	variant="destructive"
-																	size="icon"
-																	className="absolute -top-2 -right-2 h-8 w-8"
-																	onClick={handleRemoveLogo}>
-																	<Trash2 className="h-4 w-4" />
-																</Button>
-															</div>
-														) : (
-															<div className="text-center">
-																<Image className="mx-auto h-12 w-12 text-muted-foreground" />
-																<p className="mt-2 text-sm text-muted-foreground">
-																	Upload your company logo (PNG, JPG, SVG)
-																</p>
-																<div className="mt-4">
-																	<label
-																		htmlFor="logo-upload"
-																		className="cursor-pointer inline-flex items-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm hover:bg-accent">
-																		<Upload className="mr-2 h-4 w-4" />
-																		Choose File
-																		<input
-																			id="logo-upload"
-																			name="logo"
-																			type="file"
-																			className="sr-only"
-																			accept="image/*"
-																			onChange={handleLogoChange}
-																		/>
-																	</label>
-																</div>
-															</div>
-														)}
-													</div>
-													<p className="text-xs text-muted-foreground">
-														Recommended size: 512x512px. Max file size: 2MB.
-													</p>
-												</div>
-											</div>
-
-											<div>
-												<Label htmlFor="favicon-upload">Favicon</Label>
-												<div className="mt-2 flex flex-col gap-4">
-													<div className="flex items-center justify-center w-full h-40 rounded-md border-2 border-dashed border-muted-foreground/25 p-4 bg-muted/10">
-														{faviconPreview ? (
-															<div className="relative w-full h-full flex items-center justify-center">
-																<img
-																	src={faviconPreview}
-																	alt="Favicon preview"
-																	className="max-h-16 max-w-full object-contain"
-																/>
-																<Button
-																	type="button"
-																	variant="destructive"
-																	size="icon"
-																	className="absolute -top-2 -right-2 h-8 w-8"
-																	onClick={handleRemoveFavicon}>
-																	<Trash2 className="h-4 w-4" />
-																</Button>
-															</div>
-														) : (
-															<div className="text-center">
-																<Image className="mx-auto h-12 w-12 text-muted-foreground" />
-																<p className="mt-2 text-sm text-muted-foreground">
-																	Upload your favicon (ICO, PNG)
-																</p>
-																<div className="mt-4">
-																	<label
-																		htmlFor="favicon-upload"
-																		className="cursor-pointer inline-flex items-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm hover:bg-accent">
-																		<Upload className="mr-2 h-4 w-4" />
-																		Choose File
-																		<input
-																			id="favicon-upload"
-																			name="favicon"
-																			type="file"
-																			className="sr-only"
-																			accept="image/x-icon,image/png"
-																			onChange={handleFaviconChange}
-																		/>
-																	</label>
-																</div>
-															</div>
-														)}
-													</div>
-													<p className="text-xs text-muted-foreground">
-														Recommended size: 32x32px. Max file size: 1MB.
-													</p>
-												</div>
-											</div>
+									<div className="flex items-center justify-between">
+										<div className="space-y-0.5">
+											<Label htmlFor="sms-notifications">
+												SMS Notifications
+											</Label>
+											<p className="text-sm text-muted-foreground">
+												Receive notifications via text message
+											</p>
 										</div>
-									</FormSection>
-
-									<FormSection
-										title="Brand Colors"
-										description="Define your brand's color palette">
-										<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-											<FormField
-												control={brandingForm.control}
-												name="primaryColor"
-												render={({ field }) => (
-													<FormItem>
-														<FormLabel>Primary Color</FormLabel>
-														<div className="flex gap-2 items-center">
-															<div
-																className="w-10 h-10 rounded-md border"
-																style={{ backgroundColor: field.value }}
-															/>
-															<FormControl>
-																<Input
-																	{...field}
-																	placeholder="#2563eb"
-																/>
-															</FormControl>
-														</div>
-														<FormDescription>
-															Main color used for primary UI elements
-														</FormDescription>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
-
-											<FormField
-												control={brandingForm.control}
-												name="secondaryColor"
-												render={({ field }) => (
-													<FormItem>
-														<FormLabel>Secondary Color</FormLabel>
-														<div className="flex gap-2 items-center">
-															<div
-																className="w-10 h-10 rounded-md border"
-																style={{ backgroundColor: field.value }}
-															/>
-															<FormControl>
-																<Input
-																	{...field}
-																	placeholder="#1e40af"
-																/>
-															</FormControl>
-														</div>
-														<FormDescription>
-															Used for secondary UI elements
-														</FormDescription>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
-
-											<FormField
-												control={brandingForm.control}
-												name="accentColor"
-												render={({ field }) => (
-													<FormItem>
-														<FormLabel>Accent Color</FormLabel>
-														<div className="flex gap-2 items-center">
-															<div
-																className="w-10 h-10 rounded-md border"
-																style={{ backgroundColor: field.value }}
-															/>
-															<FormControl>
-																<Input
-																	{...field}
-																	placeholder="#ef4444"
-																/>
-															</FormControl>
-														</div>
-														<FormDescription>
-															Used for highlighting important elements
-														</FormDescription>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
-										</div>
-									</FormSection>
-
-									<FormSection
-										title="Typography"
-										description="Choose fonts for your application">
 										<FormField
-											control={brandingForm.control}
-											name="fontFamily"
+											control={preferencesForm.control}
+											name="smsNotifications"
 											render={({ field }) => (
-												<FormItem>
-													<FormLabel>Font Family</FormLabel>
+												<FormItem className="flex items-center space-x-2">
 													<FormControl>
-														<select
-															{...field}
-															className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background">
-															<option value="Inter">Inter</option>
-															<option value="Roboto">Roboto</option>
-															<option value="Open Sans">Open Sans</option>
-															<option value="Lato">Lato</option>
-															<option value="Montserrat">Montserrat</option>
-															<option value="Source Sans Pro">
-																Source Sans Pro
-															</option>
-														</select>
+														<Switch
+															id="sms-notifications"
+															checked={field.value}
+															onCheckedChange={field.onChange}
+														/>
 													</FormControl>
-													<FormDescription>
-														The main font used throughout your application
-													</FormDescription>
-													<FormMessage />
 												</FormItem>
 											)}
 										/>
-									</FormSection>
-
-									<div className="flex justify-end">
-										<Button
-											type="submit"
-											disabled={isLoading}>
-											{isLoading ? "Saving..." : "Save Brand Settings"}
-										</Button>
 									</div>
-								</form>
-							</Form>
-						</div>
-					)}
+
+									<div className="flex items-center justify-between">
+										<div className="space-y-0.5">
+											<Label htmlFor="push-notifications">
+												Push Notifications
+											</Label>
+											<p className="text-sm text-muted-foreground">
+												Receive push notifications on this device
+											</p>
+										</div>
+										<FormField
+											control={preferencesForm.control}
+											name="pushNotifications"
+											render={({ field }) => (
+												<FormItem className="flex items-center space-x-2">
+													<FormControl>
+														<Switch
+															id="push-notifications"
+															checked={field.value}
+															onCheckedChange={field.onChange}
+														/>
+													</FormControl>
+												</FormItem>
+											)}
+										/>
+									</div>
+								</div>
+							</FormSection>
+
+							<FormSection title="Notification Type">
+								<div className="space-y-4">
+									<div className="flex items-center justify-between">
+										<div className="space-y-0.5">
+											<Label htmlFor="schedule-updates">Schedule Updates</Label>
+											<p className="text-sm text-muted-foreground">
+												Receive notifications when the schedule changes
+											</p>
+										</div>
+										<FormField
+											control={preferencesForm.control}
+											name="scheduleUpdates"
+											render={({ field }) => (
+												<FormItem className="flex items-center space-x-2">
+													<FormControl>
+														<Switch
+															id="schedule-updates"
+															checked={field.value}
+															onCheckedChange={field.onChange}
+														/>
+													</FormControl>
+												</FormItem>
+											)}
+										/>
+									</div>
+
+									<div className="flex items-center justify-between">
+										<div className="space-y-0.5">
+											<Label htmlFor="shift-reminders">Shift Reminders</Label>
+											<p className="text-sm text-muted-foreground">
+												Receive reminders before your shifts start
+											</p>
+										</div>
+										<FormField
+											control={preferencesForm.control}
+											name="shiftReminders"
+											render={({ field }) => (
+												<FormItem className="flex items-center space-x-2">
+													<FormControl>
+														<Switch
+															id="shift-reminders"
+															checked={field.value}
+															onCheckedChange={field.onChange}
+														/>
+													</FormControl>
+												</FormItem>
+											)}
+										/>
+									</div>
+
+									<div className="flex items-center justify-between">
+										<div className="space-y-0.5">
+											<Label htmlFor="system-announcements">
+												System Announcements
+											</Label>
+											<p className="text-sm text-muted-foreground">
+												Receive important system announcements
+											</p>
+										</div>
+										<FormField
+											control={preferencesForm.control}
+											name="systemAnnouncements"
+											render={({ field }) => (
+												<FormItem className="flex items-center space-x-2">
+													<FormControl>
+														<Switch
+															id="system-announcements"
+															checked={field.value}
+															onCheckedChange={field.onChange}
+														/>
+													</FormControl>
+												</FormItem>
+											)}
+										/>
+									</div>
+
+									<div className="flex items-center justify-between">
+										<div className="space-y-0.5">
+											<Label htmlFor="request-updates">Request Updates</Label>
+											<p className="text-sm text-muted-foreground">
+												Receive updates on your time-off requests
+											</p>
+										</div>
+										<FormField
+											control={preferencesForm.control}
+											name="requestUpdates"
+											render={({ field }) => (
+												<FormItem className="flex items-center space-x-2">
+													<FormControl>
+														<Switch
+															id="request-updates"
+															checked={field.value}
+															onCheckedChange={field.onChange}
+														/>
+													</FormControl>
+												</FormItem>
+											)}
+										/>
+									</div>
+
+									<div className="flex items-center justify-between">
+										<div className="space-y-0.5">
+											<Label htmlFor="new-schedule-published">
+												New Schedule Published
+											</Label>
+											<p className="text-sm text-muted-foreground">
+												Receive notification when a new schedule is published
+											</p>
+										</div>
+										<FormField
+											control={preferencesForm.control}
+											name="newSchedulePublished"
+											render={({ field }) => (
+												<FormItem className="flex items-center space-x-2">
+													<FormControl>
+														<Switch
+															id="new-schedule-published"
+															checked={field.value}
+															onCheckedChange={field.onChange}
+														/>
+													</FormControl>
+												</FormItem>
+											)}
+										/>
+									</div>
+								</div>
+							</FormSection>
+
+							{/* Form Submission */}
+							<div className="flex justify-end">
+								<Button
+									type="submit"
+									className="min-w-[150px]"
+									disabled={
+										isLoading ||
+										!preferencesForm.formState.isDirty ||
+										preferencesForm.formState.isSubmitting
+									}>
+									{isLoading ? (
+										<>
+											<svg
+												className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+												xmlns="http://www.w3.org/2000/svg"
+												fill="none"
+												viewBox="0 0 24 24">
+												<circle
+													className="opacity-25"
+													cx="12"
+													cy="12"
+													r="10"
+													stroke="currentColor"
+													strokeWidth="4"></circle>
+												<path
+													className="opacity-75"
+													fill="currentColor"
+													d="M4 12a8 8 0 018-8v8z"></path>
+											</svg>
+											Saving...
+										</>
+									) : (
+										"Save Preferences"
+									)}
+								</Button>
+							</div>
+						</form>
+					</Form>
 				</div>
-			</div>
-		</>
+			)}
+
+			{/* Business Profile Tab Content */}
+			{activeTab === "business-profile" && (
+				<div className="space-y-6">
+					<div>
+						<h2 className="text-2xl font-bold">Business Profile</h2>
+						<p className="text-muted-foreground">
+							Manage your business information and settings
+						</p>
+					</div>
+
+					<Form {...businessProfileForm}>
+						<form
+							onSubmit={businessProfileForm.handleSubmit(
+								onBusinessProfileSubmit
+							)}
+							className="space-y-6">
+							<FormSection
+								title="Business Information"
+								description="Basic information about your business">
+								<div className="flex items-center gap-4 mb-6">
+									<Avatar className="h-16 w-16">
+										<AvatarFallback className="text-lg">
+											{getBusinessInitials()}
+										</AvatarFallback>
+									</Avatar>
+									<div>
+										<h3 className="text-lg font-medium">
+											{organization?.name || "Your Business"}
+										</h3>
+										<p className="text-sm text-muted-foreground">
+											{organization?.description || "No description provided"}
+										</p>
+									</div>
+								</div>
+
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+									<FormField
+										control={businessProfileForm.control}
+										name="name"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Business Name</FormLabel>
+												<FormControl>
+													<Input
+														placeholder="Enter your business name"
+														{...field}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								</div>
+
+								<FormField
+									control={businessProfileForm.control}
+									name="description"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Business Description</FormLabel>
+											<FormControl>
+												<Textarea
+													placeholder="Enter a brief description of your business"
+													className="min-h-[100px]"
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</FormSection>
+
+							<FormSection
+								title="Contact Information"
+								description="How customers and employees can reach your business">
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+									<FormField
+										control={businessProfileForm.control}
+										name="contactEmail"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Business Email</FormLabel>
+												<FormControl>
+													<Input
+														placeholder="Enter business email"
+														{...field}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+
+									<FormField
+										control={businessProfileForm.control}
+										name="contactPhone"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Business Phone</FormLabel>
+												<FormControl>
+													<Input
+														placeholder="Enter business phone"
+														{...field}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+
+									<FormField
+										control={businessProfileForm.control}
+										name="website"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Website</FormLabel>
+												<FormControl>
+													<Input
+														placeholder="https://yourbusiness.com"
+														{...field}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+
+									<FormField
+										control={businessProfileForm.control}
+										name="businessHours"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Business Hours</FormLabel>
+												<FormControl>
+													<Input
+														placeholder="Mon-Fri: 9am-5pm"
+														{...field}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								</div>
+							</FormSection>
+
+							<FormSection
+								title="Business Address"
+								description="Physical location of your business">
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+									<FormField
+										control={businessProfileForm.control}
+										name="address"
+										render={({ field }) => (
+											<FormItem className="col-span-2">
+												<FormLabel>Street Address</FormLabel>
+												<FormControl>
+													<Input
+														placeholder="Enter street address"
+														{...field}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+
+									<FormField
+										control={businessProfileForm.control}
+										name="city"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>City</FormLabel>
+												<FormControl>
+													<Input
+														placeholder="Enter city"
+														{...field}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+
+									<FormField
+										control={businessProfileForm.control}
+										name="state"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>State/Province</FormLabel>
+												<FormControl>
+													<Input
+														placeholder="Enter state/province"
+														{...field}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+
+									<FormField
+										control={businessProfileForm.control}
+										name="zipCode"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>ZIP/Postal Code</FormLabel>
+												<FormControl>
+													<Input
+														placeholder="Enter ZIP/postal code"
+														{...field}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+
+									<FormField
+										control={businessProfileForm.control}
+										name="country"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Country</FormLabel>
+												<FormControl>
+													<Input
+														placeholder="Enter country"
+														{...field}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								</div>
+							</FormSection>
+
+							<div className="flex justify-end">
+								<Button
+									type="submit"
+									disabled={isLoading}>
+									{isLoading ? "Saving..." : "Save Business Profile"}
+								</Button>
+							</div>
+						</form>
+					</Form>
+				</div>
+			)}
+
+			{/* Branding Tab Content */}
+			{activeTab === "branding" && (
+				<div className="space-y-6">
+					<div>
+						<h2 className="text-2xl font-bold">Brand Settings</h2>
+						<p className="text-muted-foreground">
+							Customize your brand appearance and assets
+						</p>
+					</div>
+
+					<Form {...brandingForm}>
+						<form
+							onSubmit={brandingForm.handleSubmit(onBrandingSubmit)}
+							className="space-y-6">
+							<FormSection
+								title="Logo & Favicon"
+								description="Upload your organization's logo and favicon">
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+									<div>
+										<Label htmlFor="logo-upload">Company Logo</Label>
+										<div className="mt-2 flex flex-col gap-4">
+											<div className="flex items-center justify-center w-full h-40 rounded-md border-2 border-dashed border-muted-foreground/25 p-4 bg-muted/10">
+												{logoPreview ? (
+													<div className="relative w-full h-full flex items-center justify-center">
+														<img
+															src={logoPreview}
+															alt="Logo preview"
+															className="max-h-32 max-w-full object-contain"
+														/>
+														<Button
+															type="button"
+															variant="destructive"
+															size="icon"
+															className="absolute -top-2 -right-2 h-8 w-8"
+															onClick={handleRemoveLogo}>
+															<Trash2 className="h-4 w-4" />
+														</Button>
+													</div>
+												) : (
+													<div className="text-center">
+														<Image className="mx-auto h-12 w-12 text-muted-foreground" />
+														<p className="mt-2 text-sm text-muted-foreground">
+															Upload your company logo (PNG, JPG, SVG)
+														</p>
+														<div className="mt-4">
+															<label
+																htmlFor="logo-upload"
+																className="cursor-pointer inline-flex items-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm hover:bg-accent">
+																<Upload className="mr-2 h-4 w-4" />
+																Choose File
+																<input
+																	id="logo-upload"
+																	name="logo"
+																	type="file"
+																	className="sr-only"
+																	accept="image/*"
+																	onChange={handleLogoChange}
+																/>
+															</label>
+														</div>
+													</div>
+												)}
+											</div>
+											<p className="text-xs text-muted-foreground">
+												Recommended size: 512x512px. Max file size: 2MB.
+											</p>
+										</div>
+									</div>
+
+									<div>
+										<Label htmlFor="favicon-upload">Favicon</Label>
+										<div className="mt-2 flex flex-col gap-4">
+											<div className="flex items-center justify-center w-full h-40 rounded-md border-2 border-dashed border-muted-foreground/25 p-4 bg-muted/10">
+												{faviconPreview ? (
+													<div className="relative w-full h-full flex items-center justify-center">
+														<img
+															src={faviconPreview}
+															alt="Favicon preview"
+															className="max-h-16 max-w-full object-contain"
+														/>
+														<Button
+															type="button"
+															variant="destructive"
+															size="icon"
+															className="absolute -top-2 -right-2 h-8 w-8"
+															onClick={handleRemoveFavicon}>
+															<Trash2 className="h-4 w-4" />
+														</Button>
+													</div>
+												) : (
+													<div className="text-center">
+														<Image className="mx-auto h-12 w-12 text-muted-foreground" />
+														<p className="mt-2 text-sm text-muted-foreground">
+															Upload your favicon (ICO, PNG)
+														</p>
+														<div className="mt-4">
+															<label
+																htmlFor="favicon-upload"
+																className="cursor-pointer inline-flex items-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm hover:bg-accent">
+																<Upload className="mr-2 h-4 w-4" />
+																Choose File
+																<input
+																	id="favicon-upload"
+																	name="favicon"
+																	type="file"
+																	className="sr-only"
+																	accept="image/x-icon,image/png"
+																	onChange={handleFaviconChange}
+																/>
+															</label>
+														</div>
+													</div>
+												)}
+											</div>
+											<p className="text-xs text-muted-foreground">
+												Recommended size: 32x32px. Max file size: 1MB.
+											</p>
+										</div>
+									</div>
+								</div>
+							</FormSection>
+
+							<FormSection
+								title="Brand Colors"
+								description="Define your brand's color palette">
+								<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+									<FormField
+										control={brandingForm.control}
+										name="primaryColor"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Primary Color</FormLabel>
+												<div className="flex gap-2 items-center">
+													<div
+														className="w-10 h-10 rounded-md border"
+														style={{ backgroundColor: field.value }}
+													/>
+													<FormControl>
+														<Input
+															{...field}
+															placeholder="#2563eb"
+														/>
+													</FormControl>
+												</div>
+												<FormDescription>
+													Main color used for primary UI elements
+												</FormDescription>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+
+									<FormField
+										control={brandingForm.control}
+										name="secondaryColor"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Secondary Color</FormLabel>
+												<div className="flex gap-2 items-center">
+													<div
+														className="w-10 h-10 rounded-md border"
+														style={{ backgroundColor: field.value }}
+													/>
+													<FormControl>
+														<Input
+															{...field}
+															placeholder="#1e40af"
+														/>
+													</FormControl>
+												</div>
+												<FormDescription>
+													Used for secondary UI elements
+												</FormDescription>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+
+									<FormField
+										control={brandingForm.control}
+										name="accentColor"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Accent Color</FormLabel>
+												<div className="flex gap-2 items-center">
+													<div
+														className="w-10 h-10 rounded-md border"
+														style={{ backgroundColor: field.value }}
+													/>
+													<FormControl>
+														<Input
+															{...field}
+															placeholder="#ef4444"
+														/>
+													</FormControl>
+												</div>
+												<FormDescription>
+													Used for highlighting important elements
+												</FormDescription>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								</div>
+							</FormSection>
+
+							<FormSection
+								title="Typography"
+								description="Choose fonts for your application">
+								<FormField
+									control={brandingForm.control}
+									name="fontFamily"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Font Family</FormLabel>
+											<FormControl>
+												<select
+													{...field}
+													className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background">
+													<option value="Inter">Inter</option>
+													<option value="Roboto">Roboto</option>
+													<option value="Open Sans">Open Sans</option>
+													<option value="Lato">Lato</option>
+													<option value="Montserrat">Montserrat</option>
+													<option value="Source Sans Pro">
+														Source Sans Pro
+													</option>
+												</select>
+											</FormControl>
+											<FormDescription>
+												The main font used throughout your application
+											</FormDescription>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</FormSection>
+
+							<div className="flex justify-end">
+								<Button
+									type="submit"
+									disabled={isLoading}>
+									{isLoading ? "Saving..." : "Save Brand Settings"}
+								</Button>
+							</div>
+						</form>
+					</Form>
+				</div>
+			)}
+		</SecondaryLayout>
 	);
 }

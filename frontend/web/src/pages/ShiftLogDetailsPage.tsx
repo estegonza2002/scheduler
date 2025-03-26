@@ -48,6 +48,7 @@ import { cn } from "../lib/utils";
 import { ExportDropdown } from "../components/ExportDropdown";
 import { ContentContainer } from "../components/ui/content-container";
 import { PageHeader } from "../components/ui/page-header";
+import { PageContentSpacing } from "../components/ui/header-content-spacing";
 
 // Mock data for shifts - in a real app this would come from an API
 const mockShifts = [
@@ -186,222 +187,155 @@ export function ShiftLogDetailsPage() {
 				actions={headerActions}
 				showBackButton={true}
 			/>
-			<ContentContainer>
-				<div className="space-y-6">
-					<Card>
-						<CardHeader>
-							<CardTitle>Shift History Details</CardTitle>
-							<CardDescription>
-								View and analyze past shifts, including planned vs. actual hours
-								worked.
-							</CardDescription>
-						</CardHeader>
-						<CardContent>
-							<Tabs
-								value={currentTab}
-								onValueChange={setCurrentTab}
-								className="space-y-4">
-								<div className="flex flex-col md:flex-row justify-between space-y-2 md:space-y-0">
-									<TabsList>
-										<TabsTrigger value="all">All Shifts</TabsTrigger>
-										<TabsTrigger value="variance">Hours Variance</TabsTrigger>
-									</TabsList>
+			<PageContentSpacing>
+				<ContentContainer>
+					<div className="space-y-6">
+						<Card>
+							<CardHeader>
+								<CardTitle>Shift History Details</CardTitle>
+								<CardDescription>
+									View and analyze past shifts, including planned vs. actual
+									hours worked.
+								</CardDescription>
+							</CardHeader>
+							<CardContent>
+								<Tabs
+									value={currentTab}
+									onValueChange={setCurrentTab}
+									className="space-y-4">
+									<div className="flex flex-col md:flex-row justify-between space-y-2 md:space-y-0">
+										<TabsList>
+											<TabsTrigger value="all">All Shifts</TabsTrigger>
+											<TabsTrigger value="variance">Hours Variance</TabsTrigger>
+										</TabsList>
 
-									<div className="flex items-center space-x-2">
-										<div className="relative md:w-64">
-											<Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-											<Input
-												placeholder="Search by employee or location..."
-												value={searchQuery}
-												onChange={(e) => setSearchQuery(e.target.value)}
-												className="pl-8"
-											/>
+										<div className="flex items-center space-x-2">
+											<div className="relative md:w-64">
+												<Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+												<Input
+													placeholder="Search by employee or location..."
+													value={searchQuery}
+													onChange={(e) => setSearchQuery(e.target.value)}
+													className="pl-8"
+												/>
+											</div>
+											<Button
+												variant="outline"
+												size="icon">
+												<Filter className="h-4 w-4" />
+											</Button>
 										</div>
-										<Button
-											variant="outline"
-											size="icon">
-											<Filter className="h-4 w-4" />
-										</Button>
 									</div>
-								</div>
 
-								<div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-									<Popover>
-										<PopoverTrigger asChild>
-											<Button
-												variant="outline"
-												className={cn(
-													"w-full justify-start text-left font-normal",
-													!dateRange.from && "text-muted-foreground"
-												)}>
-												<CalendarIcon className="mr-2 h-4 w-4" />
-												{dateRange.from
-													? format(dateRange.from, "PPP")
-													: "Start Date"}
-											</Button>
-										</PopoverTrigger>
-										<PopoverContent className="w-auto p-0">
-											<Calendar
-												mode="single"
-												selected={dateRange.from}
-												onSelect={(date) =>
-													setDateRange((prev) => ({ ...prev, from: date }))
-												}
-												initialFocus
-											/>
-										</PopoverContent>
-									</Popover>
+									<div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+										<Popover>
+											<PopoverTrigger asChild>
+												<Button
+													variant="outline"
+													className={cn(
+														"w-full justify-start text-left font-normal",
+														!dateRange.from && "text-muted-foreground"
+													)}>
+													<CalendarIcon className="mr-2 h-4 w-4" />
+													{dateRange.from
+														? format(dateRange.from, "PPP")
+														: "Start Date"}
+												</Button>
+											</PopoverTrigger>
+											<PopoverContent className="w-auto p-0">
+												<Calendar
+													mode="single"
+													selected={dateRange.from}
+													onSelect={(date) =>
+														setDateRange((prev) => ({ ...prev, from: date }))
+													}
+													initialFocus
+												/>
+											</PopoverContent>
+										</Popover>
 
-									<Popover>
-										<PopoverTrigger asChild>
-											<Button
-												variant="outline"
-												className={cn(
-													"w-full justify-start text-left font-normal",
-													!dateRange.to && "text-muted-foreground"
-												)}>
-												<CalendarIcon className="mr-2 h-4 w-4" />
-												{dateRange.to
-													? format(dateRange.to, "PPP")
-													: "End Date"}
-											</Button>
-										</PopoverTrigger>
-										<PopoverContent className="w-auto p-0">
-											<Calendar
-												mode="single"
-												selected={dateRange.to}
-												onSelect={(date) =>
-													setDateRange((prev) => ({ ...prev, to: date }))
-												}
-												initialFocus
-											/>
-										</PopoverContent>
-									</Popover>
+										<Popover>
+											<PopoverTrigger asChild>
+												<Button
+													variant="outline"
+													className={cn(
+														"w-full justify-start text-left font-normal",
+														!dateRange.to && "text-muted-foreground"
+													)}>
+													<CalendarIcon className="mr-2 h-4 w-4" />
+													{dateRange.to
+														? format(dateRange.to, "PPP")
+														: "End Date"}
+												</Button>
+											</PopoverTrigger>
+											<PopoverContent className="w-auto p-0">
+												<Calendar
+													mode="single"
+													selected={dateRange.to}
+													onSelect={(date) =>
+														setDateRange((prev) => ({ ...prev, to: date }))
+													}
+													initialFocus
+												/>
+											</PopoverContent>
+										</Popover>
 
-									<Select
-										value={locationFilter}
-										onValueChange={setLocationFilter}>
-										<SelectTrigger>
-											<SelectValue placeholder="All Locations" />
-										</SelectTrigger>
-										<SelectContent>
-											<SelectItem value="all">All Locations</SelectItem>
-											{locations.map((location) => (
-												<SelectItem
-													key={location}
-													value={location}>
-													{location}
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
-									<Select
-										value={statusFilter}
-										onValueChange={setStatusFilter}>
-										<SelectTrigger>
-											<SelectValue placeholder="All Statuses" />
-										</SelectTrigger>
-										<SelectContent>
-											<SelectItem value="all">All Statuses</SelectItem>
-											{statuses.map((status) => (
-												<SelectItem
-													key={status}
-													value={status}>
-													{status}
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
-								</div>
+										<Select
+											value={locationFilter}
+											onValueChange={setLocationFilter}>
+											<SelectTrigger>
+												<SelectValue placeholder="All Locations" />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="all">All Locations</SelectItem>
+												{locations.map((location) => (
+													<SelectItem
+														key={location}
+														value={location}>
+														{location}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+										<Select
+											value={statusFilter}
+											onValueChange={setStatusFilter}>
+											<SelectTrigger>
+												<SelectValue placeholder="All Statuses" />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="all">All Statuses</SelectItem>
+												{statuses.map((status) => (
+													<SelectItem
+														key={status}
+														value={status}>
+														{status}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+									</div>
 
-								<TabsContent
-									value="all"
-									className="space-y-4">
-									<div className="rounded-md border">
-										<Table>
-											<TableHeader>
-												<TableRow>
-													<TableHead>Employee</TableHead>
-													<TableHead>Date</TableHead>
-													<TableHead>Time</TableHead>
-													<TableHead>Location</TableHead>
-													<TableHead>Status</TableHead>
-													<TableHead>Planned Hours</TableHead>
-													<TableHead>Actual Hours</TableHead>
-													<TableHead>Variance</TableHead>
-												</TableRow>
-											</TableHeader>
-											<TableBody>
-												{filteredShifts.length > 0 ? (
-													filteredShifts.map((shift) => (
-														<TableRow key={shift.id}>
-															<TableCell className="font-medium">
-																{shift.employee}
-															</TableCell>
-															<TableCell>{shift.date}</TableCell>
-															<TableCell>{`${shift.startTime} - ${shift.endTime}`}</TableCell>
-															<TableCell>{shift.location}</TableCell>
-															<TableCell>
-																<span
-																	className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-																		shift.status === "Completed"
-																			? "bg-green-100 text-green-800"
-																			: "bg-red-100 text-red-800"
-																	}`}>
-																	{shift.status}
-																</span>
-															</TableCell>
-															<TableCell>{shift.planned}</TableCell>
-															<TableCell>{shift.actual}</TableCell>
-															<TableCell
-																className={
-																	shift.actual > shift.planned
-																		? "text-red-600"
-																		: shift.actual < shift.planned
-																		? "text-orange-600"
-																		: ""
-																}>
-																{(shift.actual - shift.planned).toFixed(1)}
-															</TableCell>
-														</TableRow>
-													))
-												) : (
+									<TabsContent
+										value="all"
+										className="space-y-4">
+										<div className="rounded-md border">
+											<Table>
+												<TableHeader>
 													<TableRow>
-														<TableCell
-															colSpan={8}
-															className="text-center py-6 text-muted-foreground">
-															No shifts found matching your filters
-														</TableCell>
+														<TableHead>Employee</TableHead>
+														<TableHead>Date</TableHead>
+														<TableHead>Time</TableHead>
+														<TableHead>Location</TableHead>
+														<TableHead>Status</TableHead>
+														<TableHead>Planned Hours</TableHead>
+														<TableHead>Actual Hours</TableHead>
+														<TableHead>Variance</TableHead>
 													</TableRow>
-												)}
-											</TableBody>
-										</Table>
-									</div>
-								</TabsContent>
-
-								<TabsContent
-									value="variance"
-									className="space-y-4">
-									<div className="rounded-md border">
-										<Table>
-											<TableHeader>
-												<TableRow>
-													<TableHead>Employee</TableHead>
-													<TableHead>Date</TableHead>
-													<TableHead>Time</TableHead>
-													<TableHead>Location</TableHead>
-													<TableHead>Status</TableHead>
-													<TableHead>Planned Hours</TableHead>
-													<TableHead>Actual Hours</TableHead>
-													<TableHead>Variance</TableHead>
-												</TableRow>
-											</TableHeader>
-											<TableBody>
-												{filteredShifts.filter((s) => s.planned !== s.actual)
-													.length > 0 ? (
-													filteredShifts
-														.filter((s) => s.planned !== s.actual)
-														.map((shift) => (
+												</TableHeader>
+												<TableBody>
+													{filteredShifts.length > 0 ? (
+														filteredShifts.map((shift) => (
 															<TableRow key={shift.id}>
 																<TableCell className="font-medium">
 																	{shift.employee}
@@ -425,30 +359,99 @@ export function ShiftLogDetailsPage() {
 																	className={
 																		shift.actual > shift.planned
 																			? "text-red-600"
-																			: "text-orange-600"
+																			: shift.actual < shift.planned
+																			? "text-orange-600"
+																			: ""
 																	}>
 																	{(shift.actual - shift.planned).toFixed(1)}
 																</TableCell>
 															</TableRow>
 														))
-												) : (
+													) : (
+														<TableRow>
+															<TableCell
+																colSpan={8}
+																className="text-center py-6 text-muted-foreground">
+																No shifts found matching your filters
+															</TableCell>
+														</TableRow>
+													)}
+												</TableBody>
+											</Table>
+										</div>
+									</TabsContent>
+
+									<TabsContent
+										value="variance"
+										className="space-y-4">
+										<div className="rounded-md border">
+											<Table>
+												<TableHeader>
 													<TableRow>
-														<TableCell
-															colSpan={8}
-															className="text-center py-6 text-muted-foreground">
-															No shifts with hour variance found
-														</TableCell>
+														<TableHead>Employee</TableHead>
+														<TableHead>Date</TableHead>
+														<TableHead>Time</TableHead>
+														<TableHead>Location</TableHead>
+														<TableHead>Status</TableHead>
+														<TableHead>Planned Hours</TableHead>
+														<TableHead>Actual Hours</TableHead>
+														<TableHead>Variance</TableHead>
 													</TableRow>
-												)}
-											</TableBody>
-										</Table>
-									</div>
-								</TabsContent>
-							</Tabs>
-						</CardContent>
-					</Card>
-				</div>
-			</ContentContainer>
+												</TableHeader>
+												<TableBody>
+													{filteredShifts.filter((s) => s.planned !== s.actual)
+														.length > 0 ? (
+														filteredShifts
+															.filter((s) => s.planned !== s.actual)
+															.map((shift) => (
+																<TableRow key={shift.id}>
+																	<TableCell className="font-medium">
+																		{shift.employee}
+																	</TableCell>
+																	<TableCell>{shift.date}</TableCell>
+																	<TableCell>{`${shift.startTime} - ${shift.endTime}`}</TableCell>
+																	<TableCell>{shift.location}</TableCell>
+																	<TableCell>
+																		<span
+																			className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+																				shift.status === "Completed"
+																					? "bg-green-100 text-green-800"
+																					: "bg-red-100 text-red-800"
+																			}`}>
+																			{shift.status}
+																		</span>
+																	</TableCell>
+																	<TableCell>{shift.planned}</TableCell>
+																	<TableCell>{shift.actual}</TableCell>
+																	<TableCell
+																		className={
+																			shift.actual > shift.planned
+																				? "text-red-600"
+																				: "text-orange-600"
+																		}>
+																		{(shift.actual - shift.planned).toFixed(1)}
+																	</TableCell>
+																</TableRow>
+															))
+													) : (
+														<TableRow>
+															<TableCell
+																colSpan={8}
+																className="text-center py-6 text-muted-foreground">
+																No shifts with hour variance found
+															</TableCell>
+														</TableRow>
+													)}
+												</TableBody>
+											</Table>
+										</div>
+									</TabsContent>
+								</Tabs>
+							</CardContent>
+						</Card>
+					</div>
+				</ContentContainer>
+			</PageContentSpacing>
 		</>
 	);
 }

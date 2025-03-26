@@ -30,6 +30,7 @@ import { Card, CardContent } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Separator } from "../components/ui/separator";
 import { PageHeader } from "../components/ui/page-header";
+import { PageContentSpacing } from "../components/ui/header-content-spacing";
 
 export default function SchedulePage() {
 	const [searchParams] = useSearchParams();
@@ -151,59 +152,64 @@ export default function SchedulePage() {
 					</div>
 				}
 			/>
-			<ContentContainer className="py-6">
-				<Card>
-					<CardContent className="p-4">
-						<ScheduleCalendar
-							currentMonth={currentMonth}
-							onDateSelect={handleDateSelect}
-						/>
-					</CardContent>
-				</Card>
-
-				{selectedDateShifts.length > 0 && (
-					<Card className="mt-6">
+			<PageContentSpacing>
+				<ContentContainer>
+					<Card>
 						<CardContent className="p-4">
-							<div className="flex justify-between items-center mb-4">
-								<h2 className="text-lg font-semibold">
-									Shifts for {format(selectedDate, "MMMM d, yyyy")}
-								</h2>
-								<Button
-									variant="outline"
-									size="sm"
-									onClick={handleViewDailyShifts}>
-									View All Details
-								</Button>
-							</div>
-							<div className="space-y-2">
-								{selectedDateShifts.map((shift) => (
-									<div
-										key={shift.id}
-										className="border rounded-md p-3 flex justify-between hover:bg-muted/30 cursor-pointer"
-										onClick={() => navigate(`/shifts/${shift.id}`)}>
-										<div>
-											<div className="font-medium">
-												{format(new Date(shift.start_time), "h:mm a")} -{" "}
-												{format(new Date(shift.end_time), "h:mm a")}
-											</div>
-											<div className="text-sm text-muted-foreground">
-												{shift.location_id
-													? `Location: ${shift.location_id.replace("loc-", "")}`
-													: "No location"}
-											</div>
-										</div>
-										<div className="text-sm">
-											{shift.user_id
-												? `Employee: ${shift.user_id.replace("emp-", "")}`
-												: "Unassigned"}
-										</div>
-									</div>
-								))}
-							</div>
+							<ScheduleCalendar
+								currentMonth={currentMonth}
+								onDateSelect={handleDateSelect}
+							/>
 						</CardContent>
 					</Card>
-				)}
-			</ContentContainer>
+
+					{selectedDateShifts.length > 0 && (
+						<Card className="mt-6">
+							<CardContent className="p-4">
+								<div className="flex justify-between items-center mb-4">
+									<h2 className="text-lg font-semibold">
+										Shifts for {format(selectedDate, "MMMM d, yyyy")}
+									</h2>
+									<Button
+										variant="outline"
+										size="sm"
+										onClick={handleViewDailyShifts}>
+										View All Details
+									</Button>
+								</div>
+								<div className="space-y-2">
+									{selectedDateShifts.map((shift) => (
+										<div
+											key={shift.id}
+											className="border rounded-md p-3 flex justify-between hover:bg-muted/30 cursor-pointer"
+											onClick={() => navigate(`/shifts/${shift.id}`)}>
+											<div>
+												<div className="font-medium">
+													{format(new Date(shift.start_time), "h:mm a")} -{" "}
+													{format(new Date(shift.end_time), "h:mm a")}
+												</div>
+												<div className="text-sm text-muted-foreground">
+													{shift.location_id
+														? `Location: ${shift.location_id.replace(
+																"loc-",
+																""
+														  )}`
+														: "No location"}
+												</div>
+											</div>
+											<div className="text-sm">
+												{shift.user_id
+													? `Employee: ${shift.user_id.replace("emp-", "")}`
+													: "Unassigned"}
+											</div>
+										</div>
+									))}
+								</div>
+							</CardContent>
+						</Card>
+					)}
+				</ContentContainer>
+			</PageContentSpacing>
 		</>
 	);
 }

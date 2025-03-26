@@ -59,6 +59,8 @@ import {
 } from "../components/ui/dropdown-menu";
 import { DataTable } from "../components/ui/data-table";
 import { PageHeader } from "../components/ui/page-header";
+import { PageContentSpacing } from "../components/ui/header-content-spacing";
+import { ContentContainer } from "../components/ui/content-container";
 
 // Export the ShiftCreationSheet with its props for use in the AppLayout
 export function getHeaderActions() {
@@ -445,372 +447,290 @@ export default function DailyShiftsPage() {
 		<>
 			<PageHeader
 				title="Daily Shifts"
-				description={`Schedule for ${format(currentDate, "MMM dd, yyyy")}`}
-				actions={getHeaderActions()}
-			/>
-
-			<div className="p-4">
-				{/* Date navigation */}
-				<div className="mb-6 flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 justify-between items-start sm:items-center">
-					{/* Date navigation controls */}
-					<div className="flex items-center space-x-2">
+				description={`Shifts for ${format(currentDate, "EEEE, MMMM d, yyyy")}`}
+				actions={
+					<div className="flex items-center gap-2">
 						<Button
 							variant="outline"
-							size="icon"
+							size="sm"
 							onClick={() => updateDate(subDays(currentDate, 1))}>
 							<ChevronLeft className="h-4 w-4" />
 						</Button>
-
 						<Popover>
 							<PopoverTrigger asChild>
 								<Button
 									variant="outline"
-									className="min-w-[180px] justify-start text-left font-normal">
-									<CalendarIcon className="mr-2 h-4 w-4" />
+									size="sm"
+									className="h-9 px-4 gap-2">
+									<CalendarIcon className="h-4 w-4 opacity-70" />
 									{format(currentDate, "MMMM d, yyyy")}
 								</Button>
 							</PopoverTrigger>
-							<PopoverContent className="w-auto p-0">
+							<PopoverContent
+								className="w-auto p-0"
+								align="start">
 								<Calendar
 									mode="single"
 									selected={currentDate}
-									onSelect={(date) => {
-										if (date) {
-											updateDate(date);
-										}
-										// Close the popover
-										const button = document.querySelector(
-											'[data-state="open"]'
-										) as HTMLButtonElement;
-										if (button) button.click();
-									}}
+									onSelect={(date) => date && updateDate(date)}
 									initialFocus
 								/>
 							</PopoverContent>
 						</Popover>
-
 						<Button
 							variant="outline"
-							size="icon"
+							size="sm"
 							onClick={() => updateDate(addDays(currentDate, 1))}>
 							<ChevronRight className="h-4 w-4" />
 						</Button>
-
 						<Button
 							variant="outline"
-							className="hidden sm:flex"
+							size="sm"
 							onClick={() => updateDate(new Date())}>
 							Today
 						</Button>
-					</div>
-
-					{/* View options */}
-					<div className="flex items-center gap-3">
-						{/* View mode switcher */}
-						<div className="flex items-center border rounded-md">
-							<Button
-								variant="ghost"
-								size="icon"
-								className={`rounded-l-md rounded-r-none h-9 w-9 ${
-									viewMode === "cards"
-										? "bg-background shadow-sm"
-										: "bg-transparent hover:bg-transparent"
-								}`}
-								onClick={() => setViewMode("cards")}>
-								<LayoutGrid className="h-5 w-5" />
-							</Button>
-							<Button
-								variant="ghost"
-								size="icon"
-								className={`rounded-l-none rounded-r-md h-9 w-9 ${
-									viewMode === "table"
-										? "bg-background shadow-sm"
-										: "bg-transparent hover:bg-transparent"
-								}`}
-								onClick={() => setViewMode("table")}>
-								<Table className="h-5 w-5" />
-							</Button>
-						</div>
-
-						<Button
-							variant="outline"
-							className="flex items-center gap-2 h-9"
-							onClick={() =>
-								navigate(
-									`/schedule/monthly?date=${format(
-										currentDate,
-										"yyyy-MM-dd"
-									)}&scheduleId=${
-										selectedSchedule || ""
-									}&organizationId=${organizationId}`
-								)
-							}>
-							<Maximize2 className="h-5 w-5" />
-							<span>Monthly View</span>
-						</Button>
-					</div>
-				</div>
-
-				{/* Search and filters directly in the header section */}
-				<div className="flex flex-wrap items-center gap-2 mt-4">
-					<div className="relative flex-1 min-w-[300px]">
-						<Search className="absolute left-2.5 top-2.5 h-5 w-5 text-muted-foreground" />
-						<Input
-							placeholder="Search shifts by location, employee, or time..."
-							className="pl-9 h-9"
-							value={searchTerm}
-							onChange={(e) => setSearchTerm(e.target.value)}
+						<ShiftCreationSheet
+							scheduleId={selectedSchedule || ""}
+							organizationId={organizationId}
+							initialDate={currentDate}
+							trigger={
+								<Button size="sm">
+									<Plus className="h-4 w-4 mr-1" />
+									Create Shift
+								</Button>
+							}
 						/>
 					</div>
-
-					<div className="flex items-center gap-2">
-						<DropdownMenu>
-							<DropdownMenuTrigger>
-								<Button
-									variant="outline"
-									className="flex items-center gap-2 h-9">
-									<MapPin className="h-5 w-5" />
-									<span>Locations</span>
-									{selectedLocationIds.length > 0 && (
-										<Badge
-											variant="secondary"
-											className="ml-1">
-											{selectedLocationIds.length}
-										</Badge>
-									)}
-								</Button>
-							</DropdownMenuTrigger>
-							<DropdownMenuContent
-								align="end"
-								className="w-[200px]">
-								<DropdownMenuLabel>Filter by location</DropdownMenuLabel>
-								<DropdownMenuSeparator />
-								{locations.map((location) => (
-									<DropdownMenuCheckboxItem
-										key={location.id}
-										checked={selectedLocationIds.includes(location.id)}
-										onCheckedChange={() => toggleLocationFilter(location.id)}>
-										{location.name}
-									</DropdownMenuCheckboxItem>
-								))}
-							</DropdownMenuContent>
-						</DropdownMenu>
-
-						<DropdownMenu>
-							<DropdownMenuTrigger>
-								<Button
-									variant="outline"
-									className="flex items-center gap-2 h-9">
-									<User className="h-5 w-5" />
-									<span>Employees</span>
-									{selectedEmployeeIds.length > 0 && (
-										<Badge
-											variant="secondary"
-											className="ml-1">
-											{selectedEmployeeIds.length}
-										</Badge>
-									)}
-								</Button>
-							</DropdownMenuTrigger>
-							<DropdownMenuContent
-								align="end"
-								className="w-[200px]">
-								<DropdownMenuLabel>Filter by employee</DropdownMenuLabel>
-								<DropdownMenuSeparator />
-								{employees.map((employee) => (
-									<DropdownMenuCheckboxItem
-										key={employee.id}
-										checked={selectedEmployeeIds.includes(employee.id)}
-										onCheckedChange={() => toggleEmployeeFilter(employee.id)}>
-										{employee.name}
-									</DropdownMenuCheckboxItem>
-								))}
-							</DropdownMenuContent>
-						</DropdownMenu>
-
-						{(selectedLocationIds.length > 0 ||
-							selectedEmployeeIds.length > 0 ||
-							searchTerm) && (
-							<Button
-								variant="ghost"
-								size="icon"
-								className="h-9 w-9"
-								onClick={resetFilters}
-								title="Clear filters">
-								<X className="h-5 w-5" />
-							</Button>
-						)}
-					</div>
-				</div>
-
-				{/* Active filters */}
-				{(selectedLocationIds.length > 0 || selectedEmployeeIds.length > 0) && (
-					<div className="flex flex-wrap gap-2 mt-3">
-						{selectedLocationIds.map((id) => (
-							<Badge
-								key={id}
-								variant="outline"
-								className="flex items-center gap-1 py-1 px-2">
-								<MapPin className="h-4 w-4" />
-								{getLocationName(id)}
+				}
+			/>
+			<PageContentSpacing>
+				<ContentContainer>
+					{/* Filters and controls */}
+					<div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+						{/* View options */}
+						<div className="flex items-center gap-3">
+							{/* View mode switcher */}
+							<div className="flex items-center border rounded-md">
 								<Button
 									variant="ghost"
 									size="icon"
-									className="h-5 w-5 ml-1 p-0 hover:bg-muted"
-									onClick={() => toggleLocationFilter(id)}>
-									<X className="h-4 w-4" />
+									className={`rounded-l-md rounded-r-none h-9 w-9 ${
+										viewMode === "cards"
+											? "bg-background shadow-sm"
+											: "bg-transparent hover:bg-transparent"
+									}`}
+									onClick={() => setViewMode("cards")}>
+									<LayoutGrid className="h-5 w-5" />
 								</Button>
-							</Badge>
-						))}
-
-						{selectedEmployeeIds.map((id) => (
-							<Badge
-								key={id}
-								variant="outline"
-								className="flex items-center gap-1 py-1 px-2">
-								<User className="h-4 w-4" />
-								{getEmployeeName(id)}
 								<Button
 									variant="ghost"
 									size="icon"
-									className="h-5 w-5 ml-1 p-0 hover:bg-muted"
-									onClick={() => toggleEmployeeFilter(id)}>
-									<X className="h-4 w-4" />
+									className={`rounded-l-none rounded-r-md h-9 w-9 ${
+										viewMode === "table"
+											? "bg-background shadow-sm"
+											: "bg-transparent hover:bg-transparent"
+									}`}
+									onClick={() => setViewMode("table")}>
+									<Table className="h-5 w-5" />
 								</Button>
-							</Badge>
-						))}
-
-						<Button
-							variant="ghost"
-							size="sm"
-							className="text-xs h-7"
-							onClick={resetFilters}>
-							Clear all
-						</Button>
-					</div>
-				)}
-			</div>
-
-			{/* Main Content Layout */}
-			<div className="flex flex-1 overflow-hidden">
-				{/* Main Content Area */}
-				<div className="flex-1 overflow-auto">
-					<div className="p-4">
-						<div className="flex flex-col gap-4">
-							{/* Hidden select schedule field */}
-							<div className="hidden">
-								<Select
-									value={selectedSchedule || ""}
-									onValueChange={(value) => setSelectedSchedule(value)}
-									disabled={loading}>
-									<SelectTrigger
-										id="schedule-select"
-										className="mt-1 mb-4">
-										<SelectValue placeholder="Select a schedule" />
-									</SelectTrigger>
-									<SelectContent>
-										{schedules.map((schedule) => (
-											<SelectItem
-												key={schedule.id}
-												value={schedule.id}>
-												{schedule.name}
-											</SelectItem>
-										))}
-									</SelectContent>
-								</Select>
 							</div>
 
-							{loading && (
-								<div className="flex items-center gap-2 text-sm text-muted-foreground p-4 border rounded-md">
-									<Loader2 className="h-4 w-4 animate-spin" />
-									<span>
-										{loadingPhase === "shifts"
-											? "Loading shifts..."
-											: loadingPhase === "locations"
-											? "Loading locations..."
-											: "Loading employees..."}
-									</span>
-								</div>
-							)}
+							<Button
+								variant="outline"
+								className="flex items-center gap-2 h-9"
+								onClick={() =>
+									navigate(
+										`/schedule/monthly?date=${format(
+											currentDate,
+											"yyyy-MM-dd"
+										)}&scheduleId=${
+											selectedSchedule || ""
+										}&organizationId=${organizationId}`
+									)
+								}>
+								<Maximize2 className="h-5 w-5" />
+								<span>Monthly View</span>
+							</Button>
+						</div>
+					</div>
 
-							{!loading && shifts.length === 0 && <EmptyShiftsState />}
+					{/* Search and filters directly in the header section */}
+					<div className="flex flex-wrap items-center gap-2 mt-4">
+						<div className="relative flex-1 min-w-[300px]">
+							<Search className="absolute left-2.5 top-2.5 h-5 w-5 text-muted-foreground" />
+							<Input
+								placeholder="Search shifts by location, employee, or time..."
+								className="pl-9 h-9"
+								value={searchTerm}
+								onChange={(e) => setSearchTerm(e.target.value)}
+							/>
+						</div>
 
-							{!loading && shifts.length > 0 && (
-								<div>
-									{filteredShifts.length === 0 ? (
-										<div className="flex flex-col items-center justify-center p-6 border rounded-md">
-											<AlertCircle className="h-6 w-6 mb-3 text-muted-foreground" />
-											<div className="text-lg font-medium mb-2">
-												No shifts found
-											</div>
-											<div className="text-muted-foreground">
-												Try adjusting your search or filters
-											</div>
-										</div>
-									) : (
-										<div>
-											{/* Table View */}
-											{viewMode === "table" && (
-												<div className="rounded-md overflow-hidden">
-													<DataTable
-														columns={tableColumns}
-														data={filteredShifts}
-														externalPagination={{
-															pageIndex: currentPage - 1, // Convert from 1-based to 0-based
-															pageSize: itemsPerPage,
-															totalItems: totalItems,
-															setPageIndex: (pageIndex) =>
-																setCurrentPage(pageIndex + 1), // Convert from 0-based to 1-based
-															setPageSize: (pageSize) => {
-																setItemsPerPage(pageSize);
-																setCurrentPage(1);
-															},
-														}}
-													/>
-												</div>
-											)}
+						<div className="flex items-center gap-2">
+							<DropdownMenu>
+								<DropdownMenuTrigger>
+									<Button
+										variant="outline"
+										className="flex items-center gap-2 h-9">
+										<MapPin className="h-5 w-5" />
+										<span>Locations</span>
+										{selectedLocationIds.length > 0 && (
+											<Badge
+												variant="secondary"
+												className="ml-1">
+												{selectedLocationIds.length}
+											</Badge>
+										)}
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent
+									align="end"
+									className="w-[200px]">
+									<DropdownMenuLabel>Filter by location</DropdownMenuLabel>
+									<DropdownMenuSeparator />
+									{locations.map((location) => (
+										<DropdownMenuCheckboxItem
+											key={location.id}
+											checked={selectedLocationIds.includes(location.id)}
+											onCheckedChange={() => toggleLocationFilter(location.id)}>
+											{location.name}
+										</DropdownMenuCheckboxItem>
+									))}
+								</DropdownMenuContent>
+							</DropdownMenu>
 
-											{/* Card View */}
-											{viewMode === "cards" && (
-												<div>
-													<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-														{paginatedShifts.map((shift) => (
-															<ShiftCard
-																key={shift.id}
-																shift={shift}
-															/>
-														))}
-													</div>
+							<DropdownMenu>
+								<DropdownMenuTrigger>
+									<Button
+										variant="outline"
+										className="flex items-center gap-2 h-9">
+										<User className="h-5 w-5" />
+										<span>Employees</span>
+										{selectedEmployeeIds.length > 0 && (
+											<Badge
+												variant="secondary"
+												className="ml-1">
+												{selectedEmployeeIds.length}
+											</Badge>
+										)}
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent
+									align="end"
+									className="w-[200px]">
+									<DropdownMenuLabel>Filter by employee</DropdownMenuLabel>
+									<DropdownMenuSeparator />
+									{employees.map((employee) => (
+										<DropdownMenuCheckboxItem
+											key={employee.id}
+											checked={selectedEmployeeIds.includes(employee.id)}
+											onCheckedChange={() => toggleEmployeeFilter(employee.id)}>
+											{employee.name}
+										</DropdownMenuCheckboxItem>
+									))}
+								</DropdownMenuContent>
+							</DropdownMenu>
 
-													{/* Use DataTable pagination for Card View as well */}
-													{filteredShifts.length > 0 && (
-														<DataTable
-															columns={[]}
-															data={[]}
-															hideTable={true}
-															externalPagination={{
-																pageIndex: currentPage - 1, // Convert from 1-based to 0-based
-																pageSize: itemsPerPage,
-																totalItems: totalItems,
-																setPageIndex: (pageIndex) =>
-																	setCurrentPage(pageIndex + 1), // Convert from 0-based to 1-based
-																setPageSize: (pageSize) => {
-																	setItemsPerPage(pageSize);
-																	setCurrentPage(1);
-																},
-															}}
-														/>
-													)}
-												</div>
-											)}
-										</div>
-									)}
-								</div>
+							{(selectedLocationIds.length > 0 ||
+								selectedEmployeeIds.length > 0 ||
+								searchTerm) && (
+								<Button
+									variant="ghost"
+									size="icon"
+									className="h-9 w-9"
+									onClick={resetFilters}
+									title="Clear filters">
+									<X className="h-5 w-5" />
+								</Button>
 							)}
 						</div>
 					</div>
-				</div>
-			</div>
+
+					{/* Active filters */}
+					{(selectedLocationIds.length > 0 ||
+						selectedEmployeeIds.length > 0) && (
+						<div className="flex flex-wrap gap-2 mt-3">
+							{selectedLocationIds.map((id) => (
+								<Badge
+									key={id}
+									variant="outline"
+									className="flex items-center gap-1 py-1 px-2">
+									<MapPin className="h-4 w-4" />
+									{getLocationName(id)}
+									<Button
+										variant="ghost"
+										size="icon"
+										className="h-5 w-5 ml-1 p-0 hover:bg-muted"
+										onClick={() => toggleLocationFilter(id)}>
+										<X className="h-4 w-4" />
+									</Button>
+								</Badge>
+							))}
+
+							{selectedEmployeeIds.map((id) => (
+								<Badge
+									key={id}
+									variant="outline"
+									className="flex items-center gap-1 py-1 px-2">
+									<User className="h-4 w-4" />
+									{getEmployeeName(id)}
+									<Button
+										variant="ghost"
+										size="icon"
+										className="h-5 w-5 ml-1 p-0 hover:bg-muted"
+										onClick={() => toggleEmployeeFilter(id)}>
+										<X className="h-4 w-4" />
+									</Button>
+								</Badge>
+							))}
+
+							<Button
+								variant="ghost"
+								size="sm"
+								className="text-xs h-7"
+								onClick={resetFilters}>
+								Clear all
+							</Button>
+						</div>
+					)}
+
+					{/* Shifts display */}
+					{loading ? (
+						<div className="flex flex-col items-center justify-center p-8">
+							<Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+							<p className="text-muted-foreground">Loading {loadingPhase}...</p>
+						</div>
+					) : filteredShifts.length === 0 ? (
+						<EmptyShiftsState />
+					) : viewMode === "cards" ? (
+						<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+							{paginatedShifts.map((shift) => (
+								<ShiftCard
+									key={shift.id}
+									shift={shift}
+								/>
+							))}
+						</div>
+					) : (
+						<div className="rounded-md border">
+							<DataTable
+								columns={tableColumns}
+								data={filteredShifts}
+								externalPagination={{
+									pageIndex: currentPage - 1, // Convert from 1-based to 0-based
+									pageSize: itemsPerPage,
+									totalItems: totalItems,
+									setPageIndex: (pageIndex) => setCurrentPage(pageIndex + 1), // Convert from 0-based to 1-based
+									setPageSize: (pageSize) => {
+										setItemsPerPage(pageSize);
+										setCurrentPage(1);
+									},
+								}}
+							/>
+						</div>
+					)}
+				</ContentContainer>
+			</PageContentSpacing>
 		</>
 	);
 }

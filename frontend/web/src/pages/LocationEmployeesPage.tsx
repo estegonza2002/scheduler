@@ -29,6 +29,7 @@ import {
 } from "../components/ui/alert-dialog";
 import { Users } from "lucide-react";
 import { PageHeader } from "../components/ui/page-header";
+import { PageContentSpacing } from "../components/ui/header-content-spacing";
 
 export default function LocationEmployeesPage() {
 	const { locationId } = useParams<{ locationId: string }>();
@@ -126,42 +127,60 @@ export default function LocationEmployeesPage() {
 
 	if (loading) {
 		return (
-			<ContentContainer>
-				<LoadingState
-					type="skeleton"
-					skeletonCount={4}
-					skeletonHeight={60}
-					message={`Loading ${loadingPhase}...`}
+			<>
+				<PageHeader
+					title="Loading..."
+					description="Retrieving employee information"
+					showBackButton={true}
 				/>
-			</ContentContainer>
+				<PageContentSpacing>
+					<ContentContainer>
+						<LoadingState
+							type="skeleton"
+							skeletonCount={4}
+							skeletonHeight={60}
+							message={`Loading ${loadingPhase}...`}
+						/>
+					</ContentContainer>
+				</PageContentSpacing>
+			</>
 		);
 	}
 
 	if (!location) {
 		return (
-			<ContentContainer>
-				<ContentSection
+			<>
+				<PageHeader
 					title="Location not found"
-					description="The requested location could not be found."
-					footer={
-						<Button
-							variant="outline"
-							onClick={() => navigate("/locations")}
-							className="mt-2">
-							Back to Locations
-						</Button>
-					}>
-					<p>
-						The location you're looking for may have been removed or doesn't
-						exist.
-					</p>
-				</ContentSection>
-			</ContentContainer>
+					description="The requested location could not be found"
+					showBackButton={true}
+				/>
+				<PageContentSpacing>
+					<ContentContainer>
+						<ContentSection
+							title="Location not found"
+							description="The requested location could not be found."
+							footer={
+								<Button
+									variant="outline"
+									onClick={() => navigate("/locations")}
+									className="mt-2">
+									Back to Locations
+								</Button>
+							}>
+							<p>
+								The location you're looking for may have been removed or doesn't
+								exist.
+							</p>
+						</ContentSection>
+					</ContentContainer>
+				</PageContentSpacing>
+			</>
 		);
 	}
 
 	return (
-		<div>
+		<>
 			<PageHeader
 				title={`${location.name} Employees`}
 				description={`Manage employees at ${location.name}`}
@@ -187,79 +206,81 @@ export default function LocationEmployeesPage() {
 				showBackButton={true}
 			/>
 
-			<ContentContainer>
-				<LocationSubNav
-					locationId={locationId || ""}
-					locationName={location.name}
-				/>
+			<PageContentSpacing>
+				<ContentContainer>
+					<LocationSubNav
+						locationId={locationId || ""}
+						locationName={location.name}
+					/>
 
-				<div className="mt-6 px-8">
-					<div className="grid gap-6">
-						{/* Employees Section */}
-						<ContentSection
-							title="Assigned Employees"
-							description="Employees assigned to this location">
-							{assignedEmployees.length > 0 ? (
-								<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-									{assignedEmployees.map((employee) => (
-										<div
-											key={employee.id}
-											className="flex items-center gap-3 p-3 border rounded-lg hover:bg-accent/5">
-											<Avatar className="h-10 w-10">
-												<AvatarImage
-													src={employee.avatar}
-													alt={employee.name}
-												/>
-												<AvatarFallback>
-													{employee.name.charAt(0)}
-												</AvatarFallback>
-											</Avatar>
-											<div className="flex-1">
-												<div className="font-medium">{employee.name}</div>
-												<div className="text-sm text-muted-foreground">
-													{employee.position || "Staff"}
+					<div className="mt-6">
+						<div className="grid gap-6">
+							{/* Employees Section */}
+							<ContentSection
+								title="Assigned Employees"
+								description="Employees assigned to this location">
+								{assignedEmployees.length > 0 ? (
+									<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+										{assignedEmployees.map((employee) => (
+											<div
+												key={employee.id}
+												className="flex items-center gap-3 p-3 border rounded-lg hover:bg-accent/5">
+												<Avatar className="h-10 w-10">
+													<AvatarImage
+														src={employee.avatar}
+														alt={employee.name}
+													/>
+													<AvatarFallback>
+														{employee.name.charAt(0)}
+													</AvatarFallback>
+												</Avatar>
+												<div className="flex-1">
+													<div className="font-medium">{employee.name}</div>
+													<div className="text-sm text-muted-foreground">
+														{employee.position || "Staff"}
+													</div>
 												</div>
+												<Button
+													variant="ghost"
+													size="icon"
+													className="text-muted-foreground hover:text-destructive"
+													onClick={() => {
+														setRemoveEmployeeId(employee.id);
+														setRemoveEmployeeDialogOpen(true);
+													}}>
+													<X className="h-4 w-4" />
+												</Button>
 											</div>
-											<Button
-												variant="ghost"
-												size="icon"
-												className="text-muted-foreground hover:text-destructive"
-												onClick={() => {
-													setRemoveEmployeeId(employee.id);
-													setRemoveEmployeeDialogOpen(true);
-												}}>
-												<X className="h-4 w-4" />
-											</Button>
-										</div>
-									))}
-								</div>
-							) : (
-								<div className="py-12 flex flex-col items-center justify-center text-center text-muted-foreground">
-									<Users className="h-12 w-12 mb-4 opacity-20" />
-									<h3 className="text-lg font-medium mb-1">
-										No employees assigned
-									</h3>
-									<p className="max-w-md">
-										No employees have been assigned to this location yet. Click
-										the "Assign Employees" button to add employees.
-									</p>
-								</div>
-							)}
-						</ContentSection>
+										))}
+									</div>
+								) : (
+									<div className="py-12 flex flex-col items-center justify-center text-center text-muted-foreground">
+										<Users className="h-12 w-12 mb-4 opacity-20" />
+										<h3 className="text-lg font-medium mb-1">
+											No employees assigned
+										</h3>
+										<p className="max-w-md">
+											No employees have been assigned to this location yet.
+											Click the "Assign Employees" button to add employees.
+										</p>
+									</div>
+								)}
+							</ContentSection>
+						</div>
 					</div>
-				</div>
-			</ContentContainer>
+				</ContentContainer>
+			</PageContentSpacing>
 
-			{/* Remove Employee Dialog */}
+			{/* Confirmation Dialog */}
 			<AlertDialog
 				open={removeEmployeeDialogOpen}
 				onOpenChange={setRemoveEmployeeDialogOpen}>
 				<AlertDialogContent>
 					<AlertDialogHeader>
-						<AlertDialogTitle>Remove Employee</AlertDialogTitle>
+						<AlertDialogTitle>Remove employee from location?</AlertDialogTitle>
 						<AlertDialogDescription>
-							Are you sure you want to remove this employee from this location?
-							They will no longer be associated with this location.
+							This will unassign the employee from this location. They will no
+							longer be available for shifts at this location unless reassigned.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
@@ -272,6 +293,6 @@ export default function LocationEmployeesPage() {
 					</AlertDialogFooter>
 				</AlertDialogContent>
 			</AlertDialog>
-		</div>
+		</>
 	);
 }
