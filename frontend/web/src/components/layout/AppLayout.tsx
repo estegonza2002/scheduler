@@ -61,6 +61,7 @@ import {
 	AlertDialogTrigger,
 } from "../ui/alert-dialog";
 import { getHeaderActions } from "../../pages/DailyShiftsPage";
+import { OnboardingModal } from "../onboarding/OnboardingModal";
 
 // Layout content component that can access the sidebar context
 function LayoutContent({
@@ -438,6 +439,8 @@ export default function AppLayout() {
 				getHeaderTitle={getHeaderTitle}
 				pageHeader={pageHeader}
 			/>
+			{/* Onboarding modal - shown globally for new users */}
+			<OnboardingModal />
 		</SidebarProvider>
 	);
 }

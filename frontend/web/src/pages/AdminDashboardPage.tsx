@@ -71,6 +71,15 @@ import { FormulaExplainer } from "../components/ui/formula-explainer";
 import { EmployeeSheet } from "../components/EmployeeSheet";
 import { ShiftCreationSheet } from "../components/ShiftCreationSheet";
 import { LocationCreationSheet } from "../components/LocationCreationSheet";
+import { useOnboarding } from "../lib/onboarding-context";
+import { Badge } from "../components/ui/badge";
+import {
+	Tooltip,
+	TooltipTrigger,
+	TooltipContent,
+	TooltipProvider,
+} from "../components/ui/tooltip";
+import { OnboardingReminder } from "../components/onboarding/OnboardingReminder";
 
 // Extended organization type for UI display purposes
 interface ExtendedOrganization extends Organization {
@@ -80,6 +89,12 @@ interface ExtendedOrganization extends Organization {
 export default function AdminDashboardPage() {
 	const { user } = useAuth();
 	const { updatePageHeader } = useLayout();
+	const {
+		onboardingState,
+		startOnboarding,
+		getCompletedStepsCount,
+		getTotalStepsCount,
+	} = useOnboarding();
 	const [organization, setOrganization] = useState<ExtendedOrganization | null>(
 		null
 	);
@@ -280,12 +295,69 @@ export default function AdminDashboardPage() {
 		handleEmployeesAdded,
 	]);
 
+	const renderOnboardingStatus = () => {
+		const completedCount = getCompletedStepsCount();
+		const totalCount = getTotalStepsCount();
+		const isComplete = onboardingState.completedSteps.includes("create_shift");
+		const percentage = Math.floor((completedCount / totalCount) * 100);
+
+		if (isComplete) {
+			return (
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Badge
+							className="bg-green-500 hover:bg-green-600 cursor-pointer"
+							onClick={startOnboarding}>
+							Setup Complete <CheckCircle2 className="h-3 w-3 ml-1" />
+						</Badge>
+					</TooltipTrigger>
+					<TooltipContent>
+						<p>Your initial setup is complete! Click to review setup.</p>
+					</TooltipContent>
+				</Tooltip>
+			);
+		} else if (completedCount > 0) {
+			return (
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Badge
+							variant="outline"
+							className="cursor-pointer border-amber-500 text-amber-700"
+							onClick={startOnboarding}>
+							Setup in Progress ({percentage}%)
+						</Badge>
+					</TooltipTrigger>
+					<TooltipContent>
+						<p>Continue your onboarding setup</p>
+					</TooltipContent>
+				</Tooltip>
+			);
+		} else {
+			return (
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Badge
+							variant="outline"
+							className="cursor-pointer border-blue-500 text-blue-700"
+							onClick={startOnboarding}>
+							Start Setup
+						</Badge>
+					</TooltipTrigger>
+					<TooltipContent>
+						<p>Begin setting up your organization</p>
+					</TooltipContent>
+				</Tooltip>
+			);
+		}
+	};
+
 	if (loading) {
 		return <ContentContainer>{renderLoadingSkeleton()}</ContentContainer>;
 	}
 
 	return (
 		<PageContentSpacing>
+			<OnboardingReminder />
 			<ContentContainer>
 				<Tabs defaultValue="overview">
 					<div className="flex justify-between items-center mb-4">
@@ -370,9 +442,14 @@ export default function AdminDashboardPage() {
 							{/* Employees Card */}
 							<Card className="relative overflow-hidden">
 								<CardHeader>
-									<CardTitle className="text-sm font-medium flex items-center">
-										<Users className="h-4 w-4 mr-2 text-primary" />
-										Employees
+									<CardTitle className="text-sm font-medium flex items-center justify-between">
+										<div className="flex items-center">
+											<Users className="h-4 w-4 mr-2 text-primary" />
+											Employees
+										</div>
+										<TooltipProvider>
+											{renderOnboardingStatus()}
+										</TooltipProvider>
 									</CardTitle>
 								</CardHeader>
 								<CardContent>

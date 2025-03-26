@@ -9,6 +9,7 @@ import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import AppLayout from "./components/layout/AppLayout";
 import { NotificationProvider } from "./lib/notification-context";
 import { LayoutProvider } from "./lib/layout-context";
+import { OnboardingProvider } from "./lib/onboarding-context";
 import { useEffect } from "react";
 
 // Import our pages
@@ -77,167 +78,169 @@ function App() {
 		<AuthProvider>
 			<NotificationProvider>
 				<LayoutProvider>
-					<Router>
-						<Routes>
-							{/* Public Routes */}
-							<Route
-								path="/login"
-								element={<LoginPage />}
-							/>
-							<Route
-								path="/signup"
-								element={<SignUpPage />}
-							/>
-							<Route
-								path="/business-signup"
-								element={<BusinessSignUpPage />}
-							/>
-							<Route
-								path="/forgot-password"
-								element={<ForgotPasswordPage />}
-							/>
-							<Route
-								path="/reset-password"
-								element={<ResetPasswordPage />}
-							/>
+					<OnboardingProvider>
+						<Router>
+							<Routes>
+								{/* Public Routes */}
+								<Route
+									path="/login"
+									element={<LoginPage />}
+								/>
+								<Route
+									path="/signup"
+									element={<SignUpPage />}
+								/>
+								<Route
+									path="/business-signup"
+									element={<BusinessSignUpPage />}
+								/>
+								<Route
+									path="/forgot-password"
+									element={<ForgotPasswordPage />}
+								/>
+								<Route
+									path="/reset-password"
+									element={<ResetPasswordPage />}
+								/>
 
-							{/* Protected Routes */}
-							<Route element={<ProtectedRoute />}>
-								<Route element={<AppLayout />}>
-									<Route
-										path="/dashboard"
-										element={<DashboardPage />}
-									/>
-									<Route
-										path="/admin-dashboard"
-										element={<AdminDashboardPage />}
-									/>
-									<Route
-										path="/schedule"
-										element={
-											<Navigate
-												to={`/daily-shifts?date=${
-													new Date().toISOString().split("T")[0]
-												}`}
-												replace
-											/>
-										}
-									/>
-									<Route
-										path="/schedule/monthly"
-										element={<SchedulePage />}
-									/>
-									<Route
-										path="/daily-shifts"
-										element={<DailyShiftsPage />}
-									/>
-									<Route
-										path="/today"
-										element={
-											<Navigate
-												to={`/daily-shifts?date=${
-													new Date().toISOString().split("T")[0]
-												}`}
-												replace
-											/>
-										}
-									/>
-									<Route
-										path="/profile"
-										element={<ProfilePage />}
-									/>
-									<Route
-										path="/business-profile"
-										element={<BusinessProfilePage />}
-									/>
-									<Route
-										path="/billing"
-										element={<BillingPage />}
-									/>
-									<Route
-										path="/branding"
-										element={<BrandingPage />}
-									/>
-									<Route
-										path="/employees"
-										element={<EmployeesPage />}
-									/>
-									<Route
-										path="/locations"
-										element={<LocationsPage />}
-									/>
-									<Route
-										path="/locations/:locationId"
-										element={<LocationDetailPage />}
-									/>
-									<Route
-										path="/locations/:locationId/insights"
-										element={<LocationInsightsPage />}
-									/>
-									<Route
-										path="/locations/:locationId/finance"
-										element={<LocationFinancialReportPage />}
-									/>
-									<Route
-										path="/locations/:locationId/shifts"
-										element={<LocationShiftPage />}
-									/>
-									<Route
-										path="/locations/:locationId/employees"
-										element={<LocationEmployeesPage />}
-									/>
-									<Route
-										path="/notifications"
-										element={<NotificationsPage />}
-									/>
-									<Route
-										path="/messages"
-										element={<MessagesPage />}
-									/>
-									<Route
-										path="/shifts"
-										element={<ShiftsPage />}
-									/>
-									<Route
-										path="/shift-details/:shiftId"
-										element={<ShiftLogDetailsPage />}
-									/>
-									<Route
-										path="/shifts/:shiftId"
-										element={<ShiftDetailsPage />}
-									/>
-									<Route
-										path="/edit-shift/:shiftId"
-										element={<EditShiftPage />}
-									/>
-									<Route
-										path="/employee-detail/:employeeId"
-										element={<EmployeeDetailPage />}
-									/>
-									<Route
-										path="/employee-earnings/:employeeId"
-										element={<EmployeeEarningsPage />}
-									/>
-									{/* Add more protected routes here */}
+								{/* Protected Routes */}
+								<Route element={<ProtectedRoute />}>
+									<Route element={<AppLayout />}>
+										<Route
+											path="/dashboard"
+											element={<DashboardPage />}
+										/>
+										<Route
+											path="/admin-dashboard"
+											element={<AdminDashboardPage />}
+										/>
+										<Route
+											path="/schedule"
+											element={
+												<Navigate
+													to={`/daily-shifts?date=${
+														new Date().toISOString().split("T")[0]
+													}`}
+													replace
+												/>
+											}
+										/>
+										<Route
+											path="/schedule/monthly"
+											element={<SchedulePage />}
+										/>
+										<Route
+											path="/daily-shifts"
+											element={<DailyShiftsPage />}
+										/>
+										<Route
+											path="/today"
+											element={
+												<Navigate
+													to={`/daily-shifts?date=${
+														new Date().toISOString().split("T")[0]
+													}`}
+													replace
+												/>
+											}
+										/>
+										<Route
+											path="/profile"
+											element={<ProfilePage />}
+										/>
+										<Route
+											path="/business-profile"
+											element={<BusinessProfilePage />}
+										/>
+										<Route
+											path="/billing"
+											element={<BillingPage />}
+										/>
+										<Route
+											path="/branding"
+											element={<BrandingPage />}
+										/>
+										<Route
+											path="/employees"
+											element={<EmployeesPage />}
+										/>
+										<Route
+											path="/locations"
+											element={<LocationsPage />}
+										/>
+										<Route
+											path="/locations/:locationId"
+											element={<LocationDetailPage />}
+										/>
+										<Route
+											path="/locations/:locationId/insights"
+											element={<LocationInsightsPage />}
+										/>
+										<Route
+											path="/locations/:locationId/finance"
+											element={<LocationFinancialReportPage />}
+										/>
+										<Route
+											path="/locations/:locationId/shifts"
+											element={<LocationShiftPage />}
+										/>
+										<Route
+											path="/locations/:locationId/employees"
+											element={<LocationEmployeesPage />}
+										/>
+										<Route
+											path="/notifications"
+											element={<NotificationsPage />}
+										/>
+										<Route
+											path="/messages"
+											element={<MessagesPage />}
+										/>
+										<Route
+											path="/shifts"
+											element={<ShiftsPage />}
+										/>
+										<Route
+											path="/shift-details/:shiftId"
+											element={<ShiftLogDetailsPage />}
+										/>
+										<Route
+											path="/shifts/:shiftId"
+											element={<ShiftDetailsPage />}
+										/>
+										<Route
+											path="/edit-shift/:shiftId"
+											element={<EditShiftPage />}
+										/>
+										<Route
+											path="/employee-detail/:employeeId"
+											element={<EmployeeDetailPage />}
+										/>
+										<Route
+											path="/employee-earnings/:employeeId"
+											element={<EmployeeEarningsPage />}
+										/>
+										{/* Add more protected routes here */}
+									</Route>
 								</Route>
-							</Route>
 
-							{/* Redirect to appropriate dashboard based on role */}
-							<Route
-								path="/"
-								element={<RootRedirect />}
-							/>
-							<Route
-								path="*"
-								element={
-									<Navigate
-										to="/login"
-										replace
-									/>
-								}
-							/>
-						</Routes>
-					</Router>
+								{/* Redirect to appropriate dashboard based on role */}
+								<Route
+									path="/"
+									element={<RootRedirect />}
+								/>
+								<Route
+									path="*"
+									element={
+										<Navigate
+											to="/login"
+											replace
+										/>
+									}
+								/>
+							</Routes>
+						</Router>
+					</OnboardingProvider>
 				</LayoutProvider>
 			</NotificationProvider>
 		</AuthProvider>
