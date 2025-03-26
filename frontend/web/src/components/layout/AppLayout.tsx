@@ -155,7 +155,7 @@ export default function AppLayout() {
 	const isBrandingPage = location.pathname === "/branding";
 
 	// Check if we need secondary navbar
-	const hasSecondaryNavbar = isSchedulePage || isEmployeesPage;
+	const hasSecondaryNavbar = isSchedulePage;
 
 	// Fetch organization
 	useEffect(() => {
@@ -327,38 +327,6 @@ export default function AppLayout() {
 						const today = new Date();
 						navigate(`/schedule?date=${format(today, "yyyy-MM-dd")}`);
 					}}
-					sidebarState={sidebarState}
-				/>
-			);
-		}
-
-		if (isEmployeesPage) {
-			return (
-				<EmployeesSidebar
-					onSearch={(term) => {
-						const newParams = new URLSearchParams(searchParams);
-						if (term) {
-							newParams.set("search", term);
-						} else {
-							newParams.delete("search");
-						}
-						setSearchParams(newParams);
-					}}
-					positionFilter={searchParams.get("position")}
-					onPositionFilterChange={(position) => {
-						const newParams = new URLSearchParams(searchParams);
-						if (position) {
-							newParams.set("position", position);
-						} else {
-							newParams.delete("position");
-						}
-						setSearchParams(newParams);
-					}}
-					onClearFilters={() => {
-						const newParams = new URLSearchParams();
-						setSearchParams(newParams);
-					}}
-					positions={["Manager", "Cashier", "Barista", "Cook", "Server"]}
 					sidebarState={sidebarState}
 				/>
 			);

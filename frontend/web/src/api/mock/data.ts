@@ -86,6 +86,18 @@ export const mockShifts: Shift[] = [
 		updated_at: "2025-05-15T10:00:00Z",
 	},
 
+	// Future schedule for upcoming shifts
+	{
+		id: "sch-6",
+		name: "Current Schedule",
+		organization_id: "org-1",
+		start_time: new Date().toISOString(),
+		end_time: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
+		is_schedule: true,
+		created_at: new Date().toISOString(),
+		updated_at: new Date().toISOString(),
+	},
+
 	// Individual shifts (is_schedule = false)
 	{
 		id: "shift-1",
@@ -98,6 +110,7 @@ export const mockShifts: Shift[] = [
 		description: "First shift of the month - morning duties",
 		organization_id: "org-1",
 		is_schedule: false,
+		status: "completed",
 		created_at: "2023-05-20T10:00:00Z",
 		updated_at: "2023-05-20T10:00:00Z",
 		check_in_tasks: [
@@ -152,6 +165,7 @@ export const mockShifts: Shift[] = [
 		description: "Afternoon supervisor shift",
 		organization_id: "org-1",
 		is_schedule: false,
+		status: "canceled",
 		created_at: "2023-05-20T10:10:00Z",
 		updated_at: "2023-05-20T10:10:00Z",
 		check_in_tasks: [
@@ -206,6 +220,7 @@ export const mockShifts: Shift[] = [
 		description: "Morning shift at main location",
 		organization_id: "org-1",
 		is_schedule: false,
+		status: "completed",
 		created_at: "2023-05-25T09:00:00Z",
 		updated_at: "2023-05-25T09:00:00Z",
 		check_in_tasks: [
@@ -260,6 +275,7 @@ export const mockShifts: Shift[] = [
 		description: "Evening shift at secondary location",
 		organization_id: "org-1",
 		is_schedule: false,
+		status: "canceled",
 		created_at: "2023-05-25T09:15:00Z",
 		updated_at: "2023-05-25T09:15:00Z",
 		check_in_tasks: [
@@ -314,6 +330,7 @@ export const mockShifts: Shift[] = [
 		description: "Management oversight day",
 		organization_id: "org-1",
 		is_schedule: false,
+		status: "in_progress",
 		created_at: "2023-05-26T11:00:00Z",
 		updated_at: "2023-05-26T11:00:00Z",
 		check_in_tasks: [
@@ -354,6 +371,96 @@ export const mockShifts: Shift[] = [
 				title: "Communicate with night shift",
 				completed: false,
 				order: 3,
+			},
+		],
+	},
+
+	// Add some upcoming shifts for testing
+	{
+		id: "shift-upcoming-1",
+		parent_shift_id: "sch-6",
+		user_id: "emp-1",
+		start_time: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days from now
+		end_time: new Date(
+			Date.now() + 2 * 24 * 60 * 60 * 1000 + 8 * 60 * 60 * 1000
+		).toISOString(), // 8 hours later
+		position: "Runner",
+		location_id: "loc-1",
+		description: "Upcoming test shift",
+		organization_id: "org-1",
+		is_schedule: false,
+		status: "scheduled",
+		created_at: new Date().toISOString(),
+		updated_at: new Date().toISOString(),
+		check_in_tasks: [
+			{
+				id: "task-up-1",
+				title: "Check uniform",
+				completed: false,
+				order: 1,
+			},
+			{
+				id: "task-up-2",
+				title: "Get communication device",
+				completed: false,
+				order: 2,
+			},
+		],
+		check_out_tasks: [
+			{
+				id: "task-up-3",
+				title: "Return keys",
+				completed: false,
+				order: 1,
+			},
+			{
+				id: "task-up-4",
+				title: "Submit shift report",
+				completed: false,
+				order: 2,
+			},
+		],
+	},
+	{
+		id: "shift-current-1",
+		parent_shift_id: "sch-6",
+		user_id: "emp-1",
+		start_time: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
+		end_time: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(), // 6 hours from now
+		position: "Runner",
+		location_id: "loc-1",
+		description: "Current test shift",
+		organization_id: "org-1",
+		is_schedule: false,
+		status: "in_progress",
+		created_at: new Date().toISOString(),
+		updated_at: new Date().toISOString(),
+		check_in_tasks: [
+			{
+				id: "task-curr-1",
+				title: "Check uniform",
+				completed: true,
+				order: 1,
+			},
+			{
+				id: "task-curr-2",
+				title: "Get communication device",
+				completed: true,
+				order: 2,
+			},
+		],
+		check_out_tasks: [
+			{
+				id: "task-curr-3",
+				title: "Return keys",
+				completed: false,
+				order: 1,
+			},
+			{
+				id: "task-curr-4",
+				title: "Submit shift report",
+				completed: false,
+				order: 2,
 			},
 		],
 	},

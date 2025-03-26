@@ -484,6 +484,31 @@ export const EmployeesAPI = {
 		mockEmployees.splice(index, 1);
 		toast.success("Employee deleted successfully!");
 	},
+
+	resendWelcomeEmail: async (id: string): Promise<Employee> => {
+		await delay(800);
+
+		const index = mockEmployees.findIndex((employee) => employee.id === id);
+		if (index === -1) {
+			throw new Error(`Employee with id ${id} not found`);
+		}
+
+		// Check if employee has "invited" status
+		if (mockEmployees[index].status !== "invited") {
+			throw new Error("Welcome email can only be resent to invited employees");
+		}
+
+		// In a real implementation, this would send an actual email
+		// For the mock API, we'll just update the lastActive timestamp to simulate an action
+		const updatedEmployee = {
+			...mockEmployees[index],
+			lastActive: new Date().toISOString(),
+		};
+
+		mockEmployees[index] = updatedEmployee;
+		toast.success("Welcome email has been resent!");
+		return updatedEmployee;
+	},
 };
 
 // Locations API

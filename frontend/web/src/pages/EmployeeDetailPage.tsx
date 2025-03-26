@@ -27,6 +27,15 @@ import {
 	Loader2,
 	Clock,
 	Briefcase,
+	Send,
+	BarChart,
+	CheckCircle,
+	X,
+	Calendar as CalendarIcon,
+	Clock as ClockIcon,
+	TrendingUp,
+	MapPinIcon,
+	Plus,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -55,40 +64,201 @@ import {
 	CardTitle,
 } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
-import { format, parseISO, isAfter, isBefore } from "date-fns";
+import { StatusBadge } from "../components/ui/status-badge";
+import {
+	format,
+	parseISO,
+	isAfter,
+	isBefore,
+	differenceInDays,
+} from "date-fns";
 import { calculateHours } from "../utils/time-calculations";
+import { LocationAssignmentSheet } from "../components/LocationAssignmentSheet";
+
+// New component for Employee Statistics
+function EmployeeStats({
+	employee,
+	shifts,
+}: {
+	employee: Employee;
+	shifts: Shift[];
+}) {
+	const [stats, setStats] = useState({
+		totalShifts: 0,
+		completedShifts: 0,
+		attendanceRate: 0,
+		totalHours: 0,
+		totalEarnings: 0,
+		tenure: 0,
+	});
+
+	useEffect(() => {
+		// Calculate statistics based on employee data and shifts
+		const calculateStats = () => {
+			// Get current date for calculations
+			const now = new Date();
+
+			// Calculate total shifts and completed shifts
+			const completedShifts = shifts.filter(
+				(shift) =>
+					isBefore(parseISO(shift.end_time), now) && shift.status !== "canceled"
+			).length;
+
+			// Calculate total hours scheduled
+			const totalHours = shifts.reduce((total, shift) => {
+				const hours = parseFloat(
+					calculateHours(shift.start_time, shift.end_time)
+				);
+				return total + hours;
+			}, 0);
+
+			// Calculate attendance rate
+			const attendanceRate =
+				completedShifts > 0
+					? (completedShifts /
+							shifts.filter((shift) => isBefore(parseISO(shift.end_time), now))
+								.length) *
+					  100
+					: 0;
+
+			// Calculate total earnings (if hourly rate is available)
+			const totalEarnings = employee.hourlyRate
+				? shifts.reduce((total, shift) => {
+						if (
+							isBefore(parseISO(shift.end_time), now) &&
+							shift.status !== "canceled"
+						) {
+							const hours = parseFloat(
+								calculateHours(shift.start_time, shift.end_time)
+							);
+							return total + hours * employee.hourlyRate!;
+						}
+						return total;
+				  }, 0)
+				: 0;
+
+			// Calculate tenure in days if hire date is available
+			const tenure = employee.hireDate
+				? differenceInDays(now, parseISO(employee.hireDate))
+				: 0;
+
+			setStats({
+				totalShifts: shifts.length,
+				completedShifts,
+				attendanceRate,
+				totalHours,
+				totalEarnings,
+				tenure,
+			});
+		};
+
+		calculateStats();
+	}, [employee, shifts]);
+
+	return (
+		<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+			<Card>
+				<CardContent className="p-4">
+					<div className="flex items-center justify-between">
+						<div>
+							<p className="text-sm text-muted-foreground">Tenure</p>
+							<h3 className="text-2xl font-bold">
+								{stats.tenure} {stats.tenure === 1 ? "day" : "days"}
+							</h3>
+						</div>
+						<div className="h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
+							<CalendarIcon className="h-5 w-5 text-primary" />
+						</div>
+					</div>
+				</CardContent>
+			</Card>
+
+			<Card>
+				<CardContent className="p-4">
+					<div className="flex items-center justify-between">
+						<div>
+							<p className="text-sm text-muted-foreground">Total Hours</p>
+							<h3 className="text-2xl font-bold">
+								{stats.totalHours.toFixed(1)}
+							</h3>
+						</div>
+						<div className="h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
+							<ClockIcon className="h-5 w-5 text-primary" />
+						</div>
+					</div>
+				</CardContent>
+			</Card>
+
+			<Card>
+				<CardContent className="p-4">
+					<div className="flex items-center justify-between">
+						<div>
+							<p className="text-sm text-muted-foreground">Attendance Rate</p>
+							<h3 className="text-2xl font-bold">
+								{stats.attendanceRate.toFixed(0)}%
+							</h3>
+						</div>
+						<div className="h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
+							<CheckCircle className="h-5 w-5 text-primary" />
+						</div>
+					</div>
+				</CardContent>
+			</Card>
+
+			{employee.hourlyRate && (
+				<Card className="md:col-span-3">
+					<CardContent className="p-4">
+						<div className="flex items-center justify-between">
+							<div>
+								<p className="text-sm text-muted-foreground">
+									Estimated Earnings (All Time)
+								</p>
+								<h3 className="text-2xl font-bold">
+									${stats.totalEarnings.toFixed(2)}
+								</h3>
+							</div>
+							<div className="h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
+								<DollarSign className="h-5 w-5 text-primary" />
+							</div>
+						</div>
+					</CardContent>
+				</Card>
+			)}
+		</div>
+	);
+}
 
 // Shifts section component for employee details
 function EmployeeShiftsSection({ employeeId }: { employeeId: string }) {
 	const [isLoading, setIsLoading] = useState(true);
 	const [shifts, setShifts] = useState<Shift[]>([]);
 	const [locations, setLocations] = useState<Record<string, Location>>({});
-	const [assignedLocation, setAssignedLocation] = useState<Location | null>(
-		null
-	);
 	const now = new Date();
 
 	useEffect(() => {
 		const fetchEmployeeShifts = async () => {
 			try {
 				setIsLoading(true);
+
 				// Fetch shifts for the employee
 				const allShifts = await ShiftsAPI.getAll();
 				// Filter for this specific employee's shifts
 				const employeeShifts = allShifts.filter(
-					(shift) => shift.employeeId === employeeId
+					(shift) => shift.user_id === employeeId
 				);
 				setShifts(employeeShifts);
 
-				// Collect all location IDs
+				// Collect locations from shifts for display
 				const locationIds = new Set<string>();
+
+				// Add locations from shifts
 				employeeShifts.forEach((shift) => {
-					if (shift.locationId) {
-						locationIds.add(shift.locationId);
+					if (shift.location_id) {
+						locationIds.add(shift.location_id);
 					}
 				});
 
-				// Fetch all needed locations
+				// Fetch details for all needed locations
 				const locationsMap: Record<string, Location> = {};
 				for (const locationId of locationIds) {
 					const location = await LocationsAPI.getById(locationId);
@@ -97,13 +267,6 @@ function EmployeeShiftsSection({ employeeId }: { employeeId: string }) {
 					}
 				}
 				setLocations(locationsMap);
-
-				// Set assigned location (primary location for the employee)
-				if (employeeShifts.length > 0 && employeeShifts[0].locationId) {
-					setAssignedLocation(
-						locationsMap[employeeShifts[0].locationId] || null
-					);
-				}
 			} catch (error) {
 				console.error("Error fetching employee shifts:", error);
 				toast.error("Failed to load shifts information");
@@ -118,34 +281,64 @@ function EmployeeShiftsSection({ employeeId }: { employeeId: string }) {
 	// Filter shifts into current, upcoming, and previous
 	const currentShifts = shifts.filter(
 		(shift) =>
-			isAfter(parseISO(shift.endTime), now) &&
-			isBefore(parseISO(shift.startTime), now)
+			isAfter(parseISO(shift.end_time), now) &&
+			isBefore(parseISO(shift.start_time), now)
 	);
 
 	const upcomingShifts = shifts
-		.filter((shift) => isAfter(parseISO(shift.startTime), now))
+		.filter((shift) => isAfter(parseISO(shift.start_time), now))
 		.sort(
 			(a, b) =>
-				parseISO(a.startTime).getTime() - parseISO(b.startTime).getTime()
+				parseISO(a.start_time).getTime() - parseISO(b.start_time).getTime()
 		)
 		.slice(0, 5); // Get next 5 upcoming shifts
 
 	const previousShifts = shifts
-		.filter((shift) => isBefore(parseISO(shift.endTime), now))
+		.filter((shift) => isBefore(parseISO(shift.end_time), now))
 		.sort(
 			(a, b) =>
-				parseISO(b.startTime).getTime() - parseISO(a.startTime).getTime()
+				parseISO(b.start_time).getTime() - parseISO(a.start_time).getTime()
 		)
 		.slice(0, 5); // Get last 5 previous shifts
 
 	// Helper function to get location name
-	const getLocationName = (locationId?: string) => {
-		if (!locationId) return "Unassigned";
-		return locations[locationId]?.name || "Unknown Location";
+	const getLocationName = (location_id?: string) => {
+		if (!location_id) return "Unassigned";
+		return locations[location_id]?.name || "Unknown Location";
 	};
 
 	// Helper function to render a shift card
 	const renderShiftCard = (shift: Shift) => {
+		// Map shift status to StatusBadge status type
+		const getStatusType = (status?: string) => {
+			if (!status) return "pending";
+			switch (status.toLowerCase()) {
+				case "completed":
+					return "success";
+				case "canceled":
+					return "error";
+				case "in_progress":
+					return "info";
+				case "scheduled":
+					return "pending";
+				default:
+					return "pending";
+			}
+		};
+
+		// Format status text to be more user-friendly
+		const formatStatusText = (status?: string) => {
+			if (!status) return "Scheduled";
+
+			// Handle special case for in_progress
+			if (status.toLowerCase() === "in_progress") {
+				return "In Progress";
+			}
+
+			// Capitalize first letter for other statuses
+			return status.charAt(0).toUpperCase() + status.slice(1);
+		};
+
 		return (
 			<Card
 				key={shift.id}
@@ -153,30 +346,28 @@ function EmployeeShiftsSection({ employeeId }: { employeeId: string }) {
 				<CardContent className="p-4">
 					<div className="flex justify-between items-start">
 						<div>
+							{shift.status && (
+								<StatusBadge
+									status={getStatusType(shift.status)}
+									text={formatStatusText(shift.status)}
+									className="mb-2"
+								/>
+							)}
 							<h4 className="font-medium">
-								{format(parseISO(shift.startTime), "EEE, MMM d")}
+								{format(parseISO(shift.start_time), "EEE, MMM d")}
 							</h4>
 							<p className="text-sm text-muted-foreground">
-								{format(parseISO(shift.startTime), "h:mm a")} -{" "}
-								{format(parseISO(shift.endTime), "h:mm a")}
+								{format(parseISO(shift.start_time), "h:mm a")} -{" "}
+								{format(parseISO(shift.end_time), "h:mm a")}
 								<span className="mx-1">•</span>
-								{calculateHours(shift.startTime, shift.endTime)} hours
+								{calculateHours(shift.start_time, shift.end_time)} hours
 							</p>
 						</div>
-						<div>
-							{shift.role && (
-								<Badge
-									variant="outline"
-									className="text-xs">
-									{shift.role}
-								</Badge>
-							)}
-						</div>
 					</div>
-					{shift.locationId && (
+					{shift.location_id && (
 						<div className="mt-2 text-xs flex items-center text-muted-foreground">
 							<MapPin className="h-3 w-3 mr-1" />
-							<span>{getLocationName(shift.locationId)}</span>
+							<span>{getLocationName(shift.location_id)}</span>
 						</div>
 					)}
 				</CardContent>
@@ -196,37 +387,6 @@ function EmployeeShiftsSection({ employeeId }: { employeeId: string }) {
 
 	return (
 		<div className="space-y-6">
-			{/* Assigned Location Section */}
-			<div>
-				<h3 className="text-lg font-medium mb-4 flex items-center">
-					<MapPin className="h-5 w-5 mr-2 text-muted-foreground" />
-					Assigned Location
-				</h3>
-				{assignedLocation ? (
-					<Card>
-						<CardContent className="p-4">
-							<div className="flex flex-col">
-								<h4 className="font-medium">{assignedLocation.name}</h4>
-								{assignedLocation.address && (
-									<p className="text-sm text-muted-foreground">
-										{assignedLocation.address}
-										{assignedLocation.city && `, ${assignedLocation.city}`}
-										{assignedLocation.state && `, ${assignedLocation.state}`}
-										{assignedLocation.zipCode && ` ${assignedLocation.zipCode}`}
-									</p>
-								)}
-							</div>
-						</CardContent>
-					</Card>
-				) : (
-					<Card>
-						<CardContent className="p-4 text-muted-foreground">
-							No location currently assigned
-						</CardContent>
-					</Card>
-				)}
-			</div>
-
 			{/* Current Shifts Section */}
 			{currentShifts.length > 0 && (
 				<div>
@@ -281,6 +441,12 @@ export default function EmployeeDetailPage() {
 	const [employee, setEmployee] = useState<Employee | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+	const [shifts, setShifts] = useState<Shift[]>([]);
+	const [shiftsLoading, setShiftsLoading] = useState(true);
+	const [locations, setLocations] = useState<Record<string, Location>>({});
+	const [locationsLoading, setLocationsLoading] = useState(true);
+	const [allLocations, setAllLocations] = useState<Location[]>([]);
+	const [assignedLocationIds, setAssignedLocationIds] = useState<string[]>([]);
 
 	// Initialize the presence service when we have an employee
 	const { employeePresence, initialized: presenceInitialized } =
@@ -315,8 +481,106 @@ export default function EmployeeDetailPage() {
 			}
 		};
 
+		const fetchEmployeeShifts = async () => {
+			try {
+				setShiftsLoading(true);
+				// Fetch shifts for the employee
+				const allShifts = await ShiftsAPI.getAll();
+				// Filter for this specific employee's shifts
+				const employeeShifts = allShifts.filter(
+					(shift) => shift.user_id === employeeId
+				);
+				setShifts(employeeShifts);
+			} catch (error) {
+				console.error("Error fetching employee shifts:", error);
+			} finally {
+				setShiftsLoading(false);
+			}
+		};
+
+		// Add a new function to fetch location data
+		const fetchLocations = async () => {
+			try {
+				setLocationsLoading(true);
+
+				// Fetch employee to get assigned locations
+				const employeeData = await EmployeesAPI.getById(employeeId);
+				if (!employeeData) return;
+
+				// Get location assignments from custom properties
+				// @ts-ignore - locationAssignments is a custom property
+				const locAssignments = employeeData.locationAssignments || [];
+				// @ts-ignore - locationAssignment is a custom property (for backwards compatibility)
+				const primaryLocation = employeeData.locationAssignment;
+
+				// If we have locationAssignments, use that; otherwise, fall back to single locationAssignment
+				const assignedIds =
+					locAssignments.length > 0
+						? locAssignments
+						: primaryLocation
+						? [primaryLocation]
+						: [];
+
+				setAssignedLocationIds(assignedIds);
+
+				// Fetch all locations for the organization
+				const orgId = employeeData.organizationId || "org-1";
+				const allLocationsData = await LocationsAPI.getAll(orgId);
+				setAllLocations(allLocationsData);
+
+				// Fetch details for all assigned locations
+				const locationsMap: Record<string, Location> = {};
+				for (const locationId of assignedIds) {
+					const location = await LocationsAPI.getById(locationId);
+					if (location) {
+						locationsMap[locationId] = location;
+					}
+				}
+				setLocations(locationsMap);
+			} catch (error) {
+				console.error("Error fetching location data:", error);
+			} finally {
+				setLocationsLoading(false);
+			}
+		};
+
 		fetchEmployee();
+		fetchEmployeeShifts();
+		fetchLocations();
 	}, [employeeId]);
+
+	// Handler for location assignments
+	const handleLocationsAssigned = async (newLocationIds: string[]) => {
+		setAssignedLocationIds(newLocationIds);
+
+		// Update locations map with any new locations
+		const locationsMap = { ...locations };
+		for (const locationId of newLocationIds) {
+			if (!locationsMap[locationId]) {
+				const location = await LocationsAPI.getById(locationId);
+				if (location) {
+					locationsMap[locationId] = location;
+				}
+			}
+		}
+		setLocations(locationsMap);
+
+		// If employee exists, also update the employee record
+		if (employee) {
+			try {
+				await EmployeesAPI.update(employee.id, {
+					...employee,
+					// @ts-ignore - custom properties
+					locationAssignments: newLocationIds,
+					// @ts-ignore - backward compatibility
+					locationAssignment: newLocationIds[0] || null,
+				});
+			} catch (error) {
+				console.error("Error updating employee locations:", error);
+				toast.error("Failed to save location assignments");
+			}
+		}
+	};
 
 	const handleDeleteEmployee = async () => {
 		if (!employee) return;
@@ -354,6 +618,24 @@ export default function EmployeeDetailPage() {
 	// Action buttons for the header
 	const ActionButtons = (
 		<>
+			{employee && employee.status === "invited" && (
+				<Button
+					variant="outline"
+					size="sm"
+					className="h-9 gap-1 mr-2"
+					onClick={async () => {
+						try {
+							await EmployeesAPI.resendWelcomeEmail(employee.id);
+							// The API will show a toast message for success
+						} catch (error) {
+							console.error("Error resending welcome email:", error);
+							toast.error("Failed to resend welcome email");
+						}
+					}}>
+					<Send className="h-4 w-4 mr-1" /> Resend Welcome Email
+				</Button>
+			)}
+
 			{employee && (
 				<EmployeeSheet
 					organizationId={employee.organizationId}
@@ -363,7 +645,7 @@ export default function EmployeeDetailPage() {
 						<Button
 							variant="outline"
 							size="sm"
-							className="h-9 gap-1">
+							className="h-9 gap-1 mr-2">
 							<Edit className="h-4 w-4" /> Edit
 						</Button>
 					}
@@ -478,6 +760,96 @@ export default function EmployeeDetailPage() {
 								</div>
 							</div>
 						</div>
+					</ContentSection>
+
+					{/* Employee Statistics Section */}
+					<ContentSection
+						title="Employee Statistics"
+						description="Performance metrics and statistics based on employee data">
+						{shiftsLoading ? (
+							<div className="space-y-4">
+								<div className="h-24 bg-gray-200 rounded animate-pulse"></div>
+								<div className="h-24 bg-gray-200 rounded animate-pulse"></div>
+							</div>
+						) : (
+							employee && (
+								<EmployeeStats
+									employee={employee}
+									shifts={shifts}
+								/>
+							)
+						)}
+					</ContentSection>
+
+					{/* Assigned Locations Section */}
+					<ContentSection
+						title="Assigned Locations"
+						description="Locations this employee is assigned to work at"
+						headerActions={
+							employee && (
+								<LocationAssignmentSheet
+									employeeId={employeeId || ""}
+									employeeName={employee.name}
+									allLocations={allLocations}
+									assignedLocationIds={assignedLocationIds}
+									onLocationsAssigned={handleLocationsAssigned}
+									trigger={
+										<Button
+											size="sm"
+											variant="outline">
+											<Plus className="h-4 w-4 mr-2" />
+											Manage Locations
+										</Button>
+									}
+								/>
+							)
+						}>
+						{locationsLoading ? (
+							<div className="space-y-4">
+								<div className="h-10 w-1/3 bg-gray-200 rounded animate-pulse"></div>
+								<div className="h-24 bg-gray-200 rounded animate-pulse"></div>
+							</div>
+						) : assignedLocationIds.length > 0 ? (
+							<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+								{assignedLocationIds.map((locationId, index) => {
+									const location = locations[locationId];
+									if (!location) return null;
+
+									const isPrimary = index === 0; // First location is primary
+
+									return (
+										<Card key={locationId}>
+											<CardContent className="p-4">
+												<div className="flex flex-col">
+													<div className="flex justify-between">
+														<h4 className="font-medium">{location.name}</h4>
+														{isPrimary && (
+															<Badge
+																className="ml-2"
+																variant="outline">
+																Primary
+															</Badge>
+														)}
+													</div>
+													{location.address && (
+														<p className="text-sm text-muted-foreground">
+															{location.address}
+															{location.city && `, ${location.city}`}
+															{location.state && `, ${location.state}`}
+															{location.zipCode && ` ${location.zipCode}`}
+														</p>
+													)}
+												</div>
+											</CardContent>
+										</Card>
+									);
+								})}
+							</div>
+						) : (
+							<div className="text-muted-foreground p-4 border rounded-lg">
+								No locations currently assigned to this employee
+							</div>
+						)}
 					</ContentSection>
 
 					{/* Contact Information */}

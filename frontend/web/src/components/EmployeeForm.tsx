@@ -25,6 +25,13 @@ import {
 import { FormSection } from "./ui/form-section";
 import { LoadingState } from "./ui/loading-state";
 import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "./ui/select";
+import {
 	User,
 	Mail,
 	Phone,
@@ -35,11 +42,14 @@ import {
 	StickyNote,
 } from "lucide-react";
 
+// Define available positions
+const POSITIONS = ["Supervisor", "Runner"] as const;
+
 const employeeFormSchema = z.object({
 	name: z.string().min(2, "Name must be at least 2 characters"),
 	email: z.string().email("Please enter a valid email address"),
 	phone: z.string().optional(),
-	position: z.string().optional(),
+	position: z.union([z.enum(POSITIONS), z.literal("")]).optional(),
 	hireDate: z.string().optional(),
 	address: z.string().optional(),
 	emergencyContact: z.string().optional(),
@@ -69,7 +79,10 @@ export function EmployeeForm({
 			name: initialData?.name || "",
 			email: initialData?.email || "",
 			phone: initialData?.phone || "",
-			position: initialData?.position || "",
+			position:
+				initialData?.position && POSITIONS.includes(initialData.position as any)
+					? (initialData.position as any)
+					: undefined,
 			hireDate: initialData?.hireDate || "",
 			address: initialData?.address || "",
 			emergencyContact: initialData?.emergencyContact || "",
@@ -87,6 +100,7 @@ export function EmployeeForm({
 			const formattedData = {
 				...data,
 				hourlyRate: data.hourlyRate ? parseFloat(data.hourlyRate) : undefined,
+				position: data.position === "" ? undefined : data.position,
 			};
 
 			let employee: Employee;
@@ -247,10 +261,22 @@ export function EmployeeForm({
 											<FormControl>
 												<div className="flex items-center">
 													<BadgeAlert className="w-4 h-4 mr-2 text-muted-foreground" />
-													<Input
-														placeholder="Barista, Manager, etc."
-														{...field}
-													/>
+													<Select
+														onValueChange={field.onChange}
+														value={field.value || ""}>
+														<SelectTrigger className="w-full">
+															<SelectValue placeholder="Select a position" />
+														</SelectTrigger>
+														<SelectContent>
+															{POSITIONS.map((position) => (
+																<SelectItem
+																	key={position}
+																	value={position}>
+																	{position}
+																</SelectItem>
+															))}
+														</SelectContent>
+													</Select>
 												</div>
 											</FormControl>
 											<FormMessage />

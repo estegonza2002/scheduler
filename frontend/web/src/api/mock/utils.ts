@@ -326,6 +326,18 @@ export const generateMockShifts = (
 				},
 			];
 
+			// Determine shift status based on the date
+			const now = new Date();
+			let status = "scheduled";
+
+			if (shiftEnd < now) {
+				// Past shift
+				status = Math.random() > 0.2 ? "completed" : "canceled";
+			} else if (shiftStart < now && shiftEnd > now) {
+				// Current shift
+				status = "in_progress";
+			}
+
 			const shift: Shift = {
 				id: `shift-gen-${generateUniqueId()}`,
 				parent_shift_id: schedule.id,
@@ -337,6 +349,7 @@ export const generateMockShifts = (
 				location_id: location.id,
 				description: `Generated shift for ${employee.name}`,
 				is_schedule: false,
+				status,
 				created_at: new Date().toISOString(),
 				updated_at: new Date().toISOString(),
 				check_in_tasks: checkInTasks,
