@@ -28,6 +28,10 @@ interface ShiftCreationSheetProps {
 	 */
 	initialDate?: Date;
 	/**
+	 * Optional initial location ID to pre-select
+	 */
+	initialLocationId?: string;
+	/**
 	 * Optional callback fired when a shift is created successfully
 	 */
 	onShiftCreated?: () => void;
@@ -49,6 +53,7 @@ export function ShiftCreationSheet({
 	scheduleId,
 	organizationId,
 	initialDate,
+	initialLocationId,
 	onShiftCreated,
 	trigger,
 	className,
@@ -91,6 +96,7 @@ export function ShiftCreationSheet({
 						scheduleId={scheduleId}
 						organizationId={organizationId}
 						initialDate={initialDate}
+						initialLocationId={initialLocationId}
 						onComplete={handleComplete}
 						onCancel={() => setOpen(false)}
 					/>

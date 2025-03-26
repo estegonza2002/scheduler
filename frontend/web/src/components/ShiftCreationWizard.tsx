@@ -38,6 +38,10 @@ interface ShiftCreationWizardProps {
 	 */
 	initialDate?: Date;
 	/**
+	 * Optional initial location ID to pre-select
+	 */
+	initialLocationId?: string;
+	/**
 	 * Optional callback fired when wizard completes successfully
 	 */
 	onComplete?: () => void;
@@ -91,15 +95,20 @@ export function ShiftCreationWizard({
 	scheduleId,
 	organizationId,
 	initialDate,
+	initialLocationId,
 	onComplete,
 	onCancel,
 	className,
 }: ShiftCreationWizardProps) {
 	// Current step in the wizard
-	const [step, setStep] = useState<WizardStep>("select-location");
+	const [step, setStep] = useState<WizardStep>(
+		initialLocationId ? "shift-details" : "select-location"
+	);
 
 	// Store data from each step
-	const [locationData, setLocationData] = useState<LocationData | null>(null);
+	const [locationData, setLocationData] = useState<LocationData | null>(
+		initialLocationId ? { locationId: initialLocationId } : null
+	);
 	const [shiftData, setShiftData] = useState<ShiftData | null>(null);
 
 	// State for multiple employee selection
@@ -131,7 +140,7 @@ export function ShiftCreationWizard({
 	// Forms for each step
 	const locationForm = useForm<LocationData>({
 		defaultValues: {
-			locationId: "",
+			locationId: initialLocationId || "",
 		},
 	});
 
@@ -325,28 +334,32 @@ export function ShiftCreationWizard({
 
 			// If no employees selected, create shift without an employee
 			if (selectedEmployees.length === 0) {
-				await ShiftsAPI.create({
-					scheduleId,
-					locationId: locationData.locationId,
-					employeeId: "", // Empty string for no employee
-					startTime: startDateTime,
-					endTime: endDateTime,
-					role: "",
-					notes: shiftData.notes,
+				await ShiftsAPI.createShift({
+					parent_shift_id: scheduleId,
+					organization_id: organizationId,
+					location_id: locationData.locationId,
+					user_id: "", // Empty string for no employee
+					start_time: startDateTime,
+					end_time: endDateTime,
+					position: "", // Role
+					description: shiftData.notes, // Notes
+					is_schedule: false,
 				});
 
 				toast.success("Shift created successfully");
 			} else {
 				// Create a shift for each selected employee
 				for (const employee of selectedEmployees) {
-					await ShiftsAPI.create({
-						scheduleId,
-						locationId: locationData.locationId,
-						employeeId: employee.id,
-						startTime: startDateTime,
-						endTime: endDateTime,
-						role: employee.role || "",
-						notes: shiftData.notes,
+					await ShiftsAPI.createShift({
+						parent_shift_id: scheduleId,
+						organization_id: organizationId,
+						location_id: locationData.locationId,
+						user_id: employee.id,
+						start_time: startDateTime,
+						end_time: endDateTime,
+						position: employee.role || "",
+						description: shiftData.notes,
+						is_schedule: false,
 					});
 				}
 

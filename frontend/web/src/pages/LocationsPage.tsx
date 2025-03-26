@@ -19,10 +19,19 @@ import {
 	List,
 	Building2,
 	ChevronRight,
+	Search,
+	Filter,
+	X,
+	ChevronDown,
 } from "lucide-react";
 import { Badge } from "../components/ui/badge";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Card, CardTitle } from "../components/ui/card";
+import {
+	Card,
+	CardTitle,
+	CardHeader,
+	CardContent,
+} from "../components/ui/card";
 
 // Import our dialog components
 import { AddLocationDialog } from "../components/AddLocationDialog";
@@ -35,7 +44,9 @@ import { ContentContainer } from "../components/ui/content-container";
 import { SearchInput } from "../components/ui/search-input";
 import { EmptyState } from "../components/ui/empty-state";
 import { LoadingState } from "../components/ui/loading-state";
-import { LocationsSidebar } from "../components/layout/SecondaryNavbar";
+import { Input } from "../components/ui/input";
+import { cn } from "../lib/utils";
+import { LocationCreationSheet } from "../components/LocationCreationSheet";
 
 export default function LocationsPage() {
 	const [searchParams] = useSearchParams();
@@ -45,8 +56,7 @@ export default function LocationsPage() {
 	const [organization, setOrganization] = useState<Organization | null>(null);
 	const [searchTerm, setSearchTerm] = useState<string>("");
 	const [stateFilter, setStateFilter] = useState<string | null>(null);
-	const [statusFilter, setStatusFilter] = useState<string | null>(null);
-	const [viewMode, setViewMode] = useState<"table" | "cards">("cards");
+	const [viewMode, setViewMode] = useState<"table" | "cards">("table");
 	const navigate = useNavigate();
 
 	// Dialog states
@@ -125,63 +135,21 @@ export default function LocationsPage() {
 				),
 			},
 			{
-				accessorKey: "status",
-				header: ({ column }) => (
-					<Button
-						variant="ghost"
-						onClick={() =>
-							column.toggleSorting(column.getIsSorted() === "asc")
-						}>
-						Status
-						<ArrowUpDown className="ml-2 h-4 w-4" />
-					</Button>
-				),
-				cell: ({ row }) => (
-					<Badge
-						variant="outline"
-						className={`${
-							row.original.isActive
-								? "bg-green-100 text-green-800 hover:bg-green-100"
-								: "bg-red-100 text-red-800 hover:bg-red-100"
-						}`}>
-						{row.original.isActive ? "Active" : "Inactive"}
-					</Badge>
-				),
-			},
-			{
 				id: "actions",
 				cell: ({ row }) => {
 					const location = row.original;
 					return (
-						<div onClick={(e) => e.stopPropagation()}>
-							<DropdownMenu>
-								<DropdownMenuTrigger asChild>
-									<Button
-										variant="ghost"
-										className="h-8 w-8 p-0">
-										<span className="sr-only">Open menu</span>
-										<MoreVertical className="h-4 w-4" />
-									</Button>
-								</DropdownMenuTrigger>
-								<DropdownMenuContent align="end">
-									<DropdownMenuLabel>Actions</DropdownMenuLabel>
-									<DropdownMenuItem
-										onClick={() => navigate(`/location-detail/${location.id}`)}>
-										View Details
-									</DropdownMenuItem>
-									<DropdownMenuItem
-										onClick={() => handleOpenEditDialog(location)}>
-										Edit Location
-									</DropdownMenuItem>
-									<DropdownMenuSeparator />
-									<DropdownMenuItem
-										className="text-destructive"
-										onClick={() => handleOpenDeleteDialog(location)}>
-										Delete Location
-									</DropdownMenuItem>
-								</DropdownMenuContent>
-							</DropdownMenu>
-						</div>
+						<Button
+							variant="ghost"
+							size="sm"
+							className="h-8"
+							onClick={(e) => {
+								e.stopPropagation();
+								navigate(`/location-detail/${location.id}`);
+							}}>
+							<ChevronRight className="h-4 w-4" />
+							View
+						</Button>
 					);
 				},
 			},
@@ -200,68 +168,56 @@ export default function LocationsPage() {
 				if (orgs.length > 0) {
 					setOrganization(orgs[0]);
 					setLoadingPhase("locations");
+
+					// Now get the locations for this organization
 					const fetchedLocations = await LocationsAPI.getAll(orgs[0].id);
 					setLocations(fetchedLocations);
 				}
 			} catch (error) {
-				console.error("Error fetching locations:", error);
+				console.error("Error fetching data:", error);
 			} finally {
 				setLoading(false);
-				setLoadingPhase("");
 			}
 		};
 
 		fetchData();
 	}, []);
 
-	// Get unique states for filter
+	// Get all the unique states from locations
 	const uniqueStates = useMemo(() => {
-		return [
-			...new Set(
-				locations
-					.map((loc) => loc.state)
-					.filter((state) => state && state.trim() !== "")
-			),
-		] as string[];
+		const states = Array.from(
+			new Set(locations.map((location) => location.state).filter(Boolean))
+		);
+		return states.sort();
 	}, [locations]);
 
-	// Filter locations by state, status, and search term
+	// Filter locations based on search term and filters
 	const filteredLocations = useMemo(() => {
 		return locations.filter((location) => {
-			// Apply state filter
-			if (stateFilter && location.state !== stateFilter) {
-				return false;
-			}
+			// Search term filter
+			const matchesSearch =
+				!searchTerm ||
+				location.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+				(location.address &&
+					location.address.toLowerCase().includes(searchTerm.toLowerCase())) ||
+				(location.city &&
+					location.city.toLowerCase().includes(searchTerm.toLowerCase())) ||
+				(location.state &&
+					location.state.toLowerCase().includes(searchTerm.toLowerCase())) ||
+				(location.zipCode &&
+					location.zipCode.toLowerCase().includes(searchTerm.toLowerCase()));
 
-			// Apply status filter
-			if (statusFilter) {
-				if (statusFilter === "active" && !location.isActive) {
-					return false;
-				}
-				if (statusFilter === "inactive" && location.isActive) {
-					return false;
-				}
-			}
+			// State filter
+			const matchesState = !stateFilter || location.state === stateFilter;
 
-			// Apply search filter
-			if (searchTerm) {
-				const lowercaseSearch = searchTerm.toLowerCase();
-				const name = (location.name || "").toLowerCase();
-				const address = (location.address || "").toLowerCase();
-				const city = (location.city || "").toLowerCase();
-				const state = (location.state || "").toLowerCase();
-
-				return (
-					name.includes(lowercaseSearch) ||
-					address.includes(lowercaseSearch) ||
-					city.includes(lowercaseSearch) ||
-					state.includes(lowercaseSearch)
-				);
-			}
-
-			return true;
+			return matchesSearch && matchesState;
 		});
-	}, [locations, stateFilter, statusFilter, searchTerm]);
+	}, [locations, searchTerm, stateFilter]);
+
+	// Check if any filters are active
+	const hasActiveFilters = useMemo(() => {
+		return Boolean(searchTerm || stateFilter);
+	}, [searchTerm, stateFilter]);
 
 	const handleLocationsAdded = (newLocations: Location[]) => {
 		setLocations((prev) => [...prev, ...newLocations]);
@@ -277,7 +233,6 @@ export default function LocationsPage() {
 		setLocations((prev) => prev.filter((loc) => loc.id !== locationId));
 	};
 
-	// Dialog open handlers
 	const handleOpenEditDialog = (location: Location) => {
 		setSelectedLocation(location);
 		setEditDialogOpen(true);
@@ -288,38 +243,27 @@ export default function LocationsPage() {
 		setDeleteDialogOpen(true);
 	};
 
-	// Clear all filters
 	const handleClearFilters = () => {
-		setStateFilter(null);
-		setStatusFilter(null);
 		setSearchTerm("");
+		setStateFilter(null);
 	};
 
-	// Check if any filters are applied
-	const filtersActive = !!(stateFilter || statusFilter || searchTerm);
-
-	const handleSearch = (term: string) => {
-		setSearchTerm(term);
+	// Get state filter label
+	const getStateFilterLabel = () => {
+		return stateFilter || "All States";
 	};
 
-	// Component for sidebar
-	const renderSidebar = () => {
-		return (
-			<LocationsSidebar
-				onSearch={handleSearch}
-				stateFilter={stateFilter}
-				onStateFilterChange={setStateFilter}
-				statusFilter={statusFilter}
-				onStatusFilterChange={setStatusFilter}
-				onClearFilters={handleClearFilters}
-				states={uniqueStates}
-			/>
-		);
-	};
+	// Get stats for cards
+	const totalLocations = locations.length;
+	const uniqueStateCoverage = uniqueStates.length;
+	const locationsPerState =
+		totalLocations > 0 && uniqueStateCoverage > 0
+			? (totalLocations / uniqueStateCoverage).toFixed(1)
+			: "0";
 
 	if (loading) {
 		return (
-			<ContentContainer>
+			<div className="container mx-auto py-6 space-y-6">
 				<LoadingState
 					message={`Loading ${
 						loadingPhase === "organization" ? "organization" : "locations"
@@ -328,67 +272,179 @@ export default function LocationsPage() {
 					skeletonCount={6}
 					skeletonHeight={80}
 				/>
-			</ContentContainer>
+			</div>
 		);
 	}
 
-	// Since the AppLayout already handles the sidebar and main content layout,
-	// we only need to provide the content for the main area
 	return (
-		<ContentContainer>
-			<div className="flex justify-between mb-6">
-				<div className="flex items-center gap-4">
-					<SearchInput
-						placeholder="Search locations..."
-						value={searchTerm}
-						onChange={(value: string) => setSearchTerm(value)}
-					/>
-					{filtersActive && (
-						<Button
-							variant="link"
-							onClick={handleClearFilters}
-							className="text-primary">
-							Clear Filters
+		<div className="container mx-auto py-6 space-y-6">
+			<div className="flex items-center justify-between">
+				<h1 className="text-2xl font-bold tracking-tight">Locations</h1>
+				<LocationCreationSheet
+					organizationId={organization?.id || "org-1"}
+					onLocationCreated={(newLocation) =>
+						handleLocationsAdded([newLocation])
+					}
+					trigger={
+						<Button>
+							<Plus className="mr-2 h-4 w-4" />
+							Create New Location
 						</Button>
-					)}
-					<Button
-						variant="outline"
-						onClick={() => navigate("/location-new")}
-						className="flex items-center gap-2">
-						<Plus className="h-4 w-4" />
-						Create New Location
-					</Button>
-				</div>
-
-				<div className="flex items-center gap-2">
-					<AddLocationDialog
-						organizationId={organization?.id || ""}
-						onLocationsAdded={handleLocationsAdded}
-						trigger={
-							<Button>
-								<Plus className="h-4 w-4 mr-2" />
-								New Location
-							</Button>
-						}
-					/>
-					<div className="flex rounded-md overflow-hidden border">
-						<Button
-							variant={viewMode === "cards" ? "secondary" : "ghost"}
-							size="sm"
-							className="rounded-none px-3"
-							onClick={() => setViewMode("cards")}>
-							<LayoutGrid className="h-4 w-4" />
-						</Button>
-						<Button
-							variant={viewMode === "table" ? "secondary" : "ghost"}
-							size="sm"
-							className="rounded-none px-3"
-							onClick={() => setViewMode("table")}>
-							<List className="h-4 w-4" />
-						</Button>
-					</div>
-				</div>
+					}
+				/>
 			</div>
+
+			{/* Stats Cards */}
+			<div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+				<Card>
+					<CardHeader className="pb-2">
+						<CardTitle className="text-base font-medium">
+							Total Locations
+						</CardTitle>
+					</CardHeader>
+					<CardContent>
+						<div className="text-2xl font-bold">{totalLocations}</div>
+						<p className="text-xs text-muted-foreground">
+							{organization?.name || "Your organization"}
+						</p>
+					</CardContent>
+				</Card>
+
+				<Card>
+					<CardHeader className="pb-2">
+						<CardTitle className="text-base font-medium">
+							Location Coverage
+						</CardTitle>
+					</CardHeader>
+					<CardContent>
+						<div className="text-2xl font-bold">{uniqueStates.length}</div>
+						<p className="text-xs text-muted-foreground">
+							States/Provinces with locations
+						</p>
+					</CardContent>
+				</Card>
+
+				<Card>
+					<CardHeader className="pb-2">
+						<CardTitle className="text-base font-medium">
+							Locations per State
+						</CardTitle>
+					</CardHeader>
+					<CardContent>
+						<div className="text-2xl font-bold">{locationsPerState}</div>
+						<p className="text-xs text-muted-foreground">
+							Average locations per state
+						</p>
+					</CardContent>
+				</Card>
+			</div>
+
+			{/* Filters Section */}
+			<Card>
+				<CardContent className="pt-6">
+					<div className="flex flex-col md:flex-row justify-between space-y-2 md:space-y-0">
+						<div className="flex items-center space-x-2">
+							<div className="border rounded-md overflow-hidden">
+								<Button
+									variant="ghost"
+									size="sm"
+									className={cn(
+										"h-8 px-2 rounded-none",
+										viewMode === "table" && "bg-muted"
+									)}
+									onClick={() => setViewMode("table")}>
+									<List className="h-4 w-4" />
+								</Button>
+								<Button
+									variant="ghost"
+									size="sm"
+									className={cn(
+										"h-8 px-2 rounded-none",
+										viewMode === "cards" && "bg-muted"
+									)}
+									onClick={() => setViewMode("cards")}>
+									<LayoutGrid className="h-4 w-4" />
+								</Button>
+							</div>
+						</div>
+
+						<div className="flex items-center space-x-2">
+							<div className="relative md:w-64">
+								<Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+								<Input
+									placeholder="Search by ID or location..."
+									value={searchTerm}
+									onChange={(e) => setSearchTerm(e.target.value)}
+									className="pl-8"
+								/>
+							</div>
+
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button
+										variant="outline"
+										className={cn(
+											"justify-between text-left font-normal md:w-48",
+											!stateFilter && "text-muted-foreground"
+										)}>
+										<div className="flex items-center">
+											<MapPin className="mr-2 h-4 w-4" />
+											{getStateFilterLabel()}
+										</div>
+										<ChevronDown className="h-4 w-4 opacity-50" />
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent
+									align="end"
+									className="w-56">
+									<DropdownMenuItem onSelect={() => setStateFilter(null)}>
+										All States
+									</DropdownMenuItem>
+									<DropdownMenuSeparator />
+									{uniqueStates.map((state) => (
+										<DropdownMenuItem
+											key={state}
+											onSelect={() => setStateFilter(state || null)}>
+											{state}
+										</DropdownMenuItem>
+									))}
+								</DropdownMenuContent>
+							</DropdownMenu>
+						</div>
+					</div>
+
+					{/* Applied filters display */}
+					{hasActiveFilters && (
+						<div className="flex items-center gap-2 mt-4">
+							<span className="text-sm font-medium text-muted-foreground">
+								Filters:
+							</span>
+							<div className="flex flex-wrap gap-2">
+								{stateFilter && (
+									<Badge className="flex items-center gap-1.5 px-2.5 py-1 bg-muted hover:bg-muted border text-foreground">
+										<MapPin className="h-3 w-3 text-muted-foreground" />
+										<span>{stateFilter}</span>
+										<button
+											onClick={() => setStateFilter(null)}
+											className="ml-1 rounded-full p-0.5 hover:bg-background/80 transition-colors"
+											aria-label="Remove state filter">
+											<X className="h-3 w-3 text-muted-foreground" />
+										</button>
+									</Badge>
+								)}
+
+								{hasActiveFilters && (
+									<button
+										onClick={handleClearFilters}
+										className="text-xs text-muted-foreground hover:text-foreground underline">
+										Clear all
+									</button>
+								)}
+							</div>
+						</div>
+					)}
+				</CardContent>
+			</Card>
 
 			{locations.length === 0 ? (
 				<EmptyState
@@ -397,9 +453,11 @@ export default function LocationsPage() {
 					icon={<MapPin className="h-6 w-6" />}
 					action={
 						organization && (
-							<AddLocationDialog
-								organizationId={organization.id}
-								onLocationsAdded={handleLocationsAdded}
+							<LocationCreationSheet
+								organizationId={organization?.id || "org-1"}
+								onLocationCreated={(newLocation) =>
+									handleLocationsAdded([newLocation])
+								}
 								trigger={
 									<Button>
 										<Plus className="mr-2 h-4 w-4" />
@@ -419,7 +477,7 @@ export default function LocationsPage() {
 							icon={<AlertCircle className="h-6 w-6" />}
 							size="small"
 							action={
-								filtersActive ? (
+								hasActiveFilters ? (
 									<Button
 										variant="outline"
 										onClick={handleClearFilters}>
@@ -435,6 +493,9 @@ export default function LocationsPage() {
 								<DataTable
 									columns={columns}
 									data={filteredLocations}
+									onRowClick={(location) =>
+										navigate(`/location-detail/${location.id}`)
+									}
 								/>
 							)}
 
@@ -511,6 +572,6 @@ export default function LocationsPage() {
 					/>
 				</>
 			)}
-		</ContentContainer>
+		</div>
 	);
 }

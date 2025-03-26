@@ -155,8 +155,7 @@ export default function AppLayout() {
 	const isBrandingPage = location.pathname === "/branding";
 
 	// Check if we need secondary navbar
-	const hasSecondaryNavbar =
-		isSchedulePage || isEmployeesPage || isLocationsPage;
+	const hasSecondaryNavbar = isSchedulePage || isEmployeesPage;
 
 	// Fetch organization
 	useEffect(() => {
@@ -365,48 +364,7 @@ export default function AppLayout() {
 			);
 		}
 
-		if (isLocationsPage) {
-			return (
-				<LocationsSidebar
-					onSearch={(term) => {
-						const newParams = new URLSearchParams(searchParams);
-						if (term) {
-							newParams.set("search", term);
-						} else {
-							newParams.delete("search");
-						}
-						setSearchParams(newParams);
-					}}
-					stateFilter={searchParams.get("state")}
-					onStateFilterChange={(state) => {
-						const newParams = new URLSearchParams(searchParams);
-						if (state) {
-							newParams.set("state", state);
-						} else {
-							newParams.delete("state");
-						}
-						setSearchParams(newParams);
-					}}
-					statusFilter={searchParams.get("status")}
-					onStatusFilterChange={(status) => {
-						const newParams = new URLSearchParams(searchParams);
-						if (status) {
-							newParams.set("status", status);
-						} else {
-							newParams.delete("status");
-						}
-						setSearchParams(newParams);
-					}}
-					onClearFilters={() => {
-						const newParams = new URLSearchParams();
-						setSearchParams(newParams);
-					}}
-					states={["CA", "NY", "TX", "FL", "IL"]}
-					sidebarState={sidebarState}
-				/>
-			);
-		}
-
+		// Location sidebar removed - now returns null
 		return null;
 	};
 

@@ -511,6 +511,25 @@ export const LocationsAPI = {
 		return newLocation;
 	},
 
+	createBulk: async (
+		locations: Omit<Location, "id">[]
+	): Promise<Location[]> => {
+		await delay(1500);
+
+		const createdLocations: Location[] = locations.map((location, index) => {
+			// Create unique IDs with small time offset to ensure uniqueness
+			const newLocation: Location = {
+				id: `loc-${Date.now() + index}`,
+				...location,
+			};
+			mockLocations.push(newLocation);
+			return newLocation;
+		});
+
+		toast.success(`${createdLocations.length} locations added successfully!`);
+		return createdLocations;
+	},
+
 	update: async (id: string, data: Partial<Location>): Promise<Location> => {
 		await delay(800);
 

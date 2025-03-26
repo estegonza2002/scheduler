@@ -49,6 +49,7 @@ interface DataTableProps<TData, TValue> {
 		setPageIndex: (pageIndex: number) => void;
 		setPageSize: (pageSize: number) => void;
 	};
+	onRowClick?: (row: TData) => void;
 }
 
 export function DataTable<TData, TValue>({
@@ -59,6 +60,7 @@ export function DataTable<TData, TValue>({
 	hidePagination = false,
 	hideTable = false,
 	externalPagination,
+	onRowClick,
 }: DataTableProps<TData, TValue>) {
 	const [sorting, setSorting] = React.useState<SortingState>([]);
 	const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -160,7 +162,13 @@ export function DataTable<TData, TValue>({
 								renderRows().map((row: Row<TData>) => (
 									<TableRow
 										key={row.id}
-										data-state={row.getIsSelected() && "selected"}>
+										data-state={row.getIsSelected() && "selected"}
+										className={
+											onRowClick ? "cursor-pointer hover:bg-muted/50" : ""
+										}
+										onClick={
+											onRowClick ? () => onRowClick(row.original) : undefined
+										}>
 										{row.getVisibleCells().map((cell: Cell<TData, unknown>) => (
 											<TableCell key={cell.id}>
 												{flexRender(
