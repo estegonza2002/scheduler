@@ -45,6 +45,7 @@ import {
 	Search,
 } from "lucide-react";
 import { cn } from "../lib/utils";
+import { ExportDropdown } from "../components/ExportDropdown";
 
 // Mock data for shifts - in a real app this would come from an API
 const mockShifts = [
@@ -161,10 +162,20 @@ export function ShiftLogDetailsPage() {
 		<div className="container mx-auto py-6 space-y-6">
 			<div className="flex items-center justify-between">
 				<h1 className="text-2xl font-bold tracking-tight">Shift Details</h1>
-				<Button>
-					<Download className="mr-2 h-4 w-4" />
-					Export
-				</Button>
+				<ExportDropdown
+					data={filteredShifts}
+					filename="shift-details-export"
+					headers={[
+						"employee",
+						"date",
+						"startTime",
+						"endTime",
+						"location",
+						"status",
+						"planned",
+						"actual",
+					]}
+				/>
 			</div>
 
 			<Card>

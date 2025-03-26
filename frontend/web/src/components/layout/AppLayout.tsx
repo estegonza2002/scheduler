@@ -35,7 +35,6 @@ import { ShiftCreationSheet } from "../ShiftCreationSheet";
 import { AddEmployeeDialog } from "../AddEmployeeDialog";
 import { AddLocationDialog } from "../AddLocationDialog";
 import { OrganizationsAPI, Organization } from "../../api";
-import { NotificationSheet } from "../NotificationSheet";
 import { useNotifications } from "../../lib/notification-context";
 import { useLayout } from "../../lib/layout-context";
 import { Switch } from "../ui/switch";
@@ -133,31 +132,27 @@ export default function AppLayout() {
 	const { useSampleData, toggleSampleData } = useNotifications();
 	const [showLogoutDialog, setShowLogoutDialog] = useState(false);
 
-	// For notifications page specific controls
-	const isNotificationsPage = location.pathname === "/notifications";
-	const isMessagesPage = location.pathname === "/messages";
-	const isShiftDetailsPage = location.pathname.includes("/shifts/");
-	const shouldShowSampleData =
-		isNotificationsPage || isMessagesPage || isShiftDetailsPage;
-
-	// Check if we're on specific pages
-	const isDailyShiftsPage = location.pathname.startsWith("/daily-shifts");
+	// Pages with different layouts and actions
+	const isCheckoutPage = location.pathname === "/checkout";
+	const isLoginPage = location.pathname === "/login";
+	const isMessagesPage = location.pathname === "/chat";
 	const isSchedulePage = location.pathname === "/schedule";
+	const isSchedulerPage = location.pathname.startsWith("/scheduler");
+	const isShiftDetailsPage = location.pathname.match(/\/shifts\/(\w+)/);
+	const isDailyShiftsPage = location.pathname === "/daily-shifts";
 	const isEmployeesPage = location.pathname === "/employees";
 	const isLocationsPage = location.pathname === "/locations";
+
+	// Determines if the page should have a secondary sidebar
+	const hasSecondarySidebar = isMessagesPage || isShiftDetailsPage;
+
+	// Hide certain elements on auth pages
+
+	// Check if we're on specific pages
 	const isAdminDashboardPage = location.pathname === "/admin-dashboard";
 	const isProfilePage = location.pathname === "/profile";
 	const isBillingPage = location.pathname === "/billing";
 	const isBrandingPage = location.pathname === "/branding";
-
-	// Check if page has secondary sidebar
-	const hasSecondarySidebar =
-		isProfilePage ||
-		isBillingPage ||
-		isBrandingPage ||
-		isSchedulePage ||
-		isEmployeesPage ||
-		isLocationsPage;
 
 	// Check if we need secondary navbar
 	const hasSecondaryNavbar =
@@ -219,10 +214,13 @@ export default function AppLayout() {
 		// Instead, check if we already have actions from the page header
 		const actionButton = renderActionButton();
 
+		// Check if we're on the Shifts page
+		const isShiftsPage = location.pathname === "/shifts";
+
 		return (
 			<div className="flex items-center gap-2">
 				{actionButton}
-				{isMessagesPage && useSampleData && (
+				{isMessagesPage && (
 					<Button
 						onClick={() =>
 							window.dispatchEvent(new CustomEvent("new-conversation-click"))
@@ -232,14 +230,23 @@ export default function AppLayout() {
 						New Conversation
 					</Button>
 				)}
-				{shouldShowSampleData && (
-					<div className="flex items-center gap-3 bg-muted/50 p-1.5 pl-3 rounded-full">
-						<span className="text-sm font-medium">Sample Data</span>
-						<Switch
-							checked={useSampleData}
-							onCheckedChange={toggleSampleData}
-						/>
-					</div>
+				{isShiftsPage && (
+					<ShiftCreationSheet
+						scheduleId="schedule-456"
+						organizationId="org-123"
+						trigger={
+							<Button
+								className="gap-2 font-medium"
+								size="default">
+								<Plus className="h-4 w-4" />
+								Create Shift
+							</Button>
+						}
+						onShiftCreated={() => {
+							// Handle refresh after shift creation
+							// In a real app, you would refetch shifts data
+						}}
+					/>
 				)}
 				{hasSecondarySidebar ? (
 					<AlertDialog
@@ -272,11 +279,7 @@ export default function AppLayout() {
 					</AlertDialog>
 				) : isDailyShiftsPage ? (
 					getHeaderActions()
-				) : (
-					!isNotificationsPage &&
-					!isMessagesPage &&
-					!isShiftDetailsPage && <NotificationSheet />
-				)}
+				) : null}
 			</div>
 		);
 	};
