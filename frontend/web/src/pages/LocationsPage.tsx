@@ -266,9 +266,8 @@ export default function LocationsPage() {
 					message={`Loading ${
 						loadingPhase === "organization" ? "organization" : "locations"
 					}...`}
-					type="skeleton"
-					skeletonCount={6}
-					skeletonHeight={80}
+					type="spinner"
+					className="py-12"
 				/>
 			</ContentContainer>
 		);

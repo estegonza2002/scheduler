@@ -126,9 +126,8 @@ export function OrganizationSelector({
 				{loading && organizations.length === 0 ? (
 					<LoadingState
 						message="Loading organizations..."
-						type="skeleton"
-						skeletonCount={3}
-						skeletonHeight={120}
+						type="spinner"
+						className="py-12"
 					/>
 				) : organizations.length === 0 ? (
 					<EmptyState

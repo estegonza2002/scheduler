@@ -49,7 +49,6 @@ import {
 	AlertDialogTitle,
 	AlertDialogTrigger,
 } from "../components/ui/alert-dialog";
-import { Skeleton } from "../components/ui/skeleton";
 import { ContentContainer } from "../components/ui/content-container";
 import { ContentSection } from "../components/ui/content-section";
 import { LoadingState } from "../components/ui/loading-state";
@@ -76,6 +75,20 @@ import { calculateHours } from "../utils/time-calculations";
 import { LocationAssignmentSheet } from "../components/LocationAssignmentSheet";
 import { PageHeader } from "../components/ui/page-header";
 import { PageContentSpacing } from "../components/ui/header-content-spacing";
+import {
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+} from "../components/ui/dialog";
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from "../components/ui/table";
 
 // New component for Employee Statistics
 function EmployeeStats({
@@ -702,10 +715,9 @@ export default function EmployeeDetailPage() {
 		return (
 			<ContentContainer>
 				<LoadingState
-					type="skeleton"
-					skeletonCount={4}
-					skeletonHeight={60}
+					type="spinner"
 					message="Loading employee information..."
+					className="py-12"
 				/>
 			</ContentContainer>
 		);

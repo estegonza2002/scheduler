@@ -194,10 +194,9 @@ export default function LocationDetailPage() {
 		return (
 			<ContentContainer>
 				<LoadingState
-					type="skeleton"
-					skeletonCount={4}
-					skeletonHeight={60}
+					type="spinner"
 					message={`Loading ${loadingPhase}...`}
+					className="py-12"
 				/>
 			</ContentContainer>
 		);

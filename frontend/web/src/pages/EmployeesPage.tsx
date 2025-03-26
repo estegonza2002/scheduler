@@ -40,7 +40,6 @@ import {
 } from "../components/ui/dropdown-menu";
 import { DataTable } from "../components/ui/data-table";
 import { ColumnDef } from "@tanstack/react-table";
-import { Skeleton } from "../components/ui/skeleton";
 import {
 	Select,
 	SelectContent,
@@ -318,9 +317,8 @@ export default function EmployeesPage() {
 					message={`Loading ${
 						loadingPhase === "organization" ? "organization" : "employees"
 					}...`}
-					type="skeleton"
-					skeletonCount={6}
-					skeletonHeight={80}
+					type="spinner"
+					className="py-12"
 				/>
 			</ContentContainer>
 		);
@@ -380,6 +378,7 @@ export default function EmployeesPage() {
 									? "Loading organization information..."
 									: "Loading employee data..."
 							}
+							type="spinner"
 						/>
 					) : (
 						<>

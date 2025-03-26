@@ -1,5 +1,10 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link, useSearchParams } from "react-router-dom";
+import {
+	useNavigate,
+	Link,
+	useSearchParams,
+	useParams,
+} from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -26,6 +31,16 @@ import {
 	Calendar,
 	Users,
 	Briefcase,
+	CalendarDays,
+	Clock10,
+	BellRing,
+	Trash,
+	Download,
+	ClipboardList,
+	ChevronDown,
+	Check,
+	Coffee,
+	ChevronsUp,
 } from "lucide-react";
 import { Switch } from "../components/ui/switch";
 import {
@@ -66,6 +81,7 @@ import { cn } from "../lib/utils";
 import { PageHeader } from "../components/ui/page-header";
 import { PageContentSpacing } from "../components/ui/header-content-spacing";
 import { SecondaryLayout } from "../components/layout/SecondaryLayout";
+import { LoadingState } from "../components/ui/loading-state";
 
 // Get the Supabase URL from environment or use a fallback
 const supabaseUrl =
@@ -297,11 +313,11 @@ function ShiftsSection({ userId }: ShiftsSectionProps) {
 
 	if (isLoading) {
 		return (
-			<div className="space-y-4">
-				<div className="h-10 w-1/3 bg-gray-200 rounded animate-pulse"></div>
-				<div className="h-24 bg-gray-200 rounded animate-pulse"></div>
-				<div className="h-24 bg-gray-200 rounded animate-pulse"></div>
-			</div>
+			<LoadingState
+				type="spinner"
+				message="Loading shift information..."
+				className="py-8"
+			/>
 		);
 	}
 

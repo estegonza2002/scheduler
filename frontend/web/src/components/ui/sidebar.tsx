@@ -4,6 +4,7 @@ import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { VariantProps, cva } from "class-variance-authority";
 import { PanelLeft } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 import { useIsMobile } from "../../hooks/use-mobile";
 import { cn } from "../../lib/utils";
@@ -17,7 +18,6 @@ import {
 	SheetHeader,
 	SheetTitle,
 } from "./sheet";
-import { Skeleton } from "./skeleton";
 import {
 	Tooltip,
 	TooltipContent,
@@ -656,32 +656,15 @@ const SidebarMenuSkeleton = React.forwardRef<
 		showIcon?: boolean;
 	}
 >(({ className, showIcon = false, ...props }, ref) => {
-	// Random width between 50 to 90%.
-	const width = React.useMemo(() => {
-		return `${Math.floor(Math.random() * 40) + 50}%`;
-	}, []);
-
 	return (
 		<div
 			ref={ref}
 			data-sidebar="menu-skeleton"
 			className={cn("flex h-8 items-center gap-2 rounded-md px-2", className)}
 			{...props}>
-			{showIcon && (
-				<Skeleton
-					className="size-4 rounded-md"
-					data-sidebar="menu-skeleton-icon"
-				/>
-			)}
-			<Skeleton
-				className="h-4 max-w-[--skeleton-width] flex-1"
-				data-sidebar="menu-skeleton-text"
-				style={
-					{
-						"--skeleton-width": width,
-					} as React.CSSProperties
-				}
-			/>
+			<div className="flex items-center justify-center w-full">
+				<Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+			</div>
 		</div>
 	);
 });

@@ -188,8 +188,8 @@ export function ShiftCreationForm({
 		return (
 			<LoadingState
 				message="Loading form data..."
-				type="skeleton"
-				skeletonCount={5}
+				type="spinner"
+				className="py-8"
 			/>
 		);
 	}

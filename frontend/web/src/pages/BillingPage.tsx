@@ -10,6 +10,7 @@ import { PageHeader } from "../components/ui/page-header";
 import { PageContentSpacing } from "../components/ui/header-content-spacing";
 import { ContentContainer } from "../components/ui/content-container";
 import { SecondaryLayout } from "../components/layout/SecondaryLayout";
+import { LoadingState } from "../components/ui/loading-state";
 
 export default function BillingPage() {
 	const navigate = useNavigate();
@@ -83,7 +84,10 @@ export default function BillingPage() {
 	if (isLoading && !organization) {
 		return (
 			<div className="flex justify-center items-center min-h-screen">
-				<div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+				<LoadingState
+					message="Loading billing information..."
+					type="spinner"
+				/>
 			</div>
 		);
 	}

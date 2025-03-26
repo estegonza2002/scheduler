@@ -155,10 +155,9 @@ export default function EditShiftPage() {
 				<PageContentSpacing>
 					<ContentContainer>
 						<LoadingState
-							type="skeleton"
-							skeletonCount={4}
-							skeletonHeight={60}
+							type="spinner"
 							message="Loading shift information..."
+							className="py-12"
 						/>
 					</ContentContainer>
 				</PageContentSpacing>

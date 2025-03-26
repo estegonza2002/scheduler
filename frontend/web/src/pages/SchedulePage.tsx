@@ -156,10 +156,18 @@ export default function SchedulePage() {
 				<ContentContainer>
 					<Card>
 						<CardContent className="p-4">
-							<ScheduleCalendar
-								currentMonth={currentMonth}
-								onDateSelect={handleDateSelect}
-							/>
+							{loading ? (
+								<LoadingState
+									type="spinner"
+									message="Loading schedule data..."
+									className="py-8"
+								/>
+							) : (
+								<ScheduleCalendar
+									currentMonth={currentMonth}
+									onDateSelect={handleDateSelect}
+								/>
+							)}
 						</CardContent>
 					</Card>
 

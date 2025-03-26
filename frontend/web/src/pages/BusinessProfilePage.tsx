@@ -41,6 +41,9 @@ import {
 import { PageHeader } from "../components/ui/page-header";
 import { PageContentSpacing } from "../components/ui/header-content-spacing";
 import { ProfileSidebar } from "../components/layout/SecondaryNavbar";
+import { Badge } from "../components/ui/badge";
+import { EmptyState } from "../components/ui/empty-state";
+import { LoadingState } from "../components/ui/loading-state";
 
 // Define form schema for validation
 const businessProfileSchema = z.object({
@@ -226,7 +229,10 @@ export default function BusinessProfilePage() {
 	if (isLoading && !organization) {
 		return (
 			<div className="flex justify-center items-center min-h-screen">
-				<div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+				<LoadingState
+					message="Loading business profile..."
+					type="spinner"
+				/>
 			</div>
 		);
 	}

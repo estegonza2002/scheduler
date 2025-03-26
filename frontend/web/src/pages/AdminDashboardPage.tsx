@@ -54,7 +54,6 @@ import {
 } from "../api";
 import { AddEmployeeDialog } from "../components/AddEmployeeDialog";
 import { EmployeeDetailDialog } from "../components/EmployeeDetailDialog";
-import { Skeleton } from "../components/ui/skeleton";
 import { ContentContainer } from "../components/ui/content-container";
 import { ContentSection } from "../components/ui/content-section";
 import {
@@ -81,6 +80,7 @@ import {
 } from "../components/ui/tooltip";
 import { OnboardingReminder } from "../components/onboarding/OnboardingReminder";
 import { PageHeader } from "../components/ui/page-header";
+import { LoadingState } from "../components/ui/loading-state";
 
 // Extended organization type for UI display purposes
 interface ExtendedOrganization extends Organization {
@@ -227,28 +227,15 @@ export default function AdminDashboardPage() {
 		setTotalLocations((prev) => prev + 1);
 	}, []);
 
-	// Render loading skeleton
-	const renderLoadingSkeleton = () => {
+	// Render loading state
+	const renderLoadingState = () => {
 		return (
 			<div className="space-y-6">
-				<div className="flex items-center space-x-4">
-					<Skeleton className="h-10 w-32" />
-					<Skeleton className="h-8 w-48" />
-				</div>
-
-				<Skeleton className="h-24 w-full rounded-md mb-6" />
-
-				<div className="space-y-3">
-					<Skeleton className="h-10 w-full" />
-					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-						{Array.from({ length: 4 }).map((_, i) => (
-							<Skeleton
-								key={i}
-								className="h-36 w-full rounded-md"
-							/>
-						))}
-					</div>
-				</div>
+				<LoadingState
+					type="spinner"
+					message="Loading dashboard data..."
+					className="py-12"
+				/>
 			</div>
 		);
 	};
@@ -317,7 +304,7 @@ export default function AdminDashboardPage() {
 					description="Retrieving your business data"
 				/>
 				<PageContentSpacing>
-					<ContentContainer>{renderLoadingSkeleton()}</ContentContainer>
+					<ContentContainer>{renderLoadingState()}</ContentContainer>
 				</PageContentSpacing>
 			</>
 		);

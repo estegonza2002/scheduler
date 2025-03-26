@@ -1,7 +1,6 @@
 import React from "react";
 import { cn } from "../../lib/utils";
 import { Loader2 } from "lucide-react";
-import { Skeleton } from "./skeleton";
 
 interface LoadingStateProps {
 	/**
@@ -17,21 +16,7 @@ interface LoadingStateProps {
 	 * The type of loading indicator to display
 	 * @default "spinner"
 	 */
-	type?: "spinner" | "skeleton" | "dots";
-	/**
-	 * Optional number of skeleton items to display if type is "skeleton"
-	 * @default 3
-	 */
-	skeletonCount?: number;
-	/**
-	 * Optional height for skeleton items
-	 * @default 20
-	 */
-	skeletonHeight?: number;
-	/**
-	 * Optional className for skeleton items
-	 */
-	skeletonClassName?: string;
+	type?: "spinner" | "dots";
 	/**
 	 * Whether to show the loading message
 	 * @default true
@@ -41,14 +26,14 @@ interface LoadingStateProps {
 
 /**
  * LoadingState component for displaying consistent loading UI
+ *
+ * The skeleton type has been deprecated and removed.
+ * Use either "spinner" or "dots" type for loading indicators.
  */
 export function LoadingState({
 	message = "Loading...",
 	className,
 	type = "spinner",
-	skeletonCount = 3,
-	skeletonHeight = 20,
-	skeletonClassName,
 	showMessage = true,
 }: LoadingStateProps) {
 	return (
@@ -75,18 +60,6 @@ export function LoadingState({
 							style={{
 								animationDelay: `${i * 150}ms`,
 							}}
-						/>
-					))}
-				</div>
-			)}
-
-			{type === "skeleton" && (
-				<div className="w-full space-y-2">
-					{Array.from({ length: skeletonCount }).map((_, i) => (
-						<Skeleton
-							key={i}
-							className={cn(skeletonClassName)}
-							style={{ height: `${skeletonHeight}px` }}
 						/>
 					))}
 				</div>

@@ -435,10 +435,9 @@ export default function EmployeeEarningsPage() {
 		return (
 			<ContentContainer>
 				<LoadingState
-					type="skeleton"
-					skeletonCount={5}
-					skeletonHeight={80}
+					type="spinner"
 					message="Loading earnings data..."
+					className="py-12"
 				/>
 			</ContentContainer>
 		);
