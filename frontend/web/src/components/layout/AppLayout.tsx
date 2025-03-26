@@ -26,6 +26,9 @@ import {
 	RefreshCw,
 	Settings,
 	LogOut,
+	Shield,
+	ClipboardList,
+	Users,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { format, addDays, subDays } from "date-fns";
@@ -76,6 +79,29 @@ function LayoutContent({
 	pageHeader: any;
 }) {
 	const { state } = useSidebar();
+	const navigate = useNavigate();
+	const location = useLocation();
+
+	// Determine if current page should show back button (not on main/top-level pages)
+	const isTopLevelPage = [
+		"/dashboard",
+		"/admin-dashboard",
+		"/daily-shifts",
+		"/schedule",
+		"/employees",
+		"/locations",
+		"/shifts",
+		"/profile",
+		"/business-profile",
+		"/billing",
+		"/branding",
+		"/notifications",
+		"/messages",
+	].includes(location.pathname);
+
+	const handleGoBack = () => {
+		navigate(-1);
+	};
 
 	return (
 		<SidebarInset>
@@ -83,9 +109,21 @@ function LayoutContent({
 				<div className="flex flex-1 items-center">
 					<div className="flex items-center gap-2">
 						<SidebarTrigger className="-ml-1" />
+						{!isTopLevelPage && (
+							<Button
+								variant="ghost"
+								size="icon"
+								onClick={handleGoBack}
+								className="h-8 w-8"
+								title="Go back">
+								<ChevronLeft className="h-5 w-5" />
+							</Button>
+						)}
 					</div>
 					<div className="mx-4">
-						<h1 className="text-lg font-semibold">{getHeaderTitle()}</h1>
+						<h1 className="text-lg font-semibold">
+							{pageHeader.title || getHeaderTitle()}
+						</h1>
 						{pageHeader.description && (
 							<p className="text-xs text-muted-foreground">
 								{pageHeader.description}
@@ -294,18 +332,30 @@ export default function AppLayout() {
 			return "Dashboard";
 		if (
 			path === "/schedule" ||
-			path.startsWith("/daily-shifts") ||
-			path === "/schedule/monthly"
+			path === "/daily-shifts" ||
+			path.startsWith("/daily-shifts")
 		)
 			return "Schedule";
-		if (path === "/employees" || path.startsWith("/employee-detail"))
-			return "Employees";
-		if (path === "/locations" || path.startsWith("/location-detail"))
-			return "Locations";
+		if (path === "/shifts" || path.startsWith("/shifts/")) return "Shifts";
+		if (path === "/employees") return "Employees";
+		if (
+			path.startsWith("/employee-detail/") ||
+			path.startsWith("/employee-earnings/")
+		)
+			return "Employee Details";
+		if (path === "/locations") return "Locations";
+		if (path.startsWith("/locations/")) {
+			if (path.includes("/finance")) {
+				return "Location Financial Report";
+			}
+			return "Location Details";
+		}
 		if (path === "/messages") return "Messages";
+		if (path === "/profile") return "Profile";
+		if (path === "/business-profile") return "Business Profile";
+		if (path === "/billing") return "Billing & Subscription";
+		if (path === "/branding") return "Branding";
 		if (path === "/notifications") return "Notifications";
-		if (path === "/billing") return "Billing";
-		if (path === "/profile" || path === "/business-profile") return "Settings";
 		return "Scheduler";
 	};
 
@@ -334,6 +384,46 @@ export default function AppLayout() {
 
 		// Location sidebar removed - now returns null
 		return null;
+	};
+
+	// Determine the active sidebar item based on the path
+	const isPathActive = (basePath: string) => {
+		const pathname = window.location.pathname;
+		if (basePath === "/dashboard" && pathname === "/dashboard") return true;
+		if (basePath === "/admin-dashboard" && pathname === "/admin-dashboard")
+			return true;
+		if (
+			(basePath === "/schedule" || basePath === "/daily-shifts") &&
+			(pathname.startsWith("/daily-shifts") ||
+				pathname.startsWith("/schedule") ||
+				pathname === "/today")
+		)
+			return true;
+		if (basePath === "/shifts" && pathname.startsWith("/shifts")) return true;
+		if (
+			basePath === "/employees" &&
+			(pathname === "/employees" ||
+				pathname.startsWith("/employee-detail") ||
+				pathname.startsWith("/employee-earnings"))
+		)
+			return true;
+		if (
+			basePath === "/locations" &&
+			(pathname === "/locations" || pathname.startsWith("/locations/"))
+		)
+			return true;
+		if (basePath === "/notifications" && pathname === "/notifications")
+			return true;
+		if (basePath === "/messages" && pathname === "/messages") return true;
+		if (
+			basePath === "/settings" &&
+			(pathname === "/profile" ||
+				pathname === "/business-profile" ||
+				pathname === "/billing" ||
+				pathname === "/branding")
+		)
+			return true;
+		return false;
 	};
 
 	return (

@@ -30,11 +30,16 @@ import ShiftDetailsPage from "./pages/ShiftDetailsPage";
 import EditShiftPage from "./pages/EditShiftPage";
 import LocationsPage from "./pages/LocationsPage";
 import EmployeeDetailPage from "./pages/EmployeeDetailPage";
+import EmployeeEarningsPage from "./pages/EmployeeEarningsPage";
 import LocationDetailPage from "./pages/LocationDetailPage";
+import LocationFinancialReportPage from "./pages/LocationFinancialReportPage";
+import LocationShiftPage from "./pages/LocationShiftPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import MessagesPage from "./pages/MessagesPage";
 import { ShiftsPage } from "./pages/ShiftsPage";
 import { ShiftLogDetailsPage } from "./pages/ShiftLogDetailsPage";
+import LocationEmployeesPage from "./pages/LocationEmployeesPage";
+import LocationInsightsPage from "./pages/LocationInsightsPage";
 
 // Root redirect component that checks user role
 function RootRedirect() {
@@ -162,6 +167,26 @@ function App() {
 										element={<LocationsPage />}
 									/>
 									<Route
+										path="/locations/:locationId"
+										element={<LocationDetailPage />}
+									/>
+									<Route
+										path="/locations/:locationId/insights"
+										element={<LocationInsightsPage />}
+									/>
+									<Route
+										path="/locations/:locationId/finance"
+										element={<LocationFinancialReportPage />}
+									/>
+									<Route
+										path="/locations/:locationId/shifts"
+										element={<LocationShiftPage />}
+									/>
+									<Route
+										path="/locations/:locationId/employees"
+										element={<LocationEmployeesPage />}
+									/>
+									<Route
 										path="/notifications"
 										element={<NotificationsPage />}
 									/>
@@ -190,8 +215,8 @@ function App() {
 										element={<EmployeeDetailPage />}
 									/>
 									<Route
-										path="/location-detail/:locationId"
-										element={<LocationDetailPage />}
+										path="/employee-earnings/:employeeId"
+										element={<EmployeeEarningsPage />}
 									/>
 									{/* Add more protected routes here */}
 								</Route>

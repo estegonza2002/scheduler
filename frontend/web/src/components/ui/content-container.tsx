@@ -34,10 +34,8 @@ export function ContentContainer({
 	return (
 		<div
 			className={cn(
-				"content-container-wrapper",
-				withPadding ? "px-4 sm:px-6 lg:px-8 py-6" : "",
-				"mx-auto",
-				maxWidth,
+				"content-container-wrapper w-full",
+				withPadding ? "px-0 py-6" : "",
 				className
 			)}>
 			{children}

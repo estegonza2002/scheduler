@@ -145,7 +145,6 @@ export default function EditShiftPage() {
 	if (loading) {
 		return (
 			<ContentContainer>
-				{BackButton}
 				<LoadingState
 					type="skeleton"
 					skeletonCount={4}
@@ -158,9 +157,6 @@ export default function EditShiftPage() {
 
 	return (
 		<ContentContainer>
-			{BackButton}
-
-
 			<div className="mt-6 max-w-3xl mx-auto">
 				<form
 					id="edit-shift-form"

@@ -59,6 +59,22 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 	const isAdmin = user?.user_metadata?.role === "admin";
 	const isPaidUser = subscriptionPlan !== "free";
 
+	// Helper function to check if a route is active
+	const isRouteActive = (path: string): boolean => {
+		// Exact matches
+		if (location.pathname === path) return true;
+
+		// Special case for nested routes - only match if the path is a prefix of the current path
+		// and followed by a slash or end of string
+		if (path !== "/" && location.pathname.startsWith(path)) {
+			// Check if the next character after the path is a slash or end of string
+			const nextChar = location.pathname.charAt(path.length);
+			return nextChar === "/" || nextChar === "";
+		}
+
+		return false;
+	};
+
 	useEffect(() => {
 		const fetchOrganizationData = async () => {
 			try {
@@ -84,33 +100,43 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 			label: "Dashboard",
 			href: isAdmin ? "/admin-dashboard" : "/dashboard",
 			isActive:
-				location.pathname === "/dashboard" ||
-				location.pathname === "/admin-dashboard",
+				isRouteActive("/dashboard") || isRouteActive("/admin-dashboard"),
+		},
+		{
+			icon: <Building2 className="h-5 w-5" />,
+			label: isAdmin ? "Employee Dashboard" : "Business Dashboard",
+			href: isAdmin ? "/dashboard" : "/admin-dashboard",
+			isActive: isAdmin
+				? isRouteActive("/dashboard")
+				: isRouteActive("/admin-dashboard"),
 		},
 		{
 			icon: <Calendar className="h-5 w-5" />,
 			label: "Schedule",
 			href: "/schedule",
 			isActive:
-				location.pathname === "/schedule" ||
-				location.pathname === "/schedule/monthly" ||
-				location.pathname.startsWith("/daily-shifts"),
+				isRouteActive("/schedule") ||
+				isRouteActive("/schedule/monthly") ||
+				isRouteActive("/daily-shifts"),
 		},
 		{
 			icon: <ClipboardList className="h-5 w-5" />,
 			label: "Shifts",
 			href: "/shifts",
 			isActive:
-				location.pathname === "/shifts" ||
-				location.pathname.startsWith("/shift/"),
+				isRouteActive("/shifts") ||
+				isRouteActive("/shift-details") ||
+				isRouteActive("/shift-") ||
+				isRouteActive("/edit-shift"),
 		},
 		{
 			icon: <Users className="h-5 w-5" />,
 			label: "Employees",
 			href: "/employees",
 			isActive:
-				location.pathname === "/employees" ||
-				location.pathname.startsWith("/employee/"),
+				isRouteActive("/employees") ||
+				isRouteActive("/employee-") ||
+				isRouteActive("/employee/"),
 			adminOnly: true,
 		},
 		{
@@ -118,8 +144,9 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 			label: "Locations",
 			href: "/locations",
 			isActive:
-				location.pathname === "/locations" ||
-				location.pathname.startsWith("/location/"),
+				isRouteActive("/locations") ||
+				isRouteActive("/location-") ||
+				isRouteActive("/location/"),
 			adminOnly: true,
 		},
 	];
@@ -129,13 +156,13 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 			icon: <MessageSquare className="h-5 w-5" />,
 			label: "Messages",
 			href: "/messages",
-			isActive: location.pathname === "/messages",
+			isActive: isRouteActive("/messages"),
 		},
 		{
 			icon: <Bell className="h-5 w-5" />,
 			label: "Notifications",
 			href: "/notifications",
-			isActive: location.pathname === "/notifications",
+			isActive: isRouteActive("/notifications"),
 			badge: true,
 		},
 	];
@@ -152,7 +179,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 		),
 		label: isPaidUser ? "Billing" : "Upgrade to Pro",
 		href: "/billing",
-		isActive: location.pathname === "/billing",
+		isActive: isRouteActive("/billing"),
 	};
 
 	const userDisplay = {

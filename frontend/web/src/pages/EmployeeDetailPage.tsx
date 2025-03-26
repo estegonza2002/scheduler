@@ -233,6 +233,7 @@ function EmployeeShiftsSection({ employeeId }: { employeeId: string }) {
 	const [isLoading, setIsLoading] = useState(true);
 	const [shifts, setShifts] = useState<Shift[]>([]);
 	const [locations, setLocations] = useState<Record<string, Location>>({});
+	const navigate = useNavigate();
 	const now = new Date();
 
 	useEffect(() => {
@@ -342,7 +343,8 @@ function EmployeeShiftsSection({ employeeId }: { employeeId: string }) {
 		return (
 			<Card
 				key={shift.id}
-				className="mb-3 hover:shadow-sm transition-all">
+				className="mb-3 hover:shadow-sm transition-all cursor-pointer"
+				onClick={() => navigate(`/shifts/${shift.id}`)}>
 				<CardContent className="p-4">
 					<div className="flex justify-between items-start">
 						<div>
@@ -652,6 +654,16 @@ export default function EmployeeDetailPage() {
 				/>
 			)}
 
+			{employee && employee.hourlyRate !== undefined && (
+				<Button
+					variant="outline"
+					size="sm"
+					className="h-9 gap-1 mr-2"
+					onClick={() => navigate(`/employee-earnings/${employee.id}`)}>
+					<DollarSign className="h-4 w-4 mr-1" /> Earnings Report
+				</Button>
+			)}
+
 			<AlertDialog
 				open={deleteDialogOpen}
 				onOpenChange={setDeleteDialogOpen}>
@@ -687,7 +699,6 @@ export default function EmployeeDetailPage() {
 	if (loading) {
 		return (
 			<ContentContainer>
-				{BackButton}
 				<LoadingState
 					type="skeleton"
 					skeletonCount={4}
@@ -701,7 +712,6 @@ export default function EmployeeDetailPage() {
 	if (!employee) {
 		return (
 			<ContentContainer>
-				{BackButton}
 				<ContentSection
 					title="Employee not found"
 					description="The requested employee could not be found."
@@ -727,8 +737,6 @@ export default function EmployeeDetailPage() {
 	return (
 		<>
 			<ContentContainer>
-				{BackButton}
-
 				<div className="grid gap-6 mt-6">
 					{/* Profile Header */}
 					<ContentSection

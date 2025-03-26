@@ -1,17 +1,15 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Button } from "../components/ui/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
-	DropdownMenuLabel,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
 import { Location, LocationsAPI, OrganizationsAPI, Organization } from "../api";
 import {
 	MapPin,
-	MoreVertical,
 	Plus,
 	ArrowUpDown,
 	AlertCircle,
@@ -20,9 +18,9 @@ import {
 	Building2,
 	ChevronRight,
 	Search,
-	Filter,
 	X,
 	ChevronDown,
+	Eye,
 } from "lucide-react";
 import { Badge } from "../components/ui/badge";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -34,19 +32,17 @@ import {
 } from "../components/ui/card";
 
 // Import our dialog components
-import { AddLocationDialog } from "../components/AddLocationDialog";
 import { EditLocationDialog } from "../components/EditLocationDialog";
 import { DeleteLocationDialog } from "../components/DeleteLocationDialog";
 import { DataTable } from "../components/ui/data-table";
 import { ColumnDef } from "@tanstack/react-table";
 
-import { ContentContainer } from "../components/ui/content-container";
-import { SearchInput } from "../components/ui/search-input";
 import { EmptyState } from "../components/ui/empty-state";
 import { LoadingState } from "../components/ui/loading-state";
 import { Input } from "../components/ui/input";
 import { cn } from "../lib/utils";
 import { LocationCreationSheet } from "../components/LocationCreationSheet";
+import { useLayout } from "../lib/layout-context";
 
 export default function LocationsPage() {
 	const [searchParams] = useSearchParams();
@@ -58,6 +54,7 @@ export default function LocationsPage() {
 	const [stateFilter, setStateFilter] = useState<string | null>(null);
 	const [viewMode, setViewMode] = useState<"table" | "cards">("table");
 	const navigate = useNavigate();
+	const { updatePageHeader } = useLayout();
 
 	// Dialog states
 	const [selectedLocation, setSelectedLocation] = useState<Location | null>(
@@ -65,6 +62,59 @@ export default function LocationsPage() {
 	);
 	const [editDialogOpen, setEditDialogOpen] = useState(false);
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+	const handleLocationsAdded = useCallback((newLocations: Location[]) => {
+		setLocations((prev) => [...prev, ...newLocations]);
+	}, []);
+
+	const handleLocationUpdated = useCallback((updatedLocation: Location) => {
+		setLocations((prev) =>
+			prev.map((loc) => (loc.id === updatedLocation.id ? updatedLocation : loc))
+		);
+	}, []);
+
+	const handleLocationDeleted = useCallback((locationId: string) => {
+		setLocations((prev) => prev.filter((loc) => loc.id !== locationId));
+	}, []);
+
+	// Set just the page title
+	useEffect(() => {
+		updatePageHeader({
+			title: "Locations",
+			actions: null,
+		});
+
+		return () => {
+			updatePageHeader({ title: "" });
+		};
+	}, [updatePageHeader]);
+
+	// Fetch data
+	useEffect(() => {
+		const fetchData = async () => {
+			try {
+				setLoading(true);
+				setLoadingPhase("organization");
+				// In a real implementation, we would get the user's organization
+				// For now, we'll use the first organization from the mock data
+				const orgs = await OrganizationsAPI.getAll();
+				if (orgs.length > 0) {
+					setOrganization(orgs[0]);
+					setLoadingPhase("locations");
+
+					// Now get the locations for this organization
+					const fetchedLocations = await LocationsAPI.getAll(orgs[0].id);
+					setLocations(fetchedLocations);
+				}
+			} catch (error) {
+				console.error("Error fetching data:", error);
+			} finally {
+				setLoading(false);
+			}
+		};
+
+		fetchData();
+	}, []);
 
 	const columns = useMemo<ColumnDef<Location>[]>(
 		() => [
@@ -145,10 +195,9 @@ export default function LocationsPage() {
 							className="h-8"
 							onClick={(e) => {
 								e.stopPropagation();
-								navigate(`/location-detail/${location.id}`);
+								navigate(`/locations/${location.id}`);
 							}}>
-							<ChevronRight className="h-4 w-4" />
-							View
+							<Eye className="h-4 w-4" />
 						</Button>
 					);
 				},
@@ -156,32 +205,6 @@ export default function LocationsPage() {
 		],
 		[navigate]
 	);
-
-	useEffect(() => {
-		const fetchData = async () => {
-			try {
-				setLoading(true);
-				setLoadingPhase("organization");
-				// In a real implementation, we would get the user's organization
-				// For now, we'll use the first organization from the mock data
-				const orgs = await OrganizationsAPI.getAll();
-				if (orgs.length > 0) {
-					setOrganization(orgs[0]);
-					setLoadingPhase("locations");
-
-					// Now get the locations for this organization
-					const fetchedLocations = await LocationsAPI.getAll(orgs[0].id);
-					setLocations(fetchedLocations);
-				}
-			} catch (error) {
-				console.error("Error fetching data:", error);
-			} finally {
-				setLoading(false);
-			}
-		};
-
-		fetchData();
-	}, []);
 
 	// Get all the unique states from locations
 	const uniqueStates = useMemo(() => {
@@ -218,20 +241,6 @@ export default function LocationsPage() {
 	const hasActiveFilters = useMemo(() => {
 		return Boolean(searchTerm || stateFilter);
 	}, [searchTerm, stateFilter]);
-
-	const handleLocationsAdded = (newLocations: Location[]) => {
-		setLocations((prev) => [...prev, ...newLocations]);
-	};
-
-	const handleLocationUpdated = (updatedLocation: Location) => {
-		setLocations((prev) =>
-			prev.map((loc) => (loc.id === updatedLocation.id ? updatedLocation : loc))
-		);
-	};
-
-	const handleLocationDeleted = (locationId: string) => {
-		setLocations((prev) => prev.filter((loc) => loc.id !== locationId));
-	};
 
 	const handleOpenEditDialog = (location: Location) => {
 		setSelectedLocation(location);
@@ -278,20 +287,22 @@ export default function LocationsPage() {
 
 	return (
 		<div className="container mx-auto py-6 space-y-6">
-			<div className="flex items-center justify-between">
-				<h1 className="text-2xl font-bold tracking-tight">Locations</h1>
-				<LocationCreationSheet
-					organizationId={organization?.id || "org-1"}
-					onLocationCreated={(newLocation) =>
-						handleLocationsAdded([newLocation])
-					}
-					trigger={
-						<Button>
-							<Plus className="mr-2 h-4 w-4" />
-							Create New Location
-						</Button>
-					}
-				/>
+			{/* Create button */}
+			<div className="flex justify-end">
+				{organization && (
+					<LocationCreationSheet
+						organizationId={organization?.id || "org-1"}
+						onLocationCreated={(newLocation) =>
+							handleLocationsAdded([newLocation])
+						}
+						trigger={
+							<Button>
+								<Plus className="mr-2 h-4 w-4" />
+								Create New Location
+							</Button>
+						}
+					/>
+				)}
 			</div>
 
 			{/* Stats Cards */}
@@ -494,7 +505,7 @@ export default function LocationsPage() {
 									columns={columns}
 									data={filteredLocations}
 									onRowClick={(location) =>
-										navigate(`/location-detail/${location.id}`)
+										navigate(`/locations/${location.id}`)
 									}
 								/>
 							)}
@@ -506,9 +517,7 @@ export default function LocationsPage() {
 										<Card
 											key={location.id}
 											className="hover:shadow-md transition-shadow cursor-pointer group relative overflow-hidden"
-											onClick={() =>
-												navigate(`/location-detail/${location.id}`)
-											}>
+											onClick={() => navigate(`/locations/${location.id}`)}>
 											<div className="absolute inset-0 bg-gradient-to-t from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 											<div className="p-4">
 												<div className="flex items-start gap-4">
@@ -544,6 +553,18 @@ export default function LocationsPage() {
 														{location.zipCode ? ` ${location.zipCode}` : ""}
 													</span>
 												</div>
+											</div>
+											<div className="absolute inset-0 flex items-end justify-end p-4">
+												<Button
+													onClick={(e) => {
+														e.stopPropagation();
+														navigate(`/locations/${location.id}`);
+													}}
+													variant="default"
+													size="sm"
+													className="mr-2">
+													<Eye className="h-4 w-4 mr-2" /> View Details
+												</Button>
 											</div>
 										</Card>
 									))}
