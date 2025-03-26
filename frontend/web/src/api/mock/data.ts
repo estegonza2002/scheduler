@@ -8,13 +8,14 @@ import {
 	Schedule,
 	Shift,
 	ShiftAssignment,
+	ShiftTask,
 } from "./types";
 import {
 	generateMockEmployees,
 	generateMockLocations,
-	generateMockShifts,
 	generateTask,
 	generateUniqueId,
+	generateMockShifts,
 } from "./utils";
 
 // Initial organization data
@@ -31,386 +32,328 @@ export const mockOrganizations: Organization[] = [
 	},
 ];
 
-// Initial schedule data
-export const mockSchedules: Schedule[] = [
+// Consolidated shifts data (including both schedules and individual shifts)
+export const mockShifts: Shift[] = [
+	// Schedules (is_schedule = true)
 	{
 		id: "sch-1",
 		name: "Summer Schedule",
-		organizationId: "org-1",
-		startDate: "2023-06-01",
-		endDate: "2023-08-31",
+		organization_id: "org-1",
+		start_time: "2023-06-01T00:00:00Z",
+		end_time: "2023-08-31T23:59:59Z",
+		is_schedule: true,
+		created_at: "2023-05-15T10:00:00Z",
+		updated_at: "2023-05-15T10:00:00Z",
 	},
 	{
 		id: "sch-2",
 		name: "Fall Schedule",
-		organizationId: "org-1",
-		startDate: "2023-09-01",
-		endDate: "2023-11-30",
+		organization_id: "org-1",
+		start_time: "2023-09-01T00:00:00Z",
+		end_time: "2023-11-30T23:59:59Z",
+		is_schedule: true,
+		created_at: "2023-08-15T10:00:00Z",
+		updated_at: "2023-08-15T10:00:00Z",
 	},
 	{
 		id: "sch-3",
 		name: "Winter Menu",
-		organizationId: "org-2",
-		startDate: "2023-12-01",
-		endDate: "2024-02-28",
+		organization_id: "org-2",
+		start_time: "2023-12-01T00:00:00Z",
+		end_time: "2024-02-28T23:59:59Z",
+		is_schedule: true,
+		created_at: "2023-11-15T10:00:00Z",
+		updated_at: "2023-11-15T10:00:00Z",
 	},
 	{
 		id: "sch-4",
 		name: "Spring 2025 Schedule",
-		organizationId: "org-1",
-		startDate: "2025-03-01",
-		endDate: "2025-05-31",
+		organization_id: "org-1",
+		start_time: "2025-03-01T00:00:00Z",
+		end_time: "2025-05-31T23:59:59Z",
+		is_schedule: true,
+		created_at: "2024-02-15T10:00:00Z",
+		updated_at: "2024-02-15T10:00:00Z",
 	},
 	{
 		id: "sch-5",
 		name: "Summer 2025 Schedule",
-		organizationId: "org-1",
-		startDate: "2025-06-01",
-		endDate: "2025-08-31",
+		organization_id: "org-1",
+		start_time: "2025-06-01T00:00:00Z",
+		end_time: "2025-08-31T23:59:59Z",
+		is_schedule: true,
+		created_at: "2025-05-15T10:00:00Z",
+		updated_at: "2025-05-15T10:00:00Z",
 	},
-];
 
-// The shift data with numeric IDs 1-15
-export const mockShifts: Shift[] = [
-	// Adding 15 shifts with sequential IDs for testing
+	// Individual shifts (is_schedule = false)
 	{
 		id: "shift-1",
-		scheduleId: "sch-1",
-		employeeId: "emp-1",
-		startTime: "2023-06-01T08:00:00",
-		endTime: "2023-06-01T16:00:00",
-		role: "Runner",
-		locationId: "loc-1",
-		notes: "First shift of the month - morning duties",
-		checkInTasks: [
-			generateTask("Check uniform"),
-			generateTask("Get communication device"),
-			generateTask("Review daily tasks"),
+		parent_shift_id: "sch-1",
+		user_id: "emp-1",
+		start_time: "2023-06-01T08:00:00Z",
+		end_time: "2023-06-01T16:00:00Z",
+		position: "Runner",
+		location_id: "loc-1",
+		description: "First shift of the month - morning duties",
+		organization_id: "org-1",
+		is_schedule: false,
+		created_at: "2023-05-20T10:00:00Z",
+		updated_at: "2023-05-20T10:00:00Z",
+		check_in_tasks: [
+			{
+				id: "task-1",
+				title: "Check uniform",
+				completed: false,
+				order: 1,
+			},
+			{
+				id: "task-2",
+				title: "Get communication device",
+				completed: false,
+				order: 2,
+			},
+			{
+				id: "task-3",
+				title: "Review daily tasks",
+				completed: false,
+				order: 3,
+			},
 		],
-		checkOutTasks: [
-			generateTask("Return keys"),
-			generateTask("Submit incident reports"),
-			generateTask("Clean work area"),
+		check_out_tasks: [
+			{
+				id: "task-4",
+				title: "Return keys",
+				completed: false,
+				order: 1,
+			},
+			{
+				id: "task-5",
+				title: "Submit incident reports",
+				completed: false,
+				order: 2,
+			},
+			{
+				id: "task-6",
+				title: "Clean work area",
+				completed: false,
+				order: 3,
+			},
 		],
 	},
 	{
 		id: "shift-2",
-		scheduleId: "sch-1",
-		employeeId: "emp-2",
-		startTime: "2023-06-01T12:00:00",
-		endTime: "2023-06-01T20:00:00",
-		role: "Supervisor",
-		locationId: "loc-2",
-		notes: "Afternoon supervisor shift",
-		checkInTasks: [
-			generateTask("Count cash drawer"),
-			generateTask("Check staff attendance"),
-			generateTask("Review pending issues"),
+		parent_shift_id: "sch-1",
+		user_id: "emp-2",
+		start_time: "2023-06-01T12:00:00Z",
+		end_time: "2023-06-01T20:00:00Z",
+		position: "Supervisor",
+		location_id: "loc-2",
+		description: "Afternoon supervisor shift",
+		organization_id: "org-1",
+		is_schedule: false,
+		created_at: "2023-05-20T10:10:00Z",
+		updated_at: "2023-05-20T10:10:00Z",
+		check_in_tasks: [
+			{
+				id: "task-7",
+				title: "Count cash drawer",
+				completed: false,
+				order: 1,
+			},
+			{
+				id: "task-8",
+				title: "Check staff attendance",
+				completed: false,
+				order: 2,
+			},
+			{
+				id: "task-9",
+				title: "Review pending issues",
+				completed: false,
+				order: 3,
+			},
 		],
-		checkOutTasks: [
-			generateTask("Balance accounts"),
-			generateTask("Lock equipment"),
-			generateTask("Prepare handover notes"),
+		check_out_tasks: [
+			{
+				id: "task-10",
+				title: "Balance accounts",
+				completed: false,
+				order: 1,
+			},
+			{
+				id: "task-11",
+				title: "Lock equipment",
+				completed: false,
+				order: 2,
+			},
+			{
+				id: "task-12",
+				title: "Prepare handover notes",
+				completed: false,
+				order: 3,
+			},
 		],
 	},
 	{
 		id: "shift-3",
-		scheduleId: "sch-1",
-		employeeId: "emp-3",
-		startTime: "2023-06-02T08:00:00",
-		endTime: "2023-06-02T16:00:00",
-		role: "Runner",
-		locationId: "loc-1",
-		notes: "Morning shift at main location",
-		checkInTasks: [
-			generateTask("Inspect parking area"),
-			generateTask("Check safety equipment"),
-			generateTask("Set up valet station"),
+		parent_shift_id: "sch-1",
+		user_id: "emp-3",
+		start_time: "2023-06-02T08:00:00Z",
+		end_time: "2023-06-02T16:00:00Z",
+		position: "Runner",
+		location_id: "loc-1",
+		description: "Morning shift at main location",
+		organization_id: "org-1",
+		is_schedule: false,
+		created_at: "2023-05-25T09:00:00Z",
+		updated_at: "2023-05-25T09:00:00Z",
+		check_in_tasks: [
+			{
+				id: "task-13",
+				title: "Inspect parking area",
+				completed: false,
+				order: 1,
+			},
+			{
+				id: "task-14",
+				title: "Check safety equipment",
+				completed: false,
+				order: 2,
+			},
+			{
+				id: "task-15",
+				title: "Set up valet station",
+				completed: false,
+				order: 3,
+			},
 		],
-		checkOutTasks: [
-			generateTask("Close valet station"),
-			generateTask("Report vehicle status"),
-			generateTask("Return equipment"),
+		check_out_tasks: [
+			{
+				id: "task-16",
+				title: "Close valet station",
+				completed: false,
+				order: 1,
+			},
+			{
+				id: "task-17",
+				title: "Report vehicle status",
+				completed: false,
+				order: 2,
+			},
+			{
+				id: "task-18",
+				title: "Return equipment",
+				completed: false,
+				order: 3,
+			},
 		],
 	},
 	{
 		id: "shift-4",
-		scheduleId: "sch-1",
-		employeeId: "emp-4",
-		startTime: "2023-06-02T16:00:00",
-		endTime: "2023-06-03T00:00:00",
-		role: "Runner",
-		locationId: "loc-2",
-		notes: "Evening shift at secondary location",
-		checkInTasks: [
-			generateTask("Take inventory"),
-			generateTask("Check communication devices"),
-			generateTask("Review special events"),
+		parent_shift_id: "sch-1",
+		user_id: "emp-4",
+		start_time: "2023-06-02T16:00:00Z",
+		end_time: "2023-06-03T00:00:00Z",
+		position: "Runner",
+		location_id: "loc-2",
+		description: "Evening shift at secondary location",
+		organization_id: "org-1",
+		is_schedule: false,
+		created_at: "2023-05-25T09:15:00Z",
+		updated_at: "2023-05-25T09:15:00Z",
+		check_in_tasks: [
+			{
+				id: "task-19",
+				title: "Take inventory",
+				completed: false,
+				order: 1,
+			},
+			{
+				id: "task-20",
+				title: "Check communication devices",
+				completed: false,
+				order: 2,
+			},
+			{
+				id: "task-21",
+				title: "Review special events",
+				completed: false,
+				order: 3,
+			},
 		],
-		checkOutTasks: [
-			generateTask("Secure all areas"),
-			generateTask("Complete shift log"),
-			generateTask("Report any incidents"),
+		check_out_tasks: [
+			{
+				id: "task-22",
+				title: "Secure all areas",
+				completed: false,
+				order: 1,
+			},
+			{
+				id: "task-23",
+				title: "Complete shift log",
+				completed: false,
+				order: 2,
+			},
+			{
+				id: "task-24",
+				title: "Report any incidents",
+				completed: false,
+				order: 3,
+			},
 		],
 	},
 	{
 		id: "shift-5",
-		scheduleId: "sch-1",
-		employeeId: "emp-5",
-		startTime: "2023-06-03T09:00:00",
-		endTime: "2023-06-03T17:00:00",
-		role: "Manager",
-		locationId: "loc-1",
-		notes: "Management oversight day",
-		checkInTasks: [
-			generateTask("Review previous day reports"),
-			generateTask("Schedule team meeting"),
-			generateTask("Check financial reports"),
-		],
-		checkOutTasks: [
-			generateTask("Update management logs"),
-			generateTask("Prepare next day schedule"),
-			generateTask("Communicate with night shift"),
-		],
-	},
-	{
-		id: "shift-6",
-		scheduleId: "sch-1",
-		employeeId: "emp-1",
-		startTime: "2023-06-04T08:00:00",
-		endTime: "2023-06-04T16:00:00",
-		role: "Runner",
-		locationId: "loc-1",
-		notes: "Standard morning shift",
-		checkInTasks: [
-			generateTask("Morning safety check"),
-			generateTask("Review parking layout"),
-			generateTask("Check communication system"),
-		],
-		checkOutTasks: [
-			generateTask("Complete vehicle count"),
-			generateTask("Clean workspace"),
-			generateTask("Report to supervisor"),
-		],
-	},
-	{
-		id: "shift-7",
-		scheduleId: "sch-1",
-		employeeId: "emp-2",
-		startTime: "2023-06-04T16:00:00",
-		endTime: "2023-06-05T00:00:00",
-		role: "Supervisor",
-		locationId: "loc-2",
-		notes: "Evening supervision with VIP event",
-		checkInTasks: [
-			generateTask("Brief team on VIP protocol"),
-			generateTask("Inspect VIP area"),
-			generateTask("Coordinate with event staff"),
-		],
-		checkOutTasks: [
-			generateTask("Collect VIP feedback"),
-			generateTask("Document event outcomes"),
-			generateTask("Secure venue"),
-		],
-	},
-	{
-		id: "shift-8",
-		scheduleId: "sch-1",
-		employeeId: "emp-3",
-		startTime: "2023-06-05T09:00:00",
-		endTime: "2023-06-05T17:00:00",
-		role: "Runner",
-		locationId: "loc-1",
-		notes: "Training day with new hires",
-		checkInTasks: [
-			generateTask("Prepare training materials"),
-			generateTask("Set up training area"),
-			generateTask("Meet with trainees"),
-		],
-		checkOutTasks: [
-			generateTask("Evaluate trainee progress"),
-			generateTask("Document training activities"),
-			generateTask("Plan next training session"),
-		],
-	},
-	{
-		id: "shift-9",
-		scheduleId: "sch-1",
-		employeeId: "emp-4",
-		startTime: "2023-06-05T12:00:00",
-		endTime: "2023-06-05T20:00:00",
-		role: "Runner",
-		locationId: "loc-2",
-		notes: "Afternoon shift during busy period",
-		checkInTasks: [
-			generateTask("Check traffic flow plans"),
-			generateTask("Review peak hours protocol"),
-			generateTask("Coordinate with support staff"),
-		],
-		checkOutTasks: [
-			generateTask("Report traffic statistics"),
-			generateTask("Document challenges"),
-			generateTask("Prepare recommendations"),
-		],
-	},
-	{
-		id: "shift-10",
-		scheduleId: "sch-1",
-		employeeId: "emp-5",
-		startTime: "2023-06-06T08:00:00",
-		endTime: "2023-06-06T16:00:00",
-		role: "Manager",
-		locationId: "loc-1",
-		notes: "Weekly review and planning day",
-		checkInTasks: [
-			generateTask("Gather weekly reports"),
-			generateTask("Prepare performance reviews"),
-			generateTask("Set weekly goals"),
-		],
-		checkOutTasks: [
-			generateTask("Distribute weekly schedule"),
-			generateTask("Send management summary"),
-			generateTask("Update planning documents"),
-		],
-	},
-	{
-		id: "shift-11",
-		scheduleId: "sch-1",
-		employeeId: "emp-1",
-		startTime: "2023-06-07T12:00:00",
-		endTime: "2023-06-07T20:00:00",
-		role: "Runner",
-		locationId: "loc-2",
-		notes: "Weekend afternoon shift",
-		checkInTasks: [
-			generateTask("Check weekend specials"),
-			generateTask("Review increased capacity plans"),
-			generateTask("Coordinate with weekend team"),
-		],
-		checkOutTasks: [
-			generateTask("Complete weekend report"),
-			generateTask("Prepare for Sunday shift"),
-			generateTask("Secure weekend equipment"),
-		],
-	},
-	{
-		id: "shift-12",
-		scheduleId: "sch-1",
-		employeeId: "emp-2",
-		startTime: "2023-06-08T08:00:00",
-		endTime: "2023-06-08T16:00:00",
-		role: "Supervisor",
-		locationId: "loc-1",
-		notes: "Sunday morning oversight",
-		checkInTasks: [
-			generateTask("Schedule Sunday staff"),
-			generateTask("Review weekend incidents"),
-			generateTask("Check facility status"),
-		],
-		checkOutTasks: [
-			generateTask("Prepare week ahead report"),
-			generateTask("Finalize weekend documentation"),
-			generateTask("Brief Monday staff"),
-		],
-	},
-	{
-		id: "shift-13",
-		scheduleId: "sch-1",
-		employeeId: "emp-3",
-		startTime: "2023-06-09T09:00:00",
-		endTime: "2023-06-09T17:00:00",
-		role: "Runner",
-		locationId: "loc-2",
-		notes: "Monday morning fresh start",
-		checkInTasks: [
-			generateTask("Reset weekly counters"),
-			generateTask("Implement new weekly protocols"),
-			generateTask("Check maintenance schedule"),
-		],
-		checkOutTasks: [
-			generateTask("Document Monday statistics"),
-			generateTask("Update weekly forecast"),
-			generateTask("Report equipment status"),
-		],
-	},
-	{
-		id: "shift-14",
-		scheduleId: "sch-1",
-		employeeId: "emp-4",
-		startTime: "2023-06-10T12:00:00",
-		endTime: "2023-06-10T20:00:00",
-		role: "Runner",
-		locationId: "loc-1",
-		notes: "Mid-week afternoon shift",
-		checkInTasks: [
-			generateTask("Check mid-week reports"),
-			generateTask("Review customer feedback"),
-			generateTask("Assess inventory levels"),
-		],
-		checkOutTasks: [
-			generateTask("Submit inventory requests"),
-			generateTask("Process customer comments"),
-			generateTask("Plan next day activities"),
-		],
-	},
-	{
-		id: "shift-15",
-		scheduleId: "sch-1",
-		employeeId: "emp-5",
-		startTime: "2023-06-11T08:00:00",
-		endTime: "2023-06-11T16:00:00",
-		role: "Manager",
-		locationId: "loc-2",
-		notes: "End of period evaluation day",
-		checkInTasks: [
-			generateTask("Collect period metrics"),
-			generateTask("Evaluate team performance"),
-			generateTask("Schedule individual reviews"),
-		],
-		checkOutTasks: [
-			generateTask("Generate period report"),
-			generateTask("Plan improvement strategies"),
-			generateTask("Set next period goals"),
-		],
-	},
-	// Original demo shifts
-	{
-		id: "shift-61",
-		scheduleId: "sch-1",
-		employeeId: "emp-1",
-		startTime: "2023-06-01T09:00:00",
-		endTime: "2023-06-01T17:00:00",
-		role: "Manager",
-		locationId: "loc-1",
-		notes:
-			"This is a test shift for demonstration purposes.\n\nMake sure to review all tasks before completing the shift.",
-		checkInTasks: [
+		parent_shift_id: "sch-1",
+		user_id: "emp-5",
+		start_time: "2023-06-03T09:00:00Z",
+		end_time: "2023-06-03T17:00:00Z",
+		position: "Manager",
+		location_id: "loc-1",
+		description: "Management oversight day",
+		organization_id: "org-1",
+		is_schedule: false,
+		created_at: "2023-05-26T11:00:00Z",
+		updated_at: "2023-05-26T11:00:00Z",
+		check_in_tasks: [
 			{
-				id: generateUniqueId(),
-				description: "Check security systems",
-				completed: true,
+				id: "task-25",
+				title: "Review previous day reports",
+				completed: false,
+				order: 1,
 			},
 			{
-				id: generateUniqueId(),
-				description: "Verify inventory levels",
+				id: "task-26",
+				title: "Schedule team meeting",
 				completed: false,
+				order: 2,
 			},
 			{
-				id: generateUniqueId(),
-				description: "Brief staff on daily goals",
+				id: "task-27",
+				title: "Check financial reports",
 				completed: false,
+				order: 3,
 			},
 		],
-		checkOutTasks: [
+		check_out_tasks: [
 			{
-				id: generateUniqueId(),
-				description: "Close register",
+				id: "task-28",
+				title: "Update management logs",
 				completed: false,
+				order: 1,
 			},
 			{
-				id: generateUniqueId(),
-				description: "Lock all doors",
+				id: "task-29",
+				title: "Prepare next day schedule",
 				completed: false,
+				order: 2,
+			},
+			{
+				id: "task-30",
+				title: "Communicate with night shift",
+				completed: false,
+				order: 3,
 			},
 		],
 	},
@@ -697,104 +640,42 @@ export const mockLocations: Location[] = [
 	},
 ];
 
-// ShiftAssignments data
+// Shift assignments data
 export const mockShiftAssignments: ShiftAssignment[] = [
-	// Add assignments for our 15 test shifts
 	{
-		id: "sa-test-1",
+		id: "assignment-1",
 		shiftId: "shift-1",
 		employeeId: "emp-1",
 		role: "Runner",
+		notes: "First assignment",
 	},
 	{
-		id: "sa-test-2",
+		id: "assignment-2",
 		shiftId: "shift-2",
 		employeeId: "emp-2",
 		role: "Supervisor",
+		notes: "Experienced supervisor",
 	},
 	{
-		id: "sa-test-3",
+		id: "assignment-3",
 		shiftId: "shift-3",
 		employeeId: "emp-3",
 		role: "Runner",
+		notes: "Familiar with main location",
 	},
 	{
-		id: "sa-test-4",
+		id: "assignment-4",
 		shiftId: "shift-4",
 		employeeId: "emp-4",
 		role: "Runner",
+		notes: "Night shift specialist",
 	},
 	{
-		id: "sa-test-5",
+		id: "assignment-5",
 		shiftId: "shift-5",
 		employeeId: "emp-5",
 		role: "Manager",
-	},
-	{
-		id: "sa-test-6",
-		shiftId: "shift-6",
-		employeeId: "emp-1",
-		role: "Runner",
-	},
-	{
-		id: "sa-test-7",
-		shiftId: "shift-7",
-		employeeId: "emp-2",
-		role: "Supervisor",
-	},
-	{
-		id: "sa-test-8",
-		shiftId: "shift-8",
-		employeeId: "emp-3",
-		role: "Runner",
-	},
-	{
-		id: "sa-test-9",
-		shiftId: "shift-9",
-		employeeId: "emp-4",
-		role: "Runner",
-	},
-	{
-		id: "sa-test-10",
-		shiftId: "shift-10",
-		employeeId: "emp-5",
-		role: "Manager",
-	},
-	{
-		id: "sa-test-11",
-		shiftId: "shift-11",
-		employeeId: "emp-1",
-		role: "Runner",
-	},
-	{
-		id: "sa-test-12",
-		shiftId: "shift-12",
-		employeeId: "emp-2",
-		role: "Supervisor",
-	},
-	{
-		id: "sa-test-13",
-		shiftId: "shift-13",
-		employeeId: "emp-3",
-		role: "Runner",
-	},
-	{
-		id: "sa-test-14",
-		shiftId: "shift-14",
-		employeeId: "emp-4",
-		role: "Runner",
-	},
-	{
-		id: "sa-test-15",
-		shiftId: "shift-15",
-		employeeId: "emp-5",
-		role: "Manager",
-	},
-	{
-		id: "sa-61",
-		shiftId: "shift-61",
-		employeeId: "emp-1",
-		role: "Manager",
+		notes: "Monthly oversight",
 	},
 ];
 
@@ -833,20 +714,11 @@ export const mockNotifications: Notification[] = [
 
 // Function to generate additional mock data as needed
 export const generateLargeMockData = () => {
-	// Clear existing mock data arrays
-	mockLocations.length = 0;
-	mockEmployees.length = 0;
-	mockShifts.length = 0;
-	mockShiftAssignments.length = 0;
+	console.log("Generating large mock data sets...");
 
-	// Update organization name
-	mockOrganizations[0].name = "Coffee Shop Chain";
-	mockOrganizations[0].description =
-		"National coffee shop chain with multiple locations";
-
-	// Generate new mock data
-	const locations = generateMockLocations(15);
-	const employees = generateMockEmployees(15);
+	// Generate locations and employees
+	const locations = generateMockLocations(10);
+	const employees = generateMockEmployees(50);
 
 	// Start date March 20, 2025
 	const startDate = new Date(2025, 2, 20); // Month is 0-indexed

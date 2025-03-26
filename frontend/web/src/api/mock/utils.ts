@@ -1,6 +1,6 @@
 // Utility functions for mock data
-import { format, addDays } from "date-fns";
-import { CheckInTask, CheckOutTask, Employee, Location, Shift } from "./types";
+import { addDays, format } from "date-fns";
+import { Employee, Location, Shift, ShiftTask } from "./types";
 
 // Helper function for simulating API delay
 export const delay = (ms: number) =>
@@ -25,23 +25,24 @@ export function generateUniqueId(): string {
 
 // Helper function to generate tasks
 export const generateTask = (
-	description: string,
-	completed: boolean = false
-): CheckInTask | CheckOutTask => {
+	title: string,
+	completed: boolean = false,
+	order: number = 1
+): ShiftTask => {
 	return {
 		id: generateUniqueId(),
-		description,
+		title,
 		completed,
+		order,
 	};
 };
 
-export function generateTasksForMockData(
-	tasks: string[]
-): CheckInTask[] | CheckOutTask[] {
-	return tasks.map((task) => ({
+export function generateTasksForMockData(tasks: string[]): ShiftTask[] {
+	return tasks.map((task, index) => ({
 		id: generateUniqueId(),
-		description: task,
+		title: task,
 		completed: false,
+		order: index + 1,
 	}));
 }
 
@@ -242,78 +243,107 @@ export const generateMockEmployees = (count: number = 100): Employee[] => {
 	return employees;
 };
 
+/**
+ * Generates mock shift data using the consolidated model
+ */
 export const generateMockShifts = (
 	startDate: Date,
-	daysCount: number = 7,
-	shiftsPerDay: number = 100,
+	days: number,
+	shiftsPerDay: number,
 	locations: Location[],
 	employees: Employee[]
 ): Shift[] => {
 	const shifts: Shift[] = [];
-	const roles = ["Runner", "Supervisor"];
-	const notes = [
-		"Training new employee",
-		"Vehicle inspection required",
-		"Staff meeting at end of shift",
-		"VIP client event",
-		"Expected high traffic",
-		"Urgent shift coverage needed",
-		"Special event preparation",
-		"Holiday rush expected",
-		"Cover for vacation",
-		undefined,
-		undefined,
-		undefined,
-		undefined,
-		undefined, // Higher chance of no notes
-	];
 
-	// Time slots (24-hour format)
-	const timeSlots = [
-		{ start: 6, end: 14 }, // 6am - 2pm
-		{ start: 8, end: 16 }, // 8am - 4pm
-		{ start: 10, end: 18 }, // 10am - 6pm
-		{ start: 12, end: 20 }, // 12pm - 8pm
-		{ start: 14, end: 22 }, // 2pm - 10pm
-		{ start: 16, end: 24 }, // 4pm - 12am
-	];
+	// First create a schedule for this period
+	const scheduleEndDate = new Date(startDate);
+	scheduleEndDate.setDate(startDate.getDate() + days - 1);
 
-	let shiftCounter = 1;
+	const schedule: Shift = {
+		id: `sch-${generateUniqueId()}`,
+		name: `Generated Schedule ${startDate.toLocaleDateString()}`,
+		organization_id: employees[0]?.organizationId || "org-1",
+		start_time: startDate.toISOString(),
+		end_time: scheduleEndDate.toISOString(),
+		is_schedule: true,
+		created_at: new Date().toISOString(),
+		updated_at: new Date().toISOString(),
+	};
 
-	// Generate shifts for each day
-	for (let day = 0; day < daysCount; day++) {
-		const currentDate = addDays(startDate, day);
-		const formattedDate = format(currentDate, "yyyy-MM-dd");
+	shifts.push(schedule);
 
-		// Generate multiple shifts per day
-		for (let i = 0; i < shiftsPerDay; i++) {
-			// Randomly select a location, employee, and time slot
-			const locationIndex = Math.floor(Math.random() * locations.length);
-			const employeeIndex = Math.floor(Math.random() * employees.length);
-			const timeSlotIndex = Math.floor(Math.random() * timeSlots.length);
-			const roleIndex = Math.floor(Math.random() * roles.length);
-			const noteIndex = Math.floor(Math.random() * notes.length);
+	// Now generate individual shifts for each day
+	for (let day = 0; day < days; day++) {
+		const currentDate = new Date(startDate);
+		currentDate.setDate(startDate.getDate() + day);
 
-			const timeSlot = timeSlots[timeSlotIndex];
-			const startHour = timeSlot.start;
-			const endHour = timeSlot.end;
+		for (let s = 0; s < shiftsPerDay; s++) {
+			// Randomize shift start time between 6am and 8pm
+			const hour = 6 + Math.floor(Math.random() * 14);
+			const shiftStart = new Date(currentDate);
+			shiftStart.setHours(hour, 0, 0, 0);
+
+			// Shift duration between 4 and 8 hours
+			const durationHours = 4 + Math.floor(Math.random() * 4);
+			const shiftEnd = new Date(shiftStart);
+			shiftEnd.setHours(shiftStart.getHours() + durationHours);
+
+			// Select random employee and location
+			const employee = employees[Math.floor(Math.random() * employees.length)];
+			const location = locations[Math.floor(Math.random() * locations.length)];
+
+			// Generate position based on employee role
+			const position = employee.position || employee.role;
+
+			// Create shift tasks
+			const checkInTasks: ShiftTask[] = [
+				{
+					id: `task-ci-${generateUniqueId()}`,
+					title: "Check work area",
+					completed: false,
+					order: 1,
+				},
+				{
+					id: `task-ci-${generateUniqueId()}`,
+					title: "Review shift instructions",
+					completed: false,
+					order: 2,
+				},
+			];
+
+			const checkOutTasks: ShiftTask[] = [
+				{
+					id: `task-co-${generateUniqueId()}`,
+					title: "Clean workspace",
+					completed: false,
+					order: 1,
+				},
+				{
+					id: `task-co-${generateUniqueId()}`,
+					title: "Complete shift report",
+					completed: false,
+					order: 2,
+				},
+			];
 
 			const shift: Shift = {
-				id: `shift-${shiftCounter}`,
-				scheduleId: "sch-4", // Using the Spring 2025 schedule
-				employeeId: employees[employeeIndex].id,
-				startTime: `${formattedDate}T${String(startHour).padStart(
-					2,
-					"0"
-				)}:00:00`,
-				endTime: `${formattedDate}T${String(endHour).padStart(2, "0")}:00:00`,
-				role: roles[roleIndex],
-				locationId: locations[locationIndex].id,
-				notes: notes[noteIndex],
+				id: `shift-gen-${generateUniqueId()}`,
+				parent_shift_id: schedule.id,
+				user_id: employee.id,
+				organization_id: employee.organizationId,
+				start_time: shiftStart.toISOString(),
+				end_time: shiftEnd.toISOString(),
+				position,
+				location_id: location.id,
+				description: `Generated shift for ${employee.name}`,
+				is_schedule: false,
+				created_at: new Date().toISOString(),
+				updated_at: new Date().toISOString(),
+				check_in_tasks: checkInTasks,
+				check_out_tasks: checkOutTasks,
 			};
 
 			shifts.push(shift);
-			shiftCounter++;
 		}
 	}
 

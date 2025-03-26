@@ -1,8 +1,6 @@
 // API implementation that uses mock data
 import { toast } from "sonner";
 import {
-	CheckInTask,
-	CheckOutTask,
 	Employee,
 	Location,
 	Notification,
@@ -10,6 +8,11 @@ import {
 	Schedule,
 	Shift,
 	ShiftAssignment,
+	ShiftTask,
+	isSchedule,
+	ScheduleCreateInput,
+	ShiftItemCreateInput,
+	ShiftCreateInput,
 } from "./types";
 import { delay, generateTasksForMockData, generateUniqueId } from "./utils";
 import {
@@ -17,9 +20,8 @@ import {
 	mockLocations,
 	mockNotifications,
 	mockOrganizations,
-	mockSchedules,
-	mockShiftAssignments,
 	mockShifts,
+	mockShiftAssignments,
 	generateLargeMockData,
 } from "./data";
 
@@ -67,195 +69,326 @@ export const OrganizationsAPI = {
 	},
 };
 
-// Schedules API
-export const SchedulesAPI = {
-	getAll: async (organizationId: string): Promise<Schedule[]> => {
+/**
+ * Consolidated ShiftsAPI for the unified shifts table
+ *
+ * This API handles both schedules (is_schedule=true) and individual shifts (is_schedule=false)
+ * using a hierarchical self-referencing model where shifts reference their parent schedule
+ * via the parent_shift_id field.
+ */
+export const ShiftsAPI = {
+	// Schedule methods
+	/**
+	 * Get all schedules for an organization
+	 * @param organizationId Optional organization ID to filter by
+	 * @returns Array of Schedule objects
+	 */
+	getAllSchedules: async (organizationId?: string): Promise<Schedule[]> => {
 		await delay(800);
-		return mockSchedules.filter(
-			(schedule) => schedule.organizationId === organizationId
+		let filteredShifts = mockShifts.filter(
+			(shift) => shift.is_schedule === true
 		);
+
+		if (organizationId) {
+			filteredShifts = filteredShifts.filter(
+				(shift) => shift.organization_id === organizationId
+			);
+		}
+
+		return filteredShifts as Schedule[];
 	},
 
-	getById: async (id: string): Promise<Schedule | null> => {
+	/**
+	 * Get a specific schedule by ID
+	 * @param id Schedule ID
+	 * @returns Schedule object or null if not found
+	 */
+	getScheduleById: async (id: string): Promise<Schedule | null> => {
 		await delay(500);
-		return mockSchedules.find((schedule) => schedule.id === id) || null;
+		const shift = mockShifts.find((s) => s.id === id && s.is_schedule === true);
+		return (shift as Schedule) || null;
 	},
 
-	create: async (data: Omit<Schedule, "id">): Promise<Schedule> => {
+	/**
+	 * Create a new schedule
+	 * @param data Schedule data
+	 * @returns Created Schedule object
+	 */
+	createSchedule: async (data: ScheduleCreateInput): Promise<Schedule> => {
 		await delay(1000);
 		const newSchedule: Schedule = {
 			id: `sch-${Date.now()}`,
+			created_at: new Date().toISOString(),
+			updated_at: new Date().toISOString(),
 			...data,
+			is_schedule: true,
 		};
-		mockSchedules.push(newSchedule);
+		mockShifts.push(newSchedule);
+		toast.success("Schedule created successfully!");
 		return newSchedule;
 	},
-};
 
-// Shifts API
-export const ShiftsAPI = {
-	getAll: async (
-		dateOrScheduleId?: string,
-		organizationId?: string
-	): Promise<Shift[]> => {
+	// Shift methods
+	/**
+	 * Get all shifts for a specific schedule
+	 * @param scheduleId Parent schedule ID
+	 * @returns Array of Shift objects
+	 */
+	getShiftsForSchedule: async (scheduleId: string): Promise<Shift[]> => {
 		await delay(800);
-
-		// Filter by date if provided
-		let filteredShifts = [...mockShifts];
-
-		if (dateOrScheduleId) {
-			// Check if it's a date (YYYY-MM-DD) or a scheduleId (sch-xxx)
-			if (dateOrScheduleId.startsWith("sch-")) {
-				// It's a scheduleId
-				filteredShifts = mockShifts.filter(
-					(shift) => shift.scheduleId === dateOrScheduleId
-				);
-			} else {
-				// It's a date
-				const dateStart = new Date(dateOrScheduleId);
-				dateStart.setHours(0, 0, 0, 0);
-
-				const dateEnd = new Date(dateOrScheduleId);
-				dateEnd.setHours(23, 59, 59, 999);
-
-				filteredShifts = mockShifts.filter((shift) => {
-					const shiftStart = new Date(shift.startTime);
-					return shiftStart >= dateStart && shiftStart <= dateEnd;
-				});
-			}
-		}
-
-		console.log(
-			`API filtering with param ${dateOrScheduleId}, found ${filteredShifts.length} shifts`
+		return mockShifts.filter(
+			(shift) =>
+				shift.parent_shift_id === scheduleId && shift.is_schedule === false
 		);
-
-		// Convert any string arrays to task objects for backward compatibility
-		return filteredShifts.map((shift) => ({
-			...shift,
-			checkInTasks: Array.isArray(shift.checkInTasks)
-				? typeof shift.checkInTasks[0] === "string"
-					? (generateTasksForMockData(
-							shift.checkInTasks as unknown as string[]
-					  ) as CheckInTask[])
-					: (shift.checkInTasks as CheckInTask[])
-				: undefined,
-			checkOutTasks: Array.isArray(shift.checkOutTasks)
-				? typeof shift.checkOutTasks[0] === "string"
-					? (generateTasksForMockData(
-							shift.checkOutTasks as unknown as string[]
-					  ) as CheckOutTask[])
-					: (shift.checkOutTasks as CheckOutTask[])
-				: undefined,
-		}));
 	},
 
-	getById: async (id: string): Promise<Shift | null> => {
+	/**
+	 * Get a specific shift by ID
+	 * @param id Shift ID
+	 * @returns Shift object or null if not found
+	 */
+	getShiftById: async (id: string): Promise<Shift | null> => {
 		await delay(500);
-
 		console.log(`API: Fetching shift with ID: ${id}`);
-		const shift = mockShifts.find((s) => s.id === id);
-		if (!shift) {
-			console.log(`API: No shift found with ID: ${id}`);
-			return null;
-		}
-
-		// Convert any string arrays to task objects for backward compatibility
-		const processedShift = {
-			...shift,
-			checkInTasks: Array.isArray(shift.checkInTasks)
-				? typeof shift.checkInTasks[0] === "string"
-					? (generateTasksForMockData(
-							shift.checkInTasks as unknown as string[]
-					  ) as CheckInTask[])
-					: (shift.checkInTasks as CheckInTask[])
-				: undefined,
-			checkOutTasks: Array.isArray(shift.checkOutTasks)
-				? typeof shift.checkOutTasks[0] === "string"
-					? (generateTasksForMockData(
-							shift.checkOutTasks as unknown as string[]
-					  ) as CheckOutTask[])
-					: (shift.checkOutTasks as CheckOutTask[])
-				: undefined,
-		};
-
-		return processedShift;
+		return mockShifts.find((s) => s.id === id) || null;
 	},
 
-	create: async (data: Omit<Shift, "id">): Promise<Shift> => {
+	/**
+	 * Create a new shift within a schedule
+	 * @param data Shift data including parent_shift_id
+	 * @returns Created Shift object
+	 */
+	createShift: async (data: ShiftItemCreateInput): Promise<Shift> => {
 		await delay(1000);
 		const newShift: Shift = {
 			id: `shift-${Date.now()}`,
+			created_at: new Date().toISOString(),
+			updated_at: new Date().toISOString(),
 			...data,
+			is_schedule: false,
 		};
 		mockShifts.push(newShift);
 		toast.success("Shift created successfully!");
 		return newShift;
 	},
 
-	updateShiftTasks: async (
-		shiftId: string,
-		updates: {
-			checkInTasks?: CheckInTask[];
-			checkOutTasks?: CheckOutTask[];
-		}
-	): Promise<Shift | null> => {
-		await delay(800);
-
-		// Find the shift
-		const shiftIndex = mockShifts.findIndex((s) => s.id === shiftId);
-
-		if (shiftIndex === -1) {
-			return null;
-		}
-
-		// Update the tasks
-		const updatedShift = { ...mockShifts[shiftIndex] };
-
-		if (updates.checkInTasks !== undefined) {
-			updatedShift.checkInTasks = [...updates.checkInTasks];
-		}
-
-		if (updates.checkOutTasks !== undefined) {
-			updatedShift.checkOutTasks = [...updates.checkOutTasks];
-		}
-
-		// Save the updated shift
-		mockShifts[shiftIndex] = updatedShift;
-
-		return updatedShift;
-	},
-
-	update: async (
-		shift: Partial<Shift> & { id: string }
-	): Promise<Shift | null> => {
-		await delay(800);
-
-		const index = mockShifts.findIndex((s) => s.id === shift.id);
+	// General methods for both shifts and schedules
+	/**
+	 * Update an existing shift or schedule
+	 * @param id Shift or schedule ID
+	 * @param data Updated data
+	 * @returns Updated Shift or Schedule object
+	 */
+	updateShift: async (
+		id: string,
+		data: Partial<ShiftCreateInput>
+	): Promise<Shift> => {
+		await delay(1000);
+		const index = mockShifts.findIndex((s) => s.id === id);
 		if (index === -1) {
-			return null;
+			throw new Error(`Shift with ID ${id} not found`);
 		}
 
-		// Update the shift data
-		const updatedShift = {
+		mockShifts[index] = {
 			...mockShifts[index],
-			...shift,
+			...data,
+			updated_at: new Date().toISOString(),
 		};
 
-		mockShifts[index] = updatedShift;
-		toast.success("Shift updated successfully!");
-		return updatedShift;
+		toast.success(
+			`${
+				mockShifts[index].is_schedule ? "Schedule" : "Shift"
+			} updated successfully!`
+		);
+		return mockShifts[index];
 	},
 
-	delete: async (id: string): Promise<boolean> => {
-		await delay(600);
-
-		const index = mockShifts.findIndex((shift) => shift.id === id);
+	/**
+	 * Delete a shift or schedule
+	 * If deleting a schedule, also deletes all associated shifts
+	 * @param id Shift or schedule ID
+	 */
+	deleteShift: async (id: string): Promise<void> => {
+		await delay(800);
+		const index = mockShifts.findIndex((s) => s.id === id);
 		if (index === -1) {
-			return false;
+			throw new Error(`Shift with ID ${id} not found`);
+		}
+
+		// For schedules, also delete all associated shifts
+		if (mockShifts[index].is_schedule) {
+			// Remove all shifts that belong to this schedule
+			const scheduleId = mockShifts[index].id;
+			const shiftIndicesToRemove = mockShifts
+				.map((s, i) => (s.parent_shift_id === scheduleId ? i : -1))
+				.filter((i) => i !== -1);
+
+			// Remove in reverse order to not mess up the indices
+			for (let i = shiftIndicesToRemove.length - 1; i >= 0; i--) {
+				mockShifts.splice(shiftIndicesToRemove[i], 1);
+			}
 		}
 
 		mockShifts.splice(index, 1);
-		return true;
+		toast.success(
+			`${
+				mockShifts[index]?.is_schedule ? "Schedule" : "Shift"
+			} deleted successfully!`
+		);
+	},
+
+	// Utility methods
+	/**
+	 * Update tasks for a shift
+	 * @param shiftId Shift ID
+	 * @param updates Task updates
+	 * @returns Updated Shift object
+	 */
+	updateShiftTasks: async (
+		shiftId: string,
+		updates: {
+			check_in_tasks?: ShiftTask[];
+			check_out_tasks?: ShiftTask[];
+		}
+	): Promise<Shift> => {
+		await delay(800);
+		const index = mockShifts.findIndex((s) => s.id === shiftId);
+		if (index === -1) {
+			throw new Error(`Shift with ID ${shiftId} not found`);
+		}
+
+		mockShifts[index] = {
+			...mockShifts[index],
+			...updates,
+			updated_at: new Date().toISOString(),
+		};
+
+		return mockShifts[index];
+	},
+
+	// Search and filter methods
+	/**
+	 * Get shifts based on filters
+	 * @param filters Optional filters for shifts
+	 * @returns Array of filtered Shift objects
+	 */
+	getAll: async (filters?: {
+		start_time?: string;
+		end_time?: string;
+		organization_id?: string;
+		is_schedule?: boolean;
+		parent_shift_id?: string;
+	}): Promise<Shift[]> => {
+		await delay(800);
+
+		let filteredShifts = [...mockShifts];
+
+		if (filters) {
+			if (filters.organization_id) {
+				filteredShifts = filteredShifts.filter(
+					(shift) => shift.organization_id === filters.organization_id
+				);
+			}
+
+			if (filters.is_schedule !== undefined) {
+				filteredShifts = filteredShifts.filter(
+					(shift) => shift.is_schedule === filters.is_schedule
+				);
+			}
+
+			if (filters.parent_shift_id) {
+				filteredShifts = filteredShifts.filter(
+					(shift) => shift.parent_shift_id === filters.parent_shift_id
+				);
+			}
+
+			if (filters.start_time && filters.end_time) {
+				const startTime = new Date(filters.start_time);
+				const endTime = new Date(filters.end_time);
+
+				filteredShifts = filteredShifts.filter((shift) => {
+					const shiftStart = new Date(shift.start_time);
+					const shiftEnd = new Date(shift.end_time);
+
+					// Check if the shift overlaps with the date range
+					return (
+						(shiftStart >= startTime && shiftStart <= endTime) ||
+						(shiftEnd >= startTime && shiftEnd <= endTime) ||
+						(shiftStart <= startTime && shiftEnd >= endTime)
+					);
+				});
+			}
+		}
+
+		return filteredShifts;
+	},
+};
+
+/**
+ * Backward compatibility API for components that still use SchedulesAPI
+ * This is a wrapper around the consolidated ShiftsAPI
+ */
+export const SchedulesAPI = {
+	/**
+	 * Get all schedules for an organization
+	 * @param organizationId Optional organization ID
+	 * @returns Array of Schedule objects
+	 */
+	getAll: async (organizationId?: string) => {
+		return ShiftsAPI.getAllSchedules(organizationId);
+	},
+
+	/**
+	 * Get a specific schedule by ID
+	 * @param id Schedule ID
+	 * @returns Schedule object or null if not found
+	 */
+	getById: async (id: string) => {
+		return ShiftsAPI.getScheduleById(id);
+	},
+
+	/**
+	 * Create a new schedule
+	 * @param scheduleData Schedule data
+	 * @returns Created Schedule object
+	 */
+	create: async (scheduleData: any) => {
+		const data: ScheduleCreateInput = {
+			...scheduleData,
+			is_schedule: true,
+			organization_id:
+				scheduleData.organization_id || scheduleData.organizationId,
+			start_time: scheduleData.start_time || scheduleData.start_date,
+			end_time: scheduleData.end_time || scheduleData.end_date,
+		};
+		return ShiftsAPI.createSchedule(data);
+	},
+
+	/**
+	 * Update a schedule
+	 * @param id Schedule ID
+	 * @param scheduleData Updated schedule data
+	 * @returns Updated Schedule object
+	 */
+	update: async (id: string, scheduleData: any) => {
+		return ShiftsAPI.updateShift(id, scheduleData);
+	},
+
+	/**
+	 * Delete a schedule and all its shifts
+	 * @param id Schedule ID
+	 */
+	delete: async (id: string) => {
+		return ShiftsAPI.deleteShift(id);
+	},
+
+	/**
+	 * Get all shifts for a schedule
+	 * @param scheduleId Schedule ID
+	 * @returns Array of Shift objects
+	 */
+	getShifts: async (scheduleId: string) => {
+		return ShiftsAPI.getShiftsForSchedule(scheduleId);
 	},
 };
 
@@ -556,10 +689,18 @@ export const NotificationsAPI = {
 	},
 };
 
-// Initialize additional mock data if needed
+// Initialize mock data for the application
 export const initMockData = () => {
-	// Only regenerate if needed
-	if (mockLocations.length <= 10) {
+	console.log("Initializing mock data...");
+
+	// Generate large datasets if needed
+	if (mockShifts.length < 10) {
 		generateLargeMockData();
 	}
+
+	console.log(
+		`Mock data initialized with ${mockShifts.length} shifts (including ${
+			mockShifts.filter((s) => s.is_schedule).length
+		} schedules)`
+	);
 };
