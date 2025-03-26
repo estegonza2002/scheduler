@@ -6,12 +6,14 @@ interface ShiftNotesProps {
 	notes: string;
 	onEditClick: () => void;
 	onClearClick: () => void;
+	isCompleted?: boolean;
 }
 
 export function ShiftNotes({
 	notes,
 	onEditClick,
 	onClearClick,
+	isCompleted = false,
 }: ShiftNotesProps) {
 	return (
 		<div className="mb-6">
@@ -23,7 +25,8 @@ export function ShiftNotes({
 							variant="outline"
 							size="sm"
 							className="gap-1 text-destructive border-destructive/30 hover:bg-destructive/10"
-							onClick={onClearClick}>
+							onClick={onClearClick}
+							disabled={isCompleted}>
 							<Trash className="h-4 w-4" /> Clear Notes
 						</Button>
 					)}
@@ -31,7 +34,8 @@ export function ShiftNotes({
 						variant="outline"
 						size="sm"
 						className="gap-1"
-						onClick={onEditClick}>
+						onClick={onEditClick}
+						disabled={isCompleted}>
 						<Edit className="h-4 w-4" /> {notes ? "Edit Notes" : "Add Notes"}
 					</Button>
 				</div>
@@ -159,7 +163,9 @@ export function ShiftNotes({
 					<p className="text-sm text-muted-foreground mb-4">
 						Add notes to provide additional information about the shift.
 					</p>
-					<Button onClick={onEditClick}>
+					<Button
+						onClick={onEditClick}
+						disabled={isCompleted}>
 						<Plus className="h-4 w-4 mr-2" /> Add Notes
 					</Button>
 				</div>

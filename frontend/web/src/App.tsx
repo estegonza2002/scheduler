@@ -9,11 +9,14 @@ import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import AppLayout from "./components/layout/AppLayout";
 import { NotificationProvider } from "./lib/notification-context";
 import { LayoutProvider } from "./lib/layout-context";
+import { useEffect } from "react";
 
 // Import our pages
 import LoginPage from "./pages/LoginPage";
 import SignUpPage from "./pages/SignUpPage";
 import BusinessSignUpPage from "./pages/BusinessSignUpPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import DashboardPage from "./pages/DashboardPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
 import ProfilePage from "./pages/ProfilePage";
@@ -30,6 +33,8 @@ import EmployeeDetailPage from "./pages/EmployeeDetailPage";
 import LocationDetailPage from "./pages/LocationDetailPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import MessagesPage from "./pages/MessagesPage";
+import { ShiftsPage } from "./pages/ShiftsPage";
+import { ShiftLogDetailsPage } from "./pages/ShiftLogDetailsPage";
 
 // Root redirect component that checks user role
 function RootRedirect() {
@@ -81,6 +86,14 @@ function App() {
 							<Route
 								path="/business-signup"
 								element={<BusinessSignUpPage />}
+							/>
+							<Route
+								path="/forgot-password"
+								element={<ForgotPasswordPage />}
+							/>
+							<Route
+								path="/reset-password"
+								element={<ResetPasswordPage />}
 							/>
 
 							{/* Protected Routes */}
@@ -155,6 +168,14 @@ function App() {
 									<Route
 										path="/messages"
 										element={<MessagesPage />}
+									/>
+									<Route
+										path="/shifts"
+										element={<ShiftsPage />}
+									/>
+									<Route
+										path="/shift-details/:shiftId"
+										element={<ShiftLogDetailsPage />}
 									/>
 									<Route
 										path="/shifts/:shiftId"

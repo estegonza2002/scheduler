@@ -12,4 +12,7 @@ export interface Employee {
 	notes?: string;
 	avatar?: string;
 	hourlyRate?: number;
+	status?: "invited" | "active" | "disabled";
+	isOnline?: boolean;
+	lastActive?: string;
 }

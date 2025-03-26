@@ -14,6 +14,7 @@ import {
 	LogOut,
 	User,
 	Sparkles,
+	ClipboardList,
 } from "lucide-react";
 
 import {
@@ -96,6 +97,14 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 				location.pathname.startsWith("/daily-shifts"),
 		},
 		{
+			icon: <ClipboardList className="h-5 w-5" />,
+			label: "Shifts",
+			href: "/shifts",
+			isActive:
+				location.pathname === "/shifts" ||
+				location.pathname.startsWith("/shift/"),
+		},
+		{
 			icon: <Users className="h-5 w-5" />,
 			label: "Employees",
 			href: "/employees",
@@ -151,8 +160,13 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 			user?.user_metadata?.lastName || ""
 		}`,
 		email: user?.email || "",
-		avatar: user?.user_metadata?.avatar || "",
+		avatar_url: user?.user_metadata?.avatar_url || "",
 	};
+
+	// Debug logs for avatar URL
+	console.log("User in sidebar:", JSON.stringify(user, null, 2));
+	console.log("User metadata in sidebar:", user?.user_metadata);
+	console.log("Avatar URL in sidebar:", userDisplay.avatar_url);
 
 	const renderMenuItems = (items: NavItem[], isFooterMenu = false) => {
 		return items.map((item, index) => {
@@ -252,31 +266,13 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 			</SidebarContent>
 
 			<SidebarFooter>
-				{/* User profile section - now clickable with border */}
-				<Link
-					to="/profile"
-					className="flex items-center gap-3 px-4 mb-3 py-3 border border-border rounded-md hover:bg-muted/50 transition-colors">
-					<div className="relative">
-						<Avatar className="h-10 w-10 rounded-lg border border-border">
-							<AvatarImage
-								src={userDisplay.avatar}
-								alt={userDisplay.name}
-							/>
-							<AvatarFallback className="rounded-lg">
-								{userDisplay.name.charAt(0)}
-							</AvatarFallback>
-						</Avatar>
-						{/* Online status indicator */}
-						<span
-							className={`absolute top-0 right-0 translate-x-1 -translate-y-1 block h-3 w-3 rounded-full border-2 border-background ${
-								isOnline ? "bg-green-500" : "bg-gray-400"
-							}`}></span>
-					</div>
-					<div className="grid flex-1 text-left text-sm leading-tight">
-						<span className="truncate font-semibold">{userDisplay.name}</span>
-						<span className="truncate text-xs">{userDisplay.email}</span>
-					</div>
-				</Link>
+				{/* User profile section using NavUser component */}
+				<NavUser
+					user={userDisplay}
+					isAdmin={isAdmin}
+					subscriptionPlan={subscriptionPlan}
+					isOnline={isOnline}
+				/>
 			</SidebarFooter>
 		</Sidebar>
 	);

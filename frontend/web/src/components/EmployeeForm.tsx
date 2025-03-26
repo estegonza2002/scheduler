@@ -101,6 +101,9 @@ export function EmployeeForm({
 				employee = await EmployeesAPI.create({
 					...formattedData,
 					organizationId,
+					status: "invited",
+					isOnline: false,
+					lastActive: new Date().toISOString(),
 				});
 			}
 

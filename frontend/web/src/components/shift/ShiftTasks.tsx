@@ -14,6 +14,7 @@ interface ShiftTasksProps {
 		taskId: string
 	) => void;
 	onRemoveTask: (taskType: "checkIn" | "checkOut", taskId: string) => void;
+	isCompleted?: boolean;
 }
 
 export function ShiftTasks({
@@ -23,6 +24,7 @@ export function ShiftTasks({
 	onCheckOutTasksClick,
 	onToggleTaskCompletion,
 	onRemoveTask,
+	isCompleted = false,
 }: ShiftTasksProps) {
 	return (
 		<div className="mb-6">
@@ -39,7 +41,8 @@ export function ShiftTasks({
 					<Button
 						variant="outline"
 						size="sm"
-						onClick={onCheckInTasksClick}>
+						onClick={onCheckInTasksClick}
+						disabled={isCompleted}>
 						<Plus className="h-4 w-4 mr-1" /> Add Tasks
 					</Button>
 				</div>
@@ -58,6 +61,7 @@ export function ShiftTasks({
 										onCheckedChange={() =>
 											onToggleTaskCompletion("checkIn", task.id)
 										}
+										disabled={isCompleted}
 									/>
 									<div className="flex-1">
 										<span
@@ -74,14 +78,16 @@ export function ShiftTasks({
 											variant="ghost"
 											size="icon"
 											className="h-7 w-7 text-muted-foreground"
-											onClick={onCheckInTasksClick}>
+											onClick={onCheckInTasksClick}
+											disabled={isCompleted}>
 											<Edit className="h-3.5 w-3.5" />
 										</Button>
 										<Button
 											variant="ghost"
 											size="icon"
 											className="h-7 w-7 text-muted-foreground hover:text-destructive"
-											onClick={() => onRemoveTask("checkIn", task.id)}>
+											onClick={() => onRemoveTask("checkIn", task.id)}
+											disabled={isCompleted}>
 											<Trash className="h-3.5 w-3.5" />
 										</Button>
 									</div>
@@ -109,7 +115,9 @@ export function ShiftTasks({
 						<p className="text-sm text-muted-foreground mb-4">
 							Add check-in tasks to track work needed at the start of a shift.
 						</p>
-						<Button onClick={onCheckInTasksClick}>
+						<Button
+							onClick={onCheckInTasksClick}
+							disabled={isCompleted}>
 							<Plus className="h-4 w-4 mr-2" /> Add check-in tasks
 						</Button>
 					</div>
@@ -125,7 +133,8 @@ export function ShiftTasks({
 					<Button
 						variant="outline"
 						size="sm"
-						onClick={onCheckOutTasksClick}>
+						onClick={onCheckOutTasksClick}
+						disabled={isCompleted}>
 						<Plus className="h-4 w-4 mr-1" /> Add Tasks
 					</Button>
 				</div>
@@ -144,6 +153,7 @@ export function ShiftTasks({
 										onCheckedChange={() =>
 											onToggleTaskCompletion("checkOut", task.id)
 										}
+										disabled={isCompleted}
 									/>
 									<div className="flex-1">
 										<span
@@ -160,14 +170,16 @@ export function ShiftTasks({
 											variant="ghost"
 											size="icon"
 											className="h-7 w-7 text-muted-foreground"
-											onClick={onCheckOutTasksClick}>
+											onClick={onCheckOutTasksClick}
+											disabled={isCompleted}>
 											<Edit className="h-3.5 w-3.5" />
 										</Button>
 										<Button
 											variant="ghost"
 											size="icon"
 											className="h-7 w-7 text-muted-foreground hover:text-destructive"
-											onClick={() => onRemoveTask("checkOut", task.id)}>
+											onClick={() => onRemoveTask("checkOut", task.id)}
+											disabled={isCompleted}>
 											<Trash className="h-3.5 w-3.5" />
 										</Button>
 									</div>
@@ -201,7 +213,9 @@ export function ShiftTasks({
 						<p className="text-sm text-muted-foreground mb-4">
 							Add check-out tasks to track work needed at the end of a shift.
 						</p>
-						<Button onClick={onCheckOutTasksClick}>
+						<Button
+							onClick={onCheckOutTasksClick}
+							disabled={isCompleted}>
 							<Plus className="h-4 w-4 mr-2" /> Add check-out tasks
 						</Button>
 					</div>

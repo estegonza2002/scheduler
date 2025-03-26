@@ -30,18 +30,23 @@ export function NavUser({
 	user,
 	isAdmin = false,
 	subscriptionPlan = "free",
+	isOnline = true,
 }: {
 	user: {
 		name: string;
 		email: string;
-		avatar: string;
+		avatar_url: string;
 	};
 	isAdmin?: boolean;
 	subscriptionPlan?: "free" | "pro" | "business";
+	isOnline?: boolean;
 }) {
 	const { isMobile } = useSidebar();
 	const { signOut } = useAuth();
 	const isPaidUser = subscriptionPlan !== "free";
+
+	// Debug log for avatar URL
+	console.log("NavUser avatar_url:", user.avatar_url);
 
 	const handleSignOut = () => {
 		signOut();
@@ -55,13 +60,25 @@ export function NavUser({
 						<SidebarMenuButton
 							size="lg"
 							className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
-							<Avatar className="h-8 w-8 rounded-lg">
-								<AvatarImage
-									src={user.avatar}
-									alt={user.name}
-								/>
-								<AvatarFallback className="rounded-lg">CN</AvatarFallback>
-							</Avatar>
+							<div className="relative">
+								<Avatar className="h-8 w-8 rounded-lg">
+									<AvatarImage
+										src={user.avatar_url}
+										alt={user.name}
+										onError={(e) => {
+											console.error("Error loading avatar image:", e);
+											console.log("Failed avatar URL:", user.avatar_url);
+										}}
+									/>
+									<AvatarFallback className="rounded-lg">
+										{user.name.charAt(0)}
+									</AvatarFallback>
+								</Avatar>
+								<span
+									className={`absolute top-0 right-0 translate-x-1 -translate-y-1 block h-3 w-3 rounded-full border-2 border-background ${
+										isOnline ? "bg-green-500" : "bg-gray-400"
+									}`}></span>
+							</div>
 							<div className="grid flex-1 text-left text-sm leading-tight">
 								<span className="truncate font-semibold">{user.name}</span>
 								<span className="truncate text-xs">{user.email}</span>
@@ -76,13 +93,31 @@ export function NavUser({
 						sideOffset={4}>
 						<DropdownMenuLabel className="p-0 font-normal">
 							<div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-								<Avatar className="h-8 w-8 rounded-lg">
-									<AvatarImage
-										src={user.avatar}
-										alt={user.name}
-									/>
-									<AvatarFallback className="rounded-lg">CN</AvatarFallback>
-								</Avatar>
+								<div className="relative">
+									<Avatar className="h-8 w-8 rounded-lg">
+										<AvatarImage
+											src={user.avatar_url}
+											alt={user.name}
+											onError={(e) => {
+												console.error(
+													"Error loading dropdown avatar image:",
+													e
+												);
+												console.log(
+													"Failed dropdown avatar URL:",
+													user.avatar_url
+												);
+											}}
+										/>
+										<AvatarFallback className="rounded-lg">
+											{user.name.charAt(0)}
+										</AvatarFallback>
+									</Avatar>
+									<span
+										className={`absolute top-0 right-0 translate-x-1 -translate-y-1 block h-3 w-3 rounded-full border-2 border-background ${
+											isOnline ? "bg-green-500" : "bg-gray-400"
+										}`}></span>
+								</div>
 								<div className="grid flex-1 text-left text-sm leading-tight">
 									<span className="truncate font-semibold">{user.name}</span>
 									<span className="truncate text-xs">{user.email}</span>

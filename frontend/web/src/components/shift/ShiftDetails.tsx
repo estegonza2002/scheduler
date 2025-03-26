@@ -34,6 +34,7 @@ import { Button } from "../ui/button";
 import { Switch } from "../ui/switch";
 import { Label } from "../ui/label";
 import { useNotifications } from "../../lib/notification-context";
+import { ShiftReport } from "./ShiftReport";
 
 // Define direct API functions but use mock API implementation instead of fetch
 const getShift = async (shiftId: string): Promise<Shift | null> => {
@@ -103,6 +104,9 @@ const sampleAssignedEmployees: AssignedEmployee[] = [
 		assignmentId: "sample-assignment-1",
 		assignmentRole: "Shift Lead",
 		assignmentNotes: "Responsible for opening procedures",
+		status: "active",
+		isOnline: false,
+		lastActive: new Date().toISOString(),
 	},
 	{
 		id: "sample-emp-2",
@@ -117,6 +121,9 @@ const sampleAssignedEmployees: AssignedEmployee[] = [
 		assignmentId: "sample-assignment-2",
 		assignmentRole: "Server",
 		assignmentNotes: "Assigned to sections 1-3",
+		status: "active",
+		isOnline: false,
+		lastActive: new Date().toISOString(),
 	},
 	{
 		id: "sample-emp-3",
@@ -131,6 +138,9 @@ const sampleAssignedEmployees: AssignedEmployee[] = [
 		assignmentId: "sample-assignment-3",
 		assignmentRole: "Bartender",
 		assignmentNotes: "Specialized in craft cocktails",
+		status: "active",
+		isOnline: false,
+		lastActive: new Date().toISOString(),
 	},
 ];
 
@@ -525,6 +535,11 @@ export function ShiftDetails() {
 		employeeId: string,
 		assignmentId: string
 	) => {
+		if (hasShiftEnded()) {
+			toast.error("Cannot modify a completed shift");
+			return;
+		}
+
 		if (!shift || useSampleData) return;
 
 		try {
@@ -618,12 +633,61 @@ export function ShiftDetails() {
 		);
 	}, [assignedEmployees, shift]);
 
-	// Toggle task completion
+	// Check if shift has ended
+	const hasShiftEnded = useCallback(() => {
+		if (!shift) return false;
+		const endTime = new Date(shift.endTime);
+		const now = new Date();
+		return endTime < now;
+	}, [shift]);
+
+	// Handle assign employees dialog open
+	const handleAssignEmployeeDialogOpen = () => {
+		if (hasShiftEnded()) {
+			toast.error("Cannot modify a completed shift");
+			return;
+		}
+		setAssignEmployeeDialogOpen(true);
+	};
+
+	// Handle notes dialog open
+	const handleNotesDialogOpen = () => {
+		if (hasShiftEnded()) {
+			toast.error("Cannot modify a completed shift");
+			return;
+		}
+		setNotesDialogOpen(true);
+	};
+
+	// Handle checkin tasks dialog open
+	const handleCheckInTasksDialogOpen = () => {
+		if (hasShiftEnded()) {
+			toast.error("Cannot modify a completed shift");
+			return;
+		}
+		setCheckInTasksDialogOpen(true);
+	};
+
+	// Handle checkout tasks dialog open
+	const handleCheckOutTasksDialogOpen = () => {
+		if (hasShiftEnded()) {
+			toast.error("Cannot modify a completed shift");
+			return;
+		}
+		setCheckOutTasksDialogOpen(true);
+	};
+
+	// Handle toggle task completion
 	const handleToggleTaskCompletion = (
 		taskType: "checkIn" | "checkOut",
 		taskId: string
 	) => {
 		if (!shift) return;
+
+		if (hasShiftEnded()) {
+			toast.error("Cannot modify a completed shift");
+			return;
+		}
 
 		if (taskType === "checkIn") {
 			const updatedTasks = localCheckInTasks.map((task) =>
@@ -646,12 +710,17 @@ export function ShiftDetails() {
 		}
 	};
 
-	// Handle task removal
+	// Handle remove task
 	const handleRemoveTask = (
 		taskType: "checkIn" | "checkOut",
 		taskId: string
 	) => {
 		if (!shift) return;
+
+		if (hasShiftEnded()) {
+			toast.error("Cannot modify a completed shift");
+			return;
+		}
 
 		if (taskType === "checkIn") {
 			const updatedTasks = localCheckInTasks.filter(
@@ -720,6 +789,16 @@ export function ShiftDetails() {
 				</div>
 			) : (
 				<>
+					{/* If shift has ended, show the report at the top */}
+					{hasShiftEnded() && (
+						<div className="my-6">
+							<ShiftReport
+								shift={shift}
+								assignedEmployees={assignedEmployees}
+							/>
+						</div>
+					)}
+
 					<ShiftInformation
 						shift={shift}
 						location={location}
@@ -732,27 +811,34 @@ export function ShiftDetails() {
 						availableEmployees={availableEmployees}
 						shift={shift}
 						onRemoveEmployeeClick={handleRemoveEmployee}
-						onAssignClick={() => setAssignEmployeeDialogOpen(true)}
+						onAssignClick={handleAssignEmployeeDialogOpen}
+						isCompleted={hasShiftEnded()}
 					/>
 
 					<ShiftNotes
 						notes={localNotes}
-						onEditClick={() => setNotesDialogOpen(true)}
+						onEditClick={handleNotesDialogOpen}
 						onClearClick={() => {
+							if (hasShiftEnded()) {
+								toast.error("Cannot modify a completed shift");
+								return;
+							}
 							setLocalNotes("");
 							if (!useSampleData) {
 								saveShift({ notes: "" });
 							}
 						}}
+						isCompleted={hasShiftEnded()}
 					/>
 
 					<ShiftTasks
 						checkInTasks={localCheckInTasks}
 						checkOutTasks={localCheckOutTasks}
-						onCheckInTasksClick={() => setCheckInTasksDialogOpen(true)}
-						onCheckOutTasksClick={() => setCheckOutTasksDialogOpen(true)}
+						onCheckInTasksClick={handleCheckInTasksDialogOpen}
+						onCheckOutTasksClick={handleCheckOutTasksDialogOpen}
 						onToggleTaskCompletion={handleToggleTaskCompletion}
 						onRemoveTask={handleRemoveTask}
+						isCompleted={hasShiftEnded()}
 					/>
 				</>
 			)}

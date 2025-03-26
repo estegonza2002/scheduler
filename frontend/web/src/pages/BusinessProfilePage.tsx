@@ -90,8 +90,8 @@ export default function BusinessProfilePage() {
 	const form = useForm<BusinessProfileFormValues>({
 		resolver: zodResolver(businessProfileSchema),
 		defaultValues: {
-			name: organization?.name || "",
-			description: organization?.description || "",
+			name: "",
+			description: "",
 			contactEmail: "",
 			contactPhone: "",
 			address: "",
@@ -102,19 +102,21 @@ export default function BusinessProfilePage() {
 			website: "",
 			businessHours: "",
 		},
-		values: {
-			name: organization?.name || "",
-			description: organization?.description || "",
-			contactEmail: "",
-			contactPhone: "",
-			address: "",
-			city: "",
-			state: "",
-			zipCode: "",
-			country: "",
-			website: "",
-			businessHours: "",
-		},
+		values: organization
+			? {
+					name: organization.name || "",
+					description: organization.description || "",
+					contactEmail: organization.contactEmail || "",
+					contactPhone: organization.contactPhone || "",
+					address: organization.address || "",
+					city: organization.city || "",
+					state: organization.state || "",
+					zipCode: organization.zipCode || "",
+					country: organization.country || "",
+					website: organization.website || "",
+					businessHours: organization.businessHours || "",
+			  }
+			: undefined,
 	});
 
 	// Update form values when organization data is loaded
@@ -123,15 +125,15 @@ export default function BusinessProfilePage() {
 			form.reset({
 				name: organization.name || "",
 				description: organization.description || "",
-				contactEmail: "",
-				contactPhone: "",
-				address: "",
-				city: "",
-				state: "",
-				zipCode: "",
-				country: "",
-				website: "",
-				businessHours: "",
+				contactEmail: organization.contactEmail || "",
+				contactPhone: organization.contactPhone || "",
+				address: organization.address || "",
+				city: organization.city || "",
+				state: organization.state || "",
+				zipCode: organization.zipCode || "",
+				country: organization.country || "",
+				website: organization.website || "",
+				businessHours: organization.businessHours || "",
 			});
 		}
 	}, [organization, form]);
@@ -144,14 +146,28 @@ export default function BusinessProfilePage() {
 				return;
 			}
 
-			// In a real implementation, this would update the organization in the database
-			const updatedOrg = await OrganizationsAPI.create({
+			// Update the organization in the database
+			const updatedOrg = await OrganizationsAPI.update({
+				id: organization.id,
 				name: values.name,
 				description: values.description,
+				contactEmail: values.contactEmail,
+				contactPhone: values.contactPhone,
+				address: values.address,
+				city: values.city,
+				state: values.state,
+				zipCode: values.zipCode,
+				country: values.country,
+				website: values.website,
+				businessHours: values.businessHours,
 			});
 
-			setOrganization(updatedOrg);
-			toast.success("Business profile updated successfully");
+			if (updatedOrg) {
+				setOrganization(updatedOrg);
+				toast.success("Business profile updated successfully");
+			} else {
+				toast.error("Failed to update business profile");
+			}
 		} catch (error: unknown) {
 			const errorMessage =
 				error instanceof Error ? error.message : "Unknown error";
@@ -207,7 +223,9 @@ export default function BusinessProfilePage() {
 					className="w-full">
 					<TabsList className="mb-6 w-full sm:w-auto">
 						<TabsTrigger value="profile">Business Profile</TabsTrigger>
+						{/* Branding tab hidden temporarily 
 						<TabsTrigger value="branding">Branding</TabsTrigger>
+						*/}
 						<TabsTrigger value="billing">Billing</TabsTrigger>
 					</TabsList>
 
@@ -374,6 +392,7 @@ export default function BusinessProfilePage() {
 						</form>
 					</TabsContent>
 
+					{/* Branding tab content hidden temporarily 
 					<TabsContent value="branding">
 						<FormSection
 							title="Business Logo"
@@ -406,6 +425,7 @@ export default function BusinessProfilePage() {
 							Advanced branding options will be available in a future update.
 						</p>
 					</TabsContent>
+					*/}
 
 					<TabsContent value="billing">
 						<Tabs

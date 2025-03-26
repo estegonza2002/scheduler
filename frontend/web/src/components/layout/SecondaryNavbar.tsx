@@ -409,6 +409,13 @@ export function ProfileSidebar({
 				</Button>
 
 				<Button
+					variant={activeTab === "shifts" ? "secondary" : "ghost"}
+					onClick={() => onTabChange("shifts")}
+					className="w-full justify-start text-left font-normal">
+					My Shifts
+				</Button>
+
+				<Button
 					variant={activeTab === "notifications" ? "secondary" : "ghost"}
 					onClick={() => onTabChange("notifications")}
 					className="w-full justify-start text-left font-normal">
@@ -430,12 +437,14 @@ export function ProfileSidebar({
 							Business Profile
 						</Button>
 
+						{/* Branding button hidden temporarily
 						<Button
 							variant={activeTab === "branding" ? "secondary" : "ghost"}
 							onClick={() => onTabChange("branding")}
 							className="w-full justify-start text-left font-normal">
 							Branding
 						</Button>
+						*/}
 
 						{/* Billing options */}
 						<div className="mt-8 mb-3">

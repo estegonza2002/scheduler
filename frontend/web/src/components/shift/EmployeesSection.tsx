@@ -13,6 +13,7 @@ interface EmployeesSectionProps {
 	};
 	onRemoveEmployeeClick: (employeeId: string, assignmentId: string) => void;
 	onAssignClick: () => void;
+	isCompleted?: boolean;
 }
 
 export function EmployeesSection({
@@ -21,6 +22,7 @@ export function EmployeesSection({
 	shift,
 	onRemoveEmployeeClick,
 	onAssignClick,
+	isCompleted = false,
 }: EmployeesSectionProps) {
 	return (
 		<div className="mb-6">
@@ -32,7 +34,7 @@ export function EmployeesSection({
 				<Button
 					variant="default"
 					size="sm"
-					disabled={availableEmployees.length === 0}
+					disabled={availableEmployees.length === 0 || isCompleted}
 					onClick={onAssignClick}>
 					<Plus className="h-4 w-4 mr-1" /> Assign
 				</Button>
@@ -56,7 +58,7 @@ export function EmployeesSection({
 					<p className="text-sm text-muted-foreground mb-4">
 						Assign employees to this shift to manage staffing.
 					</p>
-					<Button disabled={availableEmployees.length === 0}>
+					<Button disabled={availableEmployees.length === 0 || isCompleted}>
 						<Plus className="h-4 w-4 mr-2" /> Assign Employee
 					</Button>
 				</div>
@@ -160,7 +162,8 @@ export function EmployeesSection({
 													employee.id,
 													employee.assignmentId
 												)
-											}>
+											}
+											disabled={isCompleted}>
 											<Trash className="h-4 w-4" />
 										</Button>
 									</td>
