@@ -27,6 +27,7 @@ import {
 	TableRow,
 } from "../components/ui/table";
 import { format, parseISO } from "date-fns";
+import { PageHeader } from "../components/ui/page-header";
 
 export default function LocationShiftPage() {
 	const { locationId } = useParams<{ locationId: string }>();
@@ -179,43 +180,38 @@ export default function LocationShiftPage() {
 		);
 	}
 
-	return (
-		<ContentContainer>
-			<LocationSubNav
-				locationId={locationId || ""}
-				locationName={location.name}
-			/>
+	// Header actions for the page header
+	const headerActions = (
+		<ShiftCreationSheet
+			scheduleId={locationId || ""}
+			organizationId="org-1"
+			initialLocationId={locationId || ""}
+			onShiftCreated={() => {
+				// Refresh shifts after creation
+				window.location.reload();
+			}}
+		/>
+	);
 
-			<div className="grid gap-6 mt-6 px-8">
-				{/* Section to display shift schedule */}
-				<ContentSection
-					title="Shift Schedule"
-					description="View and manage shifts for this location"
-					headerActions={
-						<ShiftCreationSheet
-							scheduleId={locationId || ""}
-							organizationId="org-1"
-							initialLocationId={locationId || ""}
-							onShiftCreated={() => {
-								// Refresh shifts after creation
-								ShiftsAPI.getAll().then((allShifts) => {
-									const locationShifts = allShifts.filter(
-										(shift) => shift.location_id === locationId
-									);
-									setShifts(locationShifts);
-									toast.success("Shift created successfully");
-								});
-							}}
-							trigger={
-								<Button size="sm">
-									<Calendar className="h-4 w-4 mr-2" /> Create Shift
-								</Button>
-							}
-						/>
-					}>
-					{/* Upcoming Shifts */}
-					<div className="space-y-6">
-						<h3 className="text-lg font-medium">Upcoming Shifts</h3>
+	return (
+		<>
+			<PageHeader
+				title={`${location.name} - Shift Schedule`}
+				description="View and manage shifts for this location"
+				actions={headerActions}
+				showBackButton={true}
+			/>
+			<ContentContainer>
+				<LocationSubNav
+					locationId={locationId || ""}
+					locationName={location.name}
+				/>
+
+				<div className="grid gap-6 mt-6 px-8">
+					{/* Section to display shift schedule */}
+					<ContentSection
+						title="Upcoming Shifts"
+						description={`${upcomingShifts.length} shifts scheduled in the future`}>
 						{upcomingShifts.length > 0 ? (
 							<div className="border rounded-md">
 								<Table>
@@ -307,9 +303,22 @@ export default function LocationShiftPage() {
 								/>
 							</div>
 						)}
+					</ContentSection>
 
-						{/* Past Shifts */}
-						<h3 className="text-lg font-medium mt-6">Shift History</h3>
+					{/* Past Shifts */}
+					<ContentSection
+						title="Shift History"
+						description="View past shifts"
+						headerActions={
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={() =>
+									navigate(`/locations/${locationId}/shifts/history`)
+								}>
+								View All Shift History
+							</Button>
+						}>
 						{pastShifts.length > 0 ? (
 							<div className="border rounded-md">
 								<Table>
@@ -391,9 +400,9 @@ export default function LocationShiftPage() {
 								</p>
 							</div>
 						)}
-					</div>
-				</ContentSection>
-			</div>
-		</ContentContainer>
+					</ContentSection>
+				</div>
+			</ContentContainer>
+		</>
 	);
 }

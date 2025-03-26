@@ -69,6 +69,7 @@ import {
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { toast } from "sonner";
+import { PageHeader } from "../components/ui/page-header";
 
 // Types for report data
 interface EarningsReportItem {
@@ -89,6 +90,70 @@ interface DateRange {
 	from?: Date;
 	to?: Date;
 }
+
+// Define a component for the date range picker that will be used in the page header
+const DateRangePickerComponent = () => {
+	return (
+		<div className="flex space-x-2">
+			<Popover>
+				<PopoverTrigger asChild>
+					<Button
+						variant="outline"
+						className={cn(
+							"justify-start text-left font-normal",
+							!dateRange.from && "text-muted-foreground"
+						)}>
+						<CalendarIcon className="mr-2 h-4 w-4" />
+						{dateRange.from ? (
+							dateRange.to ? (
+								<>
+									{format(dateRange.from, "LLL dd, y")} -{" "}
+									{format(dateRange.to, "LLL dd, y")}
+								</>
+							) : (
+								format(dateRange.from, "LLL dd, y")
+							)
+						) : (
+							<span>Select date range</span>
+						)}
+					</Button>
+				</PopoverTrigger>
+				<PopoverContent
+					className="w-auto p-0"
+					align="start">
+					<Calendar
+						initialFocus
+						mode="range"
+						defaultMonth={dateRange.from}
+						selected={dateRange}
+						onSelect={setDateRange}
+						numberOfMonths={2}
+					/>
+					<div className="flex items-center justify-between p-3 border-t">
+						<TabsList>
+							<TabsTrigger
+								value="current-month"
+								onClick={() => handleDatePresetChange("current-month")}>
+								This Month
+							</TabsTrigger>
+							<TabsTrigger
+								value="previous-month"
+								onClick={() => handleDatePresetChange("previous-month")}>
+								Last Month
+							</TabsTrigger>
+							<TabsTrigger
+								value="year-to-date"
+								onClick={() => handleDatePresetChange("year-to-date")}>
+								Year to Date
+							</TabsTrigger>
+						</TabsList>
+					</div>
+				</PopoverContent>
+			</Popover>
+			<ExportDropdown onExport={handleExportReport} />
+		</div>
+	);
+};
 
 export default function EmployeeEarningsPage() {
 	const { employeeId } = useParams();
@@ -370,8 +435,8 @@ export default function EmployeeEarningsPage() {
 			<ContentContainer>
 				<LoadingState
 					type="skeleton"
-					skeletonCount={4}
-					skeletonHeight={60}
+					skeletonCount={5}
+					skeletonHeight={80}
 					message="Loading earnings data..."
 				/>
 			</ContentContainer>
@@ -380,337 +445,351 @@ export default function EmployeeEarningsPage() {
 
 	if (!employee) {
 		return (
-			<ContentContainer>
-				<ContentSection
-					title="Employee not found"
-					description="The requested employee could not be found.">
-					<p>
-						The employee you're looking for may have been removed or doesn't
-						exist.
+			<ContentContainer className="max-w-4xl mx-auto">
+				<div className="text-center py-12">
+					<h2 className="text-2xl font-semibold mb-2">Employee Not Found</h2>
+					<p className="text-muted-foreground mb-6">
+						The employee you're looking for could not be found.
 					</p>
-				</ContentSection>
+					<Button
+						variant="outline"
+						onClick={() => navigate("/employees")}>
+						<ChevronLeft className="mr-2 h-4 w-4" /> Back to Employees
+					</Button>
+				</div>
 			</ContentContainer>
 		);
 	}
 
+	// Header actions
+	const headerActions = <DateRangePickerComponent />;
+
 	return (
-		<ContentContainer>
-			{/* Page Header */}
-			<ContentSection
-				title={`Earnings Report: ${employee.name}`}
-				description="Detailed financial earnings report by shift and date"
-				headerActions={
-					<div className="flex gap-2">
-						<Button
-							variant="outline"
-							size="sm"
-							onClick={() => handleExportReport("csv")}>
-							<FileText className="h-4 w-4 mr-2" />
-							Export CSV
-						</Button>
-						<Button
-							variant="outline"
-							size="sm"
-							onClick={() => handleExportReport("excel")}>
-							<Download className="h-4 w-4 mr-2" />
-							Export Excel
-						</Button>
+		<>
+			<PageHeader
+				title={`${employee.firstName} ${employee.lastName}'s Earnings`}
+				description="View detailed earnings reports and payroll information"
+				actions={headerActions}
+				showBackButton={true}
+			/>
+			<ContentContainer className="max-w-6xl mx-auto">
+				{/* Page Header */}
+				<ContentSection
+					title={`Earnings Report: ${employee.name}`}
+					description="Detailed financial earnings report by shift and date"
+					headerActions={
+						<div className="flex gap-2">
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => handleExportReport("csv")}>
+								<FileText className="h-4 w-4 mr-2" />
+								Export CSV
+							</Button>
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => handleExportReport("excel")}>
+								<Download className="h-4 w-4 mr-2" />
+								Export Excel
+							</Button>
+						</div>
+					}>
+					{/* Date Range Selector */}
+					<div className="mb-6">
+						<Tabs
+							value={activeTab}
+							onValueChange={handleDatePresetChange}>
+							<TabsList className="mb-4">
+								<TabsTrigger value="current-month">Current Month</TabsTrigger>
+								<TabsTrigger value="previous-month">Previous Month</TabsTrigger>
+								<TabsTrigger value="year-to-date">Year to Date</TabsTrigger>
+								<TabsTrigger value="last-90-days">Last 90 Days</TabsTrigger>
+								<TabsTrigger value="custom-range">Custom Range</TabsTrigger>
+							</TabsList>
+
+							<TabsContent value="custom-range">
+								<div className="flex flex-col md:flex-row gap-4 mb-6">
+									<div className="flex-1">
+										<Label htmlFor="from-date">From Date</Label>
+										<Popover>
+											<PopoverTrigger asChild>
+												<Button
+													id="from-date"
+													variant="outline"
+													className={cn(
+														"w-full justify-start text-left font-normal mt-1",
+														!dateRange.from && "text-muted-foreground"
+													)}>
+													<CalendarIcon className="mr-2 h-4 w-4" />
+													{dateRange.from
+														? format(dateRange.from, "PPP")
+														: "Select start date"}
+												</Button>
+											</PopoverTrigger>
+											<PopoverContent className="w-auto p-0">
+												<Calendar
+													mode="single"
+													selected={dateRange.from}
+													onSelect={(date) =>
+														setDateRange((prev) => ({ ...prev, from: date }))
+													}
+													initialFocus
+												/>
+											</PopoverContent>
+										</Popover>
+									</div>
+
+									<div className="flex-1">
+										<Label htmlFor="to-date">To Date</Label>
+										<Popover>
+											<PopoverTrigger asChild>
+												<Button
+													id="to-date"
+													variant="outline"
+													className={cn(
+														"w-full justify-start text-left font-normal mt-1",
+														!dateRange.to && "text-muted-foreground"
+													)}>
+													<CalendarIcon className="mr-2 h-4 w-4" />
+													{dateRange.to
+														? format(dateRange.to, "PPP")
+														: "Select end date"}
+												</Button>
+											</PopoverTrigger>
+											<PopoverContent className="w-auto p-0">
+												<Calendar
+													mode="single"
+													selected={dateRange.to}
+													onSelect={(date) =>
+														setDateRange((prev) => ({ ...prev, to: date }))
+													}
+													initialFocus
+												/>
+											</PopoverContent>
+										</Popover>
+									</div>
+								</div>
+							</TabsContent>
+						</Tabs>
 					</div>
-				}>
-				{/* Date Range Selector */}
-				<div className="mb-6">
-					<Tabs
-						value={activeTab}
-						onValueChange={handleDatePresetChange}>
-						<TabsList className="mb-4">
-							<TabsTrigger value="current-month">Current Month</TabsTrigger>
-							<TabsTrigger value="previous-month">Previous Month</TabsTrigger>
-							<TabsTrigger value="year-to-date">Year to Date</TabsTrigger>
-							<TabsTrigger value="last-90-days">Last 90 Days</TabsTrigger>
-							<TabsTrigger value="custom-range">Custom Range</TabsTrigger>
-						</TabsList>
 
-						<TabsContent value="custom-range">
-							<div className="flex flex-col md:flex-row gap-4 mb-6">
-								<div className="flex-1">
-									<Label htmlFor="from-date">From Date</Label>
-									<Popover>
-										<PopoverTrigger asChild>
-											<Button
-												id="from-date"
-												variant="outline"
-												className={cn(
-													"w-full justify-start text-left font-normal mt-1",
-													!dateRange.from && "text-muted-foreground"
-												)}>
-												<CalendarIcon className="mr-2 h-4 w-4" />
-												{dateRange.from
-													? format(dateRange.from, "PPP")
-													: "Select start date"}
-											</Button>
-										</PopoverTrigger>
-										<PopoverContent className="w-auto p-0">
-											<Calendar
-												mode="single"
-												selected={dateRange.from}
-												onSelect={(date) =>
-													setDateRange((prev) => ({ ...prev, from: date }))
-												}
-												initialFocus
-											/>
-										</PopoverContent>
-									</Popover>
+					{/* Summary Cards */}
+					<div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+						<Card>
+							<CardHeader className="pb-2">
+								<CardTitle className="text-base font-medium">
+									Total Scheduled Hours
+								</CardTitle>
+							</CardHeader>
+							<CardContent>
+								<div className="flex items-center">
+									<Clock className="h-5 w-5 mr-2 text-muted-foreground" />
+									<span className="text-2xl font-bold">
+										{totalScheduledHours.toFixed(1)}
+									</span>
 								</div>
-
-								<div className="flex-1">
-									<Label htmlFor="to-date">To Date</Label>
-									<Popover>
-										<PopoverTrigger asChild>
-											<Button
-												id="to-date"
-												variant="outline"
-												className={cn(
-													"w-full justify-start text-left font-normal mt-1",
-													!dateRange.to && "text-muted-foreground"
-												)}>
-												<CalendarIcon className="mr-2 h-4 w-4" />
-												{dateRange.to
-													? format(dateRange.to, "PPP")
-													: "Select end date"}
-											</Button>
-										</PopoverTrigger>
-										<PopoverContent className="w-auto p-0">
-											<Calendar
-												mode="single"
-												selected={dateRange.to}
-												onSelect={(date) =>
-													setDateRange((prev) => ({ ...prev, to: date }))
-												}
-												initialFocus
-											/>
-										</PopoverContent>
-									</Popover>
-								</div>
-							</div>
-						</TabsContent>
-					</Tabs>
-				</div>
-
-				{/* Summary Cards */}
-				<div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-					<Card>
-						<CardHeader className="pb-2">
-							<CardTitle className="text-base font-medium">
-								Total Scheduled Hours
-							</CardTitle>
-						</CardHeader>
-						<CardContent>
-							<div className="flex items-center">
-								<Clock className="h-5 w-5 mr-2 text-muted-foreground" />
-								<span className="text-2xl font-bold">
-									{totalScheduledHours.toFixed(1)}
-								</span>
-							</div>
-							<p className="text-xs text-muted-foreground mt-1">
-								{dateRange.from &&
-									dateRange.to &&
-									`${format(dateRange.from, "MMM d")} - ${format(
-										dateRange.to,
-										"MMM d, yyyy"
-									)}`}
-							</p>
-						</CardContent>
-					</Card>
-
-					<Card>
-						<CardHeader className="pb-2">
-							<CardTitle className="text-base font-medium">
-								Total Actual Hours
-							</CardTitle>
-						</CardHeader>
-						<CardContent>
-							<div className="flex items-center">
-								<Clock className="h-5 w-5 mr-2 text-muted-foreground" />
-								<span className="text-2xl font-bold">
-									{totalActualHours.toFixed(1)}
-								</span>
-							</div>
-							<p className="text-xs text-muted-foreground mt-1">
-								{dateRange.from &&
-									dateRange.to &&
-									`${format(dateRange.from, "MMM d")} - ${format(
-										dateRange.to,
-										"MMM d, yyyy"
-									)}`}
-							</p>
-						</CardContent>
-					</Card>
-
-					<Card>
-						<CardHeader className="pb-2">
-							<CardTitle className="text-base font-medium">
-								Total Earnings
-							</CardTitle>
-						</CardHeader>
-						<CardContent>
-							<div className="flex items-center">
-								<DollarSign className="h-5 w-5 mr-2 text-muted-foreground" />
-								<span className="text-2xl font-bold">
-									${totalActualEarnings.toFixed(2)}
-								</span>
-							</div>
-							<p className="text-xs text-muted-foreground mt-1">
-								{reportData.length} shifts
-							</p>
-						</CardContent>
-					</Card>
-				</div>
-
-				{/* Detailed Earnings Table */}
-				<div className="rounded-md border">
-					<Table>
-						<TableHeader>
-							<TableRow>
-								<TableHead>Date</TableHead>
-								<TableHead>Shift</TableHead>
-								<TableHead>Time</TableHead>
-								<TableHead>Scheduled Hours</TableHead>
-								<TableHead>Actual Hours</TableHead>
-								<TableHead>Rate</TableHead>
-								<TableHead>Scheduled Earnings</TableHead>
-								<TableHead>Actual Earnings</TableHead>
-								<TableHead>Location</TableHead>
-								<TableHead>Status</TableHead>
-							</TableRow>
-						</TableHeader>
-						<TableBody>
-							{reportData.length > 0 ? (
-								reportData.map((item) => (
-									<TableRow
-										key={item.shiftId}
-										className="cursor-pointer hover:bg-muted/50"
-										onClick={() => navigate(`/shifts/${item.shiftId}`)}>
-										<TableCell>
-											{format(parseISO(item.startTime), "MMM d, yyyy")}
-										</TableCell>
-										<TableCell>{item.shiftId}</TableCell>
-										<TableCell>
-											{format(parseISO(item.startTime), "h:mm a")} -{" "}
-											{format(parseISO(item.endTime), "h:mm a")}
-										</TableCell>
-										<TableCell>{item.hours.toFixed(2)}</TableCell>
-										<TableCell>
-											{item.actualHours ? (
-												<div className="flex items-center">
-													{item.actualHours.toFixed(2)}
-													{renderVariance(item.hours, item.actualHours)}
-												</div>
-											) : (
-												"N/A"
-											)}
-										</TableCell>
-										<TableCell>${item.hourlyRate.toFixed(2)}</TableCell>
-										<TableCell className="font-medium">
-											${item.earnings.toFixed(2)}
-										</TableCell>
-										<TableCell className="font-medium">
-											{item.actualEarnings ? (
-												<div className="flex items-center">
-													${item.actualEarnings.toFixed(2)}
-													{renderVariance(item.earnings, item.actualEarnings)}
-												</div>
-											) : (
-												"N/A"
-											)}
-										</TableCell>
-										<TableCell>{item.locationName}</TableCell>
-										<TableCell>
-											<div
-												className={cn(
-													"inline-flex items-center rounded-full px-2 py-1 text-xs font-medium",
-													item.status === "completed"
-														? "bg-green-100 text-green-800"
-														: item.status === "in_progress"
-														? "bg-blue-100 text-blue-800"
-														: "bg-gray-100 text-gray-800"
-												)}>
-												{item.status.charAt(0).toUpperCase() +
-													item.status.slice(1).replace("_", " ")}
-											</div>
-										</TableCell>
-									</TableRow>
-								))
-							) : (
-								<TableRow>
-									<TableCell
-										colSpan={8}
-										className="text-center py-4 text-muted-foreground">
-										No earnings data found for the selected period
-									</TableCell>
-								</TableRow>
-							)}
-						</TableBody>
-					</Table>
-				</div>
-
-				{/* Monthly Breakdown - Optional Enhancement */}
-				{reportData.length > 0 && (
-					<div className="mt-8">
-						<h3 className="text-lg font-medium mb-4 flex items-center">
-							<BarChart className="h-5 w-5 mr-2 text-muted-foreground" />
-							Earnings Breakdown
-						</h3>
+								<p className="text-xs text-muted-foreground mt-1">
+									{dateRange.from &&
+										dateRange.to &&
+										`${format(dateRange.from, "MMM d")} - ${format(
+											dateRange.to,
+											"MMM d, yyyy"
+										)}`}
+								</p>
+							</CardContent>
+						</Card>
 
 						<Card>
-							<CardContent className="p-4">
-								<p className="text-sm text-muted-foreground mb-4">
-									Summary of earnings for {employee.name} during the selected
-									period.
-								</p>
-
-								<div className="space-y-2">
-									<div className="flex justify-between items-center">
-										<span className="text-sm">Base Hourly Earnings</span>
-										<span className="font-medium">
-											${totalScheduledEarnings.toFixed(2)}
-										</span>
-									</div>
-									<Separator />
-									<div className="flex justify-between items-center">
-										<span className="text-sm">Total Scheduled Hours</span>
-										<span className="font-medium">
-											{totalScheduledHours.toFixed(2)} hours
-										</span>
-									</div>
-									<Separator />
-									<div className="flex justify-between items-center">
-										<span className="text-sm">Total Actual Hours</span>
-										<span className="font-medium">
-											{totalActualHours.toFixed(2)} hours
-										</span>
-									</div>
-									<Separator />
-									<div className="flex justify-between items-center">
-										<span className="text-sm">Total Shifts</span>
-										<span className="font-medium">
-											{reportData.length} shifts
-										</span>
-									</div>
-									<Separator />
-									<div className="flex justify-between items-center font-bold pt-2">
-										<span>Total Scheduled Earnings</span>
-										<span>${totalScheduledEarnings.toFixed(2)}</span>
-									</div>
-									<div className="flex justify-between items-center font-bold pt-2">
-										<span>Total Actual Earnings</span>
-										<span>${totalActualEarnings.toFixed(2)}</span>
-									</div>
+							<CardHeader className="pb-2">
+								<CardTitle className="text-base font-medium">
+									Total Actual Hours
+								</CardTitle>
+							</CardHeader>
+							<CardContent>
+								<div className="flex items-center">
+									<Clock className="h-5 w-5 mr-2 text-muted-foreground" />
+									<span className="text-2xl font-bold">
+										{totalActualHours.toFixed(1)}
+									</span>
 								</div>
+								<p className="text-xs text-muted-foreground mt-1">
+									{dateRange.from &&
+										dateRange.to &&
+										`${format(dateRange.from, "MMM d")} - ${format(
+											dateRange.to,
+											"MMM d, yyyy"
+										)}`}
+								</p>
+							</CardContent>
+						</Card>
+
+						<Card>
+							<CardHeader className="pb-2">
+								<CardTitle className="text-base font-medium">
+									Total Earnings
+								</CardTitle>
+							</CardHeader>
+							<CardContent>
+								<div className="flex items-center">
+									<DollarSign className="h-5 w-5 mr-2 text-muted-foreground" />
+									<span className="text-2xl font-bold">
+										${totalActualEarnings.toFixed(2)}
+									</span>
+								</div>
+								<p className="text-xs text-muted-foreground mt-1">
+									{reportData.length} shifts
+								</p>
 							</CardContent>
 						</Card>
 					</div>
-				)}
-			</ContentSection>
-		</ContentContainer>
+
+					{/* Detailed Earnings Table */}
+					<div className="rounded-md border">
+						<Table>
+							<TableHeader>
+								<TableRow>
+									<TableHead>Date</TableHead>
+									<TableHead>Shift</TableHead>
+									<TableHead>Time</TableHead>
+									<TableHead>Scheduled Hours</TableHead>
+									<TableHead>Actual Hours</TableHead>
+									<TableHead>Rate</TableHead>
+									<TableHead>Scheduled Earnings</TableHead>
+									<TableHead>Actual Earnings</TableHead>
+									<TableHead>Location</TableHead>
+									<TableHead>Status</TableHead>
+								</TableRow>
+							</TableHeader>
+							<TableBody>
+								{reportData.length > 0 ? (
+									reportData.map((item) => (
+										<TableRow
+											key={item.shiftId}
+											className="cursor-pointer hover:bg-muted/50"
+											onClick={() => navigate(`/shifts/${item.shiftId}`)}>
+											<TableCell>
+												{format(parseISO(item.startTime), "MMM d, yyyy")}
+											</TableCell>
+											<TableCell>{item.shiftId}</TableCell>
+											<TableCell>
+												{format(parseISO(item.startTime), "h:mm a")} -{" "}
+												{format(parseISO(item.endTime), "h:mm a")}
+											</TableCell>
+											<TableCell>{item.hours.toFixed(2)}</TableCell>
+											<TableCell>
+												{item.actualHours ? (
+													<div className="flex items-center">
+														{item.actualHours.toFixed(2)}
+														{renderVariance(item.hours, item.actualHours)}
+													</div>
+												) : (
+													"N/A"
+												)}
+											</TableCell>
+											<TableCell>${item.hourlyRate.toFixed(2)}</TableCell>
+											<TableCell className="font-medium">
+												${item.earnings.toFixed(2)}
+											</TableCell>
+											<TableCell className="font-medium">
+												{item.actualEarnings ? (
+													<div className="flex items-center">
+														${item.actualEarnings.toFixed(2)}
+														{renderVariance(item.earnings, item.actualEarnings)}
+													</div>
+												) : (
+													"N/A"
+												)}
+											</TableCell>
+											<TableCell>{item.locationName}</TableCell>
+											<TableCell>
+												<div
+													className={cn(
+														"inline-flex items-center rounded-full px-2 py-1 text-xs font-medium",
+														item.status === "completed"
+															? "bg-green-100 text-green-800"
+															: item.status === "in_progress"
+															? "bg-blue-100 text-blue-800"
+															: "bg-gray-100 text-gray-800"
+													)}>
+													{item.status.charAt(0).toUpperCase() +
+														item.status.slice(1).replace("_", " ")}
+												</div>
+											</TableCell>
+										</TableRow>
+									))
+								) : (
+									<TableRow>
+										<TableCell
+											colSpan={8}
+											className="text-center py-4 text-muted-foreground">
+											No earnings data found for the selected period
+										</TableCell>
+									</TableRow>
+								)}
+							</TableBody>
+						</Table>
+					</div>
+
+					{/* Monthly Breakdown - Optional Enhancement */}
+					{reportData.length > 0 && (
+						<div className="mt-8">
+							<h3 className="text-lg font-medium mb-4 flex items-center">
+								<BarChart className="h-5 w-5 mr-2 text-muted-foreground" />
+								Earnings Breakdown
+							</h3>
+
+							<Card>
+								<CardContent className="p-4">
+									<p className="text-sm text-muted-foreground mb-4">
+										Summary of earnings for {employee.name} during the selected
+										period.
+									</p>
+
+									<div className="space-y-2">
+										<div className="flex justify-between items-center">
+											<span className="text-sm">Base Hourly Earnings</span>
+											<span className="font-medium">
+												${totalScheduledEarnings.toFixed(2)}
+											</span>
+										</div>
+										<Separator />
+										<div className="flex justify-between items-center">
+											<span className="text-sm">Total Scheduled Hours</span>
+											<span className="font-medium">
+												{totalScheduledHours.toFixed(2)} hours
+											</span>
+										</div>
+										<Separator />
+										<div className="flex justify-between items-center">
+											<span className="text-sm">Total Actual Hours</span>
+											<span className="font-medium">
+												{totalActualHours.toFixed(2)} hours
+											</span>
+										</div>
+										<Separator />
+										<div className="flex justify-between items-center">
+											<span className="text-sm">Total Shifts</span>
+											<span className="font-medium">
+												{reportData.length} shifts
+											</span>
+										</div>
+										<Separator />
+										<div className="flex justify-between items-center font-bold pt-2">
+											<span>Total Scheduled Earnings</span>
+											<span>${totalScheduledEarnings.toFixed(2)}</span>
+										</div>
+										<div className="flex justify-between items-center font-bold pt-2">
+											<span>Total Actual Earnings</span>
+											<span>${totalActualEarnings.toFixed(2)}</span>
+										</div>
+									</div>
+								</CardContent>
+							</Card>
+						</div>
+					)}
+				</ContentSection>
+			</ContentContainer>
+		</>
 	);
 }

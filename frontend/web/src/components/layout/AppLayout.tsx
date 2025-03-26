@@ -62,80 +62,22 @@ import {
 } from "../ui/alert-dialog";
 import { getHeaderActions } from "../../pages/DailyShiftsPage";
 import { OnboardingModal } from "../onboarding/OnboardingModal";
+import { EmployeeSheet } from "../EmployeeSheet";
 
 // Layout content component that can access the sidebar context
 function LayoutContent({
 	hasSecondaryNavbar,
 	renderSecondaryNavbar,
-	renderHeaderActions,
-	getHeaderTitle,
-	pageHeader,
 }: {
 	hasSecondaryNavbar: boolean;
 	renderSecondaryNavbar: (
 		sidebarState: "expanded" | "collapsed"
 	) => React.ReactNode;
-	renderHeaderActions: () => React.ReactNode;
-	getHeaderTitle: () => string;
-	pageHeader: any;
 }) {
 	const { state } = useSidebar();
-	const navigate = useNavigate();
-	const location = useLocation();
-
-	// Determine if current page should show back button (not on main/top-level pages)
-	const isTopLevelPage = [
-		"/dashboard",
-		"/admin-dashboard",
-		"/daily-shifts",
-		"/schedule",
-		"/employees",
-		"/locations",
-		"/shifts",
-		"/profile",
-		"/business-profile",
-		"/billing",
-		"/branding",
-		"/notifications",
-		"/messages",
-	].includes(location.pathname);
-
-	const handleGoBack = () => {
-		navigate(-1);
-	};
 
 	return (
 		<SidebarInset>
-			<header className="sticky top-0 flex h-16 shrink-0 items-center border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 z-40">
-				<div className="flex flex-1 items-center">
-					<div className="flex items-center gap-2">
-						<SidebarTrigger className="-ml-1" />
-						{!isTopLevelPage && (
-							<Button
-								variant="ghost"
-								size="icon"
-								onClick={handleGoBack}
-								className="h-8 w-8"
-								title="Go back">
-								<ChevronLeft className="h-5 w-5" />
-							</Button>
-						)}
-					</div>
-					<div className="mx-4">
-						<h1 className="text-lg font-semibold">
-							{pageHeader.title || getHeaderTitle()}
-						</h1>
-						{pageHeader.description && (
-							<p className="text-xs text-muted-foreground">
-								{pageHeader.description}
-							</p>
-						)}
-					</div>
-				</div>
-				<div className="flex items-center justify-end gap-3">
-					{renderHeaderActions()}
-				</div>
-			</header>
 			{hasSecondaryNavbar && renderSecondaryNavbar(state)}
 			<main
 				className="flex-1 overflow-auto w-full transition-all duration-200"
@@ -230,134 +172,9 @@ export default function AppLayout() {
 		});
 	};
 
-	const renderActionButton = () => {
-		// If we have actions from the page header, use those first
-		if (pageHeader.actions) {
-			return pageHeader.actions;
-		}
-
-		// Otherwise, fall back to the default actions based on route
-		// We've removed the specific buttons as they're now in the content area
-		return null;
-	};
-
 	const handleLogout = () => {
 		signOut();
 		navigate("/");
-	};
-
-	// Combine all actions for the app header
-	const renderHeaderActions = () => {
-		// Avoid creating new React elements for actions on every render
-		// Instead, check if we already have actions from the page header
-		const actionButton = renderActionButton();
-
-		// Check if we're on the Shifts page
-		const isShiftsPage = location.pathname === "/shifts";
-
-		return (
-			<div className="flex items-center gap-2">
-				{actionButton}
-				{isMessagesPage && (
-					<Button
-						onClick={() =>
-							window.dispatchEvent(new CustomEvent("new-conversation-click"))
-						}
-						className="mr-2">
-						<Plus className="h-4 w-4 mr-2" />
-						New Conversation
-					</Button>
-				)}
-				{isShiftsPage && (
-					<ShiftCreationSheet
-						scheduleId="schedule-456"
-						organizationId="org-123"
-						trigger={
-							<Button
-								className="gap-2 font-medium"
-								size="default">
-								<Plus className="h-4 w-4" />
-								Create Shift
-							</Button>
-						}
-						onShiftCreated={() => {
-							// Handle refresh after shift creation
-							// In a real app, you would refetch shifts data
-						}}
-					/>
-				)}
-				{hasSecondarySidebar ? (
-					<AlertDialog
-						open={showLogoutDialog}
-						onOpenChange={setShowLogoutDialog}>
-						<AlertDialogTrigger asChild>
-							<Button
-								variant="ghost"
-								size="icon"
-								title="Log out">
-								<LogOut className="h-5 w-5" />
-							</Button>
-						</AlertDialogTrigger>
-						<AlertDialogContent>
-							<AlertDialogHeader>
-								<AlertDialogTitle>
-									Are you sure you want to log out?
-								</AlertDialogTitle>
-								<AlertDialogDescription>
-									You will need to sign in again to access your account.
-								</AlertDialogDescription>
-							</AlertDialogHeader>
-							<AlertDialogFooter>
-								<AlertDialogCancel>Cancel</AlertDialogCancel>
-								<AlertDialogAction onClick={handleLogout}>
-									Log out
-								</AlertDialogAction>
-							</AlertDialogFooter>
-						</AlertDialogContent>
-					</AlertDialog>
-				) : isDailyShiftsPage ? (
-					getHeaderActions()
-				) : null}
-			</div>
-		);
-	};
-
-	// Get the header title, first from context, then fall back to route-based
-	const getHeaderTitle = () => {
-		if (pageHeader.title) {
-			return pageHeader.title;
-		}
-
-		const path = location.pathname;
-		if (path === "/dashboard" || path === "/admin-dashboard")
-			return "Dashboard";
-		if (
-			path === "/schedule" ||
-			path === "/daily-shifts" ||
-			path.startsWith("/daily-shifts")
-		)
-			return "Schedule";
-		if (path === "/shifts" || path.startsWith("/shifts/")) return "Shifts";
-		if (path === "/employees") return "Employees";
-		if (
-			path.startsWith("/employee-detail/") ||
-			path.startsWith("/employee-earnings/")
-		)
-			return "Employee Details";
-		if (path === "/locations") return "Locations";
-		if (path.startsWith("/locations/")) {
-			if (path.includes("/finance")) {
-				return "Location Financial Report";
-			}
-			return "Location Details";
-		}
-		if (path === "/messages") return "Messages";
-		if (path === "/profile") return "Profile";
-		if (path === "/business-profile") return "Business Profile";
-		if (path === "/billing") return "Billing & Subscription";
-		if (path === "/branding") return "Branding";
-		if (path === "/notifications") return "Notifications";
-		return "Scheduler";
 	};
 
 	// Render the appropriate secondary navbar based on the current route
@@ -387,46 +204,6 @@ export default function AppLayout() {
 		return null;
 	};
 
-	// Determine the active sidebar item based on the path
-	const isPathActive = (basePath: string) => {
-		const pathname = window.location.pathname;
-		if (basePath === "/dashboard" && pathname === "/dashboard") return true;
-		if (basePath === "/admin-dashboard" && pathname === "/admin-dashboard")
-			return true;
-		if (
-			(basePath === "/schedule" || basePath === "/daily-shifts") &&
-			(pathname.startsWith("/daily-shifts") ||
-				pathname.startsWith("/schedule") ||
-				pathname === "/today")
-		)
-			return true;
-		if (basePath === "/shifts" && pathname.startsWith("/shifts")) return true;
-		if (
-			basePath === "/employees" &&
-			(pathname === "/employees" ||
-				pathname.startsWith("/employee-detail") ||
-				pathname.startsWith("/employee-earnings"))
-		)
-			return true;
-		if (
-			basePath === "/locations" &&
-			(pathname === "/locations" || pathname.startsWith("/locations/"))
-		)
-			return true;
-		if (basePath === "/notifications" && pathname === "/notifications")
-			return true;
-		if (basePath === "/messages" && pathname === "/messages") return true;
-		if (
-			basePath === "/settings" &&
-			(pathname === "/profile" ||
-				pathname === "/business-profile" ||
-				pathname === "/billing" ||
-				pathname === "/branding")
-		)
-			return true;
-		return false;
-	};
-
 	return (
 		<SidebarProvider>
 			<Sidebar className="w-64">
@@ -435,9 +212,6 @@ export default function AppLayout() {
 			<LayoutContent
 				hasSecondaryNavbar={hasSecondaryNavbar}
 				renderSecondaryNavbar={renderSecondaryNavbar}
-				renderHeaderActions={renderHeaderActions}
-				getHeaderTitle={getHeaderTitle}
-				pageHeader={pageHeader}
 			/>
 			{/* Onboarding modal - shown globally for new users */}
 			<OnboardingModal />

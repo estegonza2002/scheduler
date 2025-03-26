@@ -53,6 +53,7 @@ import { Checkbox } from "../components/ui/checkbox";
 import { NotificationItem } from "../components/NotificationItem";
 
 import { ContentContainer } from "../components/ui/content-container";
+import { PageHeader } from "../components/ui/page-header";
 
 export default function NotificationsPage() {
 	const {
@@ -238,12 +239,48 @@ export default function NotificationsPage() {
 		}
 	};
 
+	// Notification actions for the page header
+	const headerActions = (
+		<div className="flex items-center gap-2">
+			<Button
+				variant="outline"
+				size="sm"
+				onClick={() => refreshNotifications()}
+				disabled={loading}>
+				<RefreshCw
+					className={cn(
+						"h-4 w-4 mr-2",
+						loading ? "animate-spin" : "text-muted-foreground"
+					)}
+				/>
+				Refresh
+			</Button>
+			<Button
+				variant="outline"
+				size="sm"
+				onClick={handleMarkAllAsRead}
+				disabled={filteredNotifications.filter((n) => !n.isRead).length === 0}>
+				<Check className="h-4 w-4 mr-2" />
+				Mark All Read
+			</Button>
+			<Button
+				variant="outline"
+				size="sm"
+				onClick={handleClearAll}
+				disabled={filteredNotifications.length === 0}>
+				<Trash2 className="h-4 w-4 mr-2" />
+				Clear All
+			</Button>
+		</div>
+	);
+
 	return (
 		<>
-			<Helmet>
-				<title>Notifications | Scheduler</title>
-			</Helmet>
-
+			<PageHeader
+				title="Notifications"
+				description="Manage and view all your notifications"
+				actions={headerActions}
+			/>
 			<ContentContainer>
 				<div className="space-y-4">
 					<div className="flex flex-col md:flex-row gap-4">

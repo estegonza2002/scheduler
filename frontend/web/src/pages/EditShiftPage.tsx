@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { ContentContainer } from "../components/ui/content-container";
 import { FormSection } from "../components/ui/form-section";
 import { LoadingState } from "../components/ui/loading-state";
+import { PageHeader } from "../components/ui/page-header";
 
 export default function EditShiftPage() {
 	const { shiftId } = useParams<{ shiftId: string }>();
@@ -156,112 +157,120 @@ export default function EditShiftPage() {
 	}
 
 	return (
-		<ContentContainer>
-			<div className="mt-6 max-w-3xl mx-auto">
-				<form
-					id="edit-shift-form"
-					onSubmit={handleSubmit}
-					className="space-y-8">
-					<FormSection
-						title="Date and Time"
-						description="Set when this shift will start and end">
-						{/* Date */}
-						<div className="space-y-2">
-							<Label htmlFor="date">Date</Label>
-							<Input
-								id="date"
-								type="date"
-								value={date}
-								onChange={(e) => setDate(e.target.value)}
-								required
-							/>
-						</div>
-
-						{/* Time Range */}
-						<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+		<>
+			<PageHeader
+				title="Edit Shift"
+				description="Modify shift details and schedule"
+				actions={ActionButtons}
+				showBackButton={true}
+			/>
+			<ContentContainer>
+				<div className="max-w-3xl mx-auto">
+					<form
+						id="edit-shift-form"
+						onSubmit={handleSubmit}
+						className="space-y-8">
+						<FormSection
+							title="Date and Time"
+							description="Set when this shift will start and end">
+							{/* Date */}
 							<div className="space-y-2">
-								<Label htmlFor="startTime">Start Time</Label>
+								<Label htmlFor="date">Date</Label>
 								<Input
-									id="startTime"
-									type="time"
-									value={startTime}
-									onChange={(e) => setStartTime(e.target.value)}
+									id="date"
+									type="date"
+									value={date}
+									onChange={(e) => setDate(e.target.value)}
 									required
 								/>
 							</div>
+
+							{/* Time Range */}
+							<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+								<div className="space-y-2">
+									<Label htmlFor="startTime">Start Time</Label>
+									<Input
+										id="startTime"
+										type="time"
+										value={startTime}
+										onChange={(e) => setStartTime(e.target.value)}
+										required
+									/>
+								</div>
+								<div className="space-y-2">
+									<Label htmlFor="endTime">End Time</Label>
+									<Input
+										id="endTime"
+										type="time"
+										value={endTime}
+										onChange={(e) => setEndTime(e.target.value)}
+										required
+									/>
+								</div>
+							</div>
+						</FormSection>
+
+						<FormSection
+							title="Location"
+							description="Assign a location for this shift">
 							<div className="space-y-2">
-								<Label htmlFor="endTime">End Time</Label>
-								<Input
-									id="endTime"
-									type="time"
-									value={endTime}
-									onChange={(e) => setEndTime(e.target.value)}
-									required
+								<Label htmlFor="location">Location</Label>
+								<Select
+									value={locationId}
+									onValueChange={setLocationId}>
+									<SelectTrigger id="location">
+										<SelectValue placeholder="Select a location" />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="none">No location</SelectItem>
+										{locations.map((loc) => (
+											<SelectItem
+												key={loc.id}
+												value={loc.id}>
+												{loc.name}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+							</div>
+						</FormSection>
+
+						<FormSection
+							title="Notes"
+							description="Add any additional information or instructions">
+							<div className="space-y-2">
+								<Label htmlFor="notes">Notes (Optional)</Label>
+								<Textarea
+									id="notes"
+									value={notes}
+									onChange={(e) => setNotes(e.target.value)}
+									placeholder="Add any additional notes or instructions..."
+									rows={4}
 								/>
 							</div>
-						</div>
-					</FormSection>
+						</FormSection>
 
-					<FormSection
-						title="Location"
-						description="Assign a location for this shift">
-						<div className="space-y-2">
-							<Label htmlFor="location">Location</Label>
-							<Select
-								value={locationId}
-								onValueChange={setLocationId}>
-								<SelectTrigger id="location">
-									<SelectValue placeholder="Select a location" />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value="none">No location</SelectItem>
-									{locations.map((loc) => (
-										<SelectItem
-											key={loc.id}
-											value={loc.id}>
-											{loc.name}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
+						{/* Form actions at the bottom */}
+						<div className="flex justify-end gap-2 pt-4 border-t">
+							<Button
+								type="button"
+								variant="outline"
+								onClick={() => navigate(`/shifts/${shiftId}`)}>
+								Cancel
+							</Button>
+							<Button
+								type="submit"
+								disabled={saving}
+								className="gap-2">
+								{saving && (
+									<div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
+								)}
+								<Save className="h-4 w-4 mr-1" /> Save Changes
+							</Button>
 						</div>
-					</FormSection>
-
-					<FormSection
-						title="Notes"
-						description="Add any additional information or instructions">
-						<div className="space-y-2">
-							<Label htmlFor="notes">Notes (Optional)</Label>
-							<Textarea
-								id="notes"
-								value={notes}
-								onChange={(e) => setNotes(e.target.value)}
-								placeholder="Add any additional notes or instructions..."
-								rows={4}
-							/>
-						</div>
-					</FormSection>
-
-					{/* Form actions at the bottom */}
-					<div className="flex justify-end gap-2 pt-4 border-t">
-						<Button
-							type="button"
-							variant="outline"
-							onClick={() => navigate(`/shifts/${shiftId}`)}>
-							Cancel
-						</Button>
-						<Button
-							type="submit"
-							disabled={saving}
-							className="gap-2">
-							{saving && (
-								<div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
-							)}
-							<Save className="h-4 w-4 mr-1" /> Save Changes
-						</Button>
-					</div>
-				</form>
-			</div>
-		</ContentContainer>
+					</form>
+				</div>
+			</ContentContainer>
+		</>
 	);
 }

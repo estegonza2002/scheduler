@@ -20,6 +20,7 @@ import { Button } from "../components/ui/button";
 import { ChevronLeft, BarChart, Users, Clock, DollarSign } from "lucide-react";
 import { toast } from "sonner";
 import { Card } from "../components/ui/card";
+import { PageHeader } from "../components/ui/page-header";
 
 export default function LocationInsightsPage() {
 	const { locationId } = useParams<{ locationId: string }>();
@@ -114,94 +115,101 @@ export default function LocationInsightsPage() {
 	}
 
 	return (
-		<ContentContainer>
-			<LocationSubNav
-				locationId={locationId || ""}
-				locationName={location.name}
+		<>
+			<PageHeader
+				title={`${location.name} - Insights & Analytics`}
+				description="Detailed analytics and performance metrics for this location"
+				showBackButton={true}
 			/>
+			<ContentContainer>
+				<LocationSubNav
+					locationId={locationId || ""}
+					locationName={location.name}
+				/>
 
-			<div className="grid gap-8 mt-6 px-8">
-				{/* General Location Insights */}
-				<ContentSection
-					title="Overview Metrics"
-					description="Key performance metrics for this location">
-					<div className="mb-4">
-						<p className="text-muted-foreground">
-							These high-level metrics provide a snapshot of your location's
-							overall performance. They help you quickly assess productivity,
-							employee utilization, and financial health at a glance. Monitor
-							these metrics regularly to track progress and identify areas for
-							improvement.
-						</p>
-					</div>
-					<LocationInsights
-						location={location}
-						shifts={shifts}
-						employees={assignedEmployees}
-					/>
-				</ContentSection>
+				<div className="grid gap-8 mt-6 px-8">
+					{/* General Location Insights */}
+					<ContentSection
+						title="Overview Metrics"
+						description="Key performance metrics for this location">
+						<div className="mb-4">
+							<p className="text-muted-foreground">
+								These high-level metrics provide a snapshot of your location's
+								overall performance. They help you quickly assess productivity,
+								employee utilization, and financial health at a glance. Monitor
+								these metrics regularly to track progress and identify areas for
+								improvement.
+							</p>
+						</div>
+						<LocationInsights
+							location={location}
+							shifts={shifts}
+							employees={assignedEmployees}
+						/>
+					</ContentSection>
 
-				{/* Employee Insights */}
-				<ContentSection
-					title="Employee Analytics"
-					description="Employee performance and scheduling insights">
-					<div className="mb-4">
-						<p className="text-muted-foreground">
-							Understanding your workforce is crucial for optimizing scheduling
-							and productivity. These metrics analyze employee reliability,
-							performance patterns, and workforce distribution. Use these
-							insights to identify top performers, address attendance issues,
-							and improve staff allocation.
-						</p>
-					</div>
-					<LocationEmployeeInsights
-						location={location}
-						shifts={shifts}
-						employees={assignedEmployees}
-					/>
-				</ContentSection>
+					{/* Employee Insights */}
+					<ContentSection
+						title="Employee Analytics"
+						description="Employee performance and scheduling insights">
+						<div className="mb-4">
+							<p className="text-muted-foreground">
+								Understanding your workforce is crucial for optimizing
+								scheduling and productivity. These metrics analyze employee
+								reliability, performance patterns, and workforce distribution.
+								Use these insights to identify top performers, address
+								attendance issues, and improve staff allocation.
+							</p>
+						</div>
+						<LocationEmployeeInsights
+							location={location}
+							shifts={shifts}
+							employees={assignedEmployees}
+						/>
+					</ContentSection>
 
-				{/* Shift Analytics */}
-				<ContentSection
-					title="Shift Analytics"
-					description="Shift patterns and scheduling efficiency">
-					<div className="mb-4">
-						<p className="text-muted-foreground">
-							Shift metrics reveal patterns in your scheduling and help identify
-							opportunities to improve coverage. By understanding completion
-							rates, no-shows, and peak times, you can optimize staff
-							allocation, reduce gaps in coverage, and ensure proper staffing
-							during your busiest periods.
-						</p>
-					</div>
-					<LocationShiftInsights
-						location={location}
-						shifts={shifts}
-						employees={assignedEmployees}
-					/>
-				</ContentSection>
+					{/* Shift Analytics */}
+					<ContentSection
+						title="Shift Analytics"
+						description="Shift patterns and scheduling efficiency">
+						<div className="mb-4">
+							<p className="text-muted-foreground">
+								Shift metrics reveal patterns in your scheduling and help
+								identify opportunities to improve coverage. By understanding
+								completion rates, no-shows, and peak times, you can optimize
+								staff allocation, reduce gaps in coverage, and ensure proper
+								staffing during your busiest periods.
+							</p>
+						</div>
+						<LocationShiftInsights
+							location={location}
+							shifts={shifts}
+							employees={assignedEmployees}
+						/>
+					</ContentSection>
 
-				{/* Financial Insights */}
-				<ContentSection
-					title="Financial Insights"
-					description="Revenue, costs, and profitability metrics">
-					<div className="mb-4">
-						<p className="text-muted-foreground">
-							Financial insights help you understand the economic health of your
-							location. These metrics track revenue generation, labor costs,
-							profitability, and projected earnings. Use this data to make
-							informed decisions about scheduling, staffing levels, and cost
-							control to maximize profitability while maintaining service
-							quality.
-						</p>
-					</div>
-					<LocationFinanceInsights
-						location={location}
-						shifts={shifts}
-						employees={assignedEmployees}
-					/>
-				</ContentSection>
-			</div>
-		</ContentContainer>
+					{/* Financial Insights */}
+					<ContentSection
+						title="Financial Insights"
+						description="Revenue, costs, and profitability metrics">
+						<div className="mb-4">
+							<p className="text-muted-foreground">
+								Financial insights help you understand the economic health of
+								your location. These metrics track revenue generation, labor
+								costs, profitability, and projected earnings. Use this data to
+								make informed decisions about scheduling, staffing levels, and
+								cost control to maximize profitability while maintaining service
+								quality.
+							</p>
+						</div>
+						<LocationFinanceInsights
+							location={location}
+							shifts={shifts}
+							employees={assignedEmployees}
+						/>
+					</ContentSection>
+				</div>
+			</ContentContainer>
+		</>
 	);
 }

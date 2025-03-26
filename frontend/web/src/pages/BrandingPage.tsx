@@ -21,6 +21,7 @@ import {
 import { FormSection } from "../components/ui/form-section";
 import { ProfileSidebar } from "../components/layout/SecondaryNavbar";
 import { useAuth } from "../lib/auth";
+import { PageHeader } from "../components/ui/page-header";
 
 // Define branding schema
 const brandingSchema = z.object({
@@ -120,14 +121,11 @@ export default function BrandingPage() {
 				onTabChange={handleTabChange}
 			/>
 			<div className="ml-64">
+				<PageHeader
+					title="Brand Settings"
+					description="Customize your brand appearance and assets"
+				/>
 				<div className="p-4">
-					<div className="mb-8">
-						<h2 className="text-2xl font-bold">Brand Settings</h2>
-						<p className="text-muted-foreground">
-							Customize your brand appearance and assets
-						</p>
-					</div>
-
 					<Form {...brandingForm}>
 						<form
 							onSubmit={brandingForm.handleSubmit(onBrandingSubmit)}

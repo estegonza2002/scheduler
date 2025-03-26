@@ -39,6 +39,7 @@ import { LoadingState } from "../components/ui/loading-state";
 import { LocationEditSheet } from "../components/LocationEditSheet";
 import { LocationInsights } from "../components/LocationInsights";
 import { LocationSubNav } from "../components/LocationSubNav";
+import { PageHeader } from "../components/ui/page-header";
 
 // Update Location type to include optional fields
 interface ExtendedLocation extends Location {
@@ -225,120 +226,98 @@ export default function LocationDetailPage() {
 	}
 
 	return (
-		<ContentContainer>
-			<LocationSubNav
-				locationId={locationId || ""}
-				locationName={location.name}
+		<div>
+			<PageHeader
+				title={location?.name || "Location Details"}
+				description={location?.address || ""}
+				actions={ActionButtons}
+				showBackButton={true}
 			/>
 
-			<div className="grid gap-6 mt-6 px-8">
-				{/* Basic Location Information */}
-				<ContentSection title="Overview">
-					<div className="flex flex-col md:flex-row gap-6">
-						<div className="flex items-center gap-4 flex-1">
-							<div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center">
-								<Building2 className="h-8 w-8 text-primary" />
-							</div>
-							<div>
-								<h2 className="text-2xl font-bold">{location.name}</h2>
-								<div className="flex items-center gap-2 mt-1">
-									<MapPin className="h-4 w-4 text-muted-foreground" />
-									<span className="text-muted-foreground">
-										{location.address}, {location.city}, {location.state}{" "}
-										{location.zipCode}
-									</span>
-								</div>
-							</div>
-						</div>
-						<div className="flex gap-2">
-							{/* Edit Button */}
-							<LocationEditSheet
-								location={location}
-								onLocationUpdated={(updatedLocation: Location) =>
-									setLocation(updatedLocation)
-								}
-								trigger={
-									<Button
-										variant="outline"
-										size="sm">
-										<Edit className="h-4 w-4 mr-2" /> Edit
-									</Button>
-								}
-							/>
+			<ContentContainer>
+				<LocationSubNav
+					locationId={locationId || ""}
+					locationName={location.name}
+				/>
 
-							{/* Delete Button */}
-							<Button
-								variant="outline"
-								size="sm"
-								className="text-destructive hover:text-destructive"
-								onClick={() => setDeleteDialogOpen(true)}>
-								<Trash className="h-4 w-4 mr-2" /> Delete
-							</Button>
-						</div>
-					</div>
-				</ContentSection>
-
-				{/* Address Information */}
-				<ContentSection title="Address Information">
-					<div className="space-y-4">
-						{location.address && (
-							<div className="flex items-center gap-3">
-								<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
-									<Building2 className="h-5 w-5 text-primary" />
+				<div className="grid gap-6 mt-6 px-8">
+					{/* Basic Location Information */}
+					<ContentSection title="Overview">
+						<div className="flex flex-col md:flex-row gap-6">
+							<div className="flex items-center gap-4 flex-1">
+								<div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center">
+									<Building2 className="h-8 w-8 text-primary" />
 								</div>
 								<div>
-									<div className="text-sm font-medium">Street Address</div>
-									<div className="text-sm">{location.address}</div>
-								</div>
-							</div>
-						)}
-
-						{(location.city || location.state || location.zipCode) && (
-							<div className="flex items-center gap-3">
-								<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
-									<MapPin className="h-5 w-5 text-primary" />
-								</div>
-								<div>
-									<div className="text-sm font-medium">City/State/Zip</div>
-									<div className="text-sm">
-										{location.city}
-										{location.city && location.state ? ", " : ""}
-										{location.state} {location.zipCode}
+									<h2 className="text-2xl font-bold">{location.name}</h2>
+									<div className="flex items-center gap-2 mt-1">
+										<MapPin className="h-4 w-4 text-muted-foreground" />
+										<span className="text-muted-foreground">
+											{location.address}, {location.city}, {location.state}{" "}
+											{location.zipCode}
+										</span>
 									</div>
 								</div>
 							</div>
-						)}
+							<div className="flex gap-2">
+								{/* Edit Button */}
+								<LocationEditSheet
+									location={location}
+									onLocationUpdated={(updatedLocation: Location) =>
+										setLocation(updatedLocation)
+									}
+									trigger={
+										<Button
+											variant="outline"
+											size="sm">
+											<Edit className="h-4 w-4 mr-2" /> Edit
+										</Button>
+									}
+								/>
 
-						{location.phone && (
-							<div className="flex items-center gap-3">
-								<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
-									<Phone className="h-5 w-5 text-primary" />
-								</div>
-								<div>
-									<div className="text-sm font-medium">Phone</div>
-									<div className="text-sm">{location.phone}</div>
-								</div>
+								{/* Delete Button */}
+								<Button
+									variant="outline"
+									size="sm"
+									className="text-destructive hover:text-destructive"
+									onClick={() => setDeleteDialogOpen(true)}>
+									<Trash className="h-4 w-4 mr-2" /> Delete
+								</Button>
 							</div>
-						)}
+						</div>
+					</ContentSection>
 
-						{location.email && (
-							<div className="flex items-center gap-3">
-								<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
-									<Mail className="h-5 w-5 text-primary" />
-								</div>
-								<div>
-									<div className="text-sm font-medium">Email</div>
-									<div className="text-sm">{location.email}</div>
-								</div>
-							</div>
-						)}
-					</div>
-				</ContentSection>
-
-				{/* Contact Information (if it exists) */}
-				{(location.phone || location.email) && (
-					<ContentSection title="Contact Information">
+					{/* Address Information */}
+					<ContentSection title="Address Information">
 						<div className="space-y-4">
+							{location.address && (
+								<div className="flex items-center gap-3">
+									<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
+										<Building2 className="h-5 w-5 text-primary" />
+									</div>
+									<div>
+										<div className="text-sm font-medium">Street Address</div>
+										<div className="text-sm">{location.address}</div>
+									</div>
+								</div>
+							)}
+
+							{(location.city || location.state || location.zipCode) && (
+								<div className="flex items-center gap-3">
+									<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
+										<MapPin className="h-5 w-5 text-primary" />
+									</div>
+									<div>
+										<div className="text-sm font-medium">City/State/Zip</div>
+										<div className="text-sm">
+											{location.city}
+											{location.city && location.state ? ", " : ""}
+											{location.state} {location.zipCode}
+										</div>
+									</div>
+								</div>
+							)}
+
 							{location.phone && (
 								<div className="flex items-center gap-3">
 									<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
@@ -364,8 +343,39 @@ export default function LocationDetailPage() {
 							)}
 						</div>
 					</ContentSection>
-				)}
-			</div>
-		</ContentContainer>
+
+					{/* Contact Information (if it exists) */}
+					{(location.phone || location.email) && (
+						<ContentSection title="Contact Information">
+							<div className="space-y-4">
+								{location.phone && (
+									<div className="flex items-center gap-3">
+										<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
+											<Phone className="h-5 w-5 text-primary" />
+										</div>
+										<div>
+											<div className="text-sm font-medium">Phone</div>
+											<div className="text-sm">{location.phone}</div>
+										</div>
+									</div>
+								)}
+
+								{location.email && (
+									<div className="flex items-center gap-3">
+										<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
+											<Mail className="h-5 w-5 text-primary" />
+										</div>
+										<div>
+											<div className="text-sm font-medium">Email</div>
+											<div className="text-sm">{location.email}</div>
+										</div>
+									</div>
+								)}
+							</div>
+						</ContentSection>
+					)}
+				</div>
+			</ContentContainer>
+		</div>
 	);
 }

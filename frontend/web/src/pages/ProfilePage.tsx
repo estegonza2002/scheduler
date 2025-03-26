@@ -63,6 +63,7 @@ import { format, parseISO, isAfter, isBefore, startOfDay } from "date-fns";
 import { calculateHours } from "../utils/time-calculations";
 import { Badge } from "../components/ui/badge";
 import { cn } from "../lib/utils";
+import { PageHeader } from "../components/ui/page-header";
 
 // Get the Supabase URL from environment or use a fallback
 const supabaseUrl =
@@ -967,6 +968,12 @@ export default function ProfilePage() {
 		<>
 			{renderSidebar()}
 			<div className="ml-64">
+				<PageHeader
+					title={`${user?.user_metadata?.firstName || ""} ${
+						user?.user_metadata?.lastName || ""
+					}'s Profile`}
+					description="Manage your personal information and preferences"
+				/>
 				<div className="p-4">
 					{/* Profile Tab Content */}
 					{activeTab === "profile" && (

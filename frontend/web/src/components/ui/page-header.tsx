@@ -1,5 +1,9 @@
 import React from "react";
 import { cn } from "../../lib/utils";
+import { Button } from "./button";
+import { ChevronLeft } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { SidebarTrigger } from "./sidebar";
 
 interface PageHeaderProps {
 	/**
@@ -30,11 +34,33 @@ interface PageHeaderProps {
 	 * Optional additional className for the actions container
 	 */
 	actionsClassName?: string;
+	/**
+	 * Whether to show the back button
+	 * @default true
+	 */
+	showBackButton?: boolean;
 }
+
+// List of top-level pages that shouldn't show a back button
+const TOP_LEVEL_PAGES = [
+	"/dashboard",
+	"/admin-dashboard",
+	"/daily-shifts",
+	"/schedule",
+	"/employees",
+	"/locations",
+	"/shifts",
+	"/profile",
+	"/business-profile",
+	"/billing",
+	"/branding",
+	"/notifications",
+	"/messages",
+];
 
 /**
  * PageHeader component for consistent page headers across the application
- * Uses standardized spacing variables from header-spacing.css
+ * Now includes navigation controls previously in the global header
  */
 export function PageHeader({
 	title,
@@ -44,39 +70,62 @@ export function PageHeader({
 	titleClassName,
 	descriptionClassName,
 	actionsClassName,
+	showBackButton = true,
 }: PageHeaderProps) {
+	const navigate = useNavigate();
+	const location = useLocation();
+
+	// Determine if current page should show back button (not on main/top-level pages)
+	const isTopLevelPage = TOP_LEVEL_PAGES.includes(location.pathname);
+
+	const handleGoBack = () => {
+		navigate(-1);
+	};
+
 	return (
-		<div
+		<header
 			className={cn(
-				"border-b",
-				"py-[var(--header-spacing-y)] px-[var(--header-spacing-x)] sm:px-[var(--header-spacing-sm-x)] lg:px-[var(--header-spacing-lg-x)]",
+				"sticky top-0 flex h-16 shrink-0 items-center border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 z-40",
 				className
 			)}>
-			<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-				<div>
-					<h1
-						className={cn(
-							"text-[length:var(--header-title-size)] font-[var(--header-title-weight)] text-primary",
-							titleClassName
-						)}>
+			<div className="flex flex-1 items-center">
+				<div className="flex items-center gap-2">
+					<SidebarTrigger className="-ml-1" />
+					{showBackButton && !isTopLevelPage && (
+						<Button
+							variant="ghost"
+							size="icon"
+							onClick={handleGoBack}
+							className="h-8 w-8"
+							title="Go back">
+							<ChevronLeft className="h-5 w-5" />
+						</Button>
+					)}
+				</div>
+				<div className="mx-4">
+					<h1 className={cn("text-lg font-semibold", titleClassName)}>
 						{title}
 					</h1>
 					{description && (
 						<p
 							className={cn(
-								"text-muted-foreground mt-1",
+								"text-xs text-muted-foreground",
 								descriptionClassName
 							)}>
 							{description}
 						</p>
 					)}
 				</div>
-				{actions && (
-					<div className={cn("flex items-center gap-2", actionsClassName)}>
-						{actions}
-					</div>
-				)}
 			</div>
-		</div>
+			{actions && (
+				<div
+					className={cn(
+						"flex items-center justify-end gap-3",
+						actionsClassName
+					)}>
+					{actions}
+				</div>
+			)}
+		</header>
 	);
 }

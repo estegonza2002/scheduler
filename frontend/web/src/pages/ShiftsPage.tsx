@@ -72,6 +72,7 @@ import {
 	DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
 import { ExportDropdown } from "../components/ExportDropdown";
+import { PageHeader } from "../components/ui/page-header";
 
 // Mock data for shifts - in a real app this would come from an API
 const mockShifts = [
@@ -446,10 +447,18 @@ export function ShiftsPage() {
 	};
 
 	return (
-		<div className="container mx-auto py-6 space-y-6">
-			<div className="flex items-center justify-between">
-				<h1 className="text-2xl font-bold tracking-tight">Shifts</h1>
-			</div>
+		<div className="p-6 space-y-6">
+			<PageHeader
+				title="Shifts"
+				actions={
+					<Link to="/shifts/create">
+						<Button className="flex items-center gap-1">
+							<Plus size={16} />
+							Create Shift
+						</Button>
+					</Link>
+				}
+			/>
 
 			<div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
 				<Card>

@@ -200,7 +200,7 @@ export function DataTable<TData, TValue>({
 						<div className="text-sm text-muted-foreground">
 							Showing{" "}
 							{isExternalPagination ? (
-								<>
+								<span>
 									{externalPagination.totalItems > 0
 										? externalPagination.pageIndex *
 												externalPagination.pageSize +
@@ -213,9 +213,9 @@ export function DataTable<TData, TValue>({
 										externalPagination.totalItems
 									)}{" "}
 									of {externalPagination.totalItems} entries
-								</>
+								</span>
 							) : (
-								<>
+								<span>
 									{table.getFilteredRowModel().rows.length > 0
 										? table.getState().pagination.pageIndex *
 												table.getState().pagination.pageSize +
@@ -228,7 +228,7 @@ export function DataTable<TData, TValue>({
 										table.getFilteredRowModel().rows.length
 									)}{" "}
 									of {table.getFilteredRowModel().rows.length} entries
-								</>
+								</span>
 							)}
 						</div>
 

@@ -58,6 +58,7 @@ import {
 	DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
 import { DataTable } from "../components/ui/data-table";
+import { PageHeader } from "../components/ui/page-header";
 
 // Export the ShiftCreationSheet with its props for use in the AppLayout
 export function getHeaderActions() {
@@ -133,18 +134,18 @@ export default function DailyShiftsPage() {
 			const term = searchTerm.toLowerCase();
 			result = result.filter((shift) => {
 				const locationMatch = locations
-					.find((loc) => loc.id === shift.locationId)
+					.find((loc) => loc.id === shift.location_id)
 					?.name?.toLowerCase()
 					.includes(term);
 				const employeeMatch = employees
-					.find((emp) => emp.id === shift.employeeId)
+					.find((emp) => emp.id === shift.user_id)
 					?.name?.toLowerCase()
 					.includes(term);
 				const timeMatch =
-					format(new Date(shift.startTime), "h:mm a")
+					format(new Date(shift.start_time), "h:mm a")
 						.toLowerCase()
 						.includes(term) ||
-					format(new Date(shift.endTime), "h:mm a")
+					format(new Date(shift.end_time), "h:mm a")
 						.toLowerCase()
 						.includes(term);
 
@@ -155,14 +156,14 @@ export default function DailyShiftsPage() {
 		// Apply location filter
 		if (selectedLocationIds.length > 0) {
 			result = result.filter((shift) =>
-				selectedLocationIds.includes(shift.locationId || "")
+				selectedLocationIds.includes(shift.location_id || "")
 			);
 		}
 
 		// Apply employee filter
 		if (selectedEmployeeIds.length > 0) {
 			result = result.filter((shift) =>
-				selectedEmployeeIds.includes(shift.employeeId || "")
+				selectedEmployeeIds.includes(shift.user_id || "")
 			);
 		}
 
@@ -221,7 +222,11 @@ export default function DailyShiftsPage() {
 			console.log("Fetching shifts for date:", formattedDate);
 
 			// Get shifts for this date
-			const allShifts = await ShiftsAPI.getAll(formattedDate);
+			const allShifts = await ShiftsAPI.getAll({
+				start_time: `${formattedDate}T00:00:00`,
+				end_time: `${formattedDate}T23:59:59`,
+				is_schedule: false,
+			});
 
 			console.log("API returned shifts:", allShifts);
 
@@ -232,13 +237,13 @@ export default function DailyShiftsPage() {
 			// Get all unique location IDs from the shifts
 			setLoadingPhase("locations");
 			const locationIds = [
-				...new Set(allShifts.map((shift) => shift.locationId).filter(Boolean)),
+				...new Set(allShifts.map((shift) => shift.location_id).filter(Boolean)),
 			];
 
 			// Get all unique employee IDs from the shifts
 			setLoadingPhase("employees");
 			const employeeIds = [
-				...new Set(allShifts.map((shift) => shift.employeeId).filter(Boolean)),
+				...new Set(allShifts.map((shift) => shift.user_id).filter(Boolean)),
 			];
 
 			// Batch fetch locations and employees in parallel
@@ -292,8 +297,8 @@ export default function DailyShiftsPage() {
 		// Primary employee (in real app this would be expanded to include all assigned employees)
 		const assignedEmployees: Employee[] = [];
 
-		if (shift.employeeId) {
-			const employee = employees.find((emp) => emp.id === shift.employeeId);
+		if (shift.user_id) {
+			const employee = employees.find((emp) => emp.id === shift.user_id);
 			if (employee) {
 				assignedEmployees.push(employee);
 			}
@@ -327,8 +332,8 @@ export default function DailyShiftsPage() {
 				<CardHeader className="pb-1 px-3 pt-3">
 					<div className="flex justify-between items-center w-full">
 						<h3 className="font-medium text-sm">
-							{formatTime(new Date(shift.startTime))} -{" "}
-							{formatTime(new Date(shift.endTime))}
+							{formatTime(new Date(shift.start_time))} -{" "}
+							{formatTime(new Date(shift.end_time))}
 						</h3>
 						{hasEmployees ? (
 							<div className="flex items-center gap-1">
@@ -348,7 +353,7 @@ export default function DailyShiftsPage() {
 				<CardContent className="pt-0 px-3 pb-3">
 					<div className="flex items-center text-sm text-muted-foreground">
 						<MapPin className="h-4 w-4 mr-1" />
-						<span>{getLocationName(shift.locationId)}</span>
+						<span>{getLocationName(shift.location_id)}</span>
 					</div>
 				</CardContent>
 			</Card>
@@ -364,8 +369,8 @@ export default function DailyShiftsPage() {
 				const shift = row.original;
 				return (
 					<div>
-						{formatTime(new Date(shift.startTime))} -{" "}
-						{formatTime(new Date(shift.endTime))}
+						{formatTime(new Date(shift.start_time))} -{" "}
+						{formatTime(new Date(shift.end_time))}
 					</div>
 				);
 			},
@@ -374,7 +379,7 @@ export default function DailyShiftsPage() {
 			accessorKey: "location",
 			header: "Location",
 			cell: ({ row }: { row: any }) => (
-				<div>{getLocationName(row.original.locationId)}</div>
+				<div>{getLocationName(row.original.location_id)}</div>
 			),
 		},
 		{
@@ -438,319 +443,351 @@ export default function DailyShiftsPage() {
 
 	return (
 		<>
-			<div className="flex flex-col h-[calc(100vh-80px)]">
-				{/* Header without the bottom border */}
-				<div className="p-4 bg-background">
-					<h1 className="text-3xl font-bold leading-tight tracking-tighter mb-2">
-						{format(currentDate, "EEEE, MMMM d, yyyy")}
-					</h1>
-					<p className="text-lg text-muted-foreground mb-6">
-						Shifts for {format(currentDate, "MMM d")}
-					</p>
+			<PageHeader
+				title="Daily Shifts"
+				description={`Schedule for ${format(currentDate, "MMM dd, yyyy")}`}
+				actions={getHeaderActions()}
+			/>
 
-					{/* Date navigation and view options in a single row */}
-					<div className="flex items-center justify-between gap-3">
-						{/* Left group: Date navigation */}
-						<div className="flex items-center gap-3">
-							<div className="flex items-center rounded-md border">
+			<div className="p-4">
+				{/* Date navigation */}
+				<div className="mb-6 flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 justify-between items-start sm:items-center">
+					{/* Date navigation controls */}
+					<div className="flex items-center space-x-2">
+						<Button
+							variant="outline"
+							size="icon"
+							onClick={() => updateDate(subDays(currentDate, 1))}>
+							<ChevronLeft className="h-4 w-4" />
+						</Button>
+
+						<Popover>
+							<PopoverTrigger asChild>
 								<Button
-									variant="ghost"
-									size="icon"
-									className="rounded-r-none border-r h-9 w-9"
-									onClick={() => updateDate(subDays(currentDate, 1))}>
-									<ChevronLeft className="h-5 w-5" />
+									variant="outline"
+									className="min-w-[180px] justify-start text-left font-normal">
+									<CalendarIcon className="mr-2 h-4 w-4" />
+									{format(currentDate, "MMMM d, yyyy")}
 								</Button>
+							</PopoverTrigger>
+							<PopoverContent className="w-auto p-0">
+								<Calendar
+									mode="single"
+									selected={currentDate}
+									onSelect={(date) => {
+										if (date) {
+											updateDate(date);
+										}
+										// Close the popover
+										const button = document.querySelector(
+											'[data-state="open"]'
+										) as HTMLButtonElement;
+										if (button) button.click();
+									}}
+									initialFocus
+								/>
+							</PopoverContent>
+						</Popover>
 
-								<Button
-									variant="ghost"
-									className="h-9 px-3 rounded-none border-r"
-									onClick={() => updateDate(new Date())}>
-									Today
-								</Button>
+						<Button
+							variant="outline"
+							size="icon"
+							onClick={() => updateDate(addDays(currentDate, 1))}>
+							<ChevronRight className="h-4 w-4" />
+						</Button>
 
-								<Button
-									variant="ghost"
-									size="icon"
-									className="rounded-l-none h-9 w-9"
-									onClick={() => updateDate(addDays(currentDate, 1))}>
-									<ChevronRight className="h-5 w-5" />
-								</Button>
-							</div>
-
-							<Popover>
-								<PopoverTrigger asChild>
-									<Button
-										variant="outline"
-										className="flex items-center gap-2 h-9">
-										<CalendarIcon className="h-5 w-5" />
-										<span>Choose Date</span>
-									</Button>
-								</PopoverTrigger>
-								<PopoverContent
-									className="w-auto p-0"
-									align="center">
-									<Calendar
-										mode="single"
-										selected={currentDate}
-										onSelect={(date) => date && updateDate(date)}
-										initialFocus
-									/>
-								</PopoverContent>
-							</Popover>
-						</div>
-
-						{/* Right group: View options */}
-						<div className="flex items-center gap-3">
-							{/* View mode switcher */}
-							<div className="flex items-center border rounded-md">
-								<Button
-									variant="ghost"
-									size="icon"
-									className={`rounded-l-md rounded-r-none h-9 w-9 ${
-										viewMode === "cards"
-											? "bg-background shadow-sm"
-											: "bg-transparent hover:bg-transparent"
-									}`}
-									onClick={() => setViewMode("cards")}>
-									<LayoutGrid className="h-5 w-5" />
-								</Button>
-								<Button
-									variant="ghost"
-									size="icon"
-									className={`rounded-l-none rounded-r-md h-9 w-9 ${
-										viewMode === "table"
-											? "bg-background shadow-sm"
-											: "bg-transparent hover:bg-transparent"
-									}`}
-									onClick={() => setViewMode("table")}>
-									<Table className="h-5 w-5" />
-								</Button>
-							</div>
-
-							<Button
-								variant="outline"
-								className="flex items-center gap-2 h-9"
-								onClick={() =>
-									navigate(
-										`/schedule/monthly?date=${format(
-											currentDate,
-											"yyyy-MM-dd"
-										)}&scheduleId=${
-											selectedSchedule || ""
-										}&organizationId=${organizationId}`
-									)
-								}>
-								<Maximize2 className="h-5 w-5" />
-								<span>Monthly View</span>
-							</Button>
-						</div>
+						<Button
+							variant="outline"
+							className="hidden sm:flex"
+							onClick={() => updateDate(new Date())}>
+							Today
+						</Button>
 					</div>
 
-					{/* Search and filters directly in the header section */}
-					<div className="flex flex-wrap items-center gap-2 mt-4">
-						<div className="relative flex-1 min-w-[300px]">
-							<Search className="absolute left-2.5 top-2.5 h-5 w-5 text-muted-foreground" />
-							<Input
-								placeholder="Search shifts by location, employee, or time..."
-								className="pl-9 h-9"
-								value={searchTerm}
-								onChange={(e) => setSearchTerm(e.target.value)}
-							/>
-						</div>
-
-						<div className="flex items-center gap-2">
-							<DropdownMenu>
-								<DropdownMenuTrigger asChild>
-									<Button
-										variant="outline"
-										className="flex items-center gap-2 h-9">
-										<MapPin className="h-5 w-5" />
-										<span>Locations</span>
-										{selectedLocationIds.length > 0 && (
-											<Badge
-												variant="secondary"
-												className="ml-1">
-												{selectedLocationIds.length}
-											</Badge>
-										)}
-									</Button>
-								</DropdownMenuTrigger>
-								<DropdownMenuContent
-									align="end"
-									className="w-[200px]">
-									<DropdownMenuLabel>Filter by location</DropdownMenuLabel>
-									<DropdownMenuSeparator />
-									{locations.map((location) => (
-										<DropdownMenuCheckboxItem
-											key={location.id}
-											checked={selectedLocationIds.includes(location.id)}
-											onCheckedChange={() => toggleLocationFilter(location.id)}>
-											{location.name}
-										</DropdownMenuCheckboxItem>
-									))}
-								</DropdownMenuContent>
-							</DropdownMenu>
-
-							<DropdownMenu>
-								<DropdownMenuTrigger asChild>
-									<Button
-										variant="outline"
-										className="flex items-center gap-2 h-9">
-										<User className="h-5 w-5" />
-										<span>Employees</span>
-										{selectedEmployeeIds.length > 0 && (
-											<Badge
-												variant="secondary"
-												className="ml-1">
-												{selectedEmployeeIds.length}
-											</Badge>
-										)}
-									</Button>
-								</DropdownMenuTrigger>
-								<DropdownMenuContent
-									align="end"
-									className="w-[200px]">
-									<DropdownMenuLabel>Filter by employee</DropdownMenuLabel>
-									<DropdownMenuSeparator />
-									{employees.map((employee) => (
-										<DropdownMenuCheckboxItem
-											key={employee.id}
-											checked={selectedEmployeeIds.includes(employee.id)}
-											onCheckedChange={() => toggleEmployeeFilter(employee.id)}>
-											{employee.name}
-										</DropdownMenuCheckboxItem>
-									))}
-								</DropdownMenuContent>
-							</DropdownMenu>
-
-							{(selectedLocationIds.length > 0 ||
-								selectedEmployeeIds.length > 0 ||
-								searchTerm) && (
-								<Button
-									variant="ghost"
-									size="icon"
-									className="h-9 w-9"
-									onClick={resetFilters}
-									title="Clear filters">
-									<X className="h-5 w-5" />
-								</Button>
-							)}
-						</div>
-					</div>
-
-					{/* Active filters */}
-					{(selectedLocationIds.length > 0 ||
-						selectedEmployeeIds.length > 0) && (
-						<div className="flex flex-wrap gap-2 mt-3">
-							{selectedLocationIds.map((id) => (
-								<Badge
-									key={id}
-									variant="outline"
-									className="flex items-center gap-1 py-1 px-2">
-									<MapPin className="h-4 w-4" />
-									{getLocationName(id)}
-									<Button
-										variant="ghost"
-										size="icon"
-										className="h-5 w-5 ml-1 p-0 hover:bg-muted"
-										onClick={() => toggleLocationFilter(id)}>
-										<X className="h-4 w-4" />
-									</Button>
-								</Badge>
-							))}
-
-							{selectedEmployeeIds.map((id) => (
-								<Badge
-									key={id}
-									variant="outline"
-									className="flex items-center gap-1 py-1 px-2">
-									<User className="h-4 w-4" />
-									{getEmployeeName(id)}
-									<Button
-										variant="ghost"
-										size="icon"
-										className="h-5 w-5 ml-1 p-0 hover:bg-muted"
-										onClick={() => toggleEmployeeFilter(id)}>
-										<X className="h-4 w-4" />
-									</Button>
-								</Badge>
-							))}
-
+					{/* View options */}
+					<div className="flex items-center gap-3">
+						{/* View mode switcher */}
+						<div className="flex items-center border rounded-md">
 							<Button
 								variant="ghost"
-								size="sm"
-								className="text-xs h-7"
-								onClick={resetFilters}>
-								Clear all
+								size="icon"
+								className={`rounded-l-md rounded-r-none h-9 w-9 ${
+									viewMode === "cards"
+										? "bg-background shadow-sm"
+										: "bg-transparent hover:bg-transparent"
+								}`}
+								onClick={() => setViewMode("cards")}>
+								<LayoutGrid className="h-5 w-5" />
+							</Button>
+							<Button
+								variant="ghost"
+								size="icon"
+								className={`rounded-l-none rounded-r-md h-9 w-9 ${
+									viewMode === "table"
+										? "bg-background shadow-sm"
+										: "bg-transparent hover:bg-transparent"
+								}`}
+								onClick={() => setViewMode("table")}>
+								<Table className="h-5 w-5" />
 							</Button>
 						</div>
-					)}
+
+						<Button
+							variant="outline"
+							className="flex items-center gap-2 h-9"
+							onClick={() =>
+								navigate(
+									`/schedule/monthly?date=${format(
+										currentDate,
+										"yyyy-MM-dd"
+									)}&scheduleId=${
+										selectedSchedule || ""
+									}&organizationId=${organizationId}`
+								)
+							}>
+							<Maximize2 className="h-5 w-5" />
+							<span>Monthly View</span>
+						</Button>
+					</div>
 				</div>
 
-				{/* Main Content Layout */}
-				<div className="flex flex-1 overflow-hidden">
-					{/* Main Content Area */}
-					<div className="flex-1 overflow-auto">
-						<div className="p-4">
-							<div className="flex flex-col gap-4">
-								{/* Hidden select schedule field */}
-								<div className="hidden">
-									<Select
-										value={selectedSchedule || ""}
-										onValueChange={(value) => setSelectedSchedule(value)}
-										disabled={loading}>
-										<SelectTrigger
-											id="schedule-select"
-											className="mt-1 mb-4">
-											<SelectValue placeholder="Select a schedule" />
-										</SelectTrigger>
-										<SelectContent>
-											{schedules.map((schedule) => (
-												<SelectItem
-													key={schedule.id}
-													value={schedule.id}>
-													{schedule.name}
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
+				{/* Search and filters directly in the header section */}
+				<div className="flex flex-wrap items-center gap-2 mt-4">
+					<div className="relative flex-1 min-w-[300px]">
+						<Search className="absolute left-2.5 top-2.5 h-5 w-5 text-muted-foreground" />
+						<Input
+							placeholder="Search shifts by location, employee, or time..."
+							className="pl-9 h-9"
+							value={searchTerm}
+							onChange={(e) => setSearchTerm(e.target.value)}
+						/>
+					</div>
+
+					<div className="flex items-center gap-2">
+						<DropdownMenu>
+							<DropdownMenuTrigger>
+								<Button
+									variant="outline"
+									className="flex items-center gap-2 h-9">
+									<MapPin className="h-5 w-5" />
+									<span>Locations</span>
+									{selectedLocationIds.length > 0 && (
+										<Badge
+											variant="secondary"
+											className="ml-1">
+											{selectedLocationIds.length}
+										</Badge>
+									)}
+								</Button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent
+								align="end"
+								className="w-[200px]">
+								<DropdownMenuLabel>Filter by location</DropdownMenuLabel>
+								<DropdownMenuSeparator />
+								{locations.map((location) => (
+									<DropdownMenuCheckboxItem
+										key={location.id}
+										checked={selectedLocationIds.includes(location.id)}
+										onCheckedChange={() => toggleLocationFilter(location.id)}>
+										{location.name}
+									</DropdownMenuCheckboxItem>
+								))}
+							</DropdownMenuContent>
+						</DropdownMenu>
+
+						<DropdownMenu>
+							<DropdownMenuTrigger>
+								<Button
+									variant="outline"
+									className="flex items-center gap-2 h-9">
+									<User className="h-5 w-5" />
+									<span>Employees</span>
+									{selectedEmployeeIds.length > 0 && (
+										<Badge
+											variant="secondary"
+											className="ml-1">
+											{selectedEmployeeIds.length}
+										</Badge>
+									)}
+								</Button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent
+								align="end"
+								className="w-[200px]">
+								<DropdownMenuLabel>Filter by employee</DropdownMenuLabel>
+								<DropdownMenuSeparator />
+								{employees.map((employee) => (
+									<DropdownMenuCheckboxItem
+										key={employee.id}
+										checked={selectedEmployeeIds.includes(employee.id)}
+										onCheckedChange={() => toggleEmployeeFilter(employee.id)}>
+										{employee.name}
+									</DropdownMenuCheckboxItem>
+								))}
+							</DropdownMenuContent>
+						</DropdownMenu>
+
+						{(selectedLocationIds.length > 0 ||
+							selectedEmployeeIds.length > 0 ||
+							searchTerm) && (
+							<Button
+								variant="ghost"
+								size="icon"
+								className="h-9 w-9"
+								onClick={resetFilters}
+								title="Clear filters">
+								<X className="h-5 w-5" />
+							</Button>
+						)}
+					</div>
+				</div>
+
+				{/* Active filters */}
+				{(selectedLocationIds.length > 0 || selectedEmployeeIds.length > 0) && (
+					<div className="flex flex-wrap gap-2 mt-3">
+						{selectedLocationIds.map((id) => (
+							<Badge
+								key={id}
+								variant="outline"
+								className="flex items-center gap-1 py-1 px-2">
+								<MapPin className="h-4 w-4" />
+								{getLocationName(id)}
+								<Button
+									variant="ghost"
+									size="icon"
+									className="h-5 w-5 ml-1 p-0 hover:bg-muted"
+									onClick={() => toggleLocationFilter(id)}>
+									<X className="h-4 w-4" />
+								</Button>
+							</Badge>
+						))}
+
+						{selectedEmployeeIds.map((id) => (
+							<Badge
+								key={id}
+								variant="outline"
+								className="flex items-center gap-1 py-1 px-2">
+								<User className="h-4 w-4" />
+								{getEmployeeName(id)}
+								<Button
+									variant="ghost"
+									size="icon"
+									className="h-5 w-5 ml-1 p-0 hover:bg-muted"
+									onClick={() => toggleEmployeeFilter(id)}>
+									<X className="h-4 w-4" />
+								</Button>
+							</Badge>
+						))}
+
+						<Button
+							variant="ghost"
+							size="sm"
+							className="text-xs h-7"
+							onClick={resetFilters}>
+							Clear all
+						</Button>
+					</div>
+				)}
+			</div>
+
+			{/* Main Content Layout */}
+			<div className="flex flex-1 overflow-hidden">
+				{/* Main Content Area */}
+				<div className="flex-1 overflow-auto">
+					<div className="p-4">
+						<div className="flex flex-col gap-4">
+							{/* Hidden select schedule field */}
+							<div className="hidden">
+								<Select
+									value={selectedSchedule || ""}
+									onValueChange={(value) => setSelectedSchedule(value)}
+									disabled={loading}>
+									<SelectTrigger
+										id="schedule-select"
+										className="mt-1 mb-4">
+										<SelectValue placeholder="Select a schedule" />
+									</SelectTrigger>
+									<SelectContent>
+										{schedules.map((schedule) => (
+											<SelectItem
+												key={schedule.id}
+												value={schedule.id}>
+												{schedule.name}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+							</div>
+
+							{loading && (
+								<div className="flex items-center gap-2 text-sm text-muted-foreground p-4 border rounded-md">
+									<Loader2 className="h-4 w-4 animate-spin" />
+									<span>
+										{loadingPhase === "shifts"
+											? "Loading shifts..."
+											: loadingPhase === "locations"
+											? "Loading locations..."
+											: "Loading employees..."}
+									</span>
 								</div>
+							)}
 
-								{loading && (
-									<div className="flex items-center gap-2 text-sm text-muted-foreground p-4 border rounded-md">
-										<Loader2 className="h-4 w-4 animate-spin" />
-										<span>
-											{loadingPhase === "shifts"
-												? "Loading shifts..."
-												: loadingPhase === "locations"
-												? "Loading locations..."
-												: "Loading employees..."}
-										</span>
-									</div>
-								)}
+							{!loading && shifts.length === 0 && <EmptyShiftsState />}
 
-								{!loading && shifts.length === 0 && <EmptyShiftsState />}
-
-								{!loading && shifts.length > 0 && (
-									<>
-										{filteredShifts.length === 0 ? (
-											<div className="flex flex-col items-center justify-center p-6 border rounded-md">
-												<AlertCircle className="h-6 w-6 mb-3 text-muted-foreground" />
-												<div className="text-lg font-medium mb-2">
-													No shifts found
-												</div>
-												<div className="text-muted-foreground">
-													Try adjusting your search or filters
-												</div>
+							{!loading && shifts.length > 0 && (
+								<div>
+									{filteredShifts.length === 0 ? (
+										<div className="flex flex-col items-center justify-center p-6 border rounded-md">
+											<AlertCircle className="h-6 w-6 mb-3 text-muted-foreground" />
+											<div className="text-lg font-medium mb-2">
+												No shifts found
 											</div>
-										) : (
-											<>
-												{/* Table View */}
-												{viewMode === "table" && (
-													<div className="rounded-md overflow-hidden">
+											<div className="text-muted-foreground">
+												Try adjusting your search or filters
+											</div>
+										</div>
+									) : (
+										<div>
+											{/* Table View */}
+											{viewMode === "table" && (
+												<div className="rounded-md overflow-hidden">
+													<DataTable
+														columns={tableColumns}
+														data={filteredShifts}
+														externalPagination={{
+															pageIndex: currentPage - 1, // Convert from 1-based to 0-based
+															pageSize: itemsPerPage,
+															totalItems: totalItems,
+															setPageIndex: (pageIndex) =>
+																setCurrentPage(pageIndex + 1), // Convert from 0-based to 1-based
+															setPageSize: (pageSize) => {
+																setItemsPerPage(pageSize);
+																setCurrentPage(1);
+															},
+														}}
+													/>
+												</div>
+											)}
+
+											{/* Card View */}
+											{viewMode === "cards" && (
+												<div>
+													<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+														{paginatedShifts.map((shift) => (
+															<ShiftCard
+																key={shift.id}
+																shift={shift}
+															/>
+														))}
+													</div>
+
+													{/* Use DataTable pagination for Card View as well */}
+													{filteredShifts.length > 0 && (
 														<DataTable
-															columns={tableColumns}
-															data={filteredShifts}
+															columns={[]}
+															data={[]}
+															hideTable={true}
 															externalPagination={{
 																pageIndex: currentPage - 1, // Convert from 1-based to 0-based
 																pageSize: itemsPerPage,
@@ -763,47 +800,13 @@ export default function DailyShiftsPage() {
 																},
 															}}
 														/>
-													</div>
-												)}
-
-												{/* Card View */}
-												{viewMode === "cards" && (
-													<>
-														<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-															{paginatedShifts.map((shift) => (
-																<ShiftCard
-																	key={shift.id}
-																	shift={shift}
-																/>
-															))}
-														</div>
-
-														{/* Use DataTable pagination for Card View as well */}
-														{filteredShifts.length > 0 && (
-															<DataTable
-																columns={[]}
-																data={[]}
-																hideTable={true}
-																externalPagination={{
-																	pageIndex: currentPage - 1, // Convert from 1-based to 0-based
-																	pageSize: itemsPerPage,
-																	totalItems: totalItems,
-																	setPageIndex: (pageIndex) =>
-																		setCurrentPage(pageIndex + 1), // Convert from 0-based to 1-based
-																	setPageSize: (pageSize) => {
-																		setItemsPerPage(pageSize);
-																		setCurrentPage(1);
-																	},
-																}}
-															/>
-														)}
-													</>
-												)}
-											</>
-										)}
-									</>
-								)}
-							</div>
+													)}
+												</div>
+											)}
+										</div>
+									)}
+								</div>
+							)}
 						</div>
 					</div>
 				</div>

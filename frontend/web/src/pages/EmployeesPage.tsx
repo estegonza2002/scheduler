@@ -71,94 +71,71 @@ import {
 } from "../components/ui/tooltip";
 import { AvatarWithStatus } from "../components/ui/avatar-with-status";
 import { cn } from "../lib/utils";
+import { PageHeader } from "../components/ui/page-header";
 
 export default function EmployeesPage() {
 	const [organization, setOrganization] = useState<Organization | null>(null);
 	const [employees, setEmployees] = useState<Employee[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [loadingPhase, setLoadingPhase] = useState<
-		"organization" | "employees" | ""
-	>("");
+		"organization" | "employees"
+	>("organization");
 	const [searchTerm, setSearchTerm] = useState("");
 	const [positionFilter, setPositionFilter] = useState<string | null>(null);
-	const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
-	const navigate = useNavigate();
-
-	// Initialize the presence service when we have an organization
+	const [viewMode, setViewMode] = useState<"table" | "cards">("table");
 	const {
 		employeePresence,
 		initialized: presenceInitialized,
 		toggleNotifications,
 		notificationsEnabled,
 	} = useEmployeePresence(organization?.id || "");
+	const navigate = useNavigate();
 
 	// Get unique positions for filtering
 	const uniquePositions = useMemo(() => {
-		const positions = new Set<string>();
-		employees.forEach((employee) => {
-			if (employee.position) {
-				positions.add(employee.position);
-			} else if (employee.role) {
-				positions.add(employee.role);
-			}
-		});
-		return Array.from(positions);
+		return Array.from(
+			new Set(employees.map((emp) => emp.position || emp.role).filter(Boolean))
+		);
 	}, [employees]);
 
-	// Apply filtering
+	// Apply filters to get filtered employees
 	const filteredEmployees = useMemo(() => {
-		// Update employee online status with presence data
-		const employeesWithPresence = employees.map((employee) => {
-			if (!presenceInitialized) return employee;
+		return employees.filter((employee) => {
+			const matchesSearch =
+				!searchTerm ||
+				employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+				employee.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+				employee.phone?.toLowerCase().includes(searchTerm.toLowerCase());
 
-			const presence = employeePresence[employee.id];
-			if (!presence) return employee;
+			const matchesPosition =
+				!positionFilter ||
+				employee.position === positionFilter ||
+				employee.role === positionFilter;
 
-			return {
-				...employee,
-				isOnline: presence.isOnline,
-				lastActive: presence.lastActive,
-			};
+			return matchesSearch && matchesPosition;
 		});
+	}, [employees, searchTerm, positionFilter]);
 
-		return employeesWithPresence.filter((employee) => {
-			// Apply position/role filter
-			if (positionFilter) {
-				const position = employee.position || employee.role || "";
-				if (position !== positionFilter) {
-					return false;
-				}
+	// Listen for employee-added events from the system header
+	useEffect(() => {
+		const handleEmployeeAdded = (event: CustomEvent<Employee>) => {
+			if (event.detail) {
+				setEmployees((prev) => [...prev, event.detail]);
 			}
+		};
 
-			// Apply search filter
-			if (searchTerm) {
-				const lowercaseSearch = searchTerm.toLowerCase();
-				const name = (employee.name || "").toLowerCase();
-				const email = (employee.email || "").toLowerCase();
-				const phone = (employee.phone || "").toLowerCase();
-				const position = (
-					employee.position ||
-					employee.role ||
-					""
-				).toLowerCase();
+		window.addEventListener(
+			"employee-added",
+			handleEmployeeAdded as EventListener
+		);
 
-				return (
-					name.includes(lowercaseSearch) ||
-					email.includes(lowercaseSearch) ||
-					phone.includes(lowercaseSearch) ||
-					position.includes(lowercaseSearch)
-				);
-			}
-
-			return true;
-		});
-	}, [
-		employees,
-		positionFilter,
-		searchTerm,
-		employeePresence,
-		presenceInitialized,
-	]);
+		return () => {
+			window.removeEventListener(
+				"employee-added",
+				handleEmployeeAdded as EventListener
+			);
+		};
+	}, []);
 
 	const columns = useMemo<ColumnDef<Employee>[]>(
 		() => [
@@ -241,7 +218,9 @@ export default function EmployeesPage() {
 						<ArrowUpDown className="ml-2 h-4 w-4" />
 					</Button>
 				),
-				cell: ({ row }) => <>{row.original.position || row.original.role}</>,
+				cell: ({ row }) => (
+					<span>{row.original.position || row.original.role}</span>
+				),
 			},
 			{
 				accessorKey: "hourlyRate",
@@ -312,10 +291,6 @@ export default function EmployeesPage() {
 		fetchData();
 	}, []);
 
-	const handleEmployeeAdded = (employee: Employee) => {
-		setEmployees((prev) => [...prev, employee]);
-	};
-
 	const handleSearch = (term: string) => {
 		setSearchTerm(term);
 	};
@@ -352,55 +327,52 @@ export default function EmployeesPage() {
 
 	return (
 		<ContentContainer>
-			<div className="flex items-center justify-between mb-6">
-				<h1 className="text-2xl font-bold">Employees</h1>
+			<PageHeader
+				title="Employees"
+				actions={
+					<div className="flex items-center gap-2">
+						{presenceInitialized && (
+							<Badge
+								variant="outline"
+								className="mr-2">
+								<div className="w-2 h-2 rounded-full bg-green-500 mr-2" />
+								{
+									Object.values(employeePresence).filter((p) => p.isOnline)
+										.length
+								}{" "}
+								online
+							</Badge>
+						)}
 
-				<div className="flex items-center gap-2">
-					{presenceInitialized && (
-						<Badge
-							variant="outline"
-							className="mr-2">
-							<div className="w-2 h-2 rounded-full bg-green-500 mr-2" />
-							{
-								Object.values(employeePresence).filter((p) => p.isOnline).length
-							}{" "}
-							online
-						</Badge>
-					)}
-
-					<TooltipProvider>
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<Button
-									variant="outline"
-									size="sm"
-									className={
-										notificationsEnabled
-											? "text-primary"
-											: "text-muted-foreground"
-									}
-									onClick={toggleNotifications}>
-									{notificationsEnabled ? (
-										<BellRing className="h-4 w-4" />
-									) : (
-										<BellOff className="h-4 w-4" />
-									)}
-								</Button>
-							</TooltipTrigger>
-							<TooltipContent>
-								{notificationsEnabled
-									? "Disable login notifications"
-									: "Enable login notifications"}
-							</TooltipContent>
-						</Tooltip>
-					</TooltipProvider>
-
-					<EmployeeSheet
-						organizationId={organization?.id || ""}
-						onEmployeeUpdated={handleEmployeeAdded}
-					/>
-				</div>
-			</div>
+						<TooltipProvider>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<Button
+										variant="outline"
+										size="sm"
+										className={
+											notificationsEnabled
+												? "text-primary"
+												: "text-muted-foreground"
+										}
+										onClick={toggleNotifications}>
+										{notificationsEnabled ? (
+											<BellRing className="h-4 w-4" />
+										) : (
+											<BellOff className="h-4 w-4" />
+										)}
+									</Button>
+								</TooltipTrigger>
+								<TooltipContent>
+									{notificationsEnabled
+										? "Disable login notifications"
+										: "Enable login notifications"}
+								</TooltipContent>
+							</Tooltip>
+						</TooltipProvider>
+					</div>
+				}
+			/>
 
 			<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
 				<div className="flex flex-col sm:flex-row gap-2 sm:items-center">
@@ -478,10 +450,16 @@ export default function EmployeesPage() {
 					description="Add your first employee to get started"
 					icon={<User size={48} />}
 					action={
-						<EmployeeSheet
-							organizationId={organization?.id || ""}
-							onEmployeeUpdated={handleEmployeeAdded}
-						/>
+						<Button
+							onClick={() => {
+								const addButton = document.querySelector<HTMLButtonElement>(
+									".add-employee-button"
+								);
+								if (addButton) addButton.click();
+							}}>
+							<Plus className="h-4 w-4 mr-2" />
+							Add Employee
+						</Button>
 					}
 				/>
 			) : filteredEmployees.length === 0 ? (

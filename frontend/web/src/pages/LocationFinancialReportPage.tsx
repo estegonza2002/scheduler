@@ -25,6 +25,7 @@ import { ContentSection } from "../components/ui/content-section";
 import { LocationFinancialReport } from "../components/LocationFinancialReport";
 import { LocationSubNav } from "../components/LocationSubNav";
 import { LoadingState } from "../components/ui/loading-state";
+import { PageHeader } from "../components/ui/page-header";
 
 export default function LocationFinancialReportPage() {
 	const { locationId } = useParams<{ locationId: string }>();
@@ -130,49 +131,51 @@ export default function LocationFinancialReportPage() {
 		);
 	}
 
-	return (
-		<ContentContainer>
-			<LocationSubNav
-				locationId={locationId || ""}
-				locationName={location.name}
-			/>
+	// Actions for the header
+	const headerActions = (
+		<div className="flex gap-2">
+			<Button
+				variant="outline"
+				size="sm"
+				onClick={() => navigate(`/locations/${locationId}/financial/monthly`)}>
+				<CalendarRange className="h-4 w-4 mr-2" /> Monthly Reports
+			</Button>
+			<Button
+				variant="outline"
+				size="sm"
+				onClick={() => navigate(`/locations/${locationId}/financial/expenses`)}>
+				<Calculator className="h-4 w-4 mr-2" /> Expense Analysis
+			</Button>
+			<Button
+				variant="outline"
+				size="sm"
+				onClick={handlePrint}>
+				<Printer className="h-4 w-4 mr-2" /> Print Report
+			</Button>
+			<Button
+				variant="outline"
+				size="sm"
+				onClick={handleExport}>
+				<Download className="h-4 w-4 mr-2" /> Export as CSV
+			</Button>
+		</div>
+	);
 
-			<div className="grid gap-6 mt-6 px-8">
-				<ContentSection
-					title={`${location.name} - Financial Report`}
-					description="Comprehensive financial analysis and reporting tools"
-					headerActions={
-						<div className="flex gap-2">
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={() =>
-									navigate(`/locations/${locationId}/financial/monthly`)
-								}>
-								<CalendarRange className="h-4 w-4 mr-2" /> Monthly Reports
-							</Button>
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={() =>
-									navigate(`/locations/${locationId}/financial/expenses`)
-								}>
-								<Calculator className="h-4 w-4 mr-2" /> Expense Analysis
-							</Button>
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={handlePrint}>
-								<Printer className="h-4 w-4 mr-2" /> Print Report
-							</Button>
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={handleExport}>
-								<Download className="h-4 w-4 mr-2" /> Export as CSV
-							</Button>
-						</div>
-					}>
+	return (
+		<>
+			<PageHeader
+				title={`${location.name} - Financial Report`}
+				description="Comprehensive financial analysis and reporting tools"
+				actions={headerActions}
+				showBackButton={true}
+			/>
+			<ContentContainer>
+				<LocationSubNav
+					locationId={locationId || ""}
+					locationName={location.name}
+				/>
+
+				<div className="grid gap-6 mt-6 px-8">
 					<div className="print:py-4">
 						<div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
 							<Button
@@ -229,8 +232,8 @@ export default function LocationFinancialReportPage() {
 							employees={assignedEmployees}
 						/>
 					</div>
-				</ContentSection>
-			</div>
-		</ContentContainer>
+				</div>
+			</ContentContainer>
+		</>
 	);
 }

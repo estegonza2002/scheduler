@@ -74,6 +74,7 @@ import {
 } from "date-fns";
 import { calculateHours } from "../utils/time-calculations";
 import { LocationAssignmentSheet } from "../components/LocationAssignmentSheet";
+import { PageHeader } from "../components/ui/page-header";
 
 // New component for Employee Statistics
 function EmployeeStats({
@@ -736,13 +737,18 @@ export default function EmployeeDetailPage() {
 
 	return (
 		<>
+			<PageHeader
+				title={employee.name}
+				description={employee.position || employee.role || "Employee"}
+				actions={ActionButtons}
+				showBackButton={true}
+			/>
 			<ContentContainer>
 				<div className="grid gap-6 mt-6">
 					{/* Profile Header */}
 					<ContentSection
 						title="Overview"
-						flat
-						headerActions={ActionButtons}>
+						flat>
 						<div className="flex items-center gap-4">
 							<AvatarWithStatus
 								src={employeeWithPresence?.avatar}

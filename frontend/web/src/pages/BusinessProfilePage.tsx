@@ -38,6 +38,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "../components/ui/card";
+import { PageHeader } from "../components/ui/page-header";
 
 // Define form schema for validation
 const businessProfileSchema = z.object({
@@ -217,6 +218,11 @@ export default function BusinessProfilePage() {
 
 	return (
 		<>
+			<PageHeader
+				title="Business Profile"
+				description="Manage your business information and settings"
+				showBackButton={true}
+			/>
 			<ContentContainer>
 				<Tabs
 					defaultValue="profile"

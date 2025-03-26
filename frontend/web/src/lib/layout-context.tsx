@@ -1,5 +1,8 @@
 import React, { createContext, useContext, useState, ReactNode } from "react";
 
+// Note: This context is now deprecated as we've moved to page-specific headers
+// It's kept for backward compatibility with existing pages
+
 interface PageHeaderInfo {
 	title: string;
 	description?: string;
@@ -19,6 +22,11 @@ export function LayoutProvider({ children }: { children: ReactNode }) {
 	});
 
 	const updatePageHeader = (headerInfo: PageHeaderInfo) => {
+		// Add a console warning to indicate deprecation
+		console.warn(
+			"LayoutContext.updatePageHeader is deprecated. Please use the PageHeader component directly in your page component instead."
+		);
+
 		// Only update if the values are actually different
 		if (
 			pageHeader.title !== headerInfo.title ||
@@ -41,5 +49,11 @@ export function useLayout() {
 	if (context === undefined) {
 		throw new Error("useLayout must be used within a LayoutProvider");
 	}
+
+	// Add a console warning about deprecation
+	console.warn(
+		"useLayout is deprecated. Please use the PageHeader component directly in your page component instead."
+	);
+
 	return context;
 }
