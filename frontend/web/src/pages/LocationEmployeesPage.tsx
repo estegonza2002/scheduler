@@ -29,7 +29,6 @@ import {
 } from "../components/ui/alert-dialog";
 import { Users } from "lucide-react";
 import { PageHeader } from "../components/ui/page-header";
-import { PageContentSpacing } from "../components/ui/header-content-spacing";
 
 export default function LocationEmployeesPage() {
 	const { locationId } = useParams<{ locationId: string }>();
@@ -133,7 +132,7 @@ export default function LocationEmployeesPage() {
 					description="Retrieving employee information"
 					showBackButton={true}
 				/>
-				<PageContentSpacing>
+				
 					<ContentContainer>
 						<LoadingState
 							type="spinner"
@@ -141,7 +140,7 @@ export default function LocationEmployeesPage() {
 							className="py-12"
 						/>
 					</ContentContainer>
-				</PageContentSpacing>
+				
 			</>
 		);
 	}
@@ -154,7 +153,7 @@ export default function LocationEmployeesPage() {
 					description="The requested location could not be found"
 					showBackButton={true}
 				/>
-				<PageContentSpacing>
+				
 					<ContentContainer>
 						<ContentSection
 							title="Location not found"
@@ -173,7 +172,7 @@ export default function LocationEmployeesPage() {
 							</p>
 						</ContentSection>
 					</ContentContainer>
-				</PageContentSpacing>
+				
 			</>
 		);
 	}
@@ -205,7 +204,7 @@ export default function LocationEmployeesPage() {
 				showBackButton={true}
 			/>
 
-			<PageContentSpacing>
+			
 				<ContentContainer>
 					<LocationSubNav
 						locationId={locationId || ""}
@@ -268,7 +267,7 @@ export default function LocationEmployeesPage() {
 						</div>
 					</div>
 				</ContentContainer>
-			</PageContentSpacing>
+			
 
 			{/* Confirmation Dialog */}
 			<AlertDialog

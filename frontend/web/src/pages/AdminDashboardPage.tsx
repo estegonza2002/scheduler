@@ -63,7 +63,6 @@ import {
 	PieChart as ChartPieChart,
 } from "../components/ui/charts";
 import {
-	PageContentSpacing,
 	SectionContentSpacing,
 } from "../components/ui/header-content-spacing";
 import { FormulaExplainer } from "../components/ui/formula-explainer";
@@ -303,9 +302,8 @@ export default function AdminDashboardPage() {
 					title="Loading Dashboard"
 					description="Retrieving your business data"
 				/>
-				<PageContentSpacing>
-					<ContentContainer>{renderLoadingState()}</ContentContainer>
-				</PageContentSpacing>
+									<ContentContainer>{renderLoadingState()}</ContentContainer>
+
 			</>
 		);
 	}
@@ -332,8 +330,7 @@ export default function AdminDashboardPage() {
 				}
 			/>
 
-			<PageContentSpacing>
-				<ContentContainer>
+							<ContentContainer>
 					<OnboardingReminder />
 					<Tabs defaultValue="overview">
 						<div className="flex justify-between items-center mb-4">
@@ -641,7 +638,7 @@ export default function AdminDashboardPage() {
 						</TabsContent>
 					</Tabs>
 				</ContentContainer>
-			</PageContentSpacing>
+
 		</>
 	);
 }

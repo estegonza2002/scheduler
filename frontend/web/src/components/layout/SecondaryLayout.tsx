@@ -1,7 +1,6 @@
 import React, { ReactNode } from "react";
 import { cn } from "../../lib/utils";
 import { SecondaryNavbar } from "./SecondaryNavbar";
-import { PageContentSpacing } from "../ui/header-content-spacing";
 import { ContentContainer } from "../ui/content-container";
 import { PageHeader } from "../ui/page-header";
 
@@ -42,11 +41,7 @@ export function SecondaryLayout({
 
 				{/* Main content container */}
 				<div className="flex-1">
-					<PageContentSpacing>
-						<ContentContainer className={className}>
-							{children}
-						</ContentContainer>
-					</PageContentSpacing>
+					<ContentContainer className={className}>{children}</ContentContainer>
 				</div>
 			</div>
 		</>

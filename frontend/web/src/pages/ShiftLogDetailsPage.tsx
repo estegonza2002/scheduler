@@ -48,7 +48,6 @@ import { cn } from "../lib/utils";
 import { ExportDropdown } from "../components/ExportDropdown";
 import { ContentContainer } from "../components/ui/content-container";
 import { PageHeader } from "../components/ui/page-header";
-import { PageContentSpacing } from "../components/ui/header-content-spacing";
 
 // Mock data for shifts - in a real app this would come from an API
 const mockShifts = [
@@ -187,7 +186,7 @@ export function ShiftLogDetailsPage() {
 				actions={headerActions}
 				showBackButton={true}
 			/>
-			<PageContentSpacing>
+			
 				<ContentContainer>
 					<div className="space-y-6">
 						<Card>
@@ -451,7 +450,7 @@ export function ShiftLogDetailsPage() {
 						</Card>
 					</div>
 				</ContentContainer>
-			</PageContentSpacing>
+			
 		</>
 	);
 }

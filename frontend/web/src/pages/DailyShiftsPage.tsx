@@ -59,7 +59,7 @@ import {
 } from "../components/ui/dropdown-menu";
 import { DataTable } from "../components/ui/data-table";
 import { PageHeader } from "../components/ui/page-header";
-import { PageContentSpacing } from "../components/ui/header-content-spacing";
+
 import { ContentContainer } from "../components/ui/content-container";
 
 // Export the ShiftCreationSheet with its props for use in the AppLayout
@@ -503,7 +503,7 @@ export default function DailyShiftsPage() {
 					</div>
 				}
 			/>
-			<PageContentSpacing>
+			
 				<ContentContainer>
 					{/* Filters and controls */}
 					<div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -730,7 +730,7 @@ export default function DailyShiftsPage() {
 						</div>
 					)}
 				</ContentContainer>
-			</PageContentSpacing>
+			
 		</>
 	);
 }

@@ -71,7 +71,6 @@ import {
 import { AvatarWithStatus } from "../components/ui/avatar-with-status";
 import { cn } from "../lib/utils";
 import { PageHeader } from "../components/ui/page-header";
-import { PageContentSpacing } from "../components/ui/header-content-spacing";
 
 export default function EmployeesPage() {
 	const [organization, setOrganization] = useState<Organization | null>(null);
@@ -356,247 +355,206 @@ export default function EmployeesPage() {
 							</TooltipContent>
 						</Tooltip>
 
-						<EmployeeSheet
-							onEmployeeAdded={(employee) => {
-								setEmployees((prev) => [...prev, employee]);
-								toast.success(`Added ${employee.name} to the team`);
-							}}>
-							<Button>
-								<Plus className="h-4 w-4 mr-2" />
-								Add Employee
-							</Button>
-						</EmployeeSheet>
+						<Button onClick={() => navigate("/employees/add")}>
+							<Plus className="h-4 w-4 mr-2" />
+							Add Employee
+						</Button>
 					</div>
 				}
 			/>
-			<PageContentSpacing>
-				<ContentContainer>
-					{isLoading ? (
-						<LoadingState
-							message={
-								loadingPhase === "organization"
-									? "Loading organization information..."
-									: "Loading employee data..."
-							}
-							type="spinner"
-						/>
-					) : (
-						<>
-							{/* Filters and view controls */}
-							<div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-								<div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
-									<SearchInput
-										placeholder="Search employees..."
-										onChange={handleSearch}
-										className="w-full sm:w-[300px]"
-									/>
+			<ContentContainer>
+				{isLoading ? (
+					<LoadingState
+						message={
+							loadingPhase === "organization"
+								? "Loading organization information..."
+								: "Loading employee data..."
+						}
+						type="spinner"
+					/>
+				) : (
+					<>
+						{/* Filters and view controls */}
+						<div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+							<div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
+								<SearchInput
+									placeholder="Search employees..."
+									value={searchTerm}
+									onChange={handleSearch}
+									className="w-full sm:w-[300px]"
+								/>
 
-									<FilterGroup>
-										<FilterGroup.Trigger
-											disabled={uniquePositions.length === 0}>
-											<Filter className="h-4 w-4 mr-2" />
-											{getPositionFilterLabel()}
-										</FilterGroup.Trigger>
-										<FilterGroup.Content>
-											<FilterGroup.Header>
-												<FilterGroup.Title>Position</FilterGroup.Title>
-												<FilterGroup.Description>
-													Filter employees by their role or position
-												</FilterGroup.Description>
-											</FilterGroup.Header>
-											<FilterGroup.List>
-												{uniquePositions.map((position) => (
-													<FilterGroup.Item
-														key={position}
-														selected={positionFilter === position}
-														onSelect={() => setPositionFilter(position)}>
-														{position}
-													</FilterGroup.Item>
-												))}
-											</FilterGroup.List>
-											<FilterGroup.Footer>
-												<Button
-													variant="ghost"
-													size="sm"
-													onClick={handleClearFilters}
-													disabled={!positionFilter}>
-													Clear filters
-												</Button>
-											</FilterGroup.Footer>
-										</FilterGroup.Content>
-									</FilterGroup>
-								</div>
-
-								<div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-									<Tooltip>
-										<TooltipTrigger asChild>
-											<Button
-												variant="outline"
-												size="icon"
-												onClick={() => setViewMode("table")}
-												className={
-													viewMode === "table" ? "bg-muted" : "bg-transparent"
-												}>
-												<List className="h-4 w-4" />
-											</Button>
-										</TooltipTrigger>
-										<TooltipContent>List view</TooltipContent>
-									</Tooltip>
-
-									<Tooltip>
-										<TooltipTrigger asChild>
-											<Button
-												variant="outline"
-												size="icon"
-												onClick={() => setViewMode("cards")}
-												className={
-													viewMode === "cards" ? "bg-muted" : "bg-transparent"
-												}>
-												<LayoutGrid className="h-4 w-4" />
-											</Button>
-										</TooltipTrigger>
-										<TooltipContent>Card view</TooltipContent>
-									</Tooltip>
+								<div className="relative">
+									<Button
+										variant="outline"
+										onClick={() => setPositionFilter(null)}
+										className="flex items-center gap-2">
+										<Filter className="h-4 w-4" />
+										{getPositionFilterLabel()}
+									</Button>
 								</div>
 							</div>
 
-							{/* No employees */}
-							{employees.length === 0 && (
-								<EmptyState
-									icon={<User className="h-10 w-10" />}
-									title="No employees yet"
-									description="Add your first employee to get started"
-									actions={
-										<EmployeeSheet
-											onEmployeeAdded={(employee) => {
-												setEmployees((prev) => [...prev, employee]);
-												toast.success(`Added ${employee.name} to the team`);
-											}}>
-											<Button>
-												<Plus className="h-4 w-4 mr-2" />
-												Add Employee
-											</Button>
-										</EmployeeSheet>
-									}
-								/>
-							)}
-
-							{/* Employees exist, but none match filters */}
-							{employees.length > 0 && filteredEmployees.length === 0 && (
-								<EmptyState
-									icon={<AlertCircle className="h-10 w-10" />}
-									title="No matching employees"
-									description={`No employees match the current filters. Try adjusting your search or filters.`}
-									actions={
+							<div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+								<Tooltip>
+									<TooltipTrigger asChild>
 										<Button
 											variant="outline"
-											onClick={handleClearFilters}>
-											Clear all filters
+											size="icon"
+											onClick={() => setViewMode("table")}
+											className={
+												viewMode === "table" ? "bg-muted" : "bg-transparent"
+											}>
+											<List className="h-4 w-4" />
 										</Button>
-									}
-								/>
-							)}
+									</TooltipTrigger>
+									<TooltipContent>List view</TooltipContent>
+								</Tooltip>
 
-							{/* Table view */}
-							{filteredEmployees.length > 0 && viewMode === "table" && (
-								<DataTable
-									columns={columns}
-									data={filteredEmployees}
-									initialPageSize={10}
-								/>
-							)}
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<Button
+											variant="outline"
+											size="icon"
+											onClick={() => setViewMode("cards")}
+											className={
+												viewMode === "cards" ? "bg-muted" : "bg-transparent"
+											}>
+											<LayoutGrid className="h-4 w-4" />
+										</Button>
+									</TooltipTrigger>
+									<TooltipContent>Card view</TooltipContent>
+								</Tooltip>
+							</div>
+						</div>
 
-							{/* Card view */}
-							{filteredEmployees.length > 0 && viewMode === "cards" && (
-								<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-									{filteredEmployees.map((employee) => (
-										<Card
-											key={employee.id}
-											className="cursor-pointer hover:shadow-md transition-shadow"
-											onClick={() => navigate(`/employees/${employee.id}`)}>
-											<CardHeader className="pb-4">
-												<div className="flex justify-between items-start">
-													<AvatarWithStatus
-														fallback={employee.name
-															.split(" ")
-															.map((n) => n[0])
-															.join("")
-															.toUpperCase()}
-														isOnline={employee.isOnline}
-														status={employee.status as any}
-													/>
-													<DropdownMenu>
-														<DropdownMenuTrigger asChild>
-															<Button
-																variant="ghost"
-																size="icon"
-																onClick={(e) => e.stopPropagation()}>
-																<MoreVertical className="h-4 w-4" />
-															</Button>
-														</DropdownMenuTrigger>
-														<DropdownMenuContent align="end">
-															<DropdownMenuItem
-																onClick={(e) => {
-																	e.stopPropagation();
-																	navigate(
-																		`/employees/${employee.id}/earnings`
-																	);
-																}}>
-																<DollarSign className="h-4 w-4 mr-2" />
-																View Earnings
-															</DropdownMenuItem>
-															{/* More dropdown items as needed */}
-														</DropdownMenuContent>
-													</DropdownMenu>
-												</div>
-												<CardTitle className="text-base mt-3">
-													{employee.name}
-												</CardTitle>
-												{(employee.position || employee.role) && (
-													<CardDescription>
-														{employee.position || employee.role}
-													</CardDescription>
-												)}
-											</CardHeader>
-											<CardContent className="pb-4">
-												<div className="space-y-2 text-sm">
-													<div className="flex items-center text-muted-foreground">
-														<Mail className="h-4 w-4 mr-2" />
-														{employee.email}
-													</div>
-													{employee.phone && (
-														<div className="flex items-center text-muted-foreground">
-															<Phone className="h-4 w-4 mr-2" />
-															{employee.phone}
-														</div>
-													)}
-												</div>
-											</CardContent>
-											<CardFooter className="pt-0 border-t flex justify-between">
-												<EmployeeStatusBadge
-													status={employee.status as any}
+						{/* No employees */}
+						{employees.length === 0 && (
+							<EmptyState
+								icon={<User className="h-10 w-10" />}
+								title="No employees yet"
+								description="Add your first employee to get started"
+								action={
+									<Button onClick={() => navigate("/employees/add")}>
+										<Plus className="h-4 w-4 mr-2" />
+										Add Employee
+									</Button>
+								}
+							/>
+						)}
+
+						{/* Employees exist, but none match filters */}
+						{employees.length > 0 && filteredEmployees.length === 0 && (
+							<EmptyState
+								icon={<AlertCircle className="h-10 w-10" />}
+								title="No matching employees"
+								description={`No employees match the current filters. Try adjusting your search or filters.`}
+								action={
+									<Button
+										variant="outline"
+										onClick={handleClearFilters}>
+										Clear all filters
+									</Button>
+								}
+							/>
+						)}
+
+						{/* Table view */}
+						{filteredEmployees.length > 0 && viewMode === "table" && (
+							<DataTable
+								columns={columns}
+								data={filteredEmployees}
+							/>
+						)}
+
+						{/* Card view */}
+						{filteredEmployees.length > 0 && viewMode === "cards" && (
+							<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+								{filteredEmployees.map((employee) => (
+									<Card
+										key={employee.id}
+										className="cursor-pointer hover:shadow-md transition-shadow"
+										onClick={() => navigate(`/employee-detail/${employee.id}`)}>
+										<CardHeader className="pb-4">
+											<div className="flex justify-between items-start">
+												<AvatarWithStatus
+													fallback={employee.name
+														.split(" ")
+														.map((n) => n[0])
+														.join("")
+														.toUpperCase()}
 													isOnline={employee.isOnline}
-													lastActive={employee.lastActive}
+													status={employee.status as any}
 												/>
-												<Button
-													variant="ghost"
-													size="sm"
-													asChild
-													className="ml-auto">
-													<div className="flex items-center">
-														View
-														<ChevronRight className="h-4 w-4 ml-1" />
+												<DropdownMenu>
+													<DropdownMenuTrigger asChild>
+														<Button
+															variant="ghost"
+															size="icon"
+															onClick={(e) => e.stopPropagation()}>
+															<MoreVertical className="h-4 w-4" />
+														</Button>
+													</DropdownMenuTrigger>
+													<DropdownMenuContent align="end">
+														<DropdownMenuItem
+															onClick={(e) => {
+																e.stopPropagation();
+																navigate(`/employee-earnings/${employee.id}`);
+															}}>
+															<DollarSign className="h-4 w-4 mr-2" />
+															View Earnings
+														</DropdownMenuItem>
+														{/* More dropdown items as needed */}
+													</DropdownMenuContent>
+												</DropdownMenu>
+											</div>
+											<CardTitle className="text-base mt-3">
+												{employee.name}
+											</CardTitle>
+											{(employee.position || employee.role) && (
+												<CardDescription>
+													{employee.position || employee.role}
+												</CardDescription>
+											)}
+										</CardHeader>
+										<CardContent className="pb-4">
+											<div className="space-y-2 text-sm">
+												<div className="flex items-center text-muted-foreground">
+													<Mail className="h-4 w-4 mr-2" />
+													{employee.email}
+												</div>
+												{employee.phone && (
+													<div className="flex items-center text-muted-foreground">
+														<Phone className="h-4 w-4 mr-2" />
+														{employee.phone}
 													</div>
-												</Button>
-											</CardFooter>
-										</Card>
-									))}
-								</div>
-							)}
-						</>
-					)}
-				</ContentContainer>
-			</PageContentSpacing>
+												)}
+											</div>
+										</CardContent>
+										<CardFooter className="pt-0 border-t flex justify-between">
+											<EmployeeStatusBadge
+												status={employee.status as any}
+												isOnline={employee.isOnline}
+												lastActive={employee.lastActive}
+											/>
+											<Button
+												variant="ghost"
+												size="sm"
+												asChild
+												className="ml-auto">
+												<div className="flex items-center">
+													View
+													<ChevronRight className="h-4 w-4 ml-1" />
+												</div>
+											</Button>
+										</CardFooter>
+									</Card>
+								))}
+							</div>
+						)}
+					</>
+				)}
+			</ContentContainer>
 		</>
 	);
 }

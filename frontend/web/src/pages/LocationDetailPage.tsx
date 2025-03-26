@@ -40,7 +40,6 @@ import { LocationEditSheet } from "../components/LocationEditSheet";
 import { LocationInsights } from "../components/LocationInsights";
 import { LocationSubNav } from "../components/LocationSubNav";
 import { PageHeader } from "../components/ui/page-header";
-import { PageContentSpacing } from "../components/ui/header-content-spacing";
 
 // Update Location type to include optional fields
 interface ExtendedLocation extends Location {
@@ -233,7 +232,7 @@ export default function LocationDetailPage() {
 				actions={ActionButtons}
 				showBackButton={true}
 			/>
-			<PageContentSpacing>
+			
 				<ContentContainer>
 					<LocationSubNav
 						locationId={locationId || ""}
@@ -376,7 +375,7 @@ export default function LocationDetailPage() {
 						)}
 					</div>
 				</ContentContainer>
-			</PageContentSpacing>
+			
 		</>
 	);
 }

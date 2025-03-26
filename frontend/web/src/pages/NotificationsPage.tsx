@@ -54,7 +54,6 @@ import { NotificationItem } from "../components/NotificationItem";
 
 import { ContentContainer } from "../components/ui/content-container";
 import { PageHeader } from "../components/ui/page-header";
-import { PageContentSpacing } from "../components/ui/header-content-spacing";
 
 export default function NotificationsPage() {
 	const {
@@ -282,7 +281,7 @@ export default function NotificationsPage() {
 				description="Manage and view all your notifications"
 				actions={headerActions}
 			/>
-			<PageContentSpacing>
+			
 				<ContentContainer>
 					<div className="space-y-4">
 						<div className="flex flex-col md:flex-row gap-4">
@@ -471,7 +470,7 @@ export default function NotificationsPage() {
 						)}
 					</div>
 				</ContentContainer>
-			</PageContentSpacing>
+			
 		</>
 	);
 }

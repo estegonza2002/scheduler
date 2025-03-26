@@ -28,7 +28,6 @@ import {
 } from "../components/ui/table";
 import { format, parseISO } from "date-fns";
 import { PageHeader } from "../components/ui/page-header";
-import { PageContentSpacing } from "../components/ui/header-content-spacing";
 
 export default function LocationShiftPage() {
 	const { locationId } = useParams<{ locationId: string }>();
@@ -153,7 +152,6 @@ export default function LocationShiftPage() {
 					description="Retrieving location shift information"
 					showBackButton={true}
 				/>
-				<PageContentSpacing>
 					<ContentContainer>
 						<LoadingState
 							type="spinner"
@@ -161,7 +159,6 @@ export default function LocationShiftPage() {
 							className="py-12"
 						/>
 					</ContentContainer>
-				</PageContentSpacing>
 			</>
 		);
 	}
@@ -174,7 +171,6 @@ export default function LocationShiftPage() {
 					description="The requested location could not be found"
 					showBackButton={true}
 				/>
-				<PageContentSpacing>
 					<ContentContainer>
 						<ContentSection
 							title="Location not found"
@@ -193,7 +189,6 @@ export default function LocationShiftPage() {
 							</p>
 						</ContentSection>
 					</ContentContainer>
-				</PageContentSpacing>
 			</>
 		);
 	}
@@ -219,7 +214,6 @@ export default function LocationShiftPage() {
 				actions={headerActions}
 				showBackButton={true}
 			/>
-			<PageContentSpacing>
 				<ContentContainer>
 					<LocationSubNav
 						locationId={locationId || ""}
@@ -424,7 +418,6 @@ export default function LocationShiftPage() {
 						</ContentSection>
 					</div>
 				</ContentContainer>
-			</PageContentSpacing>
 		</>
 	);
 }

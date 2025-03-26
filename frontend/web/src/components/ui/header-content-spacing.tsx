@@ -43,31 +43,3 @@ export function HeaderContentSpacing({
 /**
  * Page-specific spacing component
  */
-export function PageContentSpacing({
-	children,
-	className,
-}: Omit<HeaderContentSpacingProps, "type">) {
-	return (
-		<HeaderContentSpacing
-			type="page"
-			className={className}>
-			{children}
-		</HeaderContentSpacing>
-	);
-}
-
-/**
- * Section-specific spacing component
- */
-export function SectionContentSpacing({
-	children,
-	className,
-}: Omit<HeaderContentSpacingProps, "type">) {
-	return (
-		<HeaderContentSpacing
-			type="section"
-			className={className}>
-			{children}
-		</HeaderContentSpacing>
-	);
-}

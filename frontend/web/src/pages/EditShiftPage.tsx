@@ -25,7 +25,6 @@ import { ContentContainer } from "../components/ui/content-container";
 import { FormSection } from "../components/ui/form-section";
 import { LoadingState } from "../components/ui/loading-state";
 import { PageHeader } from "../components/ui/page-header";
-import { PageContentSpacing } from "../components/ui/header-content-spacing";
 
 export default function EditShiftPage() {
 	const { shiftId } = useParams<{ shiftId: string }>();
@@ -152,7 +151,7 @@ export default function EditShiftPage() {
 					description="Loading shift information..."
 					showBackButton={true}
 				/>
-				<PageContentSpacing>
+				
 					<ContentContainer>
 						<LoadingState
 							type="spinner"
@@ -160,7 +159,7 @@ export default function EditShiftPage() {
 							className="py-12"
 						/>
 					</ContentContainer>
-				</PageContentSpacing>
+				
 			</>
 		);
 	}
@@ -173,7 +172,7 @@ export default function EditShiftPage() {
 				actions={ActionButtons}
 				showBackButton={true}
 			/>
-			<PageContentSpacing>
+			
 				<ContentContainer>
 					<div className="max-w-3xl mx-auto">
 						<form
@@ -281,7 +280,7 @@ export default function EditShiftPage() {
 						</form>
 					</div>
 				</ContentContainer>
-			</PageContentSpacing>
+			
 		</>
 	);
 }

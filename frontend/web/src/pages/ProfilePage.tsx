@@ -79,7 +79,7 @@ import { calculateHours } from "../utils/time-calculations";
 import { Badge } from "../components/ui/badge";
 import { cn } from "../lib/utils";
 import { PageHeader } from "../components/ui/page-header";
-import { PageContentSpacing } from "../components/ui/header-content-spacing";
+
 import { SecondaryLayout } from "../components/layout/SecondaryLayout";
 import { LoadingState } from "../components/ui/loading-state";
 

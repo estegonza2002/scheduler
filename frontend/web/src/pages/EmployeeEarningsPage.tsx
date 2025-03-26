@@ -70,7 +70,6 @@ import {
 import { cn } from "../lib/utils";
 import { toast } from "sonner";
 import { PageHeader } from "../components/ui/page-header";
-import { PageContentSpacing } from "../components/ui/header-content-spacing";
 
 // Types for report data
 interface EarningsReportItem {
@@ -472,7 +471,7 @@ export default function EmployeeEarningsPage() {
 				actions={headerActions}
 				showBackButton={true}
 			/>
-			<PageContentSpacing>
+			
 				<ContentContainer>
 					{/* Page Header */}
 					<ContentSection
@@ -796,7 +795,7 @@ export default function EmployeeEarningsPage() {
 						)}
 					</ContentSection>
 				</ContentContainer>
-			</PageContentSpacing>
+			
 		</>
 	);
 }

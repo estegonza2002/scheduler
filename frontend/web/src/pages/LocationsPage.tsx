@@ -43,7 +43,7 @@ import { Input } from "../components/ui/input";
 import { cn } from "../lib/utils";
 import { LocationCreationSheet } from "../components/LocationCreationSheet";
 import { PageHeader } from "../components/ui/page-header";
-import { PageContentSpacing } from "../components/ui/header-content-spacing";
+
 import { ContentContainer } from "../components/ui/content-container";
 
 export default function LocationsPage() {
@@ -294,7 +294,7 @@ export default function LocationsPage() {
 					)
 				}
 			/>
-			<PageContentSpacing>
+			
 				<ContentContainer>
 					{/* Stats Cards */}
 					<div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
@@ -585,7 +585,7 @@ export default function LocationsPage() {
 						</>
 					)}
 				</ContentContainer>
-			</PageContentSpacing>
+			
 		</>
 	);
 }

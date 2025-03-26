@@ -39,7 +39,7 @@ import {
 	CardTitle,
 } from "../components/ui/card";
 import { PageHeader } from "../components/ui/page-header";
-import { PageContentSpacing } from "../components/ui/header-content-spacing";
+
 import { ProfileSidebar } from "../components/layout/SecondaryNavbar";
 import { Badge } from "../components/ui/badge";
 import { EmptyState } from "../components/ui/empty-state";
@@ -249,7 +249,7 @@ export default function BusinessProfilePage() {
 					title="Business Profile"
 					description="Manage your business information"
 				/>
-				<PageContentSpacing>
+				
 					<ContentContainer>
 						<Tabs
 							defaultValue="profile"
@@ -779,7 +779,7 @@ export default function BusinessProfilePage() {
 							</TabsContent>
 						</Tabs>
 					</ContentContainer>
-				</PageContentSpacing>
+				
 			</div>
 		</>
 	);

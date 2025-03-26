@@ -30,7 +30,6 @@ import { Card, CardContent } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Separator } from "../components/ui/separator";
 import { PageHeader } from "../components/ui/page-header";
-import { PageContentSpacing } from "../components/ui/header-content-spacing";
 
 export default function SchedulePage() {
 	const [searchParams] = useSearchParams();
@@ -152,7 +151,7 @@ export default function SchedulePage() {
 					</div>
 				}
 			/>
-			<PageContentSpacing>
+			
 				<ContentContainer>
 					<Card>
 						<CardContent className="p-4">
@@ -217,7 +216,7 @@ export default function SchedulePage() {
 						</Card>
 					)}
 				</ContentContainer>
-			</PageContentSpacing>
+			
 		</>
 	);
 }

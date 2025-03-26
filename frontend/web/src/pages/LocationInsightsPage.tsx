@@ -21,7 +21,6 @@ import { ChevronLeft, BarChart, Users, Clock, DollarSign } from "lucide-react";
 import { toast } from "sonner";
 import { Card } from "../components/ui/card";
 import { PageHeader } from "../components/ui/page-header";
-import { PageContentSpacing } from "../components/ui/header-content-spacing";
 
 export default function LocationInsightsPage() {
 	const { locationId } = useParams<{ locationId: string }>();
@@ -87,7 +86,7 @@ export default function LocationInsightsPage() {
 					description="Retrieving location insights"
 					showBackButton={true}
 				/>
-				<PageContentSpacing>
+				
 					<ContentContainer>
 						<LoadingState
 							type="spinner"
@@ -95,7 +94,7 @@ export default function LocationInsightsPage() {
 							className="py-12"
 						/>
 					</ContentContainer>
-				</PageContentSpacing>
+				
 			</>
 		);
 	}
@@ -108,7 +107,7 @@ export default function LocationInsightsPage() {
 					description="The requested location could not be found"
 					showBackButton={true}
 				/>
-				<PageContentSpacing>
+				
 					<ContentContainer>
 						<ContentSection
 							title="Location not found"
@@ -127,7 +126,7 @@ export default function LocationInsightsPage() {
 							</p>
 						</ContentSection>
 					</ContentContainer>
-				</PageContentSpacing>
+				
 			</>
 		);
 	}
@@ -139,7 +138,7 @@ export default function LocationInsightsPage() {
 				description="Detailed analytics and performance metrics for this location"
 				showBackButton={true}
 			/>
-			<PageContentSpacing>
+			
 				<ContentContainer>
 					<LocationSubNav
 						locationId={locationId || ""}
@@ -229,7 +228,7 @@ export default function LocationInsightsPage() {
 						</ContentSection>
 					</div>
 				</ContentContainer>
-			</PageContentSpacing>
+			
 		</>
 	);
 }

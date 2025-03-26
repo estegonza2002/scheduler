@@ -7,7 +7,7 @@ import { OrganizationsAPI, type Organization } from "../api";
 import { ProfileSidebar } from "../components/layout/SecondaryNavbar";
 import { Separator } from "../components/ui/separator";
 import { PageHeader } from "../components/ui/page-header";
-import { PageContentSpacing } from "../components/ui/header-content-spacing";
+
 import { ContentContainer } from "../components/ui/content-container";
 import { SecondaryLayout } from "../components/layout/SecondaryLayout";
 import { LoadingState } from "../components/ui/loading-state";
