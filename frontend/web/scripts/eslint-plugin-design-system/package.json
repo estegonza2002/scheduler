@@ -1,0 +1,14 @@
+{
+	"name": "eslint-plugin-design-system",
+	"version": "0.1.0",
+	"description": "ESLint plugin to enforce design system standards",
+	"main": "index.js",
+	"author": "Design System Team",
+	"license": "MIT",
+	"peerDependencies": {
+		"eslint": ">=8.0.0"
+	},
+	"engines": {
+		"node": ">=14.0.0"
+	}
+}

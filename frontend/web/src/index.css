@@ -2,8 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Import header spacing variables */
-@import "./styles/header-spacing.css";
 
 @layer base {
 	:root {

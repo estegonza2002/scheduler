@@ -29,7 +29,6 @@ import { ShiftsAPI, EmployeesAPI, LocationsAPI } from "../api";
 import { ContentContainer } from "../components/ui/content-container";
 import { ContentSection } from "../components/ui/content-section";
 import { EmptyState } from "../components/ui/empty-state";
-import { SectionContentSpacing } from "../components/ui/header-content-spacing";
 import { Shift, Employee, Location } from "../api/mock/types";
 import { format, addDays } from "date-fns";
 import { FormulaExplainer } from "../components/ui/formula-explainer";

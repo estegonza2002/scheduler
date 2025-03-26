@@ -44,13 +44,8 @@ import {
 } from "./ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Calendar } from "./ui/calendar";
-import {
-	Card,
-	CardContent,
-	CardHeader,
-	CardTitle,
-	CardDescription,
-} from "./ui/card";
+import { ContentContainer } from "./ui/content-container";
+import { ContentSection } from "./ui/content-section";
 import { FormSection } from "./ui/form-section";
 import { LoadingState } from "./ui/loading-state";
 
@@ -158,14 +153,16 @@ export function ShiftCreationForm({
 				data.endTime
 			}:00`;
 
-			await ShiftsAPI.create({
-				scheduleId,
-				locationId: data.locationId,
-				employeeId: data.employeeId,
-				startTime: startDateTime,
-				endTime: endDateTime,
-				role: data.role,
-				notes: data.notes,
+			await ShiftsAPI.createShift({
+				parent_shift_id: scheduleId,
+				is_schedule: false,
+				organization_id: organizationId,
+				location_id: data.locationId,
+				user_id: data.employeeId,
+				start_time: startDateTime,
+				end_time: endDateTime,
+				position: data.role,
+				description: data.notes,
 			});
 
 			toast.success("Shift created successfully");
@@ -195,12 +192,10 @@ export function ShiftCreationForm({
 	}
 
 	return (
-		<Card>
-			<CardHeader>
-				<CardTitle className="text-xl">Create New Shift</CardTitle>
-				<CardDescription>Schedule a new shift for an employee</CardDescription>
-			</CardHeader>
-			<CardContent>
+		<ContentContainer>
+			<ContentSection
+				title="Create New Shift"
+				description="Schedule a new shift for an employee">
 				<Form {...form}>
 					<form
 						onSubmit={form.handleSubmit(onSubmit)}
@@ -426,7 +421,7 @@ export function ShiftCreationForm({
 						</div>
 					</form>
 				</Form>
-			</CardContent>
-		</Card>
+			</ContentSection>
+		</ContentContainer>
 	);
 }

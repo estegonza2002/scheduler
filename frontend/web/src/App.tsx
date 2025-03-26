@@ -41,6 +41,7 @@ import { ShiftsPage } from "./pages/ShiftsPage";
 import { ShiftLogDetailsPage } from "./pages/ShiftLogDetailsPage";
 import LocationEmployeesPage from "./pages/LocationEmployeesPage";
 import LocationInsightsPage from "./pages/LocationInsightsPage";
+import DesignSystemShowcasePage from "./pages/DesignSystemShowcasePage";
 
 // Root redirect component that checks user role
 function RootRedirect() {
@@ -219,6 +220,10 @@ function App() {
 										<Route
 											path="/employee-earnings/:employeeId"
 											element={<EmployeeEarningsPage />}
+										/>
+										<Route
+											path="/design-system"
+											element={<DesignSystemShowcasePage />}
 										/>
 										{/* Add more protected routes here */}
 									</Route>

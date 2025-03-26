@@ -15,6 +15,7 @@ import {
 	User,
 	Sparkles,
 	ClipboardList,
+	Palette,
 } from "lucide-react";
 
 import {
@@ -168,7 +169,15 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 	];
 
 	// New user profile items
-	const userProfileItems: NavItem[] = [];
+	const userProfileItems: NavItem[] = [
+		{
+			icon: <Palette className="h-5 w-5" />,
+			label: "Design System",
+			href: "/design-system",
+			isActive: isRouteActive("/design-system"),
+			adminOnly: true,
+		},
+	];
 
 	// Add the billing/upgrade option separately so we can highlight it when it's an upgrade
 	const billingItem: NavItem = {
