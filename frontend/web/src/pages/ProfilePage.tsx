@@ -206,15 +206,15 @@ function ShiftsSection({ userId }: ShiftsSectionProps) {
 				const allShifts = await ShiftsAPI.getAll();
 				// Filter for this specific user's shifts
 				const userShifts = allShifts.filter(
-					(shift) => shift.employeeId === userId
+					(shift) => shift.user_id === userId
 				);
 				setShifts(userShifts);
 
 				// Collect all location IDs
 				const locationIds = new Set<string>();
 				userShifts.forEach((shift) => {
-					if (shift.locationId) {
-						locationIds.add(shift.locationId);
+					if (shift.location_id) {
+						locationIds.add(shift.location_id);
 					}
 				});
 
@@ -229,8 +229,8 @@ function ShiftsSection({ userId }: ShiftsSectionProps) {
 				setLocations(locationsMap);
 
 				// Set assigned location (primary location for the user)
-				if (userShifts.length > 0 && userShifts[0].locationId) {
-					setAssignedLocation(locationsMap[userShifts[0].locationId] || null);
+				if (userShifts.length > 0 && userShifts[0].location_id) {
+					setAssignedLocation(locationsMap[userShifts[0].location_id] || null);
 				}
 			} catch (error) {
 				console.error("Error fetching user shifts:", error);
@@ -246,23 +246,23 @@ function ShiftsSection({ userId }: ShiftsSectionProps) {
 	// Filter shifts into current, upcoming, and previous
 	const currentShifts = shifts.filter(
 		(shift) =>
-			isAfter(parseISO(shift.endTime), now) &&
-			isBefore(parseISO(shift.startTime), now)
+			isAfter(parseISO(shift.end_time), now) &&
+			isBefore(parseISO(shift.start_time), now)
 	);
 
 	const upcomingShifts = shifts
-		.filter((shift) => isAfter(parseISO(shift.startTime), now))
+		.filter((shift) => isAfter(parseISO(shift.start_time), now))
 		.sort(
 			(a, b) =>
-				parseISO(a.startTime).getTime() - parseISO(b.startTime).getTime()
+				parseISO(a.start_time).getTime() - parseISO(b.start_time).getTime()
 		)
 		.slice(0, 5); // Get next 5 upcoming shifts
 
 	const previousShifts = shifts
-		.filter((shift) => isBefore(parseISO(shift.endTime), now))
+		.filter((shift) => isBefore(parseISO(shift.end_time), now))
 		.sort(
 			(a, b) =>
-				parseISO(b.startTime).getTime() - parseISO(a.startTime).getTime()
+				parseISO(b.start_time).getTime() - parseISO(a.start_time).getTime()
 		)
 		.slice(0, 5); // Get last 5 previous shifts
 
@@ -282,29 +282,29 @@ function ShiftsSection({ userId }: ShiftsSectionProps) {
 					<div className="flex justify-between items-start">
 						<div>
 							<h4 className="font-medium">
-								{format(parseISO(shift.startTime), "EEE, MMM d")}
+								{format(parseISO(shift.start_time), "EEE, MMM d")}
 							</h4>
 							<p className="text-sm text-muted-foreground">
-								{format(parseISO(shift.startTime), "h:mm a")} -{" "}
-								{format(parseISO(shift.endTime), "h:mm a")}
+								{format(parseISO(shift.start_time), "h:mm a")} -{" "}
+								{format(parseISO(shift.end_time), "h:mm a")}
 								<span className="mx-1">•</span>
-								{calculateHours(shift.startTime, shift.endTime)} hours
+								{calculateHours(shift.start_time, shift.end_time)} hours
 							</p>
 						</div>
 						<div>
-							{shift.role && (
+							{shift.position && (
 								<Badge
 									variant="outline"
 									className="text-xs">
-									{shift.role}
+									{shift.position}
 								</Badge>
 							)}
 						</div>
 					</div>
-					{shift.locationId && (
+					{shift.location_id && (
 						<div className="mt-2 text-xs flex items-center text-muted-foreground">
 							<MapPin className="h-3 w-3 mr-1" />
-							<span>{getLocationName(shift.locationId)}</span>
+							<span>{getLocationName(shift.location_id)}</span>
 						</div>
 					)}
 				</CardContent>

@@ -30,6 +30,9 @@ import { EmptyState } from "../components/ui/empty-state";
 import { Shift, Employee, Location } from "../api/mock/types";
 import { format, addDays } from "date-fns";
 import { FormulaExplainer } from "../components/ui/formula-explainer";
+import { PageHeader } from "../components/ui/page-header";
+import { ContentContainer } from "../components/ui/content-container";
+import { ContentSection } from "../components/ui/content-section";
 
 export default function DashboardPage() {
 	const { user } = useAuth();
@@ -208,13 +211,11 @@ export default function DashboardPage() {
 	if (isLoading) {
 		return (
 			<>
-				<div className="flex flex-col mb-6">
-					<h1 className="text-2xl font-bold">Dashboard</h1>
-					<p className="text-muted-foreground mt-1">
-						Loading your personal dashboard
-					</p>
-				</div>
-				<div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+				<PageHeader
+					title="Dashboard"
+					description="Loading your personal dashboard"
+				/>
+				<ContentContainer>
 					<div className="flex items-center justify-center py-12">
 						<div className="flex flex-col items-center gap-2">
 							<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -223,257 +224,262 @@ export default function DashboardPage() {
 							</p>
 						</div>
 					</div>
-				</div>
+				</ContentContainer>
 			</>
 		);
 	}
 
 	return (
 		<>
-			<div className="flex flex-col mb-6">
-				<h1 className="text-2xl font-bold">Dashboard</h1>
-				<p className="text-muted-foreground mt-1">
-					Welcome back, {user?.user_metadata?.firstName || "Employee"}
-				</p>
-			</div>
-			<div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+			<PageHeader
+				title="Dashboard"
+				description={`Welcome back, ${
+					user?.user_metadata?.firstName || "Employee"
+				}`}
+			/>
+
+			<ContentContainer>
 				{/* Personalized greeting */}
-				<div className="mb-6">
-					<h1 className="text-2xl font-bold">
-						{getGreeting()}, {employee?.name || "there"}!
-					</h1>
-					<p className="text-muted-foreground">
-						{isWorkingToday
+				<ContentSection
+					title={`${getGreeting()}, ${employee?.name || "there"}!`}
+					description={
+						isWorkingToday
 							? "You have shifts scheduled today."
 							: nextShift
 							? `Your next shift is on ${format(
 									new Date(nextShift.start_time),
 									"EEEE, MMMM d"
 							  )}`
-							: "You have no upcoming shifts."}
-					</p>
-				</div>
-
-				{/* Today's shift status card */}
-				<Card>
-					<CardHeader>
-						<CardTitle className="text-base flex items-center">
-							{isWorkingToday ? (
-								<Clock className="h-5 w-5 mr-2" />
-							) : (
-								<CalendarDays className="h-5 w-5 mr-2" />
-							)}
-							{isWorkingToday
-								? "You're scheduled to work today"
-								: "You're not scheduled to work today"}
-						</CardTitle>
-					</CardHeader>
-					<CardContent className="px-6 py-4">
-						<div className="flex flex-col">
-							{isWorkingToday && myShifts.length > 0 && (
-								<div className="space-y-3">
-									{myShifts.map((shift, index) => (
-										<div
-											key={shift.id}
-											className="flex flex-col p-3 rounded-md bg-muted">
-											<div className="flex justify-between items-center">
-												<p className="text-sm font-medium">
-													{formatShiftTime(shift)} at{" "}
-													{locations.find((l) => l.id === shift.location_id)
-														?.name || "Unknown location"}
-												</p>
-												<Link to={`/shifts/${shift.id}`}>
-													<Button
-														variant="ghost"
-														size="sm"
-														className="h-8 px-2">
-														View Details
-													</Button>
-												</Link>
+							: "You have no upcoming shifts."
+					}
+					flat>
+					{/* Today's shift status card */}
+					<Card>
+						<CardHeader>
+							<CardTitle className="text-base flex items-center">
+								{isWorkingToday ? (
+									<Clock className="h-5 w-5 mr-2" />
+								) : (
+									<CalendarDays className="h-5 w-5 mr-2" />
+								)}
+								{isWorkingToday
+									? "You're scheduled to work today"
+									: "You're not scheduled to work today"}
+							</CardTitle>
+						</CardHeader>
+						<CardContent className="px-6 py-4">
+							<div className="flex flex-col">
+								{isWorkingToday && myShifts.length > 0 && (
+									<div className="space-y-3">
+										{myShifts.map((shift, index) => (
+											<div
+												key={shift.id}
+												className="flex flex-col p-3 rounded-md bg-muted">
+												<div className="flex justify-between items-center">
+													<p className="text-sm font-medium">
+														{formatShiftTime(shift)} at{" "}
+														{locations.find((l) => l.id === shift.location_id)
+															?.name || "Unknown location"}
+													</p>
+													<Link to={`/shifts/${shift.id}`}>
+														<Button
+															variant="ghost"
+															size="sm"
+															className="h-8 px-2">
+															View Details
+														</Button>
+													</Link>
+												</div>
+												{shift.position && (
+													<p className="text-xs mt-1">
+														<span className="inline-flex items-center bg-muted/80 px-2 py-0.5 rounded">
+															{shift.position}
+														</span>
+													</p>
+												)}
 											</div>
-											{shift.position && (
-												<p className="text-xs mt-1">
-													<span className="inline-flex items-center bg-muted/80 px-2 py-0.5 rounded">
-														{shift.position}
-													</span>
-												</p>
-											)}
+										))}
+										<div className="mt-2">
+											<Button
+												variant="outline"
+												size="sm">
+												<Clock className="h-3 w-3 mr-2" />
+												Clock In
+											</Button>
 										</div>
-									))}
-									<div className="mt-2">
-										<Button
-											variant="outline"
-											size="sm">
-											<Clock className="h-3 w-3 mr-2" />
-											Clock In
-										</Button>
 									</div>
-								</div>
-							)}
-							{!isWorkingToday && nextShift && (
-								<p className="text-sm mt-1">
-									Your next shift is on{" "}
-									<strong>
-										{format(new Date(nextShift.start_time), "EEEE, MMMM d")}
-									</strong>{" "}
-									at {format(new Date(nextShift.start_time), "h:mm a")}
-								</p>
-							)}
-						</div>
-					</CardContent>
-				</Card>
+								)}
+								{!isWorkingToday && nextShift && (
+									<p className="text-sm mt-1">
+										Your next shift is on{" "}
+										<strong>
+											{format(new Date(nextShift.start_time), "EEEE, MMMM d")}
+										</strong>{" "}
+										at {format(new Date(nextShift.start_time), "h:mm a")}
+									</p>
+								)}
+							</div>
+						</CardContent>
+					</Card>
+				</ContentSection>
 
 				{/* My metrics */}
-				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-					{/* Hours this week */}
-					<Card className="border-2 border-blue-100 hover:border-blue-200 transition-colors">
-						<CardHeader className="pb-2 pt-4 px-4 bg-gradient-to-r from-blue-50 to-transparent">
-							<CardTitle className="text-sm flex items-center justify-between text-blue-700">
-								<span className="flex items-center gap-2">
-									<Clock className="h-4 w-4" />
-									My Hours
-								</span>
-								<FormulaExplainer
-									formula="Hours This Week = Σ(End Time - Start Time) for all shifts in current week"
-									description="Sum of all hours worked or scheduled to work in the current week, calculated from the difference between shift end and start times."
-									example="If you worked shifts of 4 hours on Monday, 6 hours on Wednesday, and 5 hours on Friday, your total hours for the week would be 4 + 6 + 5 = 15 hours."
-									variantColor="blue"
-								/>
-							</CardTitle>
-						</CardHeader>
-						<CardContent className="pt-2 px-4 pb-4">
-							<div className="text-2xl font-bold">
-								{personalStats.hoursThisWeek}
-							</div>
-						</CardContent>
-					</Card>
+				<ContentSection
+					title="My Stats"
+					description="Your current performance metrics"
+					flat>
+					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+						{/* Hours this week */}
+						<Card className="border-2 border-blue-100 hover:border-blue-200 transition-colors">
+							<CardHeader className="pb-2 pt-4 px-4 bg-gradient-to-r from-blue-50 to-transparent">
+								<CardTitle className="text-sm flex items-center justify-between text-blue-700">
+									<span className="flex items-center gap-2">
+										<Clock className="h-4 w-4" />
+										My Hours
+									</span>
+									<FormulaExplainer
+										formula="Hours This Week = Σ(End Time - Start Time) for all shifts in current week"
+										description="Sum of all hours worked or scheduled to work in the current week, calculated from the difference between shift end and start times."
+										example="If you worked shifts of 4 hours on Monday, 6 hours on Wednesday, and 5 hours on Friday, your total hours for the week would be 4 + 6 + 5 = 15 hours."
+										variantColor="blue"
+									/>
+								</CardTitle>
+							</CardHeader>
+							<CardContent className="pt-2 px-4 pb-4">
+								<div className="text-2xl font-bold">
+									{personalStats.hoursThisWeek}
+								</div>
+							</CardContent>
+						</Card>
 
-					{/* Earnings */}
-					<Card className="border-2 border-green-100 hover:border-green-200 transition-colors">
-						<CardHeader className="pb-2 pt-4 px-4 bg-gradient-to-r from-green-50 to-transparent">
-							<CardTitle className="text-sm flex items-center justify-between text-green-700">
-								<span className="flex items-center gap-2">
-									<CreditCard className="h-4 w-4" />
-									My Earnings
-								</span>
-								<FormulaExplainer
-									formula="Earnings This Week = Hours This Week × Hourly Rate"
-									description="Total earnings for the current week, calculated by multiplying your worked hours by your hourly rate."
-									example="If you worked 15 hours this week with an hourly rate of $20, your earnings would be 15 × $20 = $300."
-									variables={[
-										{
-											name: "Hours This Week",
-											description:
-												"Total hours worked or scheduled in the current week",
-										},
-										{
-											name: "Hourly Rate",
-											description: "Your hourly compensation rate",
-										},
-									]}
-									variantColor="green"
-								/>
-							</CardTitle>
-						</CardHeader>
-						<CardContent className="pt-2 px-4 pb-4">
-							<div className="text-2xl font-bold">
-								${personalStats.earningsThisWeek}
-							</div>
-						</CardContent>
-					</Card>
+						{/* Earnings */}
+						<Card className="border-2 border-green-100 hover:border-green-200 transition-colors">
+							<CardHeader className="pb-2 pt-4 px-4 bg-gradient-to-r from-green-50 to-transparent">
+								<CardTitle className="text-sm flex items-center justify-between text-green-700">
+									<span className="flex items-center gap-2">
+										<CreditCard className="h-4 w-4" />
+										My Earnings
+									</span>
+									<FormulaExplainer
+										formula="Earnings This Week = Hours This Week × Hourly Rate"
+										description="Total earnings for the current week, calculated by multiplying your worked hours by your hourly rate."
+										example="If you worked 15 hours this week with an hourly rate of $20, your earnings would be 15 × $20 = $300."
+										variables={[
+											{
+												name: "Hours This Week",
+												description:
+													"Total hours worked or scheduled in the current week",
+											},
+											{
+												name: "Hourly Rate",
+												description: "Your hourly compensation rate",
+											},
+										]}
+										variantColor="green"
+									/>
+								</CardTitle>
+							</CardHeader>
+							<CardContent className="pt-2 px-4 pb-4">
+								<div className="text-2xl font-bold">
+									${personalStats.earningsThisWeek}
+								</div>
+							</CardContent>
+						</Card>
 
-					{/* Shifts */}
-					<Card className="border-2 border-purple-100 hover:border-purple-200 transition-colors">
-						<CardHeader className="pb-2 pt-4 px-4 bg-gradient-to-r from-purple-50 to-transparent">
-							<CardTitle className="text-sm flex items-center justify-between text-purple-700">
-								<span className="flex items-center gap-2">
-									<CalendarCheck className="h-4 w-4" />
-									My Shifts
-								</span>
-								<FormulaExplainer
-									formula="Upcoming Shifts = Count(Shifts where Start Time > Current Time)"
-									description="The total number of shifts scheduled for you that haven't started yet."
-									example="If today is Monday and you have shifts scheduled for Tuesday, Wednesday, and Friday, your upcoming shifts count would be 3."
-									variantColor="purple"
-								/>
-							</CardTitle>
-						</CardHeader>
-						<CardContent className="pt-2 px-4 pb-4">
-							<div className="text-2xl font-bold">
-								{personalStats.shiftsUpcoming}
-							</div>
-						</CardContent>
-					</Card>
+						{/* Shifts */}
+						<Card className="border-2 border-purple-100 hover:border-purple-200 transition-colors">
+							<CardHeader className="pb-2 pt-4 px-4 bg-gradient-to-r from-purple-50 to-transparent">
+								<CardTitle className="text-sm flex items-center justify-between text-purple-700">
+									<span className="flex items-center gap-2">
+										<CalendarCheck className="h-4 w-4" />
+										My Shifts
+									</span>
+									<FormulaExplainer
+										formula="Upcoming Shifts = Count(Shifts where Start Time > Current Time)"
+										description="The total number of shifts scheduled for you that haven't started yet."
+										example="If today is Monday and you have shifts scheduled for Tuesday, Wednesday, and Friday, your upcoming shifts count would be 3."
+										variantColor="purple"
+									/>
+								</CardTitle>
+							</CardHeader>
+							<CardContent className="pt-2 px-4 pb-4">
+								<div className="text-2xl font-bold">
+									{personalStats.shiftsUpcoming}
+								</div>
+							</CardContent>
+						</Card>
 
-					{/* Breaks */}
-					<Card className="border-2 border-amber-100 hover:border-amber-200 transition-colors">
-						<CardHeader className="pb-2 pt-4 px-4 bg-gradient-to-r from-amber-50 to-transparent">
-							<CardTitle className="text-sm flex items-center justify-between text-amber-700">
-								<span className="flex items-center gap-2">
-									<Coffee className="h-4 w-4" />
-									My Breaks
-								</span>
-								<FormulaExplainer
-									formula="Breaks = Allocated Breaks - Taken Breaks"
-									description="The number of breaks you are still entitled to take for your current shift."
-									example="If your 8-hour shift allows for 2 breaks and you've taken 1, you have 1 break remaining."
-									variantColor="amber"
-								/>
-							</CardTitle>
-						</CardHeader>
-						<CardContent className="pt-2 px-4 pb-4">
-							<div className="text-2xl font-bold">
-								{personalStats.breaksRemaining}
-							</div>
-						</CardContent>
-					</Card>
-				</div>
+						{/* Breaks */}
+						<Card className="border-2 border-amber-100 hover:border-amber-200 transition-colors">
+							<CardHeader className="pb-2 pt-4 px-4 bg-gradient-to-r from-amber-50 to-transparent">
+								<CardTitle className="text-sm flex items-center justify-between text-amber-700">
+									<span className="flex items-center gap-2">
+										<Coffee className="h-4 w-4" />
+										My Breaks
+									</span>
+									<FormulaExplainer
+										formula="Breaks = Allocated Breaks - Taken Breaks"
+										description="The number of breaks you are still entitled to take for your current shift."
+										example="If your 8-hour shift allows for 2 breaks and you've taken 1, you have 1 break remaining."
+										variantColor="amber"
+									/>
+								</CardTitle>
+							</CardHeader>
+							<CardContent className="pt-2 px-4 pb-4">
+								<div className="text-2xl font-bold">
+									{personalStats.breaksRemaining}
+								</div>
+							</CardContent>
+						</Card>
+					</div>
+				</ContentSection>
 
 				{/* Quick actions for employees */}
-				<div className="flex flex-wrap gap-3 mb-6 mt-6">
-					<Link to="/schedule">
-						<Button variant="outline">
-							<Calendar className="h-4 w-4 mr-2" />
-							My Schedule
-						</Button>
-					</Link>
+				<ContentSection
+					title="Quick Actions"
+					description="Shortcuts to common tasks"
+					flat>
+					<div className="flex flex-wrap gap-3 mb-6">
+						<Link to="/schedule">
+							<Button variant="outline">
+								<Calendar className="h-4 w-4 mr-2" />
+								My Schedule
+							</Button>
+						</Link>
 
-					<Link to="/messages">
-						<Button variant="outline">
-							<MessageSquare className="h-4 w-4 mr-2" />
-							My Messages
-						</Button>
-					</Link>
+						<Link to="/messages">
+							<Button variant="outline">
+								<MessageSquare className="h-4 w-4 mr-2" />
+								My Messages
+							</Button>
+						</Link>
 
-					<Link to="/profile">
-						<Button variant="outline">
-							<CircleUserRound className="h-4 w-4 mr-2" />
-							My Profile
-						</Button>
-					</Link>
+						<Link to="/profile">
+							<Button variant="outline">
+								<CircleUserRound className="h-4 w-4 mr-2" />
+								My Profile
+							</Button>
+						</Link>
 
-					<Link to="/notifications">
-						<Button variant="outline">
-							<Bell className="h-4 w-4 mr-2" />
-							My Notifications
-						</Button>
-					</Link>
+						<Link to="/notifications">
+							<Button variant="outline">
+								<Bell className="h-4 w-4 mr-2" />
+								My Notifications
+							</Button>
+						</Link>
 
-					<Button variant="outline">
-						<FileText className="h-4 w-4 mr-2" />
-						Request Time Off
-					</Button>
-				</div>
+						<Button variant="outline">
+							<FileText className="h-4 w-4 mr-2" />
+							Request Time Off
+						</Button>
+					</div>
+				</ContentSection>
 
 				{/* My upcoming shifts */}
-				<div className="mt-6">
-					<div className="flex justify-between items-center mb-4">
-						<div>
-							<h2 className="text-xl font-semibold">My Upcoming Shifts</h2>
-							<p className="text-muted-foreground text-sm mt-1">
-								Your next 7 days
-							</p>
-						</div>
+				<ContentSection
+					title="My Upcoming Shifts"
+					description="Your next 7 days"
+					headerActions={
 						<Link to="/schedule">
 							<Button
 								variant="outline"
@@ -481,7 +487,8 @@ export default function DashboardPage() {
 								View All
 							</Button>
 						</Link>
-					</div>
+					}
+					flat>
 					{upcomingShifts.length > 0 ? (
 						<div className="space-y-4">
 							{upcomingShifts.slice(0, 5).map((shift) => {
@@ -541,38 +548,43 @@ export default function DashboardPage() {
 							size="small"
 						/>
 					)}
-				</div>
+				</ContentSection>
 
 				{/* Notifications and alerts for employee */}
 				{personalStats.timeOffRequests > 0 && (
-					<Card className="border-2 border-amber-100 hover:border-amber-200 transition-colors mb-6">
-						<CardHeader className="pb-2 bg-gradient-to-r from-amber-50 to-transparent">
-							<CardTitle className="text-sm flex items-center text-amber-700">
-								<Bell className="h-4 w-4 mr-2" />
-								Pending Requests
-							</CardTitle>
-						</CardHeader>
-						<CardContent className="pt-2 px-6 pb-4">
-							<div className="flex items-start gap-3">
-								<div>
-									<p className="text-sm text-amber-700">
-										You have <strong>{personalStats.timeOffRequests}</strong>{" "}
-										pending time-off request awaiting approval.
-									</p>
-									<div className="mt-3">
-										<Button
-											size="sm"
-											variant="outline"
-											className="border-amber-300 text-amber-700 hover:bg-amber-100">
-											View Request
-										</Button>
+					<ContentSection
+						title="Pending Requests"
+						description="Time off and approval status"
+						flat>
+						<Card className="border-2 border-amber-100 hover:border-amber-200 transition-colors mb-6">
+							<CardHeader className="pb-2 bg-gradient-to-r from-amber-50 to-transparent">
+								<CardTitle className="text-sm flex items-center text-amber-700">
+									<Bell className="h-4 w-4 mr-2" />
+									Pending Requests
+								</CardTitle>
+							</CardHeader>
+							<CardContent className="pt-2 px-6 pb-4">
+								<div className="flex items-start gap-3">
+									<div>
+										<p className="text-sm text-amber-700">
+											You have <strong>{personalStats.timeOffRequests}</strong>{" "}
+											pending time-off request awaiting approval.
+										</p>
+										<div className="mt-3">
+											<Button
+												size="sm"
+												variant="outline"
+												className="border-amber-300 text-amber-700 hover:bg-amber-100">
+												View Request
+											</Button>
+										</div>
 									</div>
 								</div>
-							</div>
-						</CardContent>
-					</Card>
+							</CardContent>
+						</Card>
+					</ContentSection>
 				)}
-			</div>
+			</ContentContainer>
 		</>
 	);
 }
