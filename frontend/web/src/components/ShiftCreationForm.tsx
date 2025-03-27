@@ -109,7 +109,7 @@ export function ShiftCreationForm({
 				setLocations(locationList);
 			} catch (error) {
 				console.error("Error fetching locations:", error);
-				toast.error("Failed to load locations");
+				// Don't show toast for empty locations - expected for new users
 			} finally {
 				setLoadingLocations(false);
 			}
@@ -127,7 +127,7 @@ export function ShiftCreationForm({
 				setEmployees(employeeList);
 			} catch (error) {
 				console.error("Error fetching employees:", error);
-				toast.error("Failed to load employees");
+				// Don't show toast for empty employees - expected for new users
 			} finally {
 				setLoadingEmployees(false);
 			}

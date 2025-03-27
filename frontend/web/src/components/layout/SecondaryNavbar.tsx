@@ -409,13 +409,6 @@ export function ProfileSidebar({
 				</Button>
 
 				<Button
-					variant={activeTab === "shifts" ? "secondary" : "ghost"}
-					onClick={() => onTabChange("shifts")}
-					className="w-full justify-start text-left font-normal">
-					My Shifts
-				</Button>
-
-				<Button
 					variant={activeTab === "notifications" ? "secondary" : "ghost"}
 					onClick={() => onTabChange("notifications")}
 					className="w-full justify-start text-left font-normal">

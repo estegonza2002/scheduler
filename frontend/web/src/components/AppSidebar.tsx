@@ -105,14 +105,6 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 				isRouteActive("/dashboard") || isRouteActive("/admin-dashboard"),
 		},
 		{
-			icon: <Building2 className="h-5 w-5" />,
-			label: isAdmin ? "Employee Dashboard" : "Business Dashboard",
-			href: isAdmin ? "/dashboard" : "/admin-dashboard",
-			isActive: isAdmin
-				? isRouteActive("/dashboard")
-				: isRouteActive("/admin-dashboard"),
-		},
-		{
 			icon: <Calendar className="h-5 w-5" />,
 			label: "Schedule",
 			href: "/schedule",
@@ -120,16 +112,6 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 				isRouteActive("/schedule") ||
 				isRouteActive("/schedule/monthly") ||
 				isRouteActive("/daily-shifts"),
-		},
-		{
-			icon: <ClipboardList className="h-5 w-5" />,
-			label: "Shifts",
-			href: "/shifts",
-			isActive:
-				isRouteActive("/shifts") ||
-				isRouteActive("/shift-details") ||
-				isRouteActive("/shift-") ||
-				isRouteActive("/edit-shift"),
 		},
 		{
 			icon: <Users className="h-5 w-5" />,
@@ -150,6 +132,30 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 				isRouteActive("/location-") ||
 				isRouteActive("/location/"),
 			adminOnly: true,
+		},
+	];
+
+	// Personal section with My Shifts and My Locations
+	const personalNavItems: NavItem[] = [
+		{
+			icon: <Building2 className="h-5 w-5" />,
+			label: "Dashboard",
+			href: isAdmin ? "/dashboard" : "/admin-dashboard",
+			isActive: isAdmin
+				? isRouteActive("/dashboard")
+				: isRouteActive("/admin-dashboard"),
+		},
+		{
+			icon: <ClipboardList className="h-5 w-5" />,
+			label: "My Shifts",
+			href: "/my-shifts",
+			isActive: isRouteActive("/my-shifts"),
+		},
+		{
+			icon: <MapPin className="h-5 w-5" />,
+			label: "My Locations",
+			href: "/my-locations",
+			isActive: isRouteActive("/my-locations"),
 		},
 	];
 
@@ -265,6 +271,13 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 				<SidebarGroup>
 					<SidebarGroupLabel>Main</SidebarGroupLabel>
 					<SidebarMenu>{renderMenuItems(mainNavItems)}</SidebarMenu>
+				</SidebarGroup>
+
+				<SidebarSeparator />
+
+				<SidebarGroup>
+					<SidebarGroupLabel>Personal</SidebarGroupLabel>
+					<SidebarMenu>{renderMenuItems(personalNavItems)}</SidebarMenu>
 				</SidebarGroup>
 
 				<SidebarSeparator />

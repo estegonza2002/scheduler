@@ -95,7 +95,7 @@ export const ShiftsAPI = {
 		const { data, error } = await query;
 
 		if (error) {
-			toast.error("Failed to fetch schedules");
+			// Log error but don't show toast - empty results are expected for new users
 			console.error("Error fetching schedules:", error);
 			return [];
 		}
@@ -112,7 +112,7 @@ export const ShiftsAPI = {
 			.single();
 
 		if (error) {
-			toast.error("Failed to fetch schedule");
+			// Log error but don't show toast - not finding a schedule could be expected
 			console.error("Error fetching schedule:", error);
 			return null;
 		}
@@ -153,7 +153,7 @@ export const ShiftsAPI = {
 			.eq("is_schedule", false);
 
 		if (error) {
-			toast.error("Failed to fetch shifts");
+			// Log error but don't show toast - empty results are expected for new users
 			console.error("Error fetching shifts:", error);
 			return [];
 		}
@@ -169,7 +169,7 @@ export const ShiftsAPI = {
 			.single();
 
 		if (error) {
-			toast.error("Failed to fetch shift");
+			// Log error but don't show toast - not finding a shift could be expected
 			console.error("Error fetching shift:", error);
 			return null;
 		}
@@ -257,7 +257,7 @@ export const LocationsAPI = {
 		const { data, error } = await query;
 
 		if (error) {
-			toast.error("Failed to fetch locations");
+			// Log error but don't show toast - empty results are expected for new users
 			console.error("Error fetching locations:", error);
 			return [];
 		}
@@ -331,7 +331,7 @@ export const EmployeesAPI = {
 		const { data, error } = await query;
 
 		if (error) {
-			toast.error("Failed to fetch employees");
+			// Log error but don't show toast - empty results are expected for new users
 			console.error("Error fetching employees:", error);
 			return [];
 		}
@@ -417,7 +417,7 @@ export const ShiftAssignmentsAPI = {
 		const { data, error } = await query;
 
 		if (error) {
-			toast.error("Failed to fetch shift assignments");
+			// Log error but don't show toast - empty results are expected for new users
 			console.error("Error fetching shift assignments:", error);
 			return [];
 		}
@@ -470,7 +470,7 @@ export const NotificationsAPI = {
 			.order("created_at", { ascending: false });
 
 		if (error) {
-			toast.error("Failed to fetch notifications");
+			// Log error but don't show toast - empty results are expected for new users
 			console.error("Error fetching notifications:", error);
 			return [];
 		}

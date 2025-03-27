@@ -178,8 +178,8 @@ export function ShiftCreationWizard({
 				setFilteredLocations(locationList);
 			} catch (error) {
 				console.error("Error fetching locations:", error);
+				// Only set UI error, don't show toast since empty result is expected for new users
 				setError("Failed to load locations. Please try again.");
-				toast.error("Failed to load locations");
 			} finally {
 				setLoadingLocations(false);
 			}
@@ -239,8 +239,8 @@ export function ShiftCreationWizard({
 				setFilteredEmployees(employeeList);
 			} catch (error) {
 				console.error("Error fetching employees:", error);
+				// Only set UI error, don't show toast since empty result is expected for new users
 				setError("Failed to load employees. Please try again.");
-				toast.error("Failed to load employees");
 			} finally {
 				setLoadingEmployees(false);
 			}

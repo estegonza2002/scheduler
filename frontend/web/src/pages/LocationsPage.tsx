@@ -292,79 +292,45 @@ export default function LocationsPage() {
 				title="Locations"
 				description="Manage your organization's physical locations"
 				actions={
-					organization && (
-						<LocationCreationSheet
-							organizationId={organization.id}
-							onLocationCreated={(newLocation) =>
-								handleLocationsAdded([newLocation])
-							}
-							trigger={
-								<Button className="h-9">
-									<Plus className="h-4 w-4 mr-2" />
-									Add Location
-								</Button>
-							}
-						/>
-					)
+					<LocationCreationSheet
+						organizationId={organization?.id || "org-1"}
+						onLocationCreated={(newLocation) =>
+							handleLocationsAdded([newLocation])
+						}
+						trigger={
+							<Button className="bg-primary text-primary-foreground">
+								<Plus className="h-4 w-4 mr-2" />
+								Add Location
+							</Button>
+						}
+					/>
 				}
 			/>
 
 			<ContentContainer>
-				{/* Stats Cards */}
-				<ContentSection
-					title="Location Statistics"
-					className="mb-6">
-					<div className="grid gap-4 grid-cols-1 md:grid-cols-3">
-						<div className="space-y-2">
-							<h3 className="text-base font-medium">Total Locations</h3>
-							<div className="text-2xl font-bold">{totalLocations}</div>
-							<p className="text-xs text-muted-foreground">
-								{organization?.name || "Your organization"}
-							</p>
-						</div>
-
-						<div className="space-y-2">
-							<h3 className="text-base font-medium">Location Coverage</h3>
-							<div className="text-2xl font-bold">{uniqueStates.length}</div>
-							<p className="text-xs text-muted-foreground">
-								States/Provinces with locations
-							</p>
-						</div>
-
-						<div className="space-y-2">
-							<h3 className="text-base font-medium">Locations per State</h3>
-							<div className="text-2xl font-bold">{locationsPerState}</div>
-							<p className="text-xs text-muted-foreground">
-								Average locations per state
-							</p>
-						</div>
-					</div>
-				</ContentSection>
-
-				{locations.length === 0 ? (
-					<EmptyState
-						title="No locations found"
-						description="Start by adding locations to your organization"
-						icon={<MapPin className="h-6 w-6" />}
-						action={
-							organization && (
+				<ContentSection title="Locations">
+					{/* No locations */}
+					{locations.length === 0 ? (
+						<EmptyState
+							title="No locations found"
+							description="Start by adding locations to your organization"
+							icon={<MapPin className="h-10 w-10" />}
+							action={
 								<LocationCreationSheet
 									organizationId={organization?.id || "org-1"}
 									onLocationCreated={(newLocation) =>
 										handleLocationsAdded([newLocation])
 									}
 									trigger={
-										<Button>
+										<Button className="bg-primary text-primary-foreground">
 											<Plus className="mr-2 h-4 w-4" />
-											Add First Location
+											Add Location
 										</Button>
 									}
 								/>
-							)
-						}
-					/>
-				) : (
-					<ContentSection title="Locations">
+							}
+						/>
+					) : (
 						<DataTable
 							columns={columns}
 							data={locations}
@@ -432,8 +398,8 @@ export default function LocationsPage() {
 							}}
 							onRowClick={(location) => navigate(`/locations/${location.id}`)}
 						/>
-					</ContentSection>
-				)}
+					)}
+				</ContentSection>
 
 				{/* Dialogs with controlled state */}
 				{selectedLocation && (

@@ -26,6 +26,8 @@ import BillingPage from "./pages/BillingPage";
 import BrandingPage from "./pages/BrandingPage";
 import SchedulePage from "./pages/SchedulePage";
 import DailyShiftsPage from "./pages/DailyShiftsPage";
+import MyShiftsPage from "./pages/MyShiftsPage";
+import MyLocationsPage from "./pages/MyLocationsPage";
 import EmployeesPage from "./pages/EmployeesPage";
 import ShiftDetailsPage from "./pages/ShiftDetailsPage";
 import EditShiftPage from "./pages/EditShiftPage";
@@ -37,7 +39,6 @@ import LocationFinancialReportPage from "./pages/LocationFinancialReportPage";
 import LocationShiftPage from "./pages/LocationShiftPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import MessagesPage from "./pages/MessagesPage";
-import { ShiftsPage } from "./pages/ShiftsPage";
 import { ShiftLogDetailsPage } from "./pages/ShiftLogDetailsPage";
 import LocationEmployeesPage from "./pages/LocationEmployeesPage";
 import LocationInsightsPage from "./pages/LocationInsightsPage";
@@ -135,6 +136,14 @@ function App() {
 											element={<DailyShiftsPage />}
 										/>
 										<Route
+											path="/my-shifts"
+											element={<MyShiftsPage />}
+										/>
+										<Route
+											path="/my-locations"
+											element={<MyLocationsPage />}
+										/>
+										<Route
 											path="/today"
 											element={
 												<Navigate
@@ -196,10 +205,6 @@ function App() {
 										<Route
 											path="/messages"
 											element={<MessagesPage />}
-										/>
-										<Route
-											path="/shifts"
-											element={<ShiftsPage />}
 										/>
 										<Route
 											path="/shift-details/:shiftId"

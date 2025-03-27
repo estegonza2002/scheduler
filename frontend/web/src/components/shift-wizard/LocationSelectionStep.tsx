@@ -4,10 +4,11 @@ import { Card, CardContent } from "../ui/card";
 import { Input } from "../ui/input";
 import { UseFormReturn } from "react-hook-form";
 import { Location } from "../../api";
-import { Search, X, Building2, Check } from "lucide-react";
+import { Search, X, Building2, Check, PlusCircle } from "lucide-react";
 import { ScrollArea } from "../ui/scroll-area";
 import { Badge } from "../ui/badge";
 import { cn } from "../../lib/utils";
+import { Link } from "react-router-dom";
 
 type LocationData = {
 	locationId: string;
@@ -86,25 +87,27 @@ export function LocationSelectionStep({
 						</p>
 					</div>
 
-					{/* Search box */}
-					<div className="relative mb-4">
-						<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-						<Input
-							type="text"
-							placeholder="Search by name, address, or city..."
-							className="pl-10 pr-10"
-							value={locationSearchTerm}
-							onChange={(e) => setLocationSearchTerm(e.target.value)}
-						/>
-						{locationSearchTerm && (
-							<button
-								type="button"
-								onClick={clearLocationSearch}
-								className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground">
-								<X className="h-4 w-4" />
-							</button>
-						)}
-					</div>
+					{/* Search box - Only show if there are locations */}
+					{locations.length > 0 && (
+						<div className="relative mb-4">
+							<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+							<Input
+								type="text"
+								placeholder="Search by name, address, or city..."
+								className="pl-10 pr-10"
+								value={locationSearchTerm}
+								onChange={(e) => setLocationSearchTerm(e.target.value)}
+							/>
+							{locationSearchTerm && (
+								<button
+									type="button"
+									onClick={clearLocationSearch}
+									className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground">
+									<X className="h-4 w-4" />
+								</button>
+							)}
+						</div>
+					)}
 
 					{/* Location list */}
 					<div className="space-y-2">
@@ -113,6 +116,25 @@ export function LocationSelectionStep({
 								<div className="animate-pulse text-muted-foreground">
 									Loading locations...
 								</div>
+							</div>
+						) : locations.length === 0 ? (
+							<div className="py-16 flex flex-col items-center justify-center text-center">
+								<Building2 className="h-12 w-12 text-muted-foreground mb-4" />
+								<h4 className="text-xl font-medium">
+									No Locations Created Yet
+								</h4>
+								<p className="text-muted-foreground mt-2 mb-6 max-w-md">
+									Before creating shifts, you need to add at least one location
+									where the shift will take place.
+								</p>
+								<Button
+									asChild
+									className="mt-2">
+									<Link to="/locations">
+										<PlusCircle className="h-4 w-4 mr-2" />
+										Create Your First Location
+									</Link>
+								</Button>
 							</div>
 						) : filteredLocations.length > 0 ? (
 							<div className="space-y-2">
@@ -149,7 +171,11 @@ export function LocationSelectionStep({
 				<Button
 					type="submit"
 					form="location-selection-form"
-					disabled={!locationForm.watch("locationId") || loadingLocations}>
+					disabled={
+						!locationForm.watch("locationId") ||
+						loadingLocations ||
+						locations.length === 0
+					}>
 					Continue
 				</Button>
 			</div>

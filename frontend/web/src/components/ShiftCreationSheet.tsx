@@ -71,6 +71,14 @@ export function ShiftCreationSheet({
 		<Sheet
 			open={open}
 			onOpenChange={setOpen}>
+			<SheetTrigger asChild>
+				{trigger || (
+					<Button>
+						<Plus className="h-4 w-4 mr-2" />
+						Add Shift
+					</Button>
+				)}
+			</SheetTrigger>
 			<SheetContent
 				className={cn(
 					"sm:max-w-[550px] p-0 flex flex-col h-[100dvh]",

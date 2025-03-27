@@ -355,10 +355,18 @@ export default function EmployeesPage() {
 							</TooltipContent>
 						</Tooltip>
 
-						<Button onClick={() => navigate("/employees/add")}>
-							<Plus className="h-4 w-4 mr-2" />
-							Add Employee
-						</Button>
+						<EmployeeSheet
+							organizationId={organization?.id || "org-1"}
+							onEmployeeUpdated={(newEmployee) => {
+								setEmployees((prev) => [...prev, newEmployee]);
+							}}
+							trigger={
+								<Button className="bg-primary text-primary-foreground">
+									<Plus className="h-4 w-4 mr-2" />
+									Add Employee
+								</Button>
+							}
+						/>
 					</div>
 				}
 			/>
@@ -381,10 +389,18 @@ export default function EmployeesPage() {
 								title="No employees yet"
 								description="Add your first employee to get started"
 								action={
-									<Button onClick={() => navigate("/employees/add")}>
-										<Plus className="h-4 w-4 mr-2" />
-										Add Employee
-									</Button>
+									<EmployeeSheet
+										organizationId={organization?.id || "org-1"}
+										onEmployeeUpdated={(newEmployee) => {
+											setEmployees((prev) => [...prev, newEmployee]);
+										}}
+										trigger={
+											<Button className="bg-primary text-primary-foreground">
+												<Plus className="h-4 w-4 mr-2" />
+												Add Employee
+											</Button>
+										}
+									/>
 								}
 							/>
 						)}

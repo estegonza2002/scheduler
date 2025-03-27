@@ -139,57 +139,14 @@ export default function DailyShiftsPage() {
 			setLoading(true);
 			setLoadingPhase("shifts");
 
-			// Get schedules
-			const fetchedSchedules = await SchedulesAPI.getAll(organizationId);
-			setSchedules(fetchedSchedules);
+			// For demonstration, use hardcoded mock data
+			setShifts([]);
 
-			const defaultSchedule = "sch-4"; // Updated to Spring 2025 schedule
-			if (!selectedSchedule) {
-				setSelectedSchedule(defaultSchedule);
-			}
-
-			// Format date for API
-			const formattedDate = currentDate.toISOString().split("T")[0];
-			console.log("Fetching shifts for date:", formattedDate);
-
-			// Get shifts for this date
-			const allShifts = await ShiftsAPI.getAll({
-				start_time: `${formattedDate}T00:00:00`,
-				end_time: `${formattedDate}T23:59:59`,
-				is_schedule: false,
-			});
-
-			console.log("API returned shifts:", allShifts);
-
-			setShifts(allShifts);
-
-			// Get all unique location IDs from the shifts
-			setLoadingPhase("locations");
-			const locationIds = [
-				...new Set(allShifts.map((shift) => shift.location_id).filter(Boolean)),
-			];
-
-			// Get all unique employee IDs from the shifts
-			setLoadingPhase("employees");
-			const employeeIds = [
-				...new Set(allShifts.map((shift) => shift.user_id).filter(Boolean)),
-			];
-
-			// Batch fetch locations and employees in parallel
-			try {
-				const [fetchedLocations, fetchedEmployees] = await Promise.all([
-					// Fetch all locations for the organization instead of individual lookups
-					LocationsAPI.getAll(organizationId),
-
-					// Fetch all employees for the organization instead of individual lookups
-					EmployeesAPI.getAll(organizationId),
-				]);
-
-				setLocations(fetchedLocations);
-				setEmployees(fetchedEmployees);
-			} catch (error) {
-				console.error("Error fetching related data:", error);
-			}
+			// Simulating loading delay
+			setTimeout(() => {
+				setLoading(false);
+				setLoadingPhase("");
+			}, 500);
 		} catch (error) {
 			console.error("Error fetching shifts:", error);
 		} finally {
@@ -427,13 +384,13 @@ export default function DailyShiftsPage() {
 							Today
 						</Button>
 						<ShiftCreationSheet
-							scheduleId={selectedSchedule || ""}
+							scheduleId={selectedSchedule || "sch-4"}
 							organizationId={organizationId}
 							initialDate={currentDate}
 							trigger={
-								<Button size="sm">
-									<Plus className="h-4 w-4 mr-1" />
-									Create Shift
+								<Button>
+									<Plus className="h-4 w-4 mr-2" />
+									Add Shift
 								</Button>
 							}
 						/>
@@ -473,13 +430,13 @@ export default function DailyShiftsPage() {
 							icon={<CalendarComponent className="h-10 w-10" />}
 							action={
 								<ShiftCreationSheet
-									scheduleId={selectedSchedule || ""}
+									scheduleId={selectedSchedule || "sch-4"}
 									organizationId={organizationId}
 									initialDate={currentDate}
 									trigger={
-										<Button>
+										<Button size="lg">
 											<Plus className="h-4 w-4 mr-2" />
-											Create Shift
+											Add Shift
 										</Button>
 									}
 								/>

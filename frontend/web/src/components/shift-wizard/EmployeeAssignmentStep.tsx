@@ -20,6 +20,8 @@ import {
 	Calendar,
 	Clock,
 	UserCheck,
+	Users,
+	PlusCircle,
 } from "lucide-react";
 import { Separator } from "../ui/separator";
 import { Avatar, AvatarFallback } from "../ui/avatar";
@@ -27,6 +29,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Badge } from "../ui/badge";
 import { ScrollArea } from "../ui/scroll-area";
 import { Checkbox } from "../ui/checkbox";
+import { Link } from "react-router-dom";
 
 type EmployeeData = {
 	employeeId: string;
@@ -208,136 +211,159 @@ export function EmployeeAssignmentStep({
 						<div>
 							<h3 className="text-lg font-medium">Assign Employees</h3>
 							<p className="text-muted-foreground">
-								Select one or more employees for this shift
+								{allEmployees.length > 0
+									? "Select one or more employees for this shift"
+									: "You don't have any employees yet"}
 							</p>
 						</div>
 
-						{/* Search and filters */}
-						<div className="flex gap-2">
-							<div className="flex-1 relative">
-								<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-								<Input
-									type="text"
-									placeholder="Search employees..."
-									value={searchTerm}
-									onChange={(e) => setSearchTerm(e.target.value)}
-									className="w-full pl-9 pr-8"
-								/>
-								{searchTerm && (
-									<button
-										type="button"
-										className="absolute right-2 top-1/2 -translate-y-1/2"
-										onClick={() => setSearchTerm("")}>
-										<X className="h-4 w-4 text-muted-foreground" />
-									</button>
-								)}
-							</div>
-							<Select
-								value={searchFilter}
-								onValueChange={setSearchFilter}>
-								<SelectTrigger className="w-[150px]">
-									<div className="flex items-center gap-1.5">
-										<UserCheck className="h-4 w-4 text-muted-foreground" />
-										<SelectValue placeholder="Filter by role" />
-									</div>
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value="all">All Roles</SelectItem>
-									{uniqueRoles.length > 0 ? (
-										uniqueRoles.map((role) => (
-											<SelectItem
-												key={role}
-												value={role}>
-												{role}
-											</SelectItem>
-										))
-									) : (
-										<SelectItem
-											value="none"
-											disabled>
-											No roles found
-										</SelectItem>
+						{/* Search and filters - Only show if there are employees */}
+						{allEmployees.length > 0 && (
+							<div className="flex gap-2">
+								<div className="flex-1 relative">
+									<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+									<Input
+										type="text"
+										placeholder="Search employees..."
+										value={searchTerm}
+										onChange={(e) => setSearchTerm(e.target.value)}
+										className="w-full pl-9 pr-8"
+									/>
+									{searchTerm && (
+										<button
+											type="button"
+											className="absolute right-2 top-1/2 -translate-y-1/2"
+											onClick={() => setSearchTerm("")}>
+											<X className="h-4 w-4 text-muted-foreground" />
+										</button>
 									)}
-								</SelectContent>
-							</Select>
-						</div>
+								</div>
+								<Select
+									value={searchFilter}
+									onValueChange={setSearchFilter}>
+									<SelectTrigger className="w-[150px]">
+										<div className="flex items-center gap-1.5">
+											<UserCheck className="h-4 w-4 text-muted-foreground" />
+											<SelectValue placeholder="Filter by role" />
+										</div>
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="all">All Roles</SelectItem>
+										{uniqueRoles.length > 0 ? (
+											uniqueRoles.map((role) => (
+												<SelectItem
+													key={role}
+													value={role}>
+													{role}
+												</SelectItem>
+											))
+										) : (
+											<SelectItem
+												value="none"
+												disabled>
+												No roles found
+											</SelectItem>
+										)}
+									</SelectContent>
+								</Select>
+							</div>
+						)}
 
-						{/* Employee list - Compact format with checkboxes */}
-						<div className="flex-1 min-h-0">
-							<ScrollArea className="h-[300px] border rounded-md">
-								{loadingEmployees ? (
-									<div className="py-12 flex items-center justify-center">
-										<div className="animate-pulse text-muted-foreground">
-											Loading employees...
+						{/* Employee list - Compact format with checkboxes or empty state */}
+						{allEmployees.length === 0 ? (
+							<div className="py-16 flex flex-col items-center justify-center text-center border rounded-md">
+								<Users className="h-12 w-12 text-muted-foreground mb-4" />
+								<h4 className="text-xl font-medium">No Employees Added Yet</h4>
+								<p className="text-muted-foreground mt-2 mb-6 max-w-md">
+									You can create a shift without assigning an employee, or add
+									employees first and then assign them.
+								</p>
+								<Button
+									asChild
+									className="mt-2">
+									<Link to="/employees">
+										<PlusCircle className="h-4 w-4 mr-2" />
+										Add Your First Employee
+									</Link>
+								</Button>
+							</div>
+						) : (
+							<div className="flex-1 min-h-0">
+								<ScrollArea className="h-[300px] border rounded-md">
+									{loadingEmployees ? (
+										<div className="py-12 flex items-center justify-center">
+											<div className="animate-pulse text-muted-foreground">
+												Loading employees...
+											</div>
 										</div>
-									</div>
-								) : filteredEmployees.length === 0 ? (
-									<div className="py-12 flex flex-col items-center justify-center text-center">
-										<div className="rounded-full bg-muted p-3 mb-2">
-											<X className="h-6 w-6 text-muted-foreground" />
+									) : filteredEmployees.length === 0 ? (
+										<div className="py-12 flex flex-col items-center justify-center text-center">
+											<div className="rounded-full bg-muted p-3 mb-2">
+												<X className="h-6 w-6 text-muted-foreground" />
+											</div>
+											<h4 className="font-medium">No employees found</h4>
+											<p className="text-sm text-muted-foreground mt-1">
+												Try adjusting your search or filter
+											</p>
 										</div>
-										<h4 className="font-medium">No employees found</h4>
-										<p className="text-sm text-muted-foreground mt-1">
-											Try adjusting your search or filter
-										</p>
-									</div>
-								) : (
-									<table className="w-full">
-										<thead className="bg-muted sticky top-0">
-											<tr>
-												<th className="w-10 p-2 text-left"></th>
-												<th className="p-2 text-left font-medium text-sm">
-													Name
-												</th>
-												<th className="p-2 text-left font-medium text-sm">
-													Role
-												</th>
-											</tr>
-										</thead>
-										<tbody>
-											{filteredEmployees.map((employee) => (
-												<tr
-													key={employee.id}
-													className={`hover:bg-accent/50 cursor-pointer ${
-														isEmployeeSelected(employee.id)
-															? "bg-accent/50"
-															: ""
-													}`}
-													onClick={() => toggleEmployeeSelection(employee)}>
-													<td className="p-2">
-														<Checkbox
-															checked={isEmployeeSelected(employee.id)}
-															onCheckedChange={() =>
-																toggleEmployeeSelection(employee)
-															}
-															onClick={(e) => e.stopPropagation()}
-														/>
-													</td>
-													<td className="p-2">
-														<div className="flex items-center gap-2">
-															<Avatar className="h-6 w-6">
-																<AvatarFallback className="text-xs">
-																	{employee.name
-																		.split(" ")
-																		.map((n) => n[0])
-																		.join("")}
-																</AvatarFallback>
-															</Avatar>
-															<span className="font-medium">
-																{employee.name}
-															</span>
-														</div>
-													</td>
-													<td className="p-2 text-sm text-muted-foreground">
-														{employee.role || "-"}
-													</td>
+									) : (
+										<table className="w-full">
+											<thead className="bg-muted sticky top-0">
+												<tr>
+													<th className="w-10 p-2 text-left"></th>
+													<th className="p-2 text-left font-medium text-sm">
+														Name
+													</th>
+													<th className="p-2 text-left font-medium text-sm">
+														Role
+													</th>
 												</tr>
-											))}
-										</tbody>
-									</table>
-								)}
-							</ScrollArea>
-						</div>
+											</thead>
+											<tbody>
+												{filteredEmployees.map((employee) => (
+													<tr
+														key={employee.id}
+														className={`hover:bg-accent/50 cursor-pointer ${
+															isEmployeeSelected(employee.id)
+																? "bg-accent/50"
+																: ""
+														}`}
+														onClick={() => toggleEmployeeSelection(employee)}>
+														<td className="p-2">
+															<Checkbox
+																checked={isEmployeeSelected(employee.id)}
+																onCheckedChange={() =>
+																	toggleEmployeeSelection(employee)
+																}
+																onClick={(e) => e.stopPropagation()}
+															/>
+														</td>
+														<td className="p-2">
+															<div className="flex items-center gap-2">
+																<Avatar className="h-6 w-6">
+																	<AvatarFallback className="text-xs">
+																		{employee.name
+																			.split(" ")
+																			.map((n) => n[0])
+																			.join("")}
+																	</AvatarFallback>
+																</Avatar>
+																<span className="font-medium">
+																	{employee.name}
+																</span>
+															</div>
+														</td>
+														<td className="p-2 text-sm text-muted-foreground">
+															{employee.role || "-"}
+														</td>
+													</tr>
+												))}
+											</tbody>
+										</table>
+									)}
+								</ScrollArea>
+							</div>
+						)}
 
 						{/* Selected employees count */}
 						{selectedEmployees.length > 0 && (
