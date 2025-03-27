@@ -23,13 +23,9 @@ import {
 } from "lucide-react";
 import { ShiftCreationSheet } from "../components/ShiftCreationSheet";
 
-import { ContentContainer } from "../components/ui/content-container";
-import { ContentSection } from "../components/ui/content-section";
-import { LoadingState } from "../components/ui/loading-state";
 import { Card, CardContent } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Separator } from "../components/ui/separator";
-import { PageHeader } from "../components/ui/page-header";
 
 export default function SchedulePage() {
 	const [searchParams] = useSearchParams();
@@ -100,123 +96,125 @@ export default function SchedulePage() {
 
 	return (
 		<>
-			<PageHeader
-				title="Monthly Schedule"
-				description={`Calendar view for ${format(currentMonth, "MMMM yyyy")}`}
-				actions={
-					<div className="flex items-center gap-2">
-						<Button
-							variant="outline"
-							size="icon"
-							onClick={handlePreviousMonth}>
-							<ChevronLeft className="h-4 w-4" />
-						</Button>
+			<div className="flex flex-col items-start justify-between mb-6 md:flex-row md:items-center">
+				<div>
+					<h1 className="text-2xl font-bold">Monthly Schedule</h1>
+					<p className="text-muted-foreground mt-1">{`Calendar view for ${format(
+						currentMonth,
+						"MMMM yyyy"
+					)}`}</p>
+				</div>
+				<div className="flex items-center gap-2 mt-4 md:mt-0">
+					<Button
+						variant="outline"
+						size="icon"
+						onClick={handlePreviousMonth}>
+						<ChevronLeft className="h-4 w-4" />
+					</Button>
 
-						<Button
-							variant="outline"
-							onClick={handleSetToday}>
-							Today
-						</Button>
+					<Button
+						variant="outline"
+						onClick={handleSetToday}>
+						Today
+					</Button>
 
-						<Button
-							variant="outline"
-							size="icon"
-							onClick={handleNextMonth}>
-							<ChevronRight className="h-4 w-4" />
-						</Button>
+					<Button
+						variant="outline"
+						size="icon"
+						onClick={handleNextMonth}>
+						<ChevronRight className="h-4 w-4" />
+					</Button>
 
-						<Separator
-							orientation="vertical"
-							className="h-8"
-						/>
+					<Separator
+						orientation="vertical"
+						className="h-8"
+					/>
 
-						<Button
-							variant="outline"
-							size="sm"
-							className="text-sm flex items-center"
-							onClick={handleViewDailyShifts}>
-							<List className="h-4 w-4 mr-2" /> View Daily
-						</Button>
+					<Button
+						variant="outline"
+						size="sm"
+						className="text-sm flex items-center"
+						onClick={handleViewDailyShifts}>
+						<List className="h-4 w-4 mr-2" /> View Daily
+					</Button>
 
-						<ShiftCreationSheet
-							organizationId={organizationId}
-							scheduleId={scheduleId}
-							initialDate={selectedDate}
-							trigger={
-								<Button>
-									<Plus className="h-4 w-4 mr-2" /> Create Shift
-								</Button>
-							}
-						/>
-					</div>
-				}
-			/>
-			
-				<ContentContainer>
-					<Card>
-						<CardContent className="p-4">
-							{loading ? (
-								<LoadingState
-									type="spinner"
-									message="Loading schedule data..."
-									className="py-8"
-								/>
-							) : (
-								<ScheduleCalendar
-									currentMonth={currentMonth}
-									onDateSelect={handleDateSelect}
-								/>
-							)}
-						</CardContent>
-					</Card>
+					<ShiftCreationSheet
+						organizationId={organizationId}
+						scheduleId={scheduleId}
+						initialDate={selectedDate}
+						trigger={
+							<Button>
+								<Plus className="h-4 w-4 mr-2" /> Create Shift
+							</Button>
+						}
+					/>
+				</div>
+			</div>
 
-					{selectedDateShifts.length > 0 && (
-						<Card className="mt-6">
-							<CardContent className="p-4">
-								<div className="flex justify-between items-center mb-4">
-									<h2 className="text-lg font-semibold">
-										Shifts for {format(selectedDate, "MMMM d, yyyy")}
-									</h2>
-									<Button
-										variant="outline"
-										size="sm"
-										onClick={handleViewDailyShifts}>
-										View All Details
-									</Button>
+			<div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+				<Card>
+					<CardContent className="p-4">
+						{loading ? (
+							<div className="flex items-center justify-center py-8">
+								<div className="flex flex-col items-center gap-2">
+									<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+									<p className="text-sm text-muted-foreground">
+										Loading schedule data...
+									</p>
 								</div>
-								<div className="space-y-2">
-									{selectedDateShifts.map((shift) => (
-										<div
-											key={shift.id}
-											className="border rounded-md p-3 flex justify-between hover:bg-muted/30 cursor-pointer"
-											onClick={() => navigate(`/shifts/${shift.id}`)}>
-											<div>
-												<div className="font-medium">
-													{format(new Date(shift.start_time), "h:mm a")} -{" "}
-													{format(new Date(shift.end_time), "h:mm a")}
-												</div>
-												<div className="text-sm text-muted-foreground">
-													{shift.location_id
-														? `Location: ${shift.location_id.replace(
-																"loc-",
-																""
-														  )}`
-														: "No location"}
-												</div>
+							</div>
+						) : (
+							<ScheduleCalendar
+								currentMonth={currentMonth}
+								onDateSelect={handleDateSelect}
+							/>
+						)}
+					</CardContent>
+				</Card>
+
+				{selectedDateShifts.length > 0 && (
+					<Card className="mt-6">
+						<CardContent className="p-4">
+							<div className="flex justify-between items-center mb-4">
+								<h2 className="text-lg font-semibold">
+									Shifts for {format(selectedDate, "MMMM d, yyyy")}
+								</h2>
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={handleViewDailyShifts}>
+									View All Details
+								</Button>
+							</div>
+							<div className="space-y-2">
+								{selectedDateShifts.map((shift) => (
+									<div
+										key={shift.id}
+										className="border rounded-md p-3 flex justify-between hover:bg-muted/30 cursor-pointer"
+										onClick={() => navigate(`/shifts/${shift.id}`)}>
+										<div>
+											<div className="font-medium">
+												{format(new Date(shift.start_time), "h:mm a")} -{" "}
+												{format(new Date(shift.end_time), "h:mm a")}
 											</div>
-											<div className="text-sm">
-												{shift.user_id
-													? `Employee: ${shift.user_id.replace("emp-", "")}`
-													: "Unassigned"}
+											<div className="text-sm text-muted-foreground">
+												{shift.location_id
+													? `Location: ${shift.location_id.replace("loc-", "")}`
+													: "No location"}
 											</div>
 										</div>
-									))}
-								</div>
-							</CardContent>
-						</Card>
-					)}
-				</ContentContainer>
-			
+										<div className="text-sm">
+											{shift.user_id
+												? `Employee: ${shift.user_id.replace("emp-", "")}`
+												: "Unassigned"}
+										</div>
+									</div>
+								))}
+							</div>
+						</CardContent>
+					</Card>
+				)}
+			</div>
 		</>
 	);
 }

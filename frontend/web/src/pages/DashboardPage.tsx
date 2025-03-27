@@ -26,14 +26,10 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ShiftsAPI, EmployeesAPI, LocationsAPI } from "../api";
-import { ContentContainer } from "../components/ui/content-container";
-import { ContentSection } from "../components/ui/content-section";
 import { EmptyState } from "../components/ui/empty-state";
 import { Shift, Employee, Location } from "../api/mock/types";
 import { format, addDays } from "date-fns";
 import { FormulaExplainer } from "../components/ui/formula-explainer";
-import { PageHeader } from "../components/ui/page-header";
-import { LoadingState } from "../components/ui/loading-state";
 
 export default function DashboardPage() {
 	const { user } = useAuth();
@@ -212,30 +208,35 @@ export default function DashboardPage() {
 	if (isLoading) {
 		return (
 			<>
-				<PageHeader
-					title="Dashboard"
-					description="Loading your personal dashboard"
-				/>
-				<ContentContainer>
-					<LoadingState
-						type="spinner"
-						message="Loading dashboard data..."
-						className="py-12"
-					/>
-				</ContentContainer>
+				<div className="flex flex-col mb-6">
+					<h1 className="text-2xl font-bold">Dashboard</h1>
+					<p className="text-muted-foreground mt-1">
+						Loading your personal dashboard
+					</p>
+				</div>
+				<div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+					<div className="flex items-center justify-center py-12">
+						<div className="flex flex-col items-center gap-2">
+							<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+							<p className="text-sm text-muted-foreground">
+								Loading dashboard data...
+							</p>
+						</div>
+					</div>
+				</div>
 			</>
 		);
 	}
 
 	return (
 		<>
-			<PageHeader
-				title="Dashboard"
-				description={`Welcome back, ${
-					user?.user_metadata?.firstName || "Employee"
-				}`}
-			/>
-			<ContentContainer>
+			<div className="flex flex-col mb-6">
+				<h1 className="text-2xl font-bold">Dashboard</h1>
+				<p className="text-muted-foreground mt-1">
+					Welcome back, {user?.user_metadata?.firstName || "Employee"}
+				</p>
+			</div>
+			<div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 				{/* Personalized greeting */}
 				<div className="mb-6">
 					<h1 className="text-2xl font-bold">
@@ -465,10 +466,14 @@ export default function DashboardPage() {
 				</div>
 
 				{/* My upcoming shifts */}
-				<ContentSection
-					title="My Upcoming Shifts"
-					description="Your next 7 days"
-					headerActions={
+				<div className="mt-6">
+					<div className="flex justify-between items-center mb-4">
+						<div>
+							<h2 className="text-xl font-semibold">My Upcoming Shifts</h2>
+							<p className="text-muted-foreground text-sm mt-1">
+								Your next 7 days
+							</p>
+						</div>
 						<Link to="/schedule">
 							<Button
 								variant="outline"
@@ -476,7 +481,7 @@ export default function DashboardPage() {
 								View All
 							</Button>
 						</Link>
-					}>
+					</div>
 					{upcomingShifts.length > 0 ? (
 						<div className="space-y-4">
 							{upcomingShifts.slice(0, 5).map((shift) => {
@@ -536,7 +541,7 @@ export default function DashboardPage() {
 							size="small"
 						/>
 					)}
-				</ContentSection>
+				</div>
 
 				{/* Notifications and alerts for employee */}
 				{personalStats.timeOffRequests > 0 && (
@@ -567,7 +572,7 @@ export default function DashboardPage() {
 						</CardContent>
 					</Card>
 				)}
-			</ContentContainer>
+			</div>
 		</>
 	);
 }
