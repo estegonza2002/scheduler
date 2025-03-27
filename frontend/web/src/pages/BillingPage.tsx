@@ -519,6 +519,7 @@ export default function BillingPage() {
 									</CardFooter>
 								</Card>
 							),
+							enableFullscreen: true,
 						}}
 					/>
 				</ContentSection>

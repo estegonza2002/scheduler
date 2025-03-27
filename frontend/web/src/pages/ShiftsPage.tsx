@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useMemo, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
 	Calendar as CalendarIcon,
 	ChevronDown,
@@ -28,6 +28,8 @@ import {
 	endOfToday,
 	startOfDay,
 	endOfDay,
+	startOfWeek,
+	endOfWeek,
 } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -90,6 +92,10 @@ import {
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
 import { DateRange } from "react-day-picker";
+import { DataTable } from "@/components/ui/data-table";
+import { DatePicker } from "@/components/ui/date-picker";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { Label } from "@/components/ui/label";
 
 // Mock data for shifts - in a real app this would come from an API
 const mockShifts = [
@@ -360,28 +366,28 @@ const columns: ColumnDef<(typeof mockShifts)[0]>[] = [
 ];
 
 export function ShiftsPage() {
-	const [searchQuery, setSearchQuery] = useState("");
-	const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-	const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
-	const [dateFilterType, setDateFilterType] = useState<
-		"single" | "range" | "preset"
-	>("single");
-	const [datePreset, setDatePreset] = useState<string | null>(null);
-	const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
-	const [currentTab, setCurrentTab] = useState("all");
+	const [currentTab, setCurrentTab] = useState<string>("all");
+	const [sorting, setSorting] = useState<SortingState>([]);
 	const [viewMode, setViewMode] = useState<"table" | "cards">("table");
-
-	// TanStack Table state
-	const [sorting, setSorting] = React.useState<SortingState>([]);
-	const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-		[]
-	);
-	const [pagination, setPagination] = React.useState({
+	const [pagination, setPagination] = useState({
 		pageIndex: 0,
 		pageSize: 25,
 	});
+	const [searchQuery, setSearchQuery] = useState("");
+	const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
+	const [dateFilterType, setDateFilterType] = useState<"single" | "range">(
+		"single"
+	);
+	const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+	const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+	const [datePreset, setDatePreset] = useState<string | null>(null);
 
-	// Filter shifts based on current tab
+	// Get unique locations for filter
+	const uniqueLocations = Array.from(
+		new Set(mockShifts.map((shift) => shift.locationName))
+	).sort();
+
+	// Get filtered shifts based on current tab
 	const getTabFilteredShifts = () => {
 		let filtered = [...mockShifts];
 
@@ -397,117 +403,83 @@ export function ShiftsPage() {
 
 	const tabFilteredShifts = getTabFilteredShifts();
 
-	// Setup the react table instance
+	// Create a table instance based on the filtered data
 	const table = useReactTable({
 		data: tabFilteredShifts,
 		columns,
 		getCoreRowModel: getCoreRowModel(),
 		getPaginationRowModel: getPaginationRowModel(),
-		onSortingChange: setSorting,
 		getSortedRowModel: getSortedRowModel(),
-		onColumnFiltersChange: setColumnFilters,
 		getFilteredRowModel: getFilteredRowModel(),
+		onSortingChange: setSorting,
 		onPaginationChange: setPagination,
 		state: {
 			sorting,
-			columnFilters,
 			pagination,
+			columnFilters: [
+				...(searchQuery
+					? [
+							{
+								id: "searchQuery",
+								value: searchQuery,
+							},
+					  ]
+					: []),
+				...(selectedLocation
+					? [{ id: "locationName", value: selectedLocation }]
+					: []),
+				...(selectedDate || dateRange || datePreset
+					? [{ id: "date", value: { selectedDate, dateRange, datePreset } }]
+					: []),
+			],
 		},
 	});
-
-	// Apply filters programmatically when filter controls are used
-	React.useEffect(() => {
-		// Apply search filter
-		if (searchQuery) {
-			table.getColumn("id")?.setFilterValue(searchQuery);
-		} else {
-			table.getColumn("id")?.setFilterValue("");
-		}
-
-		// Apply location filter
-		if (selectedLocation) {
-			table.getColumn("locationName")?.setFilterValue(selectedLocation);
-		} else {
-			table.getColumn("locationName")?.setFilterValue("");
-		}
-
-		// Apply date filters
-		if (selectedDate || (dateRange && dateRange.from && dateRange.to)) {
-			table.getColumn("date")?.setFilterValue({
-				selectedDate,
-				dateRange,
-			});
-		} else {
-			table.getColumn("date")?.setFilterValue(null);
-		}
-	}, [searchQuery, selectedLocation, selectedDate, dateRange, table]);
-
-	// Get unique locations from mock data
-	const uniqueLocations = Array.from(
-		new Set(mockShifts.map((shift) => shift.locationName))
-	);
-
-	// Create location filter options in the format required by the filter dropdown
-	const locationFilterOptions = uniqueLocations.map((location) => ({
-		label: location,
-		value: location,
-	}));
-
-	// Handle location filter selection
-	const handleLocationSelect = (location: string | null) => {
-		setSelectedLocation(location);
-	};
 
 	// Get location filter label
 	const getLocationFilterLabel = () => {
 		return selectedLocation || "All Locations";
 	};
 
+	// Handle location filter selection
+	const handleLocationSelect = (location: string | null) => {
+		setSelectedLocation(location);
+	};
+
 	// Handle date filter selection
 	const handleDateFilterSelect = (type: string) => {
-		const today = new Date();
+		// Clear previous filters
+		setSelectedDate(undefined);
+		setDateRange(undefined);
+		setDatePreset(null);
 
-		switch (type) {
-			case "today":
-				setSelectedDate(today);
-				setDateRange(undefined);
-				setDateFilterType("preset");
-				setDatePreset("Today");
-				break;
-			case "yesterday":
-				setSelectedDate(subDays(today, 1));
-				setDateRange(undefined);
-				setDateFilterType("preset");
-				setDatePreset("Yesterday");
-				break;
-			case "this_week":
-				const startThis = subDays(today, today.getDay());
-				const endThis = new Date(startThis);
-				endThis.setDate(startThis.getDate() + 6);
-				setSelectedDate(undefined);
-				setDateRange({ from: startThis, to: endThis });
-				setDateFilterType("preset");
-				setDatePreset("This Week");
-				break;
-			case "last_week":
-				const startLast = subDays(today, today.getDay() + 7);
-				const endLast = new Date(startLast);
-				endLast.setDate(startLast.getDate() + 6);
-				setSelectedDate(undefined);
-				setDateRange({ from: startLast, to: endLast });
-				setDateFilterType("preset");
-				setDatePreset("Last Week");
-				break;
-			case "custom":
-				setDateFilterType("single");
-				setDatePreset(null);
-				break;
-			case "custom_range":
-				setDateFilterType("range");
-				setDatePreset(null);
-				break;
-			default:
-				break;
+		// Apply the selected preset
+		if (type === "today") {
+			setSelectedDate(new Date());
+			setDatePreset("today");
+			setDateFilterType("single");
+		} else if (type === "yesterday") {
+			setSelectedDate(subDays(new Date(), 1));
+			setDatePreset("yesterday");
+			setDateFilterType("single");
+		} else if (type === "this_week") {
+			// Set range from Monday to Sunday of this week
+			const now = new Date();
+			const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+			const startOfWeek = subDays(now, dayOfWeek === 0 ? 6 : dayOfWeek - 1);
+			const endOfWeek = subDays(startOfWeek, -6);
+			setDateRange({ from: startOfWeek, to: endOfWeek });
+			setDatePreset("this_week");
+			setDateFilterType("range");
+		} else if (type === "last_week") {
+			// Set range from Monday to Sunday of last week
+			const now = new Date();
+			const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+			const startOfThisWeek = subDays(now, dayOfWeek === 0 ? 6 : dayOfWeek - 1);
+			const startOfLastWeek = subDays(startOfThisWeek, 7);
+			const endOfLastWeek = subDays(startOfThisWeek, 1);
+			setDateRange({ from: startOfLastWeek, to: endOfLastWeek });
+			setDatePreset("last_week");
+			setDateFilterType("range");
 		}
 	};
 
@@ -673,188 +645,79 @@ export function ShiftsPage() {
 					</TabsList>
 
 					{/* Search and filter UI */}
-					<div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
-						<div className="flex items-center gap-2">
-							<div className="border rounded-md overflow-hidden">
+					<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
 								<Button
-									variant="ghost"
-									size="sm"
-									className={cn(
-										"h-8 px-2 rounded-none",
-										viewMode === "table" && "bg-muted"
-									)}
-									onClick={() => setViewMode("table")}>
-									<List className="h-4 w-4" />
-								</Button>
-								<Button
-									variant="ghost"
-									size="sm"
-									className={cn(
-										"h-8 px-2 rounded-none",
-										viewMode === "cards" && "bg-muted"
-									)}
-									onClick={() => setViewMode("cards")}>
-									<LayoutGrid className="h-4 w-4" />
-								</Button>
-							</div>
-						</div>
-
-						<div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-							<div className="relative w-full sm:w-64">
-								<Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-								<Input
-									placeholder="Search by ID or location..."
-									value={searchQuery}
-									onChange={(e) => setSearchQuery(e.target.value)}
-									className="pl-8"
-								/>
-							</div>
-
-							<DropdownMenu>
-								<DropdownMenuTrigger asChild>
-									<Button
-										variant="outline"
-										className="justify-between text-left font-normal w-[180px]">
-										<div className="flex items-center">
-											<MapPin className="mr-2 h-4 w-4" />
-											{getLocationFilterLabel()}
-										</div>
-										<ChevronDown className="h-4 w-4 opacity-50" />
-									</Button>
-								</DropdownMenuTrigger>
-								<DropdownMenuContent
-									align="end"
-									className="w-[180px]">
-									<DropdownMenuItem onClick={() => handleLocationSelect(null)}>
-										All Locations
-									</DropdownMenuItem>
-									<DropdownMenuSeparator />
-									{uniqueLocations.map((location) => (
-										<DropdownMenuItem
-											key={location}
-											onClick={() => handleLocationSelect(location)}>
-											{location}
-										</DropdownMenuItem>
-									))}
-								</DropdownMenuContent>
-							</DropdownMenu>
-
-							{/* Date filter */}
-							<Popover>
-								<PopoverTrigger asChild>
-									<Button
-										variant="outline"
-										size="sm"
-										className={cn(
-											"h-9 gap-1 w-[180px]",
-											(selectedDate || dateRange || datePreset) && "bg-muted"
-										)}>
-										<CalendarIcon className="h-3.5 w-3.5 mr-1" />
-										{getDateFilterLabel() || "Date Filter"}
-									</Button>
-								</PopoverTrigger>
-								<PopoverContent
-									className="w-auto p-0"
-									align="start">
-									<div className="p-2">
-										<div className="grid gap-1">
-											<Button
-												variant="ghost"
-												size="sm"
-												className="justify-start font-normal"
-												onClick={() => handleDateFilterSelect("today")}>
-												Today
-											</Button>
-											<Button
-												variant="ghost"
-												size="sm"
-												className="justify-start font-normal"
-												onClick={() => handleDateFilterSelect("yesterday")}>
-												Yesterday
-											</Button>
-											<Button
-												variant="ghost"
-												size="sm"
-												className="justify-start font-normal"
-												onClick={() => handleDateFilterSelect("this_week")}>
-												This Week
-											</Button>
-											<Button
-												variant="ghost"
-												size="sm"
-												className="justify-start font-normal"
-												onClick={() => handleDateFilterSelect("last_week")}>
-												Last Week
-											</Button>
-										</div>
-										<div className="mt-3 border-t pt-3">
-											{dateFilterType === "single" ? (
-												<Calendar
-													mode="single"
-													selected={selectedDate}
-													onSelect={(date) => setSelectedDate(date)}
-													initialFocus
-												/>
-											) : (
-												<Calendar
-													mode="range"
-													selected={dateRange}
-													onSelect={setDateRange}
-													numberOfMonths={2}
-													initialFocus
-												/>
-											)}
-										</div>
-										<div className="mt-3 border-t pt-3 flex gap-2">
-											<Button
-												variant="outline"
-												size="sm"
-												className="w-full"
-												onClick={() => handleDateFilterSelect("custom")}>
-												Single Date
-											</Button>
-											<Button
-												variant="outline"
-												size="sm"
-												className="w-full"
-												onClick={() => handleDateFilterSelect("custom_range")}>
-												Date Range
-											</Button>
-										</div>
+									variant="outline"
+									className="justify-between text-left font-normal w-[180px]">
+									<div className="flex items-center">
+										<MapPin className="mr-2 h-4 w-4" />
+										{getLocationFilterLabel()}
 									</div>
-								</PopoverContent>
-							</Popover>
-
-							{hasActiveFilters && (
-								<Button
-									variant="ghost"
-									size="sm"
-									onClick={clearAllFilters}
-									className="h-9">
-									<X className="h-4 w-4 mr-1" />
-									Clear
+									<ChevronDown className="h-4 w-4 opacity-50" />
 								</Button>
-							)}
+							</DropdownMenuTrigger>
+							<DropdownMenuContent
+								align="end"
+								className="w-[180px]">
+								<DropdownMenuItem onClick={() => handleLocationSelect(null)}>
+									All Locations
+								</DropdownMenuItem>
+								<DropdownMenuSeparator />
+								{uniqueLocations.map((location) => (
+									<DropdownMenuItem
+										key={location}
+										onClick={() => handleLocationSelect(location)}>
+										{location}
+									</DropdownMenuItem>
+								))}
+							</DropdownMenuContent>
+						</DropdownMenu>
+
+						{/* Date filter */}
+						<div className="space-y-2">
+							<Label>Date</Label>
+							<div className="flex flex-col space-y-2">
+								<div className="flex items-center space-x-2">
+									<input
+										type="radio"
+										id="single-date"
+										name="dateFilterType"
+										checked={dateFilterType === "single"}
+										onChange={() => setDateFilterType("single")}
+									/>
+									<label htmlFor="single-date">Single date</label>
+								</div>
+								{dateFilterType === "single" && (
+									<DatePicker
+										value={selectedDate}
+										onChange={setSelectedDate}
+										className="w-full"
+									/>
+								)}
+
+								<div className="flex items-center space-x-2">
+									<input
+										type="radio"
+										id="date-range"
+										name="dateFilterType"
+										checked={dateFilterType === "range"}
+										onChange={() => setDateFilterType("range")}
+									/>
+									<label htmlFor="date-range">Date range</label>
+								</div>
+								{dateFilterType === "range" && (
+									<DateRangePicker
+										value={dateRange}
+										onChange={setDateRange}
+										placeholder="Select date range"
+									/>
+								)}
+							</div>
 						</div>
 					</div>
 
-					{/* Applied date filter badges */}
-					{(selectedDate || dateRange || datePreset) && (
-						<div className="flex items-center gap-2 mb-4">
-							<Badge className="flex items-center gap-1.5 px-2.5 py-1 bg-muted hover:bg-muted border text-foreground">
-								<CalendarIcon className="h-3 w-3 text-muted-foreground" />
-								<span>{getDateFilterLabel()}</span>
-								<button
-									onClick={clearDateFilter}
-									className="ml-1 rounded-full p-0.5 hover:bg-background/80 transition-colors"
-									aria-label="Remove date filter">
-									<X className="h-3 w-3 text-muted-foreground" />
-								</button>
-							</Badge>
-						</div>
-					)}
-
-					{/* Tab content */}
 					<TabsContent
 						value="all"
 						forceMount={true}
@@ -873,132 +736,139 @@ export function ShiftsPage() {
 									</Button>
 								}
 							/>
-						) : viewMode === "table" ? (
-							<div className="rounded-md border">
-								<Table>
-									<TableHeader>
-										{table.getHeaderGroups().map((headerGroup) => (
-											<TableRow key={headerGroup.id}>
-												{headerGroup.headers.map((header) => (
-													<TableHead key={header.id}>
-														{header.isPlaceholder
-															? null
-															: flexRender(
-																	header.column.columnDef.header,
-																	header.getContext()
-															  )}
-													</TableHead>
-												))}
-											</TableRow>
-										))}
-									</TableHeader>
-									<TableBody>
-										{table.getRowModel().rows.length > 0 ? (
-											table.getRowModel().rows.map((row) => (
-												<TableRow
-													key={row.id}
-													data-state={row.getIsSelected() && "selected"}>
-													{row.getVisibleCells().map((cell) => (
-														<TableCell key={cell.id}>
-															{flexRender(
-																cell.column.columnDef.cell,
-																cell.getContext()
-															)}
-														</TableCell>
-													))}
-												</TableRow>
-											))
-										) : (
-											<TableRow>
-												<TableCell
-													colSpan={columns.length}
-													className="h-24 text-center">
-													No results.
-												</TableCell>
-											</TableRow>
-										)}
-									</TableBody>
-								</Table>
-							</div>
 						) : (
-							<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-								{table.getRowModel().rows.map((row) => (
-									<ShiftCard
-										key={row.id}
-										shift={row.original}
-									/>
-								))}
-							</div>
-						)}
-
-						{/* Pagination Controls */}
-						<div className="flex items-center justify-between">
-							<div className="flex-1 text-sm text-muted-foreground">
-								Showing{" "}
-								{table.getFilteredRowModel().rows.length > 0
-									? table.getState().pagination.pageIndex *
-											table.getState().pagination.pageSize +
-									  1
-									: 0}{" "}
-								to{" "}
-								{Math.min(
-									(table.getState().pagination.pageIndex + 1) *
-										table.getState().pagination.pageSize,
-									table.getFilteredRowModel().rows.length
-								)}{" "}
-								of {table.getFilteredRowModel().rows.length} entries
-							</div>
-							<div className="flex items-center space-x-6">
-								<div className="flex items-center space-x-2">
-									<p className="text-sm text-muted-foreground">
-										Items per page
-									</p>
-									<Select
-										value={`${table.getState().pagination.pageSize}`}
-										onValueChange={(value) => {
-											table.setPageSize(Number(value));
-										}}>
-										<SelectTrigger className="h-8 w-[70px]">
-											<SelectValue
-												placeholder={table.getState().pagination.pageSize}
-											/>
-										</SelectTrigger>
-										<SelectContent side="top">
-											{[25, 50, 100, 200].map((pageSize) => (
-												<SelectItem
-													key={pageSize}
-													value={`${pageSize}`}>
-													{pageSize}
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
-								</div>
-
-								<div className="flex items-center space-x-2">
-									<Button
-										variant="outline"
-										size="sm"
-										onClick={() => table.previousPage()}
-										disabled={!table.getCanPreviousPage()}
-										className="h-8 w-8 p-0">
-										<ChevronLeft className="h-4 w-4" />
-									</Button>
-									<div className="flex items-center text-sm text-muted-foreground">
-										Page {table.getState().pagination.pageIndex + 1} of{" "}
-										{table.getPageCount()}
+							<>
+								{/* Standalone filters above the table */}
+								<div className="flex flex-wrap gap-4 mb-4">
+									<div className="flex-1 min-w-[200px]">
+										<label className="text-sm font-medium mb-1.5 block">
+											Location
+										</label>
+										<Select
+											value={selectedLocation || ""}
+											onValueChange={(value) =>
+												handleLocationSelect(value === "" ? null : value)
+											}>
+											<SelectTrigger className="w-full">
+												<SelectValue placeholder="All Locations" />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="">All Locations</SelectItem>
+												{uniqueLocations.map((location) => (
+													<SelectItem
+														key={location}
+														value={location}>
+														{location}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
 									</div>
-									<Button
-										variant="outline"
-										size="sm"
-										onClick={() => table.nextPage()}
-										disabled={!table.getCanNextPage()}
-										className="h-8 w-8 p-0">
-										<ChevronRight className="h-4 w-4" />
-									</Button>
+									<div className="flex-1 min-w-[200px]">
+										<label className="text-sm font-medium mb-1.5 block">
+											Date Filter
+										</label>
+										<div className="flex flex-col gap-2">
+											<Select
+												value={dateFilterType}
+												onValueChange={(value: "single" | "range") =>
+													setDateFilterType(value)
+												}>
+												<SelectTrigger className="w-full">
+													<SelectValue placeholder="Filter type" />
+												</SelectTrigger>
+												<SelectContent>
+													<SelectItem value="single">Single Date</SelectItem>
+													<SelectItem value="range">Date Range</SelectItem>
+												</SelectContent>
+											</Select>
+
+											{dateFilterType === "single" && (
+												<DatePicker
+													value={selectedDate}
+													onChange={setSelectedDate}
+													className="w-full"
+												/>
+											)}
+
+											{dateFilterType === "range" && (
+												<DateRangePicker
+													value={dateRange}
+													onChange={setDateRange}
+													className="w-full"
+												/>
+											)}
+										</div>
+									</div>
+									{hasActiveFilters && (
+										<div className="flex items-end w-full md:w-auto">
+											<Button
+												variant="outline"
+												size="sm"
+												onClick={clearAllFilters}
+												className="mb-1">
+												<X className="h-4 w-4 mr-1" />
+												Clear Filters
+											</Button>
+										</div>
+									)}
 								</div>
-							</div>
-						</div>
+
+								{/* Table without customFilters */}
+								<DataTable
+									columns={columns}
+									data={tabFilteredShifts.filter((shift) => {
+										// Apply location filter
+										if (
+											selectedLocation &&
+											shift.locationName !== selectedLocation
+										) {
+											return false;
+										}
+
+										// Apply date filter
+										if (selectedDate) {
+											const shiftDate = parseISO(shift.date);
+											if (
+												!isWithinInterval(shiftDate, {
+													start: startOfDay(selectedDate),
+													end: endOfDay(selectedDate),
+												})
+											) {
+												return false;
+											}
+										} else if (dateRange?.from && dateRange?.to) {
+											const shiftDate = parseISO(shift.date);
+											if (
+												!isWithinInterval(shiftDate, {
+													start: startOfDay(dateRange.from),
+													end: endOfDay(dateRange.to),
+												})
+											) {
+												return false;
+											}
+										}
+
+										return true;
+									})}
+									searchKey="id"
+									searchPlaceholder="Search by ID or location..."
+									viewOptions={{
+										enableViewToggle: true,
+										defaultView: viewMode,
+										onViewChange: setViewMode,
+										renderCard: (shift: (typeof mockShifts)[0]) => (
+											<ShiftCard shift={shift} />
+										),
+										enableFullscreen: true,
+									}}
+									onRowClick={(shift) => {
+										// Navigate to shift details
+										window.location.href = `/shifts/${shift.id}`;
+									}}
+								/>
+							</>
+						)}
 					</TabsContent>
 
 					<TabsContent
@@ -1019,132 +889,139 @@ export function ShiftsPage() {
 									</Button>
 								}
 							/>
-						) : viewMode === "table" ? (
-							<div className="rounded-md border">
-								<Table>
-									<TableHeader>
-										{table.getHeaderGroups().map((headerGroup) => (
-											<TableRow key={headerGroup.id}>
-												{headerGroup.headers.map((header) => (
-													<TableHead key={header.id}>
-														{header.isPlaceholder
-															? null
-															: flexRender(
-																	header.column.columnDef.header,
-																	header.getContext()
-															  )}
-													</TableHead>
-												))}
-											</TableRow>
-										))}
-									</TableHeader>
-									<TableBody>
-										{table.getRowModel().rows.length > 0 ? (
-											table.getRowModel().rows.map((row) => (
-												<TableRow
-													key={row.id}
-													data-state={row.getIsSelected() && "selected"}>
-													{row.getVisibleCells().map((cell) => (
-														<TableCell key={cell.id}>
-															{flexRender(
-																cell.column.columnDef.cell,
-																cell.getContext()
-															)}
-														</TableCell>
-													))}
-												</TableRow>
-											))
-										) : (
-											<TableRow>
-												<TableCell
-													colSpan={columns.length}
-													className="h-24 text-center">
-													No results.
-												</TableCell>
-											</TableRow>
-										)}
-									</TableBody>
-								</Table>
-							</div>
 						) : (
-							<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-								{table.getRowModel().rows.map((row) => (
-									<ShiftCard
-										key={row.id}
-										shift={row.original}
-									/>
-								))}
-							</div>
-						)}
-
-						{/* Pagination Controls */}
-						<div className="flex items-center justify-between">
-							<div className="flex-1 text-sm text-muted-foreground">
-								Showing{" "}
-								{table.getFilteredRowModel().rows.length > 0
-									? table.getState().pagination.pageIndex *
-											table.getState().pagination.pageSize +
-									  1
-									: 0}{" "}
-								to{" "}
-								{Math.min(
-									(table.getState().pagination.pageIndex + 1) *
-										table.getState().pagination.pageSize,
-									table.getFilteredRowModel().rows.length
-								)}{" "}
-								of {table.getFilteredRowModel().rows.length} entries
-							</div>
-							<div className="flex items-center space-x-6">
-								<div className="flex items-center space-x-2">
-									<p className="text-sm text-muted-foreground">
-										Items per page
-									</p>
-									<Select
-										value={`${table.getState().pagination.pageSize}`}
-										onValueChange={(value) => {
-											table.setPageSize(Number(value));
-										}}>
-										<SelectTrigger className="h-8 w-[70px]">
-											<SelectValue
-												placeholder={table.getState().pagination.pageSize}
-											/>
-										</SelectTrigger>
-										<SelectContent side="top">
-											{[25, 50, 100, 200].map((pageSize) => (
-												<SelectItem
-													key={pageSize}
-													value={`${pageSize}`}>
-													{pageSize}
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
-								</div>
-
-								<div className="flex items-center space-x-2">
-									<Button
-										variant="outline"
-										size="sm"
-										onClick={() => table.previousPage()}
-										disabled={!table.getCanPreviousPage()}
-										className="h-8 w-8 p-0">
-										<ChevronLeft className="h-4 w-4" />
-									</Button>
-									<div className="flex items-center text-sm text-muted-foreground">
-										Page {table.getState().pagination.pageIndex + 1} of{" "}
-										{table.getPageCount()}
+							<>
+								{/* Standalone filters above the table */}
+								<div className="flex flex-wrap gap-4 mb-4">
+									<div className="flex-1 min-w-[200px]">
+										<label className="text-sm font-medium mb-1.5 block">
+											Location
+										</label>
+										<Select
+											value={selectedLocation || ""}
+											onValueChange={(value) =>
+												handleLocationSelect(value === "" ? null : value)
+											}>
+											<SelectTrigger className="w-full">
+												<SelectValue placeholder="All Locations" />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="">All Locations</SelectItem>
+												{uniqueLocations.map((location) => (
+													<SelectItem
+														key={location}
+														value={location}>
+														{location}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
 									</div>
-									<Button
-										variant="outline"
-										size="sm"
-										onClick={() => table.nextPage()}
-										disabled={!table.getCanNextPage()}
-										className="h-8 w-8 p-0">
-										<ChevronRight className="h-4 w-4" />
-									</Button>
+									<div className="flex-1 min-w-[200px]">
+										<label className="text-sm font-medium mb-1.5 block">
+											Date Filter
+										</label>
+										<div className="flex flex-col gap-2">
+											<Select
+												value={dateFilterType}
+												onValueChange={(value: "single" | "range") =>
+													setDateFilterType(value)
+												}>
+												<SelectTrigger className="w-full">
+													<SelectValue placeholder="Filter type" />
+												</SelectTrigger>
+												<SelectContent>
+													<SelectItem value="single">Single Date</SelectItem>
+													<SelectItem value="range">Date Range</SelectItem>
+												</SelectContent>
+											</Select>
+
+											{dateFilterType === "single" && (
+												<DatePicker
+													value={selectedDate}
+													onChange={setSelectedDate}
+													className="w-full"
+												/>
+											)}
+
+											{dateFilterType === "range" && (
+												<DateRangePicker
+													value={dateRange}
+													onChange={setDateRange}
+													className="w-full"
+												/>
+											)}
+										</div>
+									</div>
+									{hasActiveFilters && (
+										<div className="flex items-end w-full md:w-auto">
+											<Button
+												variant="outline"
+												size="sm"
+												onClick={clearAllFilters}
+												className="mb-1">
+												<X className="h-4 w-4 mr-1" />
+												Clear Filters
+											</Button>
+										</div>
+									)}
 								</div>
-							</div>
-						</div>
+
+								{/* Table without customFilters */}
+								<DataTable
+									columns={columns}
+									data={tabFilteredShifts.filter((shift) => {
+										// Apply location filter
+										if (
+											selectedLocation &&
+											shift.locationName !== selectedLocation
+										) {
+											return false;
+										}
+
+										// Apply date filter
+										if (selectedDate) {
+											const shiftDate = parseISO(shift.date);
+											if (
+												!isWithinInterval(shiftDate, {
+													start: startOfDay(selectedDate),
+													end: endOfDay(selectedDate),
+												})
+											) {
+												return false;
+											}
+										} else if (dateRange?.from && dateRange?.to) {
+											const shiftDate = parseISO(shift.date);
+											if (
+												!isWithinInterval(shiftDate, {
+													start: startOfDay(dateRange.from),
+													end: endOfDay(dateRange.to),
+												})
+											) {
+												return false;
+											}
+										}
+
+										return true;
+									})}
+									searchKey="id"
+									searchPlaceholder="Search by ID or location..."
+									viewOptions={{
+										enableViewToggle: true,
+										defaultView: viewMode,
+										onViewChange: setViewMode,
+										renderCard: (shift: (typeof mockShifts)[0]) => (
+											<ShiftCard shift={shift} />
+										),
+										enableFullscreen: true,
+									}}
+									onRowClick={(shift) => {
+										// Navigate to shift details
+										window.location.href = `/shifts/${shift.id}`;
+									}}
+								/>
+							</>
+						)}
 					</TabsContent>
 
 					<TabsContent
@@ -1165,132 +1042,139 @@ export function ShiftsPage() {
 									</Button>
 								}
 							/>
-						) : viewMode === "table" ? (
-							<div className="rounded-md border">
-								<Table>
-									<TableHeader>
-										{table.getHeaderGroups().map((headerGroup) => (
-											<TableRow key={headerGroup.id}>
-												{headerGroup.headers.map((header) => (
-													<TableHead key={header.id}>
-														{header.isPlaceholder
-															? null
-															: flexRender(
-																	header.column.columnDef.header,
-																	header.getContext()
-															  )}
-													</TableHead>
-												))}
-											</TableRow>
-										))}
-									</TableHeader>
-									<TableBody>
-										{table.getRowModel().rows.length > 0 ? (
-											table.getRowModel().rows.map((row) => (
-												<TableRow
-													key={row.id}
-													data-state={row.getIsSelected() && "selected"}>
-													{row.getVisibleCells().map((cell) => (
-														<TableCell key={cell.id}>
-															{flexRender(
-																cell.column.columnDef.cell,
-																cell.getContext()
-															)}
-														</TableCell>
-													))}
-												</TableRow>
-											))
-										) : (
-											<TableRow>
-												<TableCell
-													colSpan={columns.length}
-													className="h-24 text-center">
-													No results.
-												</TableCell>
-											</TableRow>
-										)}
-									</TableBody>
-								</Table>
-							</div>
 						) : (
-							<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-								{table.getRowModel().rows.map((row) => (
-									<ShiftCard
-										key={row.id}
-										shift={row.original}
-									/>
-								))}
-							</div>
-						)}
-
-						{/* Pagination Controls */}
-						<div className="flex items-center justify-between">
-							<div className="flex-1 text-sm text-muted-foreground">
-								Showing{" "}
-								{table.getFilteredRowModel().rows.length > 0
-									? table.getState().pagination.pageIndex *
-											table.getState().pagination.pageSize +
-									  1
-									: 0}{" "}
-								to{" "}
-								{Math.min(
-									(table.getState().pagination.pageIndex + 1) *
-										table.getState().pagination.pageSize,
-									table.getFilteredRowModel().rows.length
-								)}{" "}
-								of {table.getFilteredRowModel().rows.length} entries
-							</div>
-							<div className="flex items-center space-x-6">
-								<div className="flex items-center space-x-2">
-									<p className="text-sm text-muted-foreground">
-										Items per page
-									</p>
-									<Select
-										value={`${table.getState().pagination.pageSize}`}
-										onValueChange={(value) => {
-											table.setPageSize(Number(value));
-										}}>
-										<SelectTrigger className="h-8 w-[70px]">
-											<SelectValue
-												placeholder={table.getState().pagination.pageSize}
-											/>
-										</SelectTrigger>
-										<SelectContent side="top">
-											{[25, 50, 100, 200].map((pageSize) => (
-												<SelectItem
-													key={pageSize}
-													value={`${pageSize}`}>
-													{pageSize}
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
-								</div>
-
-								<div className="flex items-center space-x-2">
-									<Button
-										variant="outline"
-										size="sm"
-										onClick={() => table.previousPage()}
-										disabled={!table.getCanPreviousPage()}
-										className="h-8 w-8 p-0">
-										<ChevronLeft className="h-4 w-4" />
-									</Button>
-									<div className="flex items-center text-sm text-muted-foreground">
-										Page {table.getState().pagination.pageIndex + 1} of{" "}
-										{table.getPageCount()}
+							<>
+								{/* Standalone filters above the table */}
+								<div className="flex flex-wrap gap-4 mb-4">
+									<div className="flex-1 min-w-[200px]">
+										<label className="text-sm font-medium mb-1.5 block">
+											Location
+										</label>
+										<Select
+											value={selectedLocation || ""}
+											onValueChange={(value) =>
+												handleLocationSelect(value === "" ? null : value)
+											}>
+											<SelectTrigger className="w-full">
+												<SelectValue placeholder="All Locations" />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="">All Locations</SelectItem>
+												{uniqueLocations.map((location) => (
+													<SelectItem
+														key={location}
+														value={location}>
+														{location}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
 									</div>
-									<Button
-										variant="outline"
-										size="sm"
-										onClick={() => table.nextPage()}
-										disabled={!table.getCanNextPage()}
-										className="h-8 w-8 p-0">
-										<ChevronRight className="h-4 w-4" />
-									</Button>
+									<div className="flex-1 min-w-[200px]">
+										<label className="text-sm font-medium mb-1.5 block">
+											Date Filter
+										</label>
+										<div className="flex flex-col gap-2">
+											<Select
+												value={dateFilterType}
+												onValueChange={(value: "single" | "range") =>
+													setDateFilterType(value)
+												}>
+												<SelectTrigger className="w-full">
+													<SelectValue placeholder="Filter type" />
+												</SelectTrigger>
+												<SelectContent>
+													<SelectItem value="single">Single Date</SelectItem>
+													<SelectItem value="range">Date Range</SelectItem>
+												</SelectContent>
+											</Select>
+
+											{dateFilterType === "single" && (
+												<DatePicker
+													value={selectedDate}
+													onChange={setSelectedDate}
+													className="w-full"
+												/>
+											)}
+
+											{dateFilterType === "range" && (
+												<DateRangePicker
+													value={dateRange}
+													onChange={setDateRange}
+													className="w-full"
+												/>
+											)}
+										</div>
+									</div>
+									{hasActiveFilters && (
+										<div className="flex items-end w-full md:w-auto">
+											<Button
+												variant="outline"
+												size="sm"
+												onClick={clearAllFilters}
+												className="mb-1">
+												<X className="h-4 w-4 mr-1" />
+												Clear Filters
+											</Button>
+										</div>
+									)}
 								</div>
-							</div>
-						</div>
+
+								{/* Table without customFilters */}
+								<DataTable
+									columns={columns}
+									data={tabFilteredShifts.filter((shift) => {
+										// Apply location filter
+										if (
+											selectedLocation &&
+											shift.locationName !== selectedLocation
+										) {
+											return false;
+										}
+
+										// Apply date filter
+										if (selectedDate) {
+											const shiftDate = parseISO(shift.date);
+											if (
+												!isWithinInterval(shiftDate, {
+													start: startOfDay(selectedDate),
+													end: endOfDay(selectedDate),
+												})
+											) {
+												return false;
+											}
+										} else if (dateRange?.from && dateRange?.to) {
+											const shiftDate = parseISO(shift.date);
+											if (
+												!isWithinInterval(shiftDate, {
+													start: startOfDay(dateRange.from),
+													end: endOfDay(dateRange.to),
+												})
+											) {
+												return false;
+											}
+										}
+
+										return true;
+									})}
+									searchKey="id"
+									searchPlaceholder="Search by ID or location..."
+									viewOptions={{
+										enableViewToggle: true,
+										defaultView: viewMode,
+										onViewChange: setViewMode,
+										renderCard: (shift: (typeof mockShifts)[0]) => (
+											<ShiftCard shift={shift} />
+										),
+										enableFullscreen: true,
+									}}
+									onRowClick={(shift) => {
+										// Navigate to shift details
+										window.location.href = `/shifts/${shift.id}`;
+									}}
+								/>
+							</>
+						)}
 					</TabsContent>
 				</Tabs>
 			</ContentSection>

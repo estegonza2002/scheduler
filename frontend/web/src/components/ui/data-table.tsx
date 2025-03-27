@@ -41,6 +41,9 @@ import {
 	LayoutGrid,
 	Search,
 	X,
+	Maximize2,
+	Minimize2,
+	Filter,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -49,6 +52,17 @@ export interface DataTableViewOptions {
 	defaultView?: "table" | "cards";
 	onViewChange?: (view: "table" | "cards") => void;
 	renderCard?: (item: any) => React.ReactNode;
+	enableFullscreen?: boolean;
+	onFullscreenChange?: (isFullscreen: boolean) => void;
+}
+
+export interface CustomFilter {
+	id: string;
+	label: string;
+	render: () => React.ReactNode;
+	column?: string;
+	value?: any;
+	onValueChange?: (value: any) => void;
 }
 
 interface DataTableProps<TData, TValue> {
@@ -68,6 +82,7 @@ interface DataTableProps<TData, TValue> {
 	onRowClick?: (row: TData) => void;
 	tableCaption?: string;
 	viewOptions?: DataTableViewOptions;
+	customFilters?: CustomFilter[];
 }
 
 export function DataTable<TData, TValue>({
@@ -81,6 +96,7 @@ export function DataTable<TData, TValue>({
 	onRowClick,
 	tableCaption,
 	viewOptions,
+	customFilters,
 }: DataTableProps<TData, TValue>) {
 	const [sorting, setSorting] = React.useState<SortingState>([]);
 	const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -93,6 +109,8 @@ export function DataTable<TData, TValue>({
 	const [viewMode, setViewMode] = React.useState<"table" | "cards">(
 		viewOptions?.defaultView || "table"
 	);
+	const [isFullscreen, setIsFullscreen] = React.useState(false);
+	const [showFilters, setShowFilters] = React.useState(false);
 
 	// Auto-detect a searchable column if none is provided
 	const effectiveSearchKey = React.useMemo(() => {
@@ -109,6 +127,8 @@ export function DataTable<TData, TValue>({
 
 	// Ref for screen reader announcements
 	const announceRef = React.useRef<HTMLDivElement>(null);
+	// Ref for fullscreen container
+	const containerRef = React.useRef<HTMLDivElement>(null);
 
 	// Function to announce changes to screen readers
 	const announce = (message: string) => {
@@ -122,6 +142,39 @@ export function DataTable<TData, TValue>({
 		setViewMode(mode);
 		viewOptions?.onViewChange?.(mode);
 	};
+
+	// Handle fullscreen toggle
+	const toggleFullscreen = () => {
+		const newState = !isFullscreen;
+		setIsFullscreen(newState);
+		viewOptions?.onFullscreenChange?.(newState);
+
+		if (newState) {
+			announce("Entered fullscreen mode");
+		} else {
+			announce("Exited fullscreen mode");
+		}
+	};
+
+	// Toggle filters visibility
+	const toggleFilters = () => {
+		setShowFilters(!showFilters);
+		announce(showFilters ? "Filters hidden" : "Filters shown");
+	};
+
+	// Listen for escape key to exit fullscreen
+	React.useEffect(() => {
+		const handleKeyDown = (e: KeyboardEvent) => {
+			if (e.key === "Escape" && isFullscreen) {
+				toggleFullscreen();
+			}
+		};
+
+		document.addEventListener("keydown", handleKeyDown);
+		return () => {
+			document.removeEventListener("keydown", handleKeyDown);
+		};
+	}, [isFullscreen]);
 
 	const isExternalPagination = !!externalPagination;
 
@@ -168,11 +221,54 @@ export function DataTable<TData, TValue>({
 	});
 
 	const renderRows = () => {
-		if (isExternalPagination) {
-			return table.getRowModel().rows;
-		} else {
-			return table.getRowModel().rows;
+		const rows = isExternalPagination
+			? table.getRowModel().rows
+			: table.getRowModel().rows;
+
+		if (!rows || rows.length === 0) {
+			return (
+				<TableRow>
+					<TableCell
+						colSpan={columns.length}
+						className="h-24 text-center text-muted-foreground">
+						No results found.
+					</TableCell>
+				</TableRow>
+			);
 		}
+
+		return rows.map((row: Row<TData>) => (
+			<TableRow
+				key={row.id}
+				data-state={row.getIsSelected() && "selected"}
+				className={
+					onRowClick
+						? "cursor-pointer hover:bg-primary/5 transition-colors"
+						: "hover:bg-muted/30 transition-colors"
+				}
+				onClick={onRowClick ? () => onRowClick(row.original) : undefined}
+				tabIndex={onRowClick ? 0 : undefined}
+				onKeyDown={
+					onRowClick
+						? (e) => {
+								if (e.key === "Enter" || e.key === " ") {
+									e.preventDefault();
+									onRowClick(row.original);
+								}
+						  }
+						: undefined
+				}
+				aria-selected={row.getIsSelected()}
+				role="row">
+				{row.getVisibleCells().map((cell: Cell<TData, unknown>) => (
+					<TableCell
+						key={cell.id}
+						role="cell">
+						{flexRender(cell.column.columnDef.cell, cell.getContext())}
+					</TableCell>
+				))}
+			</TableRow>
+		));
 	};
 
 	// Handle search input change with announcement
@@ -197,11 +293,52 @@ export function DataTable<TData, TValue>({
 	// Reset all filters
 	const handleResetFilters = () => {
 		setColumnFilters([]);
+
+		// Call onValueChange with null/default for each custom filter
+		customFilters?.forEach((filter) => {
+			if (filter.onValueChange) {
+				filter.onValueChange(null);
+			}
+		});
+
 		announce("All filters cleared");
 	};
 
+	// Check if we have custom filters to show the filter button
+	const hasCustomFilters = customFilters && customFilters.length > 0;
+
+	// Apply custom filters to the table
+	React.useEffect(() => {
+		if (!customFilters) return;
+
+		customFilters.forEach((filter) => {
+			const columnId = filter.column || filter.id;
+			if (filter.value !== undefined) {
+				const column = table.getColumn(columnId);
+				if (column) {
+					console.log(`Setting filter for column ${columnId}:`, filter.value);
+					column.setFilterValue(filter.value);
+				} else {
+					console.warn(
+						`Column "${columnId}" not found in the table. Skipping filter.`
+					);
+				}
+			}
+		});
+	}, [customFilters, table]);
+
+	React.useEffect(() => {
+		// For debugging React Fragment errors
+		console.log("DataTable render - checking for React Fragment issues");
+	}, []);
+
 	return (
-		<div>
+		<div
+			ref={containerRef}
+			className={cn(
+				"relative transition-all duration-300",
+				isFullscreen && "fixed inset-0 z-50 bg-background p-6 overflow-auto"
+			)}>
 			{/* Screen reader announcements */}
 			<div
 				ref={announceRef}
@@ -213,8 +350,8 @@ export function DataTable<TData, TValue>({
 			{/* Top Controls: Search and View Toggle */}
 			<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
 				{/* Search Controls */}
-				{effectiveSearchKey && (
-					<div className="flex items-center gap-2 w-full sm:w-auto">
+				<div className="flex items-center gap-2 w-full sm:w-auto">
+					{effectiveSearchKey && (
 						<div className="relative flex-1 sm:flex-none sm:w-80">
 							<Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
 							<Input
@@ -242,35 +379,118 @@ export function DataTable<TData, TValue>({
 								</Button>
 							)}
 						</div>
-					</div>
-				)}
+					)}
 
-				{/* View Toggle */}
-				{viewOptions?.enableViewToggle && (
-					<div className="border rounded-md overflow-hidden">
+					{/* Filter button */}
+					{hasCustomFilters && (
 						<Button
-							variant="ghost"
+							variant="outline"
 							size="sm"
-							className={cn(
-								"h-8 px-2 rounded-none",
-								viewMode === "table" && "bg-muted"
-							)}
-							onClick={() => handleViewModeChange("table")}>
-							<List className="h-4 w-4" />
+							onClick={toggleFilters}
+							className={cn("h-9 px-3", showFilters && "bg-muted")}
+							aria-label={showFilters ? "Hide filters" : "Show filters"}
+							aria-expanded={showFilters}>
+							<Filter className="h-4 w-4 mr-2" />
+							Filters
 						</Button>
+					)}
+				</div>
+
+				{/* View Toggle and Fullscreen */}
+				<div className="flex items-center gap-2">
+					{viewOptions?.enableViewToggle && (
+						<div className="border rounded-md overflow-hidden">
+							<Button
+								variant="ghost"
+								size="sm"
+								className={cn(
+									"h-8 px-2 rounded-none",
+									viewMode === "table" && "bg-muted"
+								)}
+								onClick={() => handleViewModeChange("table")}>
+								<List className="h-4 w-4" />
+							</Button>
+							<Button
+								variant="ghost"
+								size="sm"
+								className={cn(
+									"h-8 px-2 rounded-none",
+									viewMode === "cards" && "bg-muted"
+								)}
+								onClick={() => handleViewModeChange("cards")}>
+								<LayoutGrid className="h-4 w-4" />
+							</Button>
+							{viewOptions?.enableFullscreen !== false && (
+								<Button
+									variant="ghost"
+									size="sm"
+									onClick={toggleFullscreen}
+									className={cn(
+										"h-8 px-2 rounded-none",
+										isFullscreen && "bg-muted"
+									)}
+									aria-label={
+										isFullscreen ? "Exit fullscreen" : "Enter fullscreen"
+									}>
+									{isFullscreen ? (
+										<Minimize2 className="h-4 w-4" />
+									) : (
+										<Maximize2 className="h-4 w-4" />
+									)}
+								</Button>
+							)}
+						</div>
+					)}
+
+					{/* Standalone fullscreen button when view toggle is disabled */}
+					{!viewOptions?.enableViewToggle &&
+						viewOptions?.enableFullscreen !== false && (
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={toggleFullscreen}
+								className="h-8 px-2"
+								aria-label={
+									isFullscreen ? "Exit fullscreen" : "Enter fullscreen"
+								}>
+								{isFullscreen ? (
+									<Minimize2 className="h-4 w-4" />
+								) : (
+									<Maximize2 className="h-4 w-4" />
+								)}
+							</Button>
+						)}
+				</div>
+			</div>
+
+			{/* Custom Filters Section */}
+			{hasCustomFilters && showFilters && (
+				<div className="mb-4 p-4 border rounded-md bg-background shadow-sm">
+					<div className="flex items-center justify-between mb-2">
+						<h3 className="text-sm font-medium">Filter Options</h3>
 						<Button
 							variant="ghost"
 							size="sm"
-							className={cn(
-								"h-8 px-2 rounded-none",
-								viewMode === "cards" && "bg-muted"
-							)}
-							onClick={() => handleViewModeChange("cards")}>
-							<LayoutGrid className="h-4 w-4" />
+							onClick={handleResetFilters}
+							className="h-8 text-xs"
+							aria-label="Reset all filters">
+							Reset filters
 						</Button>
 					</div>
-				)}
-			</div>
+					<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+						{customFilters?.map((filter) => (
+							<div
+								key={filter.id}
+								className="flex flex-col">
+								<label className="text-sm font-medium mb-1.5">
+									{filter.label}
+								</label>
+								{filter.render()}
+							</div>
+						))}
+					</div>
+				</div>
+			)}
 
 			{/* Card View */}
 			{viewOptions?.renderCard && viewMode === "cards" && (
@@ -299,83 +519,31 @@ export function DataTable<TData, TValue>({
 									.map((headerGroup: HeaderGroup<TData>) => (
 										<TableRow key={headerGroup.id}>
 											{headerGroup.headers.map(
-												(header: Header<TData, unknown>) => {
-													return (
-														<TableHead
-															key={header.id}
-															scope="col"
-															className="bg-muted/50 font-medium"
-															aria-sort={
-																header.column.getIsSorted()
-																	? header.column.getIsSorted() === "asc"
-																		? "ascending"
-																		: "descending"
-																	: undefined
-															}>
-															{header.isPlaceholder
-																? null
-																: flexRender(
-																		header.column.columnDef.header,
-																		header.getContext()
-																  )}
-														</TableHead>
-													);
-												}
+												(header: Header<TData, unknown>) => (
+													<TableHead
+														key={header.id}
+														scope="col"
+														className="bg-muted/50 font-medium"
+														aria-sort={
+															header.column.getIsSorted()
+																? header.column.getIsSorted() === "asc"
+																	? "ascending"
+																	: "descending"
+																: undefined
+														}>
+														{header.isPlaceholder
+															? null
+															: flexRender(
+																	header.column.columnDef.header,
+																	header.getContext()
+															  )}
+													</TableHead>
+												)
 											)}
 										</TableRow>
 									))}
 							</TableHeader>
-							<TableBody>
-								{renderRows().length ? (
-									renderRows().map((row: Row<TData>) => (
-										<TableRow
-											key={row.id}
-											data-state={row.getIsSelected() && "selected"}
-											className={
-												onRowClick
-													? "cursor-pointer hover:bg-primary/5 transition-colors"
-													: "hover:bg-muted/30 transition-colors"
-											}
-											onClick={
-												onRowClick ? () => onRowClick(row.original) : undefined
-											}
-											tabIndex={onRowClick ? 0 : undefined}
-											onKeyDown={
-												onRowClick
-													? (e) => {
-															if (e.key === "Enter" || e.key === " ") {
-																e.preventDefault();
-																onRowClick(row.original);
-															}
-													  }
-													: undefined
-											}
-											aria-selected={row.getIsSelected()}
-											role="row">
-											{row
-												.getVisibleCells()
-												.map((cell: Cell<TData, unknown>) => (
-													<TableCell
-														key={cell.id}
-														role="cell">
-														{flexRender(
-															cell.column.columnDef.cell,
-															cell.getContext()
-														)}
-													</TableCell>
-												))}
-										</TableRow>
-									))
-								) : (
-									<TableRow>
-										<TableCell
-											colSpan={columns.length}
-											className="h-24 text-center text-muted-foreground">
-											No results found.
-										</TableCell>
-									</TableRow>
-								)}
-							</TableBody>
+							<TableBody>{renderRows()}</TableBody>
 						</Table>
 					</div>
 				)}

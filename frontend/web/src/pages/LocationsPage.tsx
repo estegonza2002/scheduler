@@ -21,6 +21,10 @@ import {
 	X,
 	ChevronDown,
 	Eye,
+	MoreHorizontal,
+	Edit,
+	Trash,
+	User,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -366,59 +370,67 @@ export default function LocationsPage() {
 							data={locations}
 							searchKey="name"
 							searchPlaceholder="Search locations..."
-							onRowClick={(location) => navigate(`/locations/${location.id}`)}
 							viewOptions={{
 								enableViewToggle: true,
 								defaultView: viewMode,
 								onViewChange: setViewMode,
 								renderCard: (location: Location) => (
 									<Card
-										key={location.id}
-										className="cursor-pointer group transition-colors hover:border-primary hover:shadow-sm h-full">
-										<CardHeader className="pb-2">
-											<div className="flex items-start gap-4">
-												<div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-													<MapPin className="h-6 w-6 text-primary" />
-												</div>
-												<div className="flex-1 min-w-0">
-													<CardTitle className="flex items-center justify-between gap-2 text-base">
-														<span className="truncate">{location.name}</span>
-														<ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary shrink-0" />
-													</CardTitle>
-													<CardDescription>
-														{location.address || "No address"}
-													</CardDescription>
-												</div>
+										className="cursor-pointer hover:shadow-sm transition-all border hover:border-primary"
+										onClick={() => navigate(`/locations/${location.id}`)}>
+										<CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+											<CardTitle className="text-xl font-bold">
+												{location.name}
+											</CardTitle>
+											<div>
+												<DropdownMenu>
+													<DropdownMenuTrigger asChild>
+														<Button
+															variant="ghost"
+															className="h-8 w-8 p-0">
+															<span className="sr-only">Open menu</span>
+															<MoreHorizontal className="h-4 w-4" />
+														</Button>
+													</DropdownMenuTrigger>
+													<DropdownMenuContent align="end">
+														<DropdownMenuItem
+															onClick={(e) => {
+																e.stopPropagation();
+																navigate(`/locations/${location.id}`);
+															}}>
+															<Edit className="mr-2 h-4 w-4" />
+															Edit
+														</DropdownMenuItem>
+														<DropdownMenuItem
+															onClick={(e) => {
+																e.stopPropagation();
+																// Handle delete action
+															}}>
+															<Trash className="mr-2 h-4 w-4" />
+															Delete
+														</DropdownMenuItem>
+													</DropdownMenuContent>
+												</DropdownMenu>
 											</div>
 										</CardHeader>
-										<CardContent className="space-y-2">
-											<div className="flex items-center gap-3 text-sm">
-												<Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
-												<span className="truncate">
-													{location.address || "No address"}
-												</span>
-											</div>
-											<div className="flex items-center gap-3 text-sm">
-												<MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
-												<span>
-													{location.city}
-													{location.city && location.state ? ", " : ""}
-													{location.state}
-													{location.zipCode ? ` ${location.zipCode}` : ""}
-												</span>
+										<CardContent>
+											{location.address && (
+												<div className="flex items-center text-sm text-muted-foreground mb-2">
+													<MapPin className="h-3.5 w-3.5 mr-1 flex-shrink-0" />
+													<span className="truncate">{location.address}</span>
+												</div>
+											)}
+
+											<div className="flex items-center text-sm text-muted-foreground">
+												<User className="h-3.5 w-3.5 mr-1 flex-shrink-0" />
+												<span>{location.isActive ? "Active" : "Inactive"}</span>
 											</div>
 										</CardContent>
-										<CardFooter>
-											<Button
-												variant="default"
-												size="sm"
-												className="ml-auto">
-												<Eye className="h-4 w-4 mr-2" /> View Details
-											</Button>
-										</CardFooter>
 									</Card>
 								),
+								enableFullscreen: true,
 							}}
+							onRowClick={(location) => navigate(`/locations/${location.id}`)}
 						/>
 					</ContentSection>
 				)}

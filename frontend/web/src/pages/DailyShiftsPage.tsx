@@ -68,6 +68,8 @@ import { cn } from "@/lib/utils";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ColumnDef } from "@tanstack/react-table";
 import { DataCardGrid } from "@/components/ui/data-card-grid";
+import { DatePicker } from "@/components/ui/date-picker";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 
 // Export the ShiftCreationSheet with its props for use in the AppLayout
 export function getHeaderActions() {
@@ -113,6 +115,7 @@ export default function DailyShiftsPage() {
 	const [viewMode, setViewMode] = useState<"table" | "cards">("cards");
 	const [currentPage, setCurrentPage] = useState<number>(1);
 	const [itemsPerPage, setItemsPerPage] = useState<number>(25);
+	const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
 
 	// Get date from URL param or use today's date
 	useEffect(() => {
@@ -483,19 +486,69 @@ export default function DailyShiftsPage() {
 							}
 						/>
 					) : (
-						<DataTable
-							columns={tableColumns}
-							data={shifts}
-							searchKey="location"
-							searchPlaceholder="Search shifts..."
-							viewOptions={{
-								enableViewToggle: true,
-								defaultView: viewMode,
-								onViewChange: setViewMode,
-								renderCard: (shift: Shift) => <ShiftCard shift={shift} />,
-							}}
-							onRowClick={(shift) => navigate(`/shifts/${shift.id}`)}
-						/>
+						<>
+							{/* Standalone filters above the table */}
+							<div className="flex flex-wrap gap-4 mb-4">
+								<div className="flex-1 min-w-[200px]">
+									<label className="text-sm font-medium mb-1.5 block">
+										Date
+									</label>
+									<DatePicker
+										value={currentDate}
+										onChange={(date) => {
+											if (date) {
+												setCurrentDate(date);
+												navigate(`/shifts/daily/${format(date, "yyyy-MM-dd")}`);
+											}
+										}}
+										className="w-[240px]"
+									/>
+								</div>
+								<div className="flex-1 min-w-[200px]">
+									<label className="text-sm font-medium mb-1.5 block">
+										Location
+									</label>
+									<Select
+										value={selectedLocation || ""}
+										onValueChange={(value) =>
+											setSelectedLocation(value === "" ? null : value)
+										}>
+										<SelectTrigger className="w-full">
+											<SelectValue placeholder="All Locations" />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="">All Locations</SelectItem>
+											{locations.map((location) => (
+												<SelectItem
+													key={location.id}
+													value={location.id}>
+													{location.name}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								</div>
+							</div>
+
+							{/* Table without custom filters */}
+							<DataTable
+								columns={tableColumns}
+								data={shifts.filter(
+									(shift) =>
+										!selectedLocation || shift.location_id === selectedLocation
+								)}
+								searchKey="location"
+								searchPlaceholder="Search shifts..."
+								viewOptions={{
+									enableViewToggle: true,
+									defaultView: viewMode,
+									onViewChange: setViewMode,
+									renderCard: (shift: Shift) => <ShiftCard shift={shift} />,
+									enableFullscreen: true,
+								}}
+								onRowClick={(shift) => navigate(`/shifts/${shift.id}`)}
+							/>
+						</>
 					)}
 				</ContentSection>
 			</ContentContainer>

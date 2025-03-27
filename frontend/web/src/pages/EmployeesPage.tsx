@@ -25,6 +25,9 @@ import {
 	BellRing,
 	BellOff,
 	ChevronDown,
+	MoreHorizontal,
+	Trash,
+	Briefcase,
 } from "lucide-react";
 import { toast } from "sonner";
 import { DeleteEmployeeDialog } from "@/components/DeleteEmployeeDialog";
@@ -400,82 +403,85 @@ export default function EmployeesPage() {
 									defaultView: viewMode,
 									onViewChange: setViewMode,
 									renderCard: (employee: Employee) => (
-										<Card className="cursor-pointer hover:shadow-md transition-colors hover:border-primary h-full">
-											<CardHeader className="pb-4">
-												<div className="flex justify-between items-start">
-													<AvatarWithStatus
-														fallback={employee.name
-															.split(" ")
-															.map((n) => n[0])
-															.join("")
-															.toUpperCase()}
-														isOnline={employee.isOnline}
-														status={employee.status as any}
-													/>
+										<Card
+											className="cursor-pointer hover:shadow-sm transition-all border hover:border-primary"
+											onClick={() => navigate(`/employees/${employee.id}`)}>
+											<CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+												<div className="flex flex-row items-center space-x-2">
+													<Avatar>
+														<AvatarImage
+															src={employee.avatar}
+															alt={employee.name}
+														/>
+														<AvatarFallback>
+															{employee.name
+																.split(" ")
+																.map((n) => n[0])
+																.join("")}
+														</AvatarFallback>
+													</Avatar>
+													<CardTitle className="text-base font-medium">
+														{employee.name}
+													</CardTitle>
+												</div>
+												<div>
 													<DropdownMenu>
 														<DropdownMenuTrigger asChild>
 															<Button
 																variant="ghost"
-																size="icon"
-																onClick={(e) => e.stopPropagation()}>
-																<MoreVertical className="h-4 w-4" />
+																className="h-8 w-8 p-0">
+																<span className="sr-only">Open menu</span>
+																<MoreHorizontal className="h-4 w-4" />
 															</Button>
 														</DropdownMenuTrigger>
 														<DropdownMenuContent align="end">
 															<DropdownMenuItem
 																onClick={(e) => {
 																	e.stopPropagation();
-																	navigate(`/employee-earnings/${employee.id}`);
+																	navigate(`/employees/${employee.id}`);
 																}}>
-																<DollarSign className="h-4 w-4 mr-2" />
-																View Earnings
+																<Edit className="mr-2 h-4 w-4" />
+																View Profile
 															</DropdownMenuItem>
-															{/* More dropdown items as needed */}
+															<DropdownMenuItem
+																onClick={(e) => {
+																	e.stopPropagation();
+																	// Handle edit action
+																}}>
+																<Edit className="mr-2 h-4 w-4" />
+																Edit
+															</DropdownMenuItem>
+															<DropdownMenuItem
+																onClick={(e) => {
+																	e.stopPropagation();
+																	// Handle delete action
+																}}>
+																<Trash className="mr-2 h-4 w-4" />
+																Delete
+															</DropdownMenuItem>
 														</DropdownMenuContent>
 													</DropdownMenu>
 												</div>
-												<CardTitle className="text-base mt-3">
-													{employee.name}
-												</CardTitle>
-												{(employee.position || employee.role) && (
-													<CardDescription>
-														{employee.position || employee.role}
-													</CardDescription>
-												)}
 											</CardHeader>
-											<CardContent className="pb-4">
-												<div className="space-y-2 text-sm">
-													<div className="flex items-center text-muted-foreground">
-														<Mail className="h-4 w-4 mr-2" />
-														{employee.email}
+											<CardContent>
+												<div className="flex items-center text-sm text-muted-foreground mb-1">
+													<Mail className="h-3.5 w-3.5 mr-1 flex-shrink-0" />
+													<span className="truncate">{employee.email}</span>
+												</div>
+												{employee.phone && (
+													<div className="flex items-center text-sm text-muted-foreground mb-1">
+														<Phone className="h-3.5 w-3.5 mr-1 flex-shrink-0" />
+														<span>{employee.phone}</span>
 													</div>
-													{employee.phone && (
-														<div className="flex items-center text-muted-foreground">
-															<Phone className="h-4 w-4 mr-2" />
-															{employee.phone}
-														</div>
-													)}
+												)}
+												<div className="flex items-center text-sm text-muted-foreground">
+													<Briefcase className="h-3.5 w-3.5 mr-1 flex-shrink-0" />
+													<span>{employee.position || employee.role}</span>
 												</div>
 											</CardContent>
-											<CardFooter className="pt-0 border-t flex justify-between">
-												<EmployeeStatusBadge
-													status={employee.status as any}
-													isOnline={employee.isOnline}
-													lastActive={employee.lastActive}
-												/>
-												<Button
-													variant="ghost"
-													size="sm"
-													asChild
-													className="ml-auto">
-													<div className="flex items-center">
-														View
-														<ChevronRight className="h-4 w-4 ml-1" />
-													</div>
-												</Button>
-											</CardFooter>
 										</Card>
 									),
+									enableFullscreen: true,
 								}}
 							/>
 						)}
