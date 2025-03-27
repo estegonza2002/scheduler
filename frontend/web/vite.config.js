@@ -9,4 +9,12 @@ export default defineConfig({
             "@": path.resolve(__dirname, "./src"),
         },
     },
+    server: {
+        port: 5176,
+        host: true,
+        strictPort: true,
+        hmr: {
+            timeout: 120000, // Increase timeout for WebSocket connection
+        },
+    },
 });

@@ -361,9 +361,18 @@ export const LocationsAPI = {
 		// Ensure we have a valid organization ID
 		if (!data.organizationId) {
 			console.warn("No organization ID provided, using default");
-			// Use default organization ID
-			// This should match the UUID used in getDefaultOrganizationId
-			data.organizationId = "79a0cd70-b7e6-4ea4-8b00-a88dfea38e25";
+			// Use default organization ID from the first organization
+			const { data: orgs } = await supabase
+				.from("organizations")
+				.select("id")
+				.limit(1);
+
+			if (orgs && orgs.length > 0) {
+				data.organizationId = orgs[0].id;
+			} else {
+				// Fallback to a hardcoded UUID if no organizations exist
+				data.organizationId = "03a0572b-fb64-49ab-8955-c2f5ce50cfe6";
+			}
 		}
 
 		// Validate that organization ID is a valid UUID
@@ -379,42 +388,90 @@ export const LocationsAPI = {
 
 		// Map from app camelCase properties to DB snake_case columns
 		const dbData = {
-			name: data.name,
-			address: data.address,
-			city: data.city,
-			state: data.state,
-			zip_code: data.zipCode,
+			name: data.name || "New Location", // Ensure name is not null
+			address: data.address || "", // Ensure not null
+			city: data.city || "", // Ensure not null
+			state: data.state || "", // Ensure not null
+			zip_code: data.zipCode || "",
 			is_active: data.isActive,
 			organization_id: data.organizationId,
 		};
 
 		console.log("Transformed DB data:", dbData);
 
-		const { data: newLocation, error } = await supabase
-			.from("locations")
-			.insert(dbData)
-			.select()
-			.single();
+		try {
+			const { data: newLocation, error } = await supabase
+				.from("locations")
+				.insert(dbData)
+				.select()
+				.single();
 
-		if (error) {
+			if (error) {
+				console.error("Error creating location:", error);
+
+				// Try alternate approach with both field formats if original fails
+				if (
+					error.message.includes("organization_id") ||
+					error.message.includes("organizationId")
+				) {
+					console.log("Trying alternate approach with both field formats...");
+
+					const alternateData = {
+						...dbData,
+						organizationId: data.organizationId, // Add camelCase version as well
+					};
+
+					const { data: altLocation, error: altError } = await supabase
+						.from("locations")
+						.insert(alternateData)
+						.select()
+						.single();
+
+					if (altError) {
+						console.error("Alternative approach also failed:", altError);
+						toast.error("Failed to create location");
+						throw altError;
+					}
+
+					toast.success("Location created successfully!");
+
+					// Map from DB snake_case columns to app camelCase properties
+					return {
+						id: altLocation.id,
+						name: altLocation.name,
+						address: altLocation.address,
+						city: altLocation.city,
+						state: altLocation.state,
+						zipCode: altLocation.zipCode || altLocation.zip_code,
+						isActive: altLocation.isActive || altLocation.is_active,
+						organizationId:
+							altLocation.organizationId || altLocation.organization_id,
+					} as Location;
+				}
+
+				toast.error("Failed to create location");
+				throw error;
+			}
+
+			toast.success("Location created successfully!");
+
+			// Map from DB snake_case columns to app camelCase properties
+			return {
+				id: newLocation.id,
+				name: newLocation.name,
+				address: newLocation.address,
+				city: newLocation.city,
+				state: newLocation.state,
+				zipCode: newLocation.zipCode || newLocation.zip_code,
+				isActive: newLocation.isActive || newLocation.is_active,
+				organizationId:
+					newLocation.organizationId || newLocation.organization_id,
+			} as Location;
+		} catch (error) {
+			console.error("Exception creating location:", error);
 			toast.error("Failed to create location");
-			console.error("Error creating location:", error);
 			throw error;
 		}
-
-		toast.success("Location created successfully!");
-
-		// Map from DB snake_case columns to app camelCase properties
-		return {
-			id: newLocation.id,
-			name: newLocation.name,
-			address: newLocation.address,
-			city: newLocation.city,
-			state: newLocation.state,
-			zipCode: newLocation.zipCode || newLocation.zip_code,
-			isActive: newLocation.isActive || newLocation.is_active,
-			organizationId: newLocation.organizationId || newLocation.organization_id,
-		} as Location;
 	},
 
 	update: async (
