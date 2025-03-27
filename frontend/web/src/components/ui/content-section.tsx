@@ -39,7 +39,7 @@ interface ContentSectionProps {
 	headerActions?: React.ReactNode;
 	/**
 	 * Whether to render the section without a Card wrapper
-	 * @default false
+	 * @default true
 	 */
 	flat?: boolean;
 }
@@ -56,7 +56,7 @@ export function ContentSection({
 	className,
 	contentClassName,
 	headerActions,
-	flat = false,
+	flat = true,
 }: ContentSectionProps) {
 	const sectionContent = (
 		<>
