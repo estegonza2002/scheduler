@@ -11,7 +11,7 @@ import {
 	AlertDialogTrigger,
 } from "./alert-dialog";
 import { Button } from "./button";
-import { cn } from "../../lib/utils";
+import { cn } from "@/lib/utils";
 
 interface ConfirmDialogProps {
 	/**

@@ -6,15 +6,10 @@ import {
 	useLayoutEffect,
 } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../lib/auth";
-import { useLayout } from "../lib/layout-context";
-import { Button } from "../components/ui/button";
-import {
-	Tabs,
-	TabsContent,
-	TabsList,
-	TabsTrigger,
-} from "../components/ui/tabs";
+import { useAuth } from "@/lib/auth";
+import { useLayout } from "@/lib/layout-context";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
 	Building2,
 	Users,
@@ -43,32 +38,32 @@ import {
 	Employee,
 	ShiftsAPI,
 	LocationsAPI,
-} from "../api";
-import { AddEmployeeDialog } from "../components/AddEmployeeDialog";
-import { EmployeeDetailDialog } from "../components/EmployeeDetailDialog";
-import { ContentContainer } from "../components/ui/content-container";
-import { ContentSection } from "../components/ui/content-section";
+} from "@/api";
+import { AddEmployeeDialog } from "@/components/AddEmployeeDialog";
+import { EmployeeDetailDialog } from "@/components/EmployeeDetailDialog";
+import { ContentContainer } from "@/components/ui/content-container";
+import { ContentSection } from "@/components/ui/content-section";
 import {
 	BarChart,
 	Chart,
 	LineChart,
 	PieChart as ChartPieChart,
-} from "../components/ui/charts";
-import { FormulaExplainer } from "../components/ui/formula-explainer";
-import { EmployeeSheet } from "../components/EmployeeSheet";
-import { ShiftCreationSheet } from "../components/ShiftCreationSheet";
-import { LocationCreationSheet } from "../components/LocationCreationSheet";
-import { useOnboarding } from "../lib/onboarding-context";
-import { Badge } from "../components/ui/badge";
+} from "@/components/ui/charts";
+import { FormulaExplainer } from "@/components/ui/formula-explainer";
+import { EmployeeSheet } from "@/components/EmployeeSheet";
+import { ShiftCreationSheet } from "@/components/ShiftCreationSheet";
+import { LocationCreationSheet } from "@/components/LocationCreationSheet";
+import { useOnboarding } from "@/lib/onboarding-context";
+import { Badge } from "@/components/ui/badge";
 import {
 	Tooltip,
 	TooltipTrigger,
 	TooltipContent,
 	TooltipProvider,
-} from "../components/ui/tooltip";
-import { OnboardingReminder } from "../components/onboarding/OnboardingReminder";
-import { PageHeader } from "../components/ui/page-header";
-import { LoadingState } from "../components/ui/loading-state";
+} from "@/components/ui/tooltip";
+import { OnboardingReminder } from "@/components/onboarding/OnboardingReminder";
+import { PageHeader } from "@/components/ui/page-header";
+import { LoadingState } from "@/components/ui/loading-state";
 
 // Extended organization type for UI display purposes
 interface ExtendedOrganization extends Organization {

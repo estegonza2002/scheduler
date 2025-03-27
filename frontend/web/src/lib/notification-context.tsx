@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { Notification, NotificationsAPI } from "../api";
+import { Notification, NotificationsAPI } from "@/api";
 import { useAuth } from "./auth";
 import { toast } from "sonner";
 

@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
-import { Location, LocationsAPI } from "../api";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
+import { Location, LocationsAPI } from "@/api";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
 	Card,
 	CardContent,
@@ -9,7 +9,7 @@ import {
 	CardFooter,
 	CardHeader,
 	CardTitle,
-} from "./ui/card";
+} from "@/components/ui/card";
 import {
 	Upload,
 	FileText,
@@ -21,8 +21,8 @@ import {
 	Info,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
-import { Badge } from "./ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import {
 	Table,
 	TableBody,
@@ -30,8 +30,8 @@ import {
 	TableHead,
 	TableHeader,
 	TableRow,
-} from "./ui/table";
-import { ScrollArea } from "./ui/scroll-area";
+} from "@/components/ui/table";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 // Sample CSV template
 const CSV_TEMPLATE = `name,address,city,state,zipCode,isActive,phone,email

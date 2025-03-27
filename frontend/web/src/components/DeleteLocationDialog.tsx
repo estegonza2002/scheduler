@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Location, LocationsAPI } from "../api";
-import { Button } from "./ui/button";
+import { Location, LocationsAPI } from "@/api";
+import { Button } from "@/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
@@ -8,7 +8,7 @@ import {
 	DialogFooter,
 	DialogHeader,
 	DialogTitle,
-} from "./ui/dialog";
+} from "@/components/ui/dialog";
 import {
 	AlertTriangle,
 	Building2,
@@ -17,7 +17,7 @@ import {
 	Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "../lib/utils";
+import { cn } from "@/lib/utils";
 
 /**
  * Props for the DeleteLocationDialog component

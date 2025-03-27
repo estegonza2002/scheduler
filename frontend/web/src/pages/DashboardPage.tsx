@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
-import { useAuth } from "../lib/auth";
-import { Button } from "../components/ui/button";
+import { useAuth } from "@/lib/auth";
+import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "../components/ui/card";
+} from "@/components/ui/card";
 import {
 	CalendarCheck,
 	Clock,
@@ -25,14 +25,14 @@ import {
 	ChevronsUp,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { ShiftsAPI, EmployeesAPI, LocationsAPI } from "../api";
-import { EmptyState } from "../components/ui/empty-state";
+import { ShiftsAPI, EmployeesAPI, LocationsAPI } from "@/api";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Shift, Employee, Location } from "../api/mock/types";
 import { format, addDays } from "date-fns";
-import { FormulaExplainer } from "../components/ui/formula-explainer";
-import { PageHeader } from "../components/ui/page-header";
-import { ContentContainer } from "../components/ui/content-container";
-import { ContentSection } from "../components/ui/content-section";
+import { FormulaExplainer } from "@/components/ui/formula-explainer";
+import { PageHeader } from "@/components/ui/page-header";
+import { ContentContainer } from "@/components/ui/content-container";
+import { ContentSection } from "@/components/ui/content-section";
 
 export default function DashboardPage() {
 	const { user } = useAuth();

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { Location, Shift, Employee } from "../api";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Location, Shift, Employee } from "@/api";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { calculateHours } from "../utils/time-calculations";
 import {
 	DollarSign,
@@ -29,8 +29,8 @@ import {
 	TableHead,
 	TableHeader,
 	TableRow,
-} from "./ui/table";
-import { Progress } from "./ui/progress";
+} from "@/components/ui/table";
+import { Progress } from "@/components/ui/progress";
 
 interface LocationFinancialReportProps {
 	location: Location;

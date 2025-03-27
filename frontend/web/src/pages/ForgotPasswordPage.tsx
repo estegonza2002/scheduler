@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Link } from "react-router-dom";
-import { useAuth } from "../lib/auth";
+import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import {
 	Form,
@@ -12,11 +12,11 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
-} from "../components/ui/form";
-import { Input } from "../components/ui/input";
-import { Button } from "../components/ui/button";
-import { ContentContainer } from "../components/ui/content-container";
-import { ContentSection } from "../components/ui/content-section";
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { ContentContainer } from "@/components/ui/content-container";
+import { ContentSection } from "@/components/ui/content-section";
 
 const forgotPasswordSchema = z.object({
 	email: z.string().email("Please enter a valid email address"),

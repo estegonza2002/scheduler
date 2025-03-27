@@ -1,9 +1,9 @@
 import { useMemo, useState, useEffect } from "react";
-import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
-import { Badge } from "../components/ui/badge";
-import { Employee, EmployeesAPI, OrganizationsAPI, Organization } from "../api";
-import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Employee, EmployeesAPI, OrganizationsAPI, Organization } from "@/api";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
 	Edit,
 	Search,
@@ -27,8 +27,8 @@ import {
 	ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
-import { DeleteEmployeeDialog } from "../components/DeleteEmployeeDialog";
-import { EmployeeSheet } from "../components/EmployeeSheet";
+import { DeleteEmployeeDialog } from "@/components/DeleteEmployeeDialog";
+import { EmployeeSheet } from "@/components/EmployeeSheet";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import {
 	DropdownMenu,
@@ -37,8 +37,8 @@ import {
 	DropdownMenuLabel,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
-} from "../components/ui/dropdown-menu";
-import { DataTable } from "../components/ui/data-table";
+} from "@/components/ui/dropdown-menu";
+import { DataTable } from "@/components/ui/data-table";
 import { ColumnDef } from "@tanstack/react-table";
 import {
 	Select,
@@ -46,7 +46,7 @@ import {
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
-} from "../components/ui/select";
+} from "@/components/ui/select";
 import {
 	Card,
 	CardHeader,
@@ -54,24 +54,24 @@ import {
 	CardDescription,
 	CardContent,
 	CardFooter,
-} from "../components/ui/card";
-import { ContentContainer } from "../components/ui/content-container";
-import { SearchInput } from "../components/ui/search-input";
-import { FilterGroup } from "../components/ui/filter-group";
-import { EmptyState } from "../components/ui/empty-state";
-import { LoadingState } from "../components/ui/loading-state";
-import { EmployeeStatusBadge } from "../components/ui/employee-status-badge";
-import { useEmployeePresence } from "../lib/presence";
+} from "@/components/ui/card";
+import { ContentContainer } from "@/components/ui/content-container";
+import { SearchInput } from "@/components/ui/search-input";
+import { FilterGroup } from "@/components/ui/filter-group";
+import { EmptyState } from "@/components/ui/empty-state";
+import { LoadingState } from "@/components/ui/loading-state";
+import { EmployeeStatusBadge } from "@/components/ui/employee-status-badge";
+import { useEmployeePresence } from "@/lib/presence";
 import {
 	Tooltip,
 	TooltipContent,
 	TooltipProvider,
 	TooltipTrigger,
-} from "../components/ui/tooltip";
-import { AvatarWithStatus } from "../components/ui/avatar-with-status";
-import { cn } from "../lib/utils";
-import { PageHeader } from "../components/ui/page-header";
-import { ContentSection } from "../components/ui/content-section";
+} from "@/components/ui/tooltip";
+import { AvatarWithStatus } from "@/components/ui/avatar-with-status";
+import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/ui/page-header";
+import { ContentSection } from "@/components/ui/content-section";
 
 export default function EmployeesPage() {
 	const [organization, setOrganization] = useState<Organization | null>(null);

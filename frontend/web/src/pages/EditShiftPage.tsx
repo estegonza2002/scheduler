@@ -5,26 +5,26 @@ import {
 	useSearchParams,
 	useNavigate,
 } from "react-router-dom";
-import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
-import { Label } from "../components/ui/label";
-import { Textarea } from "../components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
 	Select,
 	SelectContent,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
-} from "../components/ui/select";
-import { Shift, ShiftsAPI, LocationsAPI, Location } from "../api";
+} from "@/components/ui/select";
+import { Shift, ShiftsAPI, LocationsAPI, Location } from "@/api";
 import { format, parseISO } from "date-fns";
 import { ChevronLeft, Save } from "lucide-react";
 import { toast } from "sonner";
 
-import { ContentContainer } from "../components/ui/content-container";
-import { FormSection } from "../components/ui/form-section";
-import { LoadingState } from "../components/ui/loading-state";
-import { PageHeader } from "../components/ui/page-header";
+import { ContentContainer } from "@/components/ui/content-container";
+import { FormSection } from "@/components/ui/form-section";
+import { LoadingState } from "@/components/ui/loading-state";
+import { PageHeader } from "@/components/ui/page-header";
 
 export default function EditShiftPage() {
 	const { shiftId } = useParams<{ shiftId: string }>();

@@ -1,17 +1,17 @@
 import React, { useState } from "react";
 import { Helmet } from "react-helmet";
-import { useNotifications } from "../lib/notification-context";
-import { Badge } from "../components/ui/badge";
-import { Button } from "../components/ui/button";
+import { useNotifications } from "@/lib/notification-context";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
 	Select,
 	SelectContent,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
-} from "../components/ui/select";
-import { Input } from "../components/ui/input";
-import { cn } from "../lib/utils";
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 import {
 	Bell,
 	Check,
@@ -24,9 +24,9 @@ import {
 	ChevronDown,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
-import { Notification } from "../api";
+import { Notification } from "@/api";
 import { Link } from "react-router-dom";
-import { ScrollArea } from "../components/ui/scroll-area";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -35,10 +35,10 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 	DropdownMenuCheckboxItem,
-} from "../components/ui/dropdown-menu";
-import { getNotificationIcon } from "../utils/notifications";
-import { Switch } from "../components/ui/switch";
-import { sampleNotifications } from "../components/NotificationSheet";
+} from "@/components/ui/dropdown-menu";
+import { getNotificationIcon } from "@/utils/notifications";
+import { Switch } from "@/components/ui/switch";
+import { sampleNotifications } from "@/components/NotificationSheet";
 import {
 	AlertTriangle,
 	Briefcase,
@@ -49,12 +49,12 @@ import {
 	MessageCircle,
 	User,
 } from "lucide-react";
-import { Checkbox } from "../components/ui/checkbox";
-import { NotificationItem } from "../components/NotificationItem";
+import { Checkbox } from "@/components/ui/checkbox";
+import { NotificationItem } from "@/components/NotificationItem";
 
-import { ContentContainer } from "../components/ui/content-container";
-import { PageHeader } from "../components/ui/page-header";
-import { ContentSection } from "../components/ui/content-section";
+import { ContentContainer } from "@/components/ui/content-container";
+import { PageHeader } from "@/components/ui/page-header";
+import { ContentSection } from "@/components/ui/content-section";
 
 export default function NotificationsPage() {
 	const {

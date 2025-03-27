@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Button } from "../components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
 	Employee,
 	EmployeesAPI,
@@ -9,7 +9,7 @@ import {
 	ShiftsAPI,
 	LocationsAPI,
 	Location,
-} from "../api";
+} from "@/api";
 import {
 	Mail,
 	Phone,
@@ -48,22 +48,22 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 	AlertDialogTrigger,
-} from "../components/ui/alert-dialog";
-import { ContentContainer } from "../components/ui/content-container";
-import { ContentSection } from "../components/ui/content-section";
-import { LoadingState } from "../components/ui/loading-state";
-import { EmployeeSheet } from "../components/EmployeeSheet";
-import { EmployeeStatusBadge } from "../components/ui/employee-status-badge";
-import { useEmployeePresence } from "../lib/presence";
-import { AvatarWithStatus } from "../components/ui/avatar-with-status";
+} from "@/components/ui/alert-dialog";
+import { ContentContainer } from "@/components/ui/content-container";
+import { ContentSection } from "@/components/ui/content-section";
+import { LoadingState } from "@/components/ui/loading-state";
+import { EmployeeSheet } from "@/components/EmployeeSheet";
+import { EmployeeStatusBadge } from "@/components/ui/employee-status-badge";
+import { useEmployeePresence } from "@/lib/presence";
+import { AvatarWithStatus } from "@/components/ui/avatar-with-status";
 import {
 	Card,
 	CardContent,
 	CardHeader,
 	CardTitle,
-} from "../components/ui/card";
-import { Badge } from "../components/ui/badge";
-import { StatusBadge } from "../components/ui/status-badge";
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import {
 	format,
 	parseISO,
@@ -71,16 +71,16 @@ import {
 	isBefore,
 	differenceInDays,
 } from "date-fns";
-import { calculateHours } from "../utils/time-calculations";
-import { LocationAssignmentSheet } from "../components/LocationAssignmentSheet";
-import { PageHeader } from "../components/ui/page-header";
+import { calculateHours } from "@/utils/time-calculations";
+import { LocationAssignmentSheet } from "@/components/LocationAssignmentSheet";
+import { PageHeader } from "@/components/ui/page-header";
 
 import {
 	Dialog,
 	DialogContent,
 	DialogHeader,
 	DialogTitle,
-} from "../components/ui/dialog";
+} from "@/components/ui/dialog";
 import {
 	Table,
 	TableBody,
@@ -88,7 +88,7 @@ import {
 	TableHead,
 	TableHeader,
 	TableRow,
-} from "../components/ui/table";
+} from "@/components/ui/table";
 
 // New component for Employee Statistics
 function EmployeeStats({

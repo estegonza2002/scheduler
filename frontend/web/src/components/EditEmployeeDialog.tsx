@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Employee } from "../api";
+import { Employee } from "@/api";
 import {
 	Dialog,
 	DialogContent,
@@ -8,12 +8,12 @@ import {
 	DialogTitle,
 	DialogTrigger,
 	DialogFooter,
-} from "./ui/dialog";
-import { Button } from "./ui/button";
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { Pencil, User, CheckCircle } from "lucide-react";
 import { EmployeeForm } from "./EmployeeForm";
-import { ScrollArea } from "./ui/scroll-area";
-import { cn } from "../lib/utils";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 
 /**
  * Props for the EditEmployeeDialog component

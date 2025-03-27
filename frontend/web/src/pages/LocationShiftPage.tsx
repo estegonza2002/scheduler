@@ -7,17 +7,17 @@ import {
 	Shift,
 	EmployeesAPI,
 	Employee,
-} from "../api";
-import { Button } from "../components/ui/button";
+} from "@/api";
+import { Button } from "@/components/ui/button";
 import { ChevronLeft, Calendar, Eye, Clock } from "lucide-react";
-import { Badge } from "../components/ui/badge";
-import { StatusBadge } from "../components/ui/status-badge";
+import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { toast } from "sonner";
-import { ContentContainer } from "../components/ui/content-container";
-import { ContentSection } from "../components/ui/content-section";
-import { LoadingState } from "../components/ui/loading-state";
-import { LocationSubNav } from "../components/LocationSubNav";
-import { ShiftCreationSheet } from "../components/ShiftCreationSheet";
+import { ContentContainer } from "@/components/ui/content-container";
+import { ContentSection } from "@/components/ui/content-section";
+import { LoadingState } from "@/components/ui/loading-state";
+import { LocationSubNav } from "@/components/LocationSubNav";
+import { ShiftCreationSheet } from "@/components/ShiftCreationSheet";
 import {
 	Table,
 	TableBody,
@@ -25,9 +25,9 @@ import {
 	TableHead,
 	TableHeader,
 	TableRow,
-} from "../components/ui/table";
+} from "@/components/ui/table";
 import { format, parseISO } from "date-fns";
-import { PageHeader } from "../components/ui/page-header";
+import { PageHeader } from "@/components/ui/page-header";
 
 export default function LocationShiftPage() {
 	const { locationId } = useParams<{ locationId: string }>();

@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { useAuth } from "./auth";
-import { OrganizationsAPI } from "../api";
+import { OrganizationsAPI } from "@/api";
 
 // Define the steps in the onboarding process
 export type OnboardingStep =

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Button } from "./ui/button";
+import { Button } from "@/components/ui/button";
 import {
 	format,
 	isSameDay,
@@ -19,9 +19,9 @@ import {
 	Employee,
 	LocationsAPI,
 	Location,
-} from "../api";
+} from "@/api";
 import { useSearchParams } from "react-router-dom";
-import { cn } from "../lib/utils";
+import { cn } from "@/lib/utils";
 import {
 	Select,
 	SelectContent,
@@ -30,13 +30,13 @@ import {
 	SelectLabel,
 	SelectTrigger,
 	SelectValue,
-} from "./ui/select";
-import { Badge, BadgeProps } from "./ui/badge";
+} from "@/components/ui/select";
+import { Badge, BadgeProps } from "@/components/ui/badge";
 import {
 	CalendarDayCard,
 	CalendarDayItem,
 	CalendarDayMoreIndicator,
-} from "./ui/calendar-day-card";
+} from "@/components/ui/calendar-day-card";
 import {
 	MapPin,
 	User,
@@ -46,11 +46,11 @@ import {
 	AlertCircle,
 	Calendar,
 } from "lucide-react";
-import { LoadingState } from "./ui/loading-state";
-import { EmptyState } from "./ui/empty-state";
-import { AlertCard } from "./ui/alert-card";
-import { FilterGroup } from "./ui/filter-group";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { LoadingState } from "@/components/ui/loading-state";
+import { EmptyState } from "@/components/ui/empty-state";
+import { AlertCard } from "@/components/ui/alert-card";
+import { FilterGroup } from "@/components/ui/filter-group";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 // Format time from ISO string
 const formatShiftTime = (isoString: string) => {

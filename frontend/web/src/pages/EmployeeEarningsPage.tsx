@@ -15,12 +15,12 @@ import {
 	CardContent,
 	CardHeader,
 	CardTitle,
-} from "../components/ui/card";
-import { ContentContainer } from "../components/ui/content-container";
-import { ContentSection } from "../components/ui/content-section";
-import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
-import { Label } from "../components/ui/label";
+} from "@/components/ui/card";
+import { ContentContainer } from "@/components/ui/content-container";
+import { ContentSection } from "@/components/ui/content-section";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
 	Table,
 	TableBody,
@@ -28,23 +28,23 @@ import {
 	TableHead,
 	TableHeader,
 	TableRow,
-} from "../components/ui/table";
+} from "@/components/ui/table";
 import {
 	Popover,
 	PopoverContent,
 	PopoverTrigger,
-} from "../components/ui/popover";
-import { Calendar } from "../components/ui/calendar";
-import { Separator } from "../components/ui/separator";
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Separator } from "@/components/ui/separator";
 import {
 	Tabs,
 	TabsContent,
 	TabsList,
 	TabsTrigger,
-} from "../components/ui/tabs";
-import { exportToCSV, exportToExcel } from "../utils/export-utils";
-import { ExportDropdown } from "../components/ExportDropdown";
-import { calculateHours } from "../utils/time-calculations";
+} from "@/components/ui/tabs";
+import { exportToCSV, exportToExcel } from "@/utils/export-utils";
+import { ExportDropdown } from "@/components/ExportDropdown";
+import { calculateHours } from "@/utils/time-calculations";
 import {
 	Employee,
 	EmployeesAPI,
@@ -52,8 +52,8 @@ import {
 	ShiftsAPI,
 	Location,
 	LocationsAPI,
-} from "../api";
-import { LoadingState } from "../components/ui/loading-state";
+} from "@/api";
+import { LoadingState } from "@/components/ui/loading-state";
 import {
 	ChevronLeft,
 	DollarSign,
@@ -67,9 +67,9 @@ import {
 	BarChart,
 	FileText,
 } from "lucide-react";
-import { cn } from "../lib/utils";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { PageHeader } from "../components/ui/page-header";
+import { PageHeader } from "@/components/ui/page-header";
 
 // Types for report data
 interface EarningsReportItem {

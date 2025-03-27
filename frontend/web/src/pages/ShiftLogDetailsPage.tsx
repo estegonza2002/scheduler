@@ -5,16 +5,16 @@ import {
 	TabsContent,
 	TabsList,
 	TabsTrigger,
-} from "../components/ui/tabs";
-import { Input } from "../components/ui/input";
+} from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 import {
 	Select,
 	SelectContent,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
-} from "../components/ui/select";
-import { Button } from "../components/ui/button";
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import {
 	Table,
 	TableBody,
@@ -22,20 +22,20 @@ import {
 	TableHead,
 	TableHeader,
 	TableRow,
-} from "../components/ui/table";
-import { Calendar } from "../components/ui/calendar";
+} from "@/components/ui/table";
+import { Calendar } from "@/components/ui/calendar";
 import {
 	Popover,
 	PopoverContent,
 	PopoverTrigger,
-} from "../components/ui/popover";
+} from "@/components/ui/popover";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon, Filter, Search } from "lucide-react";
-import { cn } from "../lib/utils";
-import { ExportDropdown } from "../components/ExportDropdown";
-import { ContentContainer } from "../components/ui/content-container";
-import { PageHeader } from "../components/ui/page-header";
-import { ContentSection } from "../components/ui/content-section";
+import { cn } from "@/lib/utils";
+import { ExportDropdown } from "@/components/ExportDropdown";
+import { ContentContainer } from "@/components/ui/content-container";
+import { PageHeader } from "@/components/ui/page-header";
+import { ContentSection } from "@/components/ui/content-section";
 
 // Mock data for shifts - in a real app this would come from an API
 const mockShifts = [

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Employee } from "../api";
+import { Employee } from "@/api";
 import {
 	Sheet,
 	SheetContent,
@@ -8,12 +8,12 @@ import {
 	SheetDescription,
 	SheetTrigger,
 	SheetFooter,
-} from "./ui/sheet";
-import { Button } from "./ui/button";
+} from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 import { Plus, User, Pencil, CheckCircle } from "lucide-react";
 import { EmployeeForm } from "./EmployeeForm";
-import { ScrollArea } from "./ui/scroll-area";
-import { cn } from "../lib/utils";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 
 /**
  * Props for the EmployeeSheet component

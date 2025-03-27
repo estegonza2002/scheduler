@@ -1,5 +1,5 @@
 import React from "react";
-import { cn } from "../../lib/utils";
+import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "./alert";
 import { AlertCircle, AlertTriangle, CheckCircle, Info } from "lucide-react";
 

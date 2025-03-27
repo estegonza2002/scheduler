@@ -4,14 +4,14 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
-import { Label } from "../components/ui/label";
-import { useAuth } from "../lib/auth";
-import { OrganizationsAPI } from "../api";
-import { ContentContainer } from "../components/ui/content-container";
-import { FormSection } from "../components/ui/form-section";
-import { ContentSection } from "../components/ui/content-section";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useAuth } from "@/lib/auth";
+import { OrganizationsAPI } from "@/api";
+import { ContentContainer } from "@/components/ui/content-container";
+import { FormSection } from "@/components/ui/form-section";
+import { ContentSection } from "@/components/ui/content-section";
 
 // Define form schema for validation
 const businessSignUpSchema = z

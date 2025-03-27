@@ -9,12 +9,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
-import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
-import { Label } from "../components/ui/label";
-import { useAuth } from "../lib/auth";
-import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
-import { Separator } from "../components/ui/separator";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useAuth } from "@/lib/auth";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
 import {
 	ChevronLeft,
 	RotateCcw,
@@ -42,7 +42,7 @@ import {
 	Coffee,
 	ChevronsUp,
 } from "lucide-react";
-import { Switch } from "../components/ui/switch";
+import { Switch } from "@/components/ui/switch";
 import {
 	Form,
 	FormControl,
@@ -51,12 +51,12 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
-} from "../components/ui/form";
-import { Textarea } from "../components/ui/textarea";
-import { ContentContainer } from "../components/ui/content-container";
-import { FormSection } from "../components/ui/form-section";
-import { ProfileSidebar } from "../components/layout/SecondaryNavbar";
-import { OrganizationsAPI, type Organization } from "../api";
+} from "@/components/ui/form";
+import { Textarea } from "@/components/ui/textarea";
+import { ContentContainer } from "@/components/ui/content-container";
+import { FormSection } from "@/components/ui/form-section";
+import { ProfileSidebar } from "@/components/layout/SecondaryNavbar";
+import { OrganizationsAPI, type Organization } from "@/api";
 import {
 	Dialog,
 	DialogContent,
@@ -64,25 +64,25 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-} from "../components/ui/dialog";
-import { supabase } from "../lib/supabase";
+} from "@/components/ui/dialog";
+import { supabase } from "@/lib/supabase";
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "../components/ui/card";
-import { ShiftsAPI, LocationsAPI, Shift, Location } from "../api";
+} from "@/components/ui/card";
+import { ShiftsAPI, LocationsAPI, Shift, Location } from "@/api";
 import { format, parseISO, isAfter, isBefore, startOfDay } from "date-fns";
-import { calculateHours } from "../utils/time-calculations";
-import { Badge } from "../components/ui/badge";
-import { cn } from "../lib/utils";
-import { PageHeader } from "../components/ui/page-header";
+import { calculateHours } from "@/utils/time-calculations";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/ui/page-header";
 
-import { SecondaryLayout } from "../components/layout/SecondaryLayout";
-import { LoadingState } from "../components/ui/loading-state";
-import { ContentSection } from "../components/ui/content-section";
+import { SecondaryLayout } from "@/components/layout/SecondaryLayout";
+import { LoadingState } from "@/components/ui/loading-state";
+import { ContentSection } from "@/components/ui/content-section";
 
 // Get the Supabase URL from environment or use a fallback
 const supabaseUrl =

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Button } from "../components/ui/button";
+import { Button } from "@/components/ui/button";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import {
 	Shift,
@@ -10,7 +10,7 @@ import {
 	Employee,
 	Schedule,
 	SchedulesAPI,
-} from "../api";
+} from "@/api";
 import { format, addDays, subDays } from "date-fns";
 import {
 	Calendar as CalendarIcon,
@@ -31,24 +31,24 @@ import {
 	Maximize2,
 	User,
 } from "lucide-react";
-import { ShiftCreationSheet } from "../components/ShiftCreationSheet";
+import { ShiftCreationSheet } from "@/components/ShiftCreationSheet";
 import {
 	Popover,
 	PopoverContent,
 	PopoverTrigger,
-} from "../components/ui/popover";
-import { Calendar } from "../components/ui/calendar";
-import { Card, CardContent, CardHeader } from "../components/ui/card";
-import { Input } from "../components/ui/input";
-import { Separator } from "../components/ui/separator";
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
 import {
 	Select,
 	SelectContent,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
-} from "../components/ui/select";
-import { Badge } from "../components/ui/badge";
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import {
 	DropdownMenu,
 	DropdownMenuCheckboxItem,
@@ -56,11 +56,11 @@ import {
 	DropdownMenuLabel,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
-} from "../components/ui/dropdown-menu";
-import { DataTable } from "../components/ui/data-table";
-import { PageHeader } from "../components/ui/page-header";
-import { ContentContainer } from "../components/ui/content-container";
-import { ContentSection } from "../components/ui/content-section";
+} from "@/components/ui/dropdown-menu";
+import { DataTable } from "@/components/ui/data-table";
+import { PageHeader } from "@/components/ui/page-header";
+import { ContentContainer } from "@/components/ui/content-container";
+import { ContentSection } from "@/components/ui/content-section";
 
 // Export the ShiftCreationSheet with its props for use in the AppLayout
 export function getHeaderActions() {

@@ -4,10 +4,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
-import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
-import { Label } from "../components/ui/label";
-import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Upload, Trash2, Image, Palette } from "lucide-react";
 import {
 	Form,
@@ -17,13 +17,13 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
-} from "../components/ui/form";
-import { FormSection } from "../components/ui/form-section";
-import { ProfileSidebar } from "../components/layout/SecondaryNavbar";
-import { useAuth } from "../lib/auth";
-import { PageHeader } from "../components/ui/page-header";
-import { ContentContainer } from "../components/ui/content-container";
-import { SecondaryLayout } from "../components/layout/SecondaryLayout";
+} from "@/components/ui/form";
+import { FormSection } from "@/components/ui/form-section";
+import { ProfileSidebar } from "@/components/layout/SecondaryNavbar";
+import { useAuth } from "@/lib/auth";
+import { PageHeader } from "@/components/ui/page-header";
+import { ContentContainer } from "@/components/ui/content-container";
+import { SecondaryLayout } from "@/components/layout/SecondaryLayout";
 
 // Define branding schema
 const brandingSchema = z.object({

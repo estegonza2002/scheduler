@@ -1,13 +1,13 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { Button } from "../components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
-} from "../components/ui/dropdown-menu";
-import { Location, LocationsAPI, OrganizationsAPI, Organization } from "../api";
+} from "@/components/ui/dropdown-menu";
+import { Location, LocationsAPI, OrganizationsAPI, Organization } from "@/api";
 import {
 	MapPin,
 	Plus,
@@ -22,25 +22,25 @@ import {
 	ChevronDown,
 	Eye,
 } from "lucide-react";
-import { Badge } from "../components/ui/badge";
+import { Badge } from "@/components/ui/badge";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Card } from "../components/ui/card";
+import { Card } from "@/components/ui/card";
 
 // Import our dialog components
-import { EditLocationDialog } from "../components/EditLocationDialog";
-import { DeleteLocationDialog } from "../components/DeleteLocationDialog";
-import { DataTable } from "../components/ui/data-table";
+import { EditLocationDialog } from "@/components/EditLocationDialog";
+import { DeleteLocationDialog } from "@/components/DeleteLocationDialog";
+import { DataTable } from "@/components/ui/data-table";
 import { ColumnDef } from "@tanstack/react-table";
 
-import { EmptyState } from "../components/ui/empty-state";
-import { LoadingState } from "../components/ui/loading-state";
-import { Input } from "../components/ui/input";
-import { cn } from "../lib/utils";
-import { LocationCreationSheet } from "../components/LocationCreationSheet";
-import { PageHeader } from "../components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
+import { LoadingState } from "@/components/ui/loading-state";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+import { LocationCreationSheet } from "@/components/LocationCreationSheet";
+import { PageHeader } from "@/components/ui/page-header";
 
-import { ContentContainer } from "../components/ui/content-container";
-import { ContentSection } from "../components/ui/content-section";
+import { ContentContainer } from "@/components/ui/content-container";
+import { ContentSection } from "@/components/ui/content-section";
 
 export default function LocationsPage() {
 	const [searchParams] = useSearchParams();

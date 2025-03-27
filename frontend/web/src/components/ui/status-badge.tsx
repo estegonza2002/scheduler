@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Badge } from "./badge";
-import { cn } from "../../lib/utils";
+import { cn } from "@/lib/utils";
 
 type StatusType = "success" | "warning" | "error" | "info" | "pending";
 

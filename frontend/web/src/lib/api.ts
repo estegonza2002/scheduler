@@ -12,7 +12,7 @@ import {
 	ScheduleCreateInput,
 	ShiftItemCreateInput,
 	SchedulesAPI,
-} from "../api";
+} from "@/api";
 
 export { ShiftsAPI, isSchedule, SchedulesAPI };
 export type {

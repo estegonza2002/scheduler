@@ -1,7 +1,7 @@
 import * as React from "react";
 import { toast as sonnerToast, type ToastT } from "sonner";
 import { CheckCircle2, XCircle, AlertCircle, Info, X } from "lucide-react";
-import { cn } from "../../lib/utils";
+import { cn } from "@/lib/utils";
 
 type ToastProps = {
 	title?: string;

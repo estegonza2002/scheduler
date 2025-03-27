@@ -1,5 +1,5 @@
 import React from "react";
-import { cn } from "../../lib/utils";
+import { cn } from "@/lib/utils";
 import { Filter, X } from "lucide-react";
 import { Button } from "./button";
 import {

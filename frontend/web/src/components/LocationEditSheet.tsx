@@ -1,17 +1,17 @@
 import { useState } from "react";
-import { Location, LocationsAPI } from "../api";
+import { Location, LocationsAPI } from "@/api";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button } from "./ui/button";
-import { Checkbox } from "./ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
 	Sheet,
 	SheetContent,
 	SheetHeader,
 	SheetTitle,
 	SheetTrigger,
-} from "./ui/sheet";
+} from "@/components/ui/sheet";
 import {
 	Form,
 	FormControl,
@@ -20,8 +20,8 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
-} from "./ui/form";
-import { Input } from "./ui/input";
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import {
 	Building,
@@ -35,8 +35,8 @@ import {
 	GooglePlacesAutocomplete,
 	GooglePlaceResult,
 } from "./GooglePlacesAutocomplete";
-import { ScrollArea } from "./ui/scroll-area";
-import { cn } from "../lib/utils";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 
 // Extended Location type to include optional fields
 interface ExtendedLocation extends Location {

@@ -1,16 +1,16 @@
 import { useState } from "react";
-import { Employee, EmployeesAPI } from "../api";
+import { Employee, EmployeesAPI } from "@/api";
 import {
 	Dialog,
 	DialogContent,
 	DialogTrigger,
 	DialogFooter,
-} from "./ui/dialog";
-import { Button } from "./ui/button";
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { AlertTriangle, Trash2, UserX } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "../lib/utils";
-import { DialogHeader } from "./ui/dialog-header";
+import { cn } from "@/lib/utils";
+import { DialogHeader } from "@/components/ui/dialog-header";
 
 /**
  * Props for the DeleteEmployeeDialog component

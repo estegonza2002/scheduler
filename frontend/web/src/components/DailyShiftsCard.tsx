@@ -4,10 +4,10 @@ import {
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "./ui/card";
-import { Badge } from "./ui/badge";
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Clock, MapPin, Users, ChevronRight } from "lucide-react";
-import { Shift, Location, Employee } from "../api";
+import { Shift, Location, Employee } from "@/api";
 import { useNavigate } from "react-router-dom";
 
 interface DailyShiftsCardProps {

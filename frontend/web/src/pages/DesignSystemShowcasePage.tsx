@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 
 // Import all UI components
-import { Button } from "../components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
@@ -25,34 +25,34 @@ import {
 	CardFooter,
 	CardHeader,
 	CardTitle,
-} from "../components/ui/card";
-import { PageHeader } from "../components/ui/page-header";
-import { ContentContainer } from "../components/ui/content-container";
-import { ContentSection } from "../components/ui/content-section";
-import { EmptyState } from "../components/ui/empty-state";
-import { AlertCard } from "../components/ui/alert-card";
-import { ItemCard } from "../components/ui/item-card";
-import { FormSection } from "../components/ui/form-section";
-import { FilterGroup } from "../components/ui/filter-group";
-import { SearchInput } from "../components/ui/search-input";
-import { LoadingState } from "../components/ui/loading-state";
-import { Input } from "../components/ui/input";
+} from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
+import { ContentContainer } from "@/components/ui/content-container";
+import { ContentSection } from "@/components/ui/content-section";
+import { EmptyState } from "@/components/ui/empty-state";
+import { AlertCard } from "@/components/ui/alert-card";
+import { ItemCard } from "@/components/ui/item-card";
+import { FormSection } from "@/components/ui/form-section";
+import { FilterGroup } from "@/components/ui/filter-group";
+import { SearchInput } from "@/components/ui/search-input";
+import { LoadingState } from "@/components/ui/loading-state";
+import { Input } from "@/components/ui/input";
 import {
 	Select,
 	SelectContent,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
-} from "../components/ui/select";
-import { Checkbox } from "../components/ui/checkbox";
-import { Label } from "../components/ui/label";
-import { Badge } from "../components/ui/badge";
+} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import {
 	Tabs,
 	TabsContent,
 	TabsList,
 	TabsTrigger,
-} from "../components/ui/tabs";
+} from "@/components/ui/tabs";
 
 export default function DesignSystemShowcasePage() {
 	// State for interactive examples

@@ -1,17 +1,17 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { Button } from "../components/ui/button";
+import { Button } from "@/components/ui/button";
 import { ChevronLeft, CreditCard, Package, Receipt, Check } from "lucide-react";
-import { OrganizationsAPI, type Organization } from "../api";
-import { ProfileSidebar } from "../components/layout/SecondaryNavbar";
-import { Separator } from "../components/ui/separator";
-import { PageHeader } from "../components/ui/page-header";
+import { OrganizationsAPI, type Organization } from "@/api";
+import { ProfileSidebar } from "@/components/layout/SecondaryNavbar";
+import { Separator } from "@/components/ui/separator";
+import { PageHeader } from "@/components/ui/page-header";
 
-import { ContentContainer } from "../components/ui/content-container";
-import { ContentSection } from "../components/ui/content-section";
-import { SecondaryLayout } from "../components/layout/SecondaryLayout";
-import { LoadingState } from "../components/ui/loading-state";
+import { ContentContainer } from "@/components/ui/content-container";
+import { ContentSection } from "@/components/ui/content-section";
+import { SecondaryLayout } from "@/components/layout/SecondaryLayout";
+import { LoadingState } from "@/components/ui/loading-state";
 
 export default function BillingPage() {
 	const navigate = useNavigate();

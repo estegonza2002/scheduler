@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { Location, Shift, Employee } from "../api";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Location, Shift, Employee } from "@/api";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { calculateHours } from "../utils/time-calculations";
 import {
 	Clock,
@@ -20,7 +20,7 @@ import {
 	startOfWeek,
 	endOfWeek,
 } from "date-fns";
-import { Progress } from "./ui/progress";
+import { Progress } from "@/components/ui/progress";
 
 interface LocationShiftAnalyticsProps {
 	location: Location;

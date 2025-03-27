@@ -7,7 +7,7 @@ import {
 	Employee,
 	LocationsAPI,
 	Location,
-} from "../api";
+} from "@/api";
 import { format } from "date-fns";
 import {
 	LocationSelectionStep,
@@ -17,9 +17,9 @@ import {
 	WizardStep,
 } from "./shift-wizard";
 import { Loader2 } from "lucide-react";
-import { Alert, AlertDescription } from "./ui/alert";
-import { ScrollArea } from "./ui/scroll-area";
-import { cn } from "../lib/utils";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 
 /**
  * Props for the ShiftCreationWizard component

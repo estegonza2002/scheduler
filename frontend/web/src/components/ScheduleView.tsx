@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { Button } from "./ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Schedule, Shift, SchedulesAPI, ShiftsAPI } from "../lib/api";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Schedule, Shift, SchedulesAPI, ShiftsAPI } from "@/lib/api";
 import { format, parseISO, startOfWeek, addDays, isSameDay } from "date-fns";
 
 export function ScheduleView() {

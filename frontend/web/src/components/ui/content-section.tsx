@@ -1,5 +1,5 @@
 import React from "react";
-import { cn } from "../../lib/utils";
+import { cn } from "@/lib/utils";
 import {
 	Card,
 	CardContent,
@@ -60,12 +60,10 @@ export function ContentSection({
 }: ContentSectionProps) {
 	const sectionContent = (
 		<>
-			<div className="mb-[var(--section-content-spacing)]">
+			<div className="mb-4">
 				<div className="flex items-center justify-between">
 					<div>
-						<h2 className="text-[length:var(--section-title-size)] font-[var(--section-title-weight)]">
-							{title}
-						</h2>
+						<h2 className="text-lg font-medium leading-none">{title}</h2>
 						{description && (
 							<p className="text-sm text-muted-foreground mt-1">
 								{description}
@@ -78,19 +76,19 @@ export function ContentSection({
 				</div>
 			</div>
 			<div className={cn(contentClassName)}>{children}</div>
-			{footer && (
-				<div className="mt-[var(--section-content-spacing)]">{footer}</div>
-			)}
+			{footer && <div className="mt-4">{footer}</div>}
 		</>
 	);
 
 	if (flat) {
-		return <div className={cn("mb-8", className)}>{sectionContent}</div>;
+		return (
+			<div className={cn("mb-6 space-y-4", className)}>{sectionContent}</div>
+		);
 	}
 
 	return (
-		<Card className={cn("mb-0", className)}>
-			<CardHeader>
+		<Card className={cn("mb-6 shadow-none", className)}>
+			<CardHeader className="pb-2">
 				<div className="flex items-center justify-between">
 					<div>
 						<CardTitle>{title}</CardTitle>
@@ -102,7 +100,7 @@ export function ContentSection({
 				</div>
 			</CardHeader>
 			<CardContent className={contentClassName}>{children}</CardContent>
-			{footer && <div className="px-6 pb-6 pt-2">{footer}</div>}
+			{footer && <div className="px-6 pb-6">{footer}</div>}
 		</Card>
 	);
 }

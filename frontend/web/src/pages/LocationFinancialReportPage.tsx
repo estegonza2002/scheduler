@@ -7,8 +7,8 @@ import {
 	Shift,
 	EmployeesAPI,
 	Employee,
-} from "../api";
-import { Button } from "../components/ui/button";
+} from "@/api";
+import { Button } from "@/components/ui/button";
 import {
 	ChevronLeft,
 	DollarSign,
@@ -20,19 +20,19 @@ import {
 	Calculator,
 } from "lucide-react";
 import { toast } from "sonner";
-import { ContentContainer } from "../components/ui/content-container";
-import { ContentSection } from "../components/ui/content-section";
-import { LocationFinancialReport } from "../components/LocationFinancialReport";
-import { LocationSubNav } from "../components/LocationSubNav";
-import { LoadingState } from "../components/ui/loading-state";
-import { PageHeader } from "../components/ui/page-header";
+import { ContentContainer } from "@/components/ui/content-container";
+import { ContentSection } from "@/components/ui/content-section";
+import { LocationFinancialReport } from "@/components/LocationFinancialReport";
+import { LocationSubNav } from "@/components/LocationSubNav";
+import { LoadingState } from "@/components/ui/loading-state";
+import { PageHeader } from "@/components/ui/page-header";
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "../components/ui/card";
+} from "@/components/ui/card";
 
 export default function LocationFinancialReportPage() {
 	const { locationId } = useParams<{ locationId: string }>();

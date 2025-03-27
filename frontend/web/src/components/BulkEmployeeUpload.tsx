@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { Employee, EmployeesAPI } from "../api";
-import { Button } from "./ui/button";
-import { Textarea } from "./ui/textarea";
-import { Label } from "./ui/label";
-import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
+import { Employee, EmployeesAPI } from "@/api";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
 	AlertCircle,
 	Upload,
@@ -14,18 +14,18 @@ import {
 	CheckCircle,
 	Loader2,
 } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { FormSection } from "./ui/form-section";
-import { Separator } from "./ui/separator";
-import { cn } from "../lib/utils";
-import { ScrollArea } from "./ui/scroll-area";
-import { Badge } from "./ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FormSection } from "@/components/ui/form-section";
+import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 import {
 	Tooltip,
 	TooltipContent,
 	TooltipProvider,
 	TooltipTrigger,
-} from "./ui/tooltip";
+} from "@/components/ui/tooltip";
 
 // Define the maximum number of employees that can be uploaded at once
 const MAX_EMPLOYEES = 100;

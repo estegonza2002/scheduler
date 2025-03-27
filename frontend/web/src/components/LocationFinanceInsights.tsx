@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { Location, Shift, Employee } from "../api";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Location, Shift, Employee } from "@/api";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { calculateHours } from "../utils/time-calculations";
-import { FormulaExplainer } from "./ui/formula-explainer";
+import { FormulaExplainer } from "@/components/ui/formula-explainer";
 import {
 	DollarSign,
 	TrendingUp,

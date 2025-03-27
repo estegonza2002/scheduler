@@ -1,17 +1,17 @@
 import { useState, useEffect } from "react";
-import { Tabs, TabsList, TabsTrigger } from "../components/ui/tabs";
-import { MessageList } from "../components/messages/MessageList";
-import { ChatView } from "../components/messages/ChatView";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { MessageList } from "@/components/messages/MessageList";
+import { ChatView } from "@/components/messages/ChatView";
 import { MessageSquare, Plus } from "lucide-react";
 import { toast } from "sonner";
-import { NewConversationModal } from "../components/messages/NewConversationModal";
-import { useNotifications } from "../lib/notification-context";
+import { NewConversationModal } from "@/components/messages/NewConversationModal";
+import { useNotifications } from "@/lib/notification-context";
 
-import { ContentContainer } from "../components/ui/content-container";
-import { Button } from "../components/ui/button";
-import { PageHeader } from "../components/ui/page-header";
-import { SecondaryLayout } from "../components/layout/SecondaryLayout";
-import { ContentSection } from "../components/ui/content-section";
+import { ContentContainer } from "@/components/ui/content-container";
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
+import { SecondaryLayout } from "@/components/layout/SecondaryLayout";
+import { ContentSection } from "@/components/ui/content-section";
 
 type MessageTab = "chats" | "groups" | "active-shifts" | "one-to-one";
 

@@ -7,7 +7,8 @@ import {
 	Building2,
 } from "lucide-react";
 
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { AvatarWithStatus } from "@/components/ui/avatar-with-status";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -16,15 +17,15 @@ import {
 	DropdownMenuLabel,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
+} from "@/components/ui/dropdown-menu";
 import {
 	SidebarMenu,
 	SidebarMenuButton,
 	SidebarMenuItem,
 	useSidebar,
-} from "./ui/sidebar";
+} from "@/components/ui/sidebar";
 import { Link } from "react-router-dom";
-import { useAuth } from "../lib/auth";
+import { useAuth } from "@/lib/auth";
 
 export function NavUser({
 	user,
@@ -57,71 +58,41 @@ export function NavUser({
 			<SidebarMenuItem>
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
-						<SidebarMenuButton
-							size="lg"
-							className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
-							<div className="relative">
-								<Avatar className="h-8 w-8 rounded-lg">
-									<AvatarImage
-										src={user.avatar_url}
-										alt={user.name}
-										onError={(e) => {
-											console.error("Error loading avatar image:", e);
-											console.log("Failed avatar URL:", user.avatar_url);
-										}}
-									/>
-									<AvatarFallback className="rounded-lg">
-										{user.name.charAt(0)}
-									</AvatarFallback>
-								</Avatar>
-								<span
-									className={`absolute top-0 right-0 translate-x-1 -translate-y-1 block h-3 w-3 rounded-full border-2 border-background ${
-										isOnline ? "bg-green-500" : "bg-gray-400"
-									}`}></span>
-							</div>
-							<div className="grid flex-1 text-left text-sm leading-tight">
-								<span className="truncate font-semibold">{user.name}</span>
-								<span className="truncate text-xs">{user.email}</span>
-							</div>
-							<ChevronsUpDown className="ml-auto size-4" />
+						<SidebarMenuButton size="lg">
+							<AvatarWithStatus
+								isOnline={isOnline}
+								fallback={user.name.charAt(0)}
+								src={user.avatar_url}
+								alt={user.name}
+								className="mr-2"
+							/>
+							<span className="flex-1 overflow-hidden text-left">
+								<span className="block truncate font-medium">{user.name}</span>
+								<span className="block truncate text-xs text-muted-foreground">
+									{user.email}
+								</span>
+							</span>
+							<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 						</SidebarMenuButton>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent
-						className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
 						side={isMobile ? "bottom" : "right"}
 						align="start"
 						sideOffset={4}>
-						<DropdownMenuLabel className="p-0 font-normal">
-							<div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-								<div className="relative">
-									<Avatar className="h-8 w-8 rounded-lg">
-										<AvatarImage
-											src={user.avatar_url}
-											alt={user.name}
-											onError={(e) => {
-												console.error(
-													"Error loading dropdown avatar image:",
-													e
-												);
-												console.log(
-													"Failed dropdown avatar URL:",
-													user.avatar_url
-												);
-											}}
-										/>
-										<AvatarFallback className="rounded-lg">
-											{user.name.charAt(0)}
-										</AvatarFallback>
-									</Avatar>
-									<span
-										className={`absolute top-0 right-0 translate-x-1 -translate-y-1 block h-3 w-3 rounded-full border-2 border-background ${
-											isOnline ? "bg-green-500" : "bg-gray-400"
-										}`}></span>
-								</div>
-								<div className="grid flex-1 text-left text-sm leading-tight">
-									<span className="truncate font-semibold">{user.name}</span>
-									<span className="truncate text-xs">{user.email}</span>
-								</div>
+						<DropdownMenuLabel>
+							<div className="flex items-center gap-2">
+								<AvatarWithStatus
+									isOnline={isOnline}
+									fallback={user.name.charAt(0)}
+									src={user.avatar_url}
+									alt={user.name}
+								/>
+								<span>
+									<span className="block font-medium">{user.name}</span>
+									<span className="block text-xs text-muted-foreground">
+										{user.email}
+									</span>
+								</span>
 							</div>
 						</DropdownMenuLabel>
 						<DropdownMenuSeparator />

@@ -1,8 +1,8 @@
-import { SignUpForm } from "../components/auth/SignUpForm";
+import { SignUpForm } from "@/components/auth/SignUpForm";
 import { Link } from "react-router-dom";
-import { Button } from "../components/ui/button";
-import { ContentContainer } from "../components/ui/content-container";
-import { ContentSection } from "../components/ui/content-section";
+import { Button } from "@/components/ui/button";
+import { ContentContainer } from "@/components/ui/content-container";
+import { ContentSection } from "@/components/ui/content-section";
 
 export default function SignUpPage() {
 	return (

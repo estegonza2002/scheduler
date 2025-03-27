@@ -7,20 +7,20 @@ import {
 	Shift,
 	EmployeesAPI,
 	Employee,
-} from "../api";
-import { ContentContainer } from "../components/ui/content-container";
-import { ContentSection } from "../components/ui/content-section";
-import { LoadingState } from "../components/ui/loading-state";
-import { LocationSubNav } from "../components/LocationSubNav";
-import { LocationInsights } from "../components/LocationInsights";
-import { LocationEmployeeInsights } from "../components/LocationEmployeeInsights";
-import { LocationFinanceInsights } from "../components/LocationFinanceInsights";
-import { LocationShiftInsights } from "../components/LocationShiftInsights";
-import { Button } from "../components/ui/button";
+} from "@/api";
+import { ContentContainer } from "@/components/ui/content-container";
+import { ContentSection } from "@/components/ui/content-section";
+import { LoadingState } from "@/components/ui/loading-state";
+import { LocationSubNav } from "@/components/LocationSubNav";
+import { LocationInsights } from "@/components/LocationInsights";
+import { LocationEmployeeInsights } from "@/components/LocationEmployeeInsights";
+import { LocationFinanceInsights } from "@/components/LocationFinanceInsights";
+import { LocationShiftInsights } from "@/components/LocationShiftInsights";
+import { Button } from "@/components/ui/button";
 import { ChevronLeft, BarChart, Users, Clock, DollarSign } from "lucide-react";
 import { toast } from "sonner";
-import { Card } from "../components/ui/card";
-import { PageHeader } from "../components/ui/page-header";
+import { Card } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 
 export default function LocationInsightsPage() {
 	const { locationId } = useParams<{ locationId: string }>();

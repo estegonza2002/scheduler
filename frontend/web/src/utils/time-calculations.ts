@@ -1,5 +1,5 @@
 import { parseISO, differenceInHours, differenceInMinutes } from "date-fns";
-import { Employee } from "../api";
+import { Employee } from "@/api";
 
 // Calculate time difference in hours between two ISO date strings
 export const calculateHours = (startTime: string, endTime: string) => {

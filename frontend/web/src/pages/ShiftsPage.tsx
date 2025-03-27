@@ -7,21 +7,21 @@ import {
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "../components/ui/card";
-import { Button } from "../components/ui/button";
-import { Calendar } from "../components/ui/calendar";
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import {
 	Popover,
 	PopoverContent,
 	PopoverTrigger,
-} from "../components/ui/popover";
+} from "@/components/ui/popover";
 import {
 	Tabs,
 	TabsContent,
 	TabsList,
 	TabsTrigger,
-} from "../components/ui/tabs";
-import { Input } from "../components/ui/input";
+} from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 import {
 	Table,
 	TableBody,
@@ -29,7 +29,7 @@ import {
 	TableHead,
 	TableHeader,
 	TableRow,
-} from "../components/ui/table";
+} from "@/components/ui/table";
 import {
 	format,
 	parseISO,
@@ -61,8 +61,8 @@ import {
 	Check,
 	X,
 } from "lucide-react";
-import { cn } from "../lib/utils";
-import { Badge } from "../components/ui/badge";
+import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 import { DateRange } from "react-day-picker";
 import {
 	DropdownMenu,
@@ -70,11 +70,11 @@ import {
 	DropdownMenuItem,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
-} from "../components/ui/dropdown-menu";
-import { ExportDropdown } from "../components/ExportDropdown";
-import { PageHeader } from "../components/ui/page-header";
-import { ContentContainer } from "../components/ui/content-container";
-import { ContentSection } from "../components/ui/content-section";
+} from "@/components/ui/dropdown-menu";
+import { ExportDropdown } from "@/components/ExportDropdown";
+import { PageHeader } from "@/components/ui/page-header";
+import { ContentContainer } from "@/components/ui/content-container";
+import { ContentSection } from "@/components/ui/content-section";
 
 // Mock data for shifts - in a real app this would come from an API
 const mockShifts = [

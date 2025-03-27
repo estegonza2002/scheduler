@@ -1,26 +1,26 @@
 import { useState } from "react";
-import { Employee } from "../api";
+import { Employee } from "@/api";
 import {
 	Dialog,
 	DialogContent,
 	DialogTrigger,
 	DialogFooter,
-} from "./ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { Button } from "./ui/button";
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { Plus, User, Users, Info, CheckCircle } from "lucide-react";
 import { EmployeeForm } from "./EmployeeForm";
 import { BulkEmployeeUpload } from "./BulkEmployeeUpload";
-import { cn } from "../lib/utils";
-import { Badge } from "./ui/badge";
+import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 import {
 	Tooltip,
 	TooltipContent,
 	TooltipProvider,
 	TooltipTrigger,
-} from "./ui/tooltip";
-import { ScrollArea } from "./ui/scroll-area";
-import { DialogHeader } from "./ui/dialog-header";
+} from "@/components/ui/tooltip";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { DialogHeader } from "@/components/ui/dialog-header";
 
 /**
  * Props for the AddEmployeeDialog component

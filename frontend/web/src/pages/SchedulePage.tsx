@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { ScheduleCalendar } from "../components/ScheduleCalendar";
-import { Button } from "../components/ui/button";
+import { ScheduleCalendar } from "@/components/ScheduleCalendar";
+import { Button } from "@/components/ui/button";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { format, addMonths, subMonths } from "date-fns";
 import {
@@ -10,7 +10,7 @@ import {
 	LocationsAPI,
 	EmployeesAPI,
 	ShiftsAPI,
-} from "../api";
+} from "@/api";
 import {
 	Calendar as CalendarIcon,
 	ArrowRight,
@@ -21,11 +21,11 @@ import {
 	Search,
 	List,
 } from "lucide-react";
-import { ShiftCreationSheet } from "../components/ShiftCreationSheet";
+import { ShiftCreationSheet } from "@/components/ShiftCreationSheet";
 
-import { Card, CardContent } from "../components/ui/card";
-import { Input } from "../components/ui/input";
-import { Separator } from "../components/ui/separator";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
 
 export default function SchedulePage() {
 	const [searchParams] = useSearchParams();

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Employee, EmployeesAPI } from "../api";
+import { Employee, EmployeesAPI } from "@/api";
 import { supabase } from "./supabase";
 import { toast } from "sonner";
 

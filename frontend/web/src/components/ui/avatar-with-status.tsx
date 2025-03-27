@@ -1,6 +1,6 @@
 import React from "react";
 import { Avatar, AvatarImage, AvatarFallback } from "./avatar";
-import { cn } from "../../lib/utils";
+import { cn } from "@/lib/utils";
 
 interface AvatarWithStatusProps {
 	src?: string;

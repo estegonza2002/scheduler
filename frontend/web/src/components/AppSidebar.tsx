@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { useAuth } from "../lib/auth";
+import { useAuth } from "@/lib/auth";
 import {
 	LayoutDashboard,
 	Calendar,
@@ -30,12 +30,12 @@ import {
 	SidebarGroup,
 	SidebarGroupLabel,
 	SidebarTrigger,
-} from "./ui/sidebar";
-import { NavUser } from "./NavUser";
+} from "@/components/ui/sidebar";
+import { NavUser } from "@/components/NavUser";
 import { useState, useEffect } from "react";
-import { OrganizationsAPI, type Organization } from "../api";
-import { Badge } from "./ui/badge";
-import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
+import { OrganizationsAPI, type Organization } from "@/api";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 type NavItem = {
 	icon: React.ReactNode;

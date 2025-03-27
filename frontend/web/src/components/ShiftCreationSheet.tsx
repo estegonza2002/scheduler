@@ -1,15 +1,15 @@
 import { useState } from "react";
-import { Button } from "./ui/button";
+import { Button } from "@/components/ui/button";
 import {
 	Sheet,
 	SheetContent,
 	SheetHeader,
 	SheetTitle,
 	SheetTrigger,
-} from "./ui/sheet";
+} from "@/components/ui/sheet";
 import { ShiftCreationWizard } from "./ShiftCreationWizard";
 import { Plus, Calendar } from "lucide-react";
-import { cn } from "../lib/utils";
+import { cn } from "@/lib/utils";
 
 /**
  * Props for the ShiftCreationSheet component

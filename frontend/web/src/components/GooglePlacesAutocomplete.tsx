@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { Input } from "./ui/input";
-import { Button } from "./ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
 	Command,
 	CommandEmpty,
@@ -9,9 +9,9 @@ import {
 	CommandInput,
 	CommandItem,
 	CommandList,
-} from "./ui/command";
+} from "@/components/ui/command";
 import { Check, ChevronsUpDown, Loader2, MapPin } from "lucide-react";
-import { cn } from "../lib/utils";
+import { cn } from "@/lib/utils";
 
 // Mock Google Places API response data
 const MOCK_PLACES = [

@@ -1,6 +1,6 @@
-import { Location } from "../api";
-import { Badge } from "./ui/badge";
-import { Button } from "./ui/button";
+import { Location } from "@/api";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
@@ -9,7 +9,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-} from "./ui/dialog";
+} from "@/components/ui/dialog";
 import {
 	MapPin,
 	Building2,
@@ -19,9 +19,9 @@ import {
 	Users,
 	LinkIcon,
 } from "lucide-react";
-import { cn } from "../lib/utils";
-import { ScrollArea } from "./ui/scroll-area";
-import { Separator } from "./ui/separator";
+import { cn } from "@/lib/utils";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 
 /**
  * Props for the LocationDetailDialog component

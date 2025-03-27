@@ -3,14 +3,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
-import {
-	CalendarIcon,
-	MapPin,
-	Clock,
-	User,
-	ClipboardList,
-	StickyNote,
-} from "lucide-react";
+import { CalendarIcon, Clock, ClipboardList, StickyNote } from "lucide-react";
 import { useForm } from "react-hook-form";
 import {
 	ShiftsAPI,
@@ -18,36 +11,39 @@ import {
 	Employee,
 	LocationsAPI,
 	Location,
-} from "../api";
+} from "@/api";
 import { useEffect } from "react";
-import { cn } from "../lib/utils";
+import { cn } from "@/lib/utils";
 
 // UI Components
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { Textarea } from "./ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
 	Form,
 	FormControl,
-	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,
 	FormMessage,
-} from "./ui/form";
+} from "@/components/ui/form";
 import {
 	Select,
 	SelectContent,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
-} from "./ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { Calendar } from "./ui/calendar";
-import { ContentContainer } from "./ui/content-container";
-import { ContentSection } from "./ui/content-section";
-import { FormSection } from "./ui/form-section";
-import { LoadingState } from "./ui/loading-state";
+} from "@/components/ui/select";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { ContentContainer } from "@/components/ui/content-container";
+import { ContentSection } from "@/components/ui/content-section";
+import { FormSection } from "@/components/ui/form-section";
+import { LoadingState } from "@/components/ui/loading-state";
 
 // Form schema
 const shiftFormSchema = z.object({
@@ -77,7 +73,6 @@ export function ShiftCreationForm({
 	initialDate,
 	onShiftCreated,
 }: ShiftCreationFormProps) {
-	const [loading, setLoading] = useState(false);
 	const [employees, setEmployees] = useState<Employee[]>([]);
 	const [locations, setLocations] = useState<Location[]>([]);
 	const [loadingEmployees, setLoadingEmployees] = useState(false);
@@ -186,7 +181,6 @@ export function ShiftCreationForm({
 			<LoadingState
 				message="Loading form data..."
 				type="spinner"
-				className="py-8"
 			/>
 		);
 	}
@@ -197,9 +191,7 @@ export function ShiftCreationForm({
 				title="Create New Shift"
 				description="Schedule a new shift for an employee">
 				<Form {...form}>
-					<form
-						onSubmit={form.handleSubmit(onSubmit)}
-						className="space-y-6">
+					<form onSubmit={form.handleSubmit(onSubmit)}>
 						<FormSection
 							title="Shift Date & Location"
 							description="Select when and where the shift will take place">
@@ -209,7 +201,7 @@ export function ShiftCreationForm({
 									control={form.control}
 									name="date"
 									render={({ field }) => (
-										<FormItem className="flex flex-col">
+										<FormItem>
 											<FormLabel>Date</FormLabel>
 											<Popover>
 												<PopoverTrigger asChild>
@@ -217,7 +209,6 @@ export function ShiftCreationForm({
 														<Button
 															variant="outline"
 															className={cn(
-																"w-full pl-3 text-left font-normal",
 																!field.value && "text-muted-foreground"
 															)}>
 															{field.value ? (
@@ -229,9 +220,7 @@ export function ShiftCreationForm({
 														</Button>
 													</FormControl>
 												</PopoverTrigger>
-												<PopoverContent
-													className="w-auto p-0"
-													align="start">
+												<PopoverContent align="start">
 													<Calendar
 														mode="single"
 														selected={field.value}
@@ -293,7 +282,7 @@ export function ShiftCreationForm({
 											<FormLabel>Start Time</FormLabel>
 											<FormControl>
 												<div className="flex items-center">
-													<Clock className="w-4 h-4 mr-2 text-muted-foreground" />
+													<Clock className="mr-2 h-4 w-4 text-muted-foreground" />
 													<Input
 														type="time"
 														{...field}
@@ -314,7 +303,7 @@ export function ShiftCreationForm({
 											<FormLabel>End Time</FormLabel>
 											<FormControl>
 												<div className="flex items-center">
-													<Clock className="w-4 h-4 mr-2 text-muted-foreground" />
+													<Clock className="mr-2 h-4 w-4 text-muted-foreground" />
 													<Input
 														type="time"
 														{...field}
@@ -342,11 +331,9 @@ export function ShiftCreationForm({
 											onValueChange={field.onChange}
 											defaultValue={field.value}>
 											<FormControl>
-												<div className="flex items-center">
-													<SelectTrigger>
-														<SelectValue placeholder="Select an employee" />
-													</SelectTrigger>
-												</div>
+												<SelectTrigger>
+													<SelectValue placeholder="Select an employee" />
+												</SelectTrigger>
 											</FormControl>
 											<SelectContent>
 												{employees.map((employee) => (
@@ -372,7 +359,7 @@ export function ShiftCreationForm({
 										<FormLabel>Role (Optional)</FormLabel>
 										<FormControl>
 											<div className="flex items-center">
-												<ClipboardList className="w-4 h-4 mr-2 text-muted-foreground" />
+												<ClipboardList className="mr-2 h-4 w-4 text-muted-foreground" />
 												<Input
 													placeholder="e.g., Shift Manager, Server"
 													{...field}
@@ -397,10 +384,9 @@ export function ShiftCreationForm({
 										<FormLabel>Notes (Optional)</FormLabel>
 										<FormControl>
 											<div className="flex items-start">
-												<StickyNote className="w-4 h-4 mr-2 mt-2 text-muted-foreground" />
+												<StickyNote className="mr-2 h-4 w-4 mt-2 text-muted-foreground" />
 												<Textarea
 													placeholder="Any special instructions or details about this shift"
-													className="h-20"
 													{...field}
 												/>
 											</div>
@@ -411,7 +397,7 @@ export function ShiftCreationForm({
 							/>
 						</FormSection>
 
-						<div className="pt-4">
+						<div className="mt-6">
 							<Button
 								type="submit"
 								disabled={submitting}

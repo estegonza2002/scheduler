@@ -7,16 +7,16 @@ import {
 	Employee,
 	ShiftsAPI,
 	Shift,
-} from "../api";
-import { Button } from "../components/ui/button";
+} from "@/api";
+import { Button } from "@/components/ui/button";
 import { ChevronLeft, UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
-import { ContentContainer } from "../components/ui/content-container";
-import { ContentSection } from "../components/ui/content-section";
-import { LoadingState } from "../components/ui/loading-state";
-import { LocationSubNav } from "../components/LocationSubNav";
-import { EmployeeAssignmentSheet } from "../components/EmployeeAssignmentSheet";
-import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
+import { ContentContainer } from "@/components/ui/content-container";
+import { ContentSection } from "@/components/ui/content-section";
+import { LoadingState } from "@/components/ui/loading-state";
+import { LocationSubNav } from "@/components/LocationSubNav";
+import { EmployeeAssignmentSheet } from "@/components/EmployeeAssignmentSheet";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -26,9 +26,9 @@ import {
 	AlertDialogFooter,
 	AlertDialogHeader,
 	AlertDialogTitle,
-} from "../components/ui/alert-dialog";
+} from "@/components/ui/alert-dialog";
 import { Users } from "lucide-react";
-import { PageHeader } from "../components/ui/page-header";
+import { PageHeader } from "@/components/ui/page-header";
 
 export default function LocationEmployeesPage() {
 	const { locationId } = useParams<{ locationId: string }>();

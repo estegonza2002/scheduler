@@ -1,6 +1,6 @@
 import { Calculator, FunctionSquare } from "lucide-react";
 import { Button } from "./button";
-import { cn } from "../../lib/utils";
+import { cn } from "@/lib/utils";
 import {
 	Sheet,
 	SheetContent,

@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { Bell } from "lucide-react";
-import { Button } from "./ui/button";
-import { ScrollArea } from "./ui/scroll-area";
-import { useNotifications } from "../lib/notification-context";
-import { CardContent } from "./ui/card";
-import { cn } from "../lib/utils";
-import { Badge } from "./ui/badge";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useNotifications } from "@/lib/notification-context";
+import { CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
 import { Link } from "react-router-dom";
 import {
@@ -14,7 +14,7 @@ import {
 	SheetHeader,
 	SheetTitle,
 	SheetTrigger,
-} from "./ui/sheet";
+} from "@/components/ui/sheet";
 import { getNotificationIcon } from "../utils/notifications";
 import { NotificationItem } from "./NotificationItem";
 

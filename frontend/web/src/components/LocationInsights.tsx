@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { Location, Shift, Employee } from "../api";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Location, Shift, Employee } from "@/api";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { calculateHours } from "../utils/time-calculations";
-import { FormulaExplainer } from "./ui/formula-explainer";
+import { FormulaExplainer } from "@/components/ui/formula-explainer";
 import {
 	Clock,
 	DollarSign,
@@ -13,8 +13,8 @@ import {
 	BarChart,
 } from "lucide-react";
 import { parseISO, format, differenceInDays, isBefore } from "date-fns";
-import { ContentContainer } from "./ui/content-container";
-import { ContentSection } from "./ui/content-section";
+import { ContentContainer } from "@/components/ui/content-container";
+import { ContentSection } from "@/components/ui/content-section";
 
 interface LocationInsightsProps {
 	location: Location;

@@ -2,8 +2,8 @@ import { useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Employee, EmployeesAPI } from "../api";
-import { Button } from "./ui/button";
+import { Employee, EmployeesAPI } from "@/api";
+import { Button } from "@/components/ui/button";
 import {
 	Form,
 	FormControl,
@@ -12,24 +12,24 @@ import {
 	FormLabel,
 	FormMessage,
 	FormDescription,
-} from "./ui/form";
-import { Input } from "./ui/input";
-import { Textarea } from "./ui/textarea";
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
 	Card,
 	CardContent,
 	CardHeader,
 	CardTitle,
 	CardDescription,
-} from "./ui/card";
-import { FormSection } from "./ui/form-section";
+} from "@/components/ui/card";
+import { FormSection } from "@/components/ui/form-section";
 import {
 	Select,
 	SelectContent,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
-} from "./ui/select";
+} from "@/components/ui/select";
 import {
 	User,
 	Mail,

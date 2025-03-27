@@ -1,7 +1,7 @@
-import { ShiftDetails } from "../components/shift/ShiftDetails";
+import { ShiftDetails } from "@/components/shift/ShiftDetails";
 
-import { ContentContainer } from "../components/ui/content-container";
-import { PageHeader } from "../components/ui/page-header";
+import { ContentContainer } from "@/components/ui/content-container";
+import { PageHeader } from "@/components/ui/page-header";
 
 export default function ShiftDetailsPage() {
 	return (

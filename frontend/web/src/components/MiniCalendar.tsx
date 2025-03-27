@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { Calendar } from "./ui/calendar";
-import { cn } from "../lib/utils";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 
 interface MiniCalendarProps {
 	className?: string;
@@ -24,7 +24,7 @@ export function MiniCalendar({ className }: MiniCalendarProps) {
 			mode="single"
 			selected={date}
 			onSelect={handleSelect}
-			className={cn("border-0 w-full", className)}
+			className={cn(className)}
 			showOutsideDays
 			initialFocus
 		/>

@@ -1,9 +1,9 @@
-import { LoginForm, LoginFormRef } from "../components/auth/LoginForm";
+import { LoginForm, LoginFormRef } from "@/components/auth/LoginForm";
 import { useRef } from "react";
 import { Link } from "react-router-dom";
-import { Button } from "../components/ui/button";
-import { ContentContainer } from "../components/ui/content-container";
-import { ContentSection } from "../components/ui/content-section";
+import { Button } from "@/components/ui/button";
+import { ContentContainer } from "@/components/ui/content-container";
+import { ContentSection } from "@/components/ui/content-section";
 
 export default function LoginPage() {
 	const loginFormRef = useRef<LoginFormRef>(null);

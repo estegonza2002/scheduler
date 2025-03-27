@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Button } from "./ui/button";
+import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
@@ -7,23 +7,23 @@ import {
 	CardHeader,
 	CardTitle,
 	CardDescription,
-} from "./ui/card";
+} from "@/components/ui/card";
 import {
 	Dialog,
 	DialogContent,
 	DialogHeader,
 	DialogTitle,
 	DialogTrigger,
-} from "./ui/dialog";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { ScheduleCreationForm } from "./ScheduleCreationForm";
-import { Organization, OrganizationsAPI } from "../api";
-import { ContentContainer } from "./ui/content-container";
-import { EmptyState } from "./ui/empty-state";
-import { LoadingState } from "./ui/loading-state";
+import { Organization, OrganizationsAPI } from "@/api";
+import { ContentContainer } from "@/components/ui/content-container";
+import { EmptyState } from "@/components/ui/empty-state";
+import { LoadingState } from "@/components/ui/loading-state";
 import { Building2, Plus, CalendarDays } from "lucide-react";
 
 interface OrganizationSelectorProps {

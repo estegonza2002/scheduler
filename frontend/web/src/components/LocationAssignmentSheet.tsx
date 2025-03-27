@@ -1,17 +1,17 @@
 import { useState } from "react";
-import { Employee, EmployeesAPI, Location, LocationsAPI } from "../api";
-import { Button } from "./ui/button";
+import { Employee, EmployeesAPI, Location, LocationsAPI } from "@/api";
+import { Button } from "@/components/ui/button";
 import {
 	Sheet,
 	SheetContent,
 	SheetHeader,
 	SheetTitle,
 	SheetTrigger,
-} from "./ui/sheet";
-import { Checkbox } from "./ui/checkbox";
-import { Input } from "./ui/input";
-import { ScrollArea } from "./ui/scroll-area";
-import { cn } from "../lib/utils";
+} from "@/components/ui/sheet";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Building2, Loader2, CheckCircle, MapPin } from "lucide-react";
 

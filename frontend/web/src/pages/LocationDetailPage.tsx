@@ -7,9 +7,9 @@ import {
 	Shift,
 	EmployeesAPI,
 	Employee,
-} from "../api";
-import { Badge } from "../components/ui/badge";
-import { Button } from "../components/ui/button";
+} from "@/api";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
 	MapPin,
 	Building2,
@@ -30,16 +30,16 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 	AlertDialogTrigger,
-} from "../components/ui/alert-dialog";
+} from "@/components/ui/alert-dialog";
 import { format, parseISO } from "date-fns";
 
-import { ContentContainer } from "../components/ui/content-container";
-import { ContentSection } from "../components/ui/content-section";
-import { LoadingState } from "../components/ui/loading-state";
-import { LocationEditSheet } from "../components/LocationEditSheet";
-import { LocationInsights } from "../components/LocationInsights";
-import { LocationSubNav } from "../components/LocationSubNav";
-import { PageHeader } from "../components/ui/page-header";
+import { ContentContainer } from "@/components/ui/content-container";
+import { ContentSection } from "@/components/ui/content-section";
+import { LoadingState } from "@/components/ui/loading-state";
+import { LocationEditSheet } from "@/components/LocationEditSheet";
+import { LocationInsights } from "@/components/LocationInsights";
+import { LocationSubNav } from "@/components/LocationSubNav";
+import { PageHeader } from "@/components/ui/page-header";
 
 // Update Location type to include optional fields
 interface ExtendedLocation extends Location {
