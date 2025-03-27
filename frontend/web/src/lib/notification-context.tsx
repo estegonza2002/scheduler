@@ -3,6 +3,10 @@ import { Notification, NotificationsAPI } from "@/api";
 import { useAuth } from "./auth";
 import { toast } from "sonner";
 
+// Import the USE_MOCK_API value from the constants file
+// This ensures the toggle is in one place only
+import { USE_MOCK_API } from "../constants";
+
 type NotificationContextType = {
 	notifications: Notification[];
 	unreadCount: number;
@@ -28,9 +32,14 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
 	const [notifications, setNotifications] = useState<Notification[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<Error | null>(null);
-	const [useSampleData, setUseSampleData] = useState(true);
 
-	const unreadCount = notifications.filter((n) => !n.isRead).length;
+	// Use the global mock API toggle instead of having a separate state
+	// This way we only have one place to toggle sample data
+	const [useSampleData, setUseSampleData] = useState(USE_MOCK_API);
+
+	const unreadCount = notifications.filter(
+		(n: Notification) => !n.isRead
+	).length;
 
 	// Fetch notifications on load and when user changes
 	useEffect(() => {
@@ -77,28 +86,33 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
 
 		try {
 			const userId = user.id || "user-1"; // Fallback for mock data
-			const currentIds = new Set(notifications.map((n) => n.id));
-			const unreadNotifications = await NotificationsAPI.getUnread(userId);
+			const currentIds = new Set(notifications.map((n: Notification) => n.id));
 
-			// Find only new notifications not currently in the state
-			const newNotifications = unreadNotifications.filter(
-				(n) => !currentIds.has(n.id)
-			);
+			// Only call this if the API supports it
+			const api = NotificationsAPI as any;
+			if (typeof api.getUnread === "function") {
+				const unreadNotifications = await api.getUnread(userId);
 
-			if (newNotifications.length > 0) {
-				// Show toast for new notifications
-				newNotifications.forEach((notification) => {
-					toast(notification.title, {
-						description: notification.message,
-						action: {
-							label: "View",
-							onClick: () => markAsRead(notification.id),
-						},
+				// Find only new notifications not currently in the state
+				const newNotifications = unreadNotifications.filter(
+					(n: Notification) => !currentIds.has(n.id)
+				);
+
+				if (newNotifications.length > 0) {
+					// Show toast for new notifications
+					newNotifications.forEach((notification: Notification) => {
+						toast(notification.title, {
+							description: notification.message,
+							action: {
+								label: "View",
+								onClick: () => markAsRead(notification.id),
+							},
+						});
 					});
-				});
 
-				// Update the notifications state
-				setNotifications((prev) => [...newNotifications, ...prev]);
+					// Update the notifications state
+					setNotifications((prev) => [...newNotifications, ...prev]);
+				}
 			}
 		} catch (err) {
 			console.error("Error fetching unread notifications:", err);
@@ -125,7 +139,13 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
 
 		try {
 			const userId = user.id || "user-1";
-			await NotificationsAPI.markAllAsRead(userId);
+
+			// Only call this if the API supports it
+			const api = NotificationsAPI as any;
+			if (typeof api.markAllAsRead === "function") {
+				await api.markAllAsRead(userId);
+			}
+
 			setNotifications((prev) =>
 				prev.map((notification) => ({ ...notification, isRead: true }))
 			);
@@ -136,7 +156,12 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
 
 	const dismissNotification = async (id: string) => {
 		try {
-			await NotificationsAPI.dismissNotification(id);
+			// Only call this if the API supports it
+			const api = NotificationsAPI as any;
+			if (typeof api.dismissNotification === "function") {
+				await api.dismissNotification(id);
+			}
+
 			setNotifications((prev) =>
 				prev.filter((notification) => notification.id !== id)
 			);
@@ -150,7 +175,13 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
 
 		try {
 			const userId = user.id || "user-1";
-			await NotificationsAPI.dismissAllNotifications(userId);
+
+			// Only call this if the API supports it
+			const api = NotificationsAPI as any;
+			if (typeof api.dismissAllNotifications === "function") {
+				await api.dismissAllNotifications(userId);
+			}
+
 			setNotifications([]);
 		} catch (err) {
 			console.error("Error dismissing all notifications:", err);
@@ -174,7 +205,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
 				dismissAllNotifications,
 				refreshNotifications,
 				useSampleData,
-				toggleSampleData: () => setUseSampleData((prev) => !prev),
+				toggleSampleData: () => setUseSampleData((prev: boolean) => !prev),
 			}}>
 			{children}
 		</NotificationContext.Provider>

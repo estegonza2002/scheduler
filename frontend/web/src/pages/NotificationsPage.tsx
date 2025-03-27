@@ -41,7 +41,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { getNotificationIcon } from "@/utils/notifications";
 import { Switch } from "@/components/ui/switch";
-import { sampleNotifications } from "@/components/NotificationSheet";
 import {
 	AlertTriangle,
 	Briefcase,
@@ -116,6 +115,11 @@ const columns: ColumnDef<Notification>[] = [
 		cell: ({ row }) => {
 			const notification = row.original;
 			const isRead = notification.isRead;
+
+			// Define functions here to be able to access them in the JSX
+			// These will be properly defined in NotificationsPage component scope below
+			const handleMarkAsReadClick = (id: string) => {};
+			const handleDismissClick = (id: string) => {};
 
 			return (
 				<div className="flex items-center justify-end">
@@ -198,7 +202,6 @@ export default function NotificationsPage() {
 		dismissAllNotifications,
 		refreshNotifications,
 		useSampleData,
-		toggleSampleData,
 	} = useNotifications();
 
 	// Table filters
@@ -260,23 +263,16 @@ export default function NotificationsPage() {
 		{ value: "read", label: "Read Only" },
 	];
 
-	// Use sample notifications when useSampleData is true
-	const displayNotifications = useSampleData
-		? sampleNotifications
-		: notifications;
+	// Use notifications directly
+	const displayNotifications = notifications;
 
-	// Handle mark as read
-	const handleMarkAsRead = (id: string) => {
-		if (!useSampleData) {
-			markAsRead(id);
-		}
+	// Fix the function names to match what's being called elsewhere in the file
+	const handleMarkAsReadClick = (id: string) => {
+		markAsRead(id);
 	};
 
-	// Handle dismiss notification
-	const handleDismiss = (id: string) => {
-		if (!useSampleData) {
-			dismissNotification(id);
-		}
+	const handleDismissClick = (id: string) => {
+		dismissNotification(id);
 	};
 
 	// Filter notifications based on current filters
@@ -402,8 +398,7 @@ export default function NotificationsPage() {
 											variant="outline"
 											size="sm"
 											className="h-7 px-2"
-											onClick={() => handleMarkAsRead(notification.id)}
-											disabled={useSampleData}>
+											onClick={() => handleMarkAsReadClick(notification.id)}>
 											<Check className="h-3 w-3 mr-1" />
 											Mark read
 										</Button>
@@ -413,8 +408,7 @@ export default function NotificationsPage() {
 										variant="outline"
 										size="sm"
 										className="h-7 px-2 text-destructive border-destructive/20 hover:bg-destructive/10"
-										onClick={() => handleDismiss(notification.id)}
-										disabled={useSampleData}>
+										onClick={() => handleDismissClick(notification.id)}>
 										<Trash2 className="h-3 w-3 mr-1" />
 										Delete
 									</Button>
@@ -493,17 +487,6 @@ export default function NotificationsPage() {
 								))}
 							</SelectContent>
 						</Select>
-
-						{/* Sample data toggle */}
-						<div className="ml-auto flex items-center gap-2">
-							<span className="text-sm text-muted-foreground">
-								Use sample data:
-							</span>
-							<Switch
-								checked={useSampleData}
-								onCheckedChange={toggleSampleData}
-							/>
-						</div>
 					</div>
 
 					{/* Notification count */}
@@ -514,7 +497,6 @@ export default function NotificationsPage() {
 								: `Showing ${filteredNotifications.length} notification${
 										filteredNotifications.length !== 1 ? "s" : ""
 								  }`}
-							{useSampleData && " (Sample Data)"}
 						</p>
 					</div>
 

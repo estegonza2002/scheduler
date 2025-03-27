@@ -19,7 +19,7 @@ import { getNotificationIcon } from "../utils/notifications";
 import { NotificationItem } from "./NotificationItem";
 
 // Sample notifications for mockup purposes only
-export const sampleNotifications = [
+const sampleNotifications = [
 	{
 		id: "notif-1",
 		userId: "user-1",
