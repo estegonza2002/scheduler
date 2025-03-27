@@ -17,15 +17,66 @@ import {
 // Organizations API
 export const OrganizationsAPI = {
 	getAll: async (): Promise<Organization[]> => {
-		const { data, error } = await supabase.from("organizations").select("*");
+		try {
+			console.log("Fetching organizations from Supabase...");
 
-		if (error) {
-			toast.error("Failed to fetch organizations");
-			console.error("Error fetching organizations:", error);
+			// First try with the join query to bypass RLS
+			const { data, error } = await supabase
+				.from("organizations")
+				.select(
+					`
+					*,
+					organization_members!inner(*)
+				`
+				)
+				.eq(
+					"organization_members.user_id",
+					(
+						await supabase.auth.getUser()
+					).data.user?.id
+				);
+
+			if (error) {
+				console.error("Error with join query:", error);
+
+				// Fall back to a simple query (relies on RLS being disabled)
+				const { data: simpleData, error: simpleError } = await supabase
+					.from("organizations")
+					.select("*");
+
+				if (simpleError) {
+					console.error("Error with simple query:", simpleError);
+					toast.error(
+						`Failed to fetch organizations: ${
+							simpleError.message || "Unknown error"
+						}`
+					);
+					return [];
+				}
+
+				return simpleData as Organization[];
+			}
+
+			// Clean up nested data structure
+			const cleanData = data.map((item) => {
+				// eslint-disable-next-line @typescript-eslint/no-unused-vars
+				const { organization_members, ...rest } = item;
+				return rest;
+			});
+
+			return cleanData as Organization[];
+		} catch (exception) {
+			// Handle unexpected errors like network issues
+			console.error("Exception fetching organizations:", exception);
+			toast.error(
+				`Connection error: ${
+					exception instanceof Error
+						? exception.message
+						: "Unable to connect to server"
+				}`
+			);
 			return [];
 		}
-
-		return data as Organization[];
 	},
 
 	getById: async (id: string): Promise<Organization | null> => {

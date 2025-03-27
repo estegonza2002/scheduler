@@ -6,6 +6,8 @@ import {
 	AuthResponse,
 	SignInWithPasswordCredentials,
 	SignUpWithPasswordCredentials,
+	Provider,
+	OAuthResponse,
 } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
 
@@ -15,6 +17,7 @@ interface AuthContextType {
 	isLoading: boolean;
 	signUp: (credentials: SignUpWithPasswordCredentials) => Promise<AuthResponse>;
 	signIn: (credentials: SignInWithPasswordCredentials) => Promise<AuthResponse>;
+	signInWithGoogle: () => Promise<OAuthResponse>;
 	signOut: () => Promise<{ error: AuthError | null }>;
 	resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
 	updateUserMetadata: (metadata: Record<string, any>) => Promise<{
@@ -46,16 +49,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 	useEffect(() => {
 		// Get initial session
-		supabase.auth.getSession().then(({ data: { session } }) => {
-			setSession(session);
-			setUser(session?.user ?? null);
+		const initializeAuth = async () => {
+			setIsLoading(true);
+
+			// Get session on load
+			const { data } = await supabase.auth.getSession();
+			console.log("Initial session check:", data.session ? "Active" : "None");
+
+			setSession(data.session);
+			setUser(data.session?.user ?? null);
 			setIsLoading(false);
-		});
+		};
+
+		initializeAuth();
 
 		// Set up auth state listener
 		const {
 			data: { subscription },
 		} = supabase.auth.onAuthStateChange((_event, session) => {
+			console.log("Auth state changed, event:", _event);
 			setSession(session);
 			setUser(session?.user ?? null);
 			setIsLoading(false);
@@ -67,11 +79,60 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 	}, []);
 
 	const signUp = async (credentials: SignUpWithPasswordCredentials) => {
-		return await supabase.auth.signUp(credentials);
+		console.log("Auth provider signUp called with:", {
+			// Type-safe way to log credentials without exposing the password
+			hasEmail: "email" in credentials,
+			hasPassword: !!credentials.password,
+			hasOptions: !!credentials.options,
+		});
+
+		try {
+			const response = await supabase.auth.signUp(credentials);
+
+			console.log("Supabase signUp response:", {
+				error: response.error
+					? {
+							message: response.error.message,
+							status: response.error.status,
+							name: response.error.name,
+					  }
+					: null,
+				user: response.data?.user
+					? {
+							id: response.data.user.id,
+							email: response.data.user.email,
+							emailConfirmed: response.data.user.email_confirmed_at !== null,
+							metadata: response.data.user.user_metadata,
+					  }
+					: null,
+				session: response.data?.session ? "Session exists" : "No session",
+			});
+
+			return response;
+		} catch (error) {
+			console.error("Exception in signUp method:", error);
+			throw error;
+		}
 	};
 
 	const signIn = async (credentials: SignInWithPasswordCredentials) => {
 		return await supabase.auth.signInWithPassword(credentials);
+	};
+
+	const signInWithGoogle = async () => {
+		console.log(
+			"Initiating Google sign-in with redirect to:",
+			`${window.location.origin}/auth-callback`
+		);
+		return await supabase.auth.signInWithOAuth({
+			provider: "google",
+			options: {
+				redirectTo: `${window.location.origin}/auth-callback`,
+				queryParams: {
+					prompt: "select_account",
+				},
+			},
+		});
 	};
 
 	const signOut = async () => {
@@ -110,6 +171,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		isLoading,
 		signUp,
 		signIn,
+		signInWithGoogle,
 		signOut,
 		resetPassword,
 		updateUserMetadata,

@@ -12,6 +12,9 @@ import { OrganizationsAPI } from "@/api";
 import { ContentContainer } from "@/components/ui/content-container";
 import { FormSection } from "@/components/ui/form-section";
 import { ContentSection } from "@/components/ui/content-section";
+import { GoogleBusinessButton } from "@/components/auth/GoogleBusinessButton";
+import { supabase } from "@/lib/supabase";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // Define form schema for validation
 const businessSignUpSchema = z
@@ -26,6 +29,9 @@ const businessSignUpSchema = z
 		email: z.string().email("Invalid email address"),
 		password: z.string().min(8, "Password must be at least 8 characters"),
 		confirmPassword: z.string(),
+		termsAccepted: z.boolean().refine((value) => value === true, {
+			message: "You must accept the terms and conditions",
+		}),
 	})
 	.refine((data) => data.password === data.confirmPassword, {
 		message: "Passwords don't match",
@@ -49,6 +55,7 @@ export default function BusinessSignUpPage() {
 			email: "",
 			password: "",
 			confirmPassword: "",
+			termsAccepted: false,
 		},
 	});
 
@@ -64,34 +71,111 @@ export default function BusinessSignUpPage() {
 						firstName: values.firstName,
 						lastName: values.lastName,
 						role: "admin", // Set role as admin for business owners
+						termsAccepted: true,
+						termsAcceptedAt: new Date().toISOString(),
+						termsAcceptedVersion: "1.0", // Store version of terms they accepted
 					},
 				},
 			});
 
 			if (error) {
-				toast.error(error.message);
+				// Check for specific error types and provide user-friendly messages
+				if (error.message.includes("already registered")) {
+					toast.error(
+						"This email is already registered. Please login instead or use a different email."
+					);
+				} else if (error.message.includes("password")) {
+					toast.error(error.message);
+				} else {
+					toast.error(error.message);
+				}
 				return;
 			}
 
-			// 2. Create the business organization
+			// 2. Create the business organization directly with Supabase client
 			try {
-				const newOrg = await OrganizationsAPI.create({
-					name: values.businessName,
-					description: values.businessDescription,
+				// First sign in with the newly created account to get a session
+				const { error: signInError } = await supabase.auth.signInWithPassword({
+					email: values.email,
+					password: values.password,
 				});
+
+				if (signInError) {
+					toast.error(
+						"Account created but couldn't sign in automatically: " +
+							signInError.message
+					);
+					navigate("/login");
+					return;
+				}
+
+				// Log terms acceptance
+				await logTermsAcceptance(data?.user?.id, values.email);
+
+				// Insert organization with a service role (bypassing RLS)
+				const { data: newOrg, error: orgError } = await supabase
+					.from("organizations")
+					.insert({
+						name: values.businessName,
+						description: values.businessDescription || null,
+					})
+					.select()
+					.single();
+
+				if (orgError) {
+					console.error("Failed to create business organization:", orgError);
+					toast.error(
+						"Your account was created, but there was an issue setting up your business. Please log in and try again."
+					);
+					navigate("/login");
+					return;
+				}
 
 				toast.success("Business registration successful!");
 				navigate("/admin-dashboard"); // Redirect to admin dashboard
 			} catch (orgError: any) {
+				console.error("Organization creation exception:", orgError);
 				toast.error(
-					"Failed to create business: " + (orgError.message || "Unknown error")
+					"Account created, but failed to set up business. Please sign in and try again."
 				);
+				navigate("/login");
 			}
 		} catch (error: any) {
 			toast.error("An unexpected error occurred");
-			console.error(error);
+			console.error("Registration exception:", error);
 		} finally {
 			setIsLoading(false);
+		}
+	}
+
+	// Function to log terms acceptance in a separate table for audit purposes
+	async function logTermsAcceptance(userId?: string, email?: string) {
+		try {
+			if (!userId || !email) return;
+
+			const termsAcceptanceData = {
+				user_id: userId,
+				email: email,
+				terms_version: "1.0",
+				privacy_version: "1.0",
+				accepted_at: new Date().toISOString(),
+				ip_address: "Logged client-side", // In production, you'd log this server-side
+				user_agent: navigator.userAgent,
+			};
+
+			// Insert into terms_acceptances table
+			const { error } = await supabase
+				.from("terms_acceptances")
+				.insert(termsAcceptanceData);
+
+			if (error) {
+				console.error("Failed to log terms acceptance:", error);
+				// Don't block registration if this fails - just log the error
+			} else {
+				console.log("Terms acceptance logged successfully");
+			}
+		} catch (error) {
+			console.error("Error logging terms acceptance:", error);
 		}
 	}
 
@@ -230,12 +314,64 @@ export default function BusinessSignUpPage() {
 							</div>
 						</FormSection>
 
+						<div className="py-2">
+							<div className="flex items-start space-x-3">
+								<Checkbox
+									id="termsAccepted"
+									checked={form.watch("termsAccepted")}
+									onCheckedChange={(checked) =>
+										form.setValue("termsAccepted", checked === true)
+									}
+								/>
+								<div className="space-y-1 leading-none">
+									<Label
+										htmlFor="termsAccepted"
+										className="text-sm font-normal">
+										I agree to the{" "}
+										<Link
+											to="/terms"
+											className="text-primary hover:underline"
+											target="_blank"
+											rel="noopener noreferrer">
+											Terms of Service
+										</Link>{" "}
+										and{" "}
+										<Link
+											to="/privacy"
+											className="text-primary hover:underline"
+											target="_blank"
+											rel="noopener noreferrer">
+											Privacy Policy
+										</Link>
+									</Label>
+									{form.formState.errors.termsAccepted && (
+										<p className="text-sm text-red-500">
+											{form.formState.errors.termsAccepted.message}
+										</p>
+									)}
+								</div>
+							</div>
+						</div>
+
 						<Button
 							type="submit"
 							className="w-full"
 							disabled={isLoading}>
 							{isLoading ? "Creating Account..." : "Register Business"}
 						</Button>
+
+						<div className="relative my-4">
+							<div className="absolute inset-0 flex items-center">
+								<div className="w-full border-t border-gray-300"></div>
+							</div>
+							<div className="relative flex justify-center text-sm">
+								<span className="px-2 bg-background text-muted-foreground">
+									Or continue with
+								</span>
+							</div>
+						</div>
+
+						<GoogleBusinessButton text="Sign up with Google" />
 					</form>
 				</ContentSection>
 			</ContentContainer>

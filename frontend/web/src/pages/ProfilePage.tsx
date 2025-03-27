@@ -41,6 +41,7 @@ import {
 	Check,
 	Coffee,
 	ChevronsUp,
+	CreditCard,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -85,6 +86,7 @@ import { LoadingState } from "@/components/ui/loading-state";
 import { ContentSection } from "@/components/ui/content-section";
 import { FormPhoneInput } from "@/components/ui/form-phone-input";
 import { isValidPhoneNumber } from "react-phone-number-input";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 // Get the Supabase URL from environment or use a fallback
 const supabaseUrl =
@@ -818,23 +820,16 @@ export default function ProfilePage() {
 
 	const handleTabChange = (tab: string) => {
 		if (
-			tab === "subscription" ||
-			tab === "payment-methods" ||
-			tab === "billing-history"
+			tab === "profile" ||
+			tab === "password" ||
+			tab === "notifications" ||
+			tab === "branding" ||
+			tab === "appearance" ||
+			tab === "billing"
 		) {
-			// Navigate to the billing page with the appropriate tab
-			navigate(`/billing?tab=${tab}`);
-			return;
+			setActiveTab(tab);
+			setSearchParams({ tab });
 		}
-		/* Temporarily disabled branding navigation
-		if (tab === "branding") {
-			// Navigate to the branding page when branding tab is clicked
-			navigate("/branding");
-			return;
-		}
-		*/
-		setActiveTab(tab);
-		setSearchParams({ tab });
 	};
 
 	useEffect(() => {
@@ -2075,6 +2070,51 @@ export default function ProfilePage() {
 							</div>
 						</form>
 					</Form>
+				</div>
+			)}
+
+			{/* Appearance Tab Content */}
+			{activeTab === "appearance" && (
+				<div className="space-y-6">
+					<ContentSection
+						title="Display Settings"
+						description="Customize the appearance of your application">
+						<div className="space-y-6">
+							<ThemeToggle />
+
+							<Separator className="my-4" />
+
+							<div className="flex items-center justify-between">
+								<div className="space-y-0.5">
+									<Label>Compact Mode</Label>
+									<p className="text-sm text-muted-foreground">
+										Use a more compact view with less whitespace
+									</p>
+								</div>
+								<Switch
+									id="compact-mode"
+									// These handlers would be implemented later
+									checked={false}
+									onCheckedChange={() => {}}
+								/>
+							</div>
+
+							<div className="flex items-center justify-between">
+								<div className="space-y-0.5">
+									<Label>Reduce Motion</Label>
+									<p className="text-sm text-muted-foreground">
+										Reduce animations and transitions throughout the app
+									</p>
+								</div>
+								<Switch
+									id="reduce-motion"
+									// These handlers would be implemented later
+									checked={false}
+									onCheckedChange={() => {}}
+								/>
+							</div>
+						</div>
+					</ContentSection>
 				</div>
 			)}
 		</SecondaryLayout>

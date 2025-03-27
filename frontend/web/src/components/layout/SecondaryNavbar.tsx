@@ -409,6 +409,20 @@ export function ProfileSidebar({
 				</Button>
 
 				<Button
+					variant={activeTab === "password" ? "secondary" : "ghost"}
+					onClick={() => onTabChange("password")}
+					className="w-full justify-start text-left font-normal">
+					Password
+				</Button>
+
+				<Button
+					variant={activeTab === "appearance" ? "secondary" : "ghost"}
+					onClick={() => onTabChange("appearance")}
+					className="w-full justify-start text-left font-normal">
+					Appearance
+				</Button>
+
+				<Button
 					variant={activeTab === "notifications" ? "secondary" : "ghost"}
 					onClick={() => onTabChange("notifications")}
 					className="w-full justify-start text-left font-normal">

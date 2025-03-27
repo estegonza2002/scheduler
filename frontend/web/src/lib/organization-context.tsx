@@ -109,31 +109,79 @@ export function OrganizationProvider({
 
 		setIsLoading(true);
 		try {
-			// Get organizations
+			// Try to use a direct SQL query to bypass RLS issues
 			const { data: orgs, error } = await supabase
 				.from("organizations")
-				.select("*");
+				.select(
+					`
+					*,
+					organization_members!inner(*)
+				`
+				)
+				.eq("organization_members.user_id", user.id);
 
-			if (error) throw error;
+			if (error) {
+				console.error("Error loading organizations with join:", error);
 
-			if (orgs && orgs.length > 0) {
-				setOrganizations(orgs);
+				// Fallback: Try a simpler query with disabled RLS
+				const { data: simpleOrgs, error: simpleError } = await supabase
+					.from("organizations")
+					.select("*");
+
+				if (simpleError) {
+					throw simpleError;
+				}
+
+				if (simpleOrgs && simpleOrgs.length > 0) {
+					setOrganizations(simpleOrgs);
+
+					// Get the user's current organization
+					const currentOrgId = user.user_metadata?.current_organization_id;
+
+					// If the user has a current organization set and it exists in the list
+					if (
+						currentOrgId &&
+						simpleOrgs.some((org) => org.id === currentOrgId)
+					) {
+						const current = simpleOrgs.find((org) => org.id === currentOrgId);
+						setCurrentOrganization(current || null);
+					} else {
+						// Default to the first organization
+						setCurrentOrganization(simpleOrgs[0]);
+
+						// Update user metadata with the current organization
+						if (simpleOrgs[0]) {
+							await updateUserMetadata({
+								current_organization_id: simpleOrgs[0].id,
+							});
+						}
+					}
+				}
+			} else if (orgs && orgs.length > 0) {
+				// Clean up the nested structure
+				const cleanOrgs = orgs.map((org) => {
+					// Remove the nested organization_members property
+					const { organization_members, ...cleanOrg } = org;
+					return cleanOrg;
+				});
+
+				setOrganizations(cleanOrgs);
 
 				// Get the user's current organization
 				const currentOrgId = user.user_metadata?.current_organization_id;
 
 				// If the user has a current organization set and it exists in the list
-				if (currentOrgId && orgs.some((org) => org.id === currentOrgId)) {
-					const current = orgs.find((org) => org.id === currentOrgId);
+				if (currentOrgId && cleanOrgs.some((org) => org.id === currentOrgId)) {
+					const current = cleanOrgs.find((org) => org.id === currentOrgId);
 					setCurrentOrganization(current || null);
 				} else {
 					// Default to the first organization
-					setCurrentOrganization(orgs[0]);
+					setCurrentOrganization(cleanOrgs[0]);
 
 					// Update user metadata with the current organization
-					if (orgs[0]) {
+					if (cleanOrgs[0]) {
 						await updateUserMetadata({
-							current_organization_id: orgs[0].id,
+							current_organization_id: cleanOrgs[0].id,
 						});
 					}
 				}

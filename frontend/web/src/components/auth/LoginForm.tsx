@@ -6,6 +6,7 @@ import * as z from "zod";
 import { useAuth } from "../../lib/auth";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
+import { GoogleButton } from "./GoogleButton";
 import {
 	Form,
 	FormControl,
@@ -136,6 +137,19 @@ export const LoginForm = forwardRef<LoginFormRef>((props, ref) => {
 					disabled={isLoading}>
 					{isLoading ? "Logging in..." : "Login"}
 				</Button>
+
+				<div className="relative my-4">
+					<div className="absolute inset-0 flex items-center">
+						<div className="w-full border-t border-gray-300"></div>
+					</div>
+					<div className="relative flex justify-center text-sm">
+						<span className="px-2 bg-background text-muted-foreground">
+							Or continue with
+						</span>
+					</div>
+				</div>
+
+				<GoogleButton text="Sign in with Google" />
 			</form>
 		</Form>
 	);

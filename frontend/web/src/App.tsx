@@ -11,7 +11,8 @@ import AppLayout from "./components/layout/AppLayout";
 import { NotificationProvider } from "./lib/notification-context";
 import { LayoutProvider } from "./lib/layout-context";
 import { OnboardingProvider } from "./lib/onboarding-context";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { BusinessSetupModal } from "./components/auth/BusinessSetupModal";
 
 // Import our pages
 import LoginPage from "./pages/LoginPage";
@@ -19,6 +20,7 @@ import SignUpPage from "./pages/SignUpPage";
 import BusinessSignUpPage from "./pages/BusinessSignUpPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import AuthCallbackPage from "./pages/AuthCallbackPage";
 import DashboardPage from "./pages/DashboardPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
 import ProfilePage from "./pages/ProfilePage";
@@ -44,16 +46,51 @@ import { ShiftLogDetailsPage } from "./pages/ShiftLogDetailsPage";
 import LocationEmployeesPage from "./pages/LocationEmployeesPage";
 import LocationInsightsPage from "./pages/LocationInsightsPage";
 import DesignSystemShowcasePage from "./pages/DesignSystemShowcasePage";
+import TermsPage from "./pages/TermsPage";
+import PrivacyPage from "./pages/PrivacyPage";
 
 // Root redirect component that checks user role
 function RootRedirect() {
 	const { user, isLoading } = useAuth();
+	const [showBusinessSetup, setShowBusinessSetup] = useState(false);
+
+	useEffect(() => {
+		// Check if this is a Google sign-in for business registration
+		if (user && localStorage.getItem("business_signup") === "true") {
+			setShowBusinessSetup(true);
+		}
+	}, [user]);
 
 	if (isLoading) {
 		return (
 			<div className="min-h-screen flex items-center justify-center">
 				<div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
 			</div>
+		);
+	}
+
+	// Show business setup modal if needed
+	if (showBusinessSetup) {
+		return (
+			<>
+				<BusinessSetupModal
+					isOpen={showBusinessSetup}
+					onClose={() => {
+						setShowBusinessSetup(false);
+						localStorage.removeItem("business_signup");
+					}}
+				/>
+				<div className="min-h-screen flex items-center justify-center">
+					<div className="text-center">
+						<h2 className="text-2xl font-semibold mb-2">
+							Complete Your Business Setup
+						</h2>
+						<p className="text-muted-foreground">
+							Please provide your business details to complete registration.
+						</p>
+					</div>
+				</div>
+			</>
 		);
 	}
 
@@ -105,6 +142,18 @@ function App() {
 									<Route
 										path="/reset-password"
 										element={<ResetPasswordPage />}
+									/>
+									<Route
+										path="/auth-callback"
+										element={<AuthCallbackPage />}
+									/>
+									<Route
+										path="/terms"
+										element={<TermsPage />}
+									/>
+									<Route
+										path="/privacy"
+										element={<PrivacyPage />}
 									/>
 
 									{/* Protected routes */}
