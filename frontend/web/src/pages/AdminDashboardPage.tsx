@@ -10,14 +10,6 @@ import { useAuth } from "../lib/auth";
 import { useLayout } from "../lib/layout-context";
 import { Button } from "../components/ui/button";
 import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardFooter,
-	CardHeader,
-	CardTitle,
-} from "../components/ui/card";
-import {
 	Tabs,
 	TabsContent,
 	TabsList,
@@ -62,9 +54,6 @@ import {
 	LineChart,
 	PieChart as ChartPieChart,
 } from "../components/ui/charts";
-import {
-	SectionContentSpacing,
-} from "../components/ui/header-content-spacing";
 import { FormulaExplainer } from "../components/ui/formula-explainer";
 import { EmployeeSheet } from "../components/EmployeeSheet";
 import { ShiftCreationSheet } from "../components/ShiftCreationSheet";
@@ -302,8 +291,7 @@ export default function AdminDashboardPage() {
 					title="Loading Dashboard"
 					description="Retrieving your business data"
 				/>
-									<ContentContainer>{renderLoadingState()}</ContentContainer>
-
+				<ContentContainer>{renderLoadingState()}</ContentContainer>
 			</>
 		);
 	}
@@ -330,315 +318,259 @@ export default function AdminDashboardPage() {
 				}
 			/>
 
-							<ContentContainer>
-					<OnboardingReminder />
-					<Tabs defaultValue="overview">
-						<div className="flex justify-between items-center mb-4">
-							<TabsList className="w-auto">
-								<TabsTrigger value="overview">Overview</TabsTrigger>
-								<TabsTrigger value="reports">Reports</TabsTrigger>
-							</TabsList>
+			<ContentContainer>
+				<OnboardingReminder />
+				<Tabs defaultValue="overview">
+					<div className="flex justify-between items-center mb-4">
+						<TabsList className="w-auto">
+							<TabsTrigger value="overview">Overview</TabsTrigger>
+							<TabsTrigger value="reports">Reports</TabsTrigger>
+						</TabsList>
 
-							<div className="flex space-x-2">
-								<Button
-									variant="outline"
-									size="sm"
-									onClick={() => navigate("/business-profile")}>
-									<Building2 className="h-4 w-4 mr-2" />
-									Business Settings
-								</Button>
+						<div className="flex space-x-2">
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => navigate("/business-profile")}>
+								<Building2 className="h-4 w-4 mr-2" />
+								Business Settings
+							</Button>
+						</div>
+					</div>
+
+					<TabsContent value="overview">
+						{/* Quick Actions Section */}
+						<ContentSection
+							title="Quick Actions"
+							description="Common tasks you might want to perform"
+							className="mb-6">
+							<div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+								{organization && (
+									<EmployeeSheet
+										organizationId={organization.id}
+										onEmployeeUpdated={handleEmployeeAdded}
+										trigger={
+											<Button
+												variant="outline"
+												className="h-24 flex flex-col items-center justify-center w-full gap-2 text-sm hover:border-primary hover:text-primary">
+												<UserPlus className="h-6 w-6" />
+												<span>Add Employee</span>
+											</Button>
+										}
+									/>
+								)}
+
+								{organization && currentSchedule && (
+									<ShiftCreationSheet
+										scheduleId={currentSchedule}
+										organizationId={organization.id}
+										initialDate={new Date()}
+										trigger={
+											<Button
+												variant="outline"
+												className="h-24 flex flex-col items-center justify-center w-full gap-2 text-sm hover:border-primary hover:text-primary">
+												<CalendarClock className="h-6 w-6" />
+												<span>Create Shift</span>
+											</Button>
+										}
+									/>
+								)}
+
+								{organization && (
+									<LocationCreationSheet
+										organizationId={organization.id}
+										onLocationCreated={handleLocationCreated}
+										trigger={
+											<Button
+												variant="outline"
+												className="h-24 flex flex-col items-center justify-center w-full gap-2 text-sm hover:border-primary hover:text-primary">
+												<MapPin className="h-6 w-6" />
+												<span>Create Location</span>
+											</Button>
+										}
+									/>
+								)}
 							</div>
+						</ContentSection>
+
+						{/* Organization Key Metrics */}
+						<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+							{/* Employees Card */}
+							<ContentSection
+								flat
+								title="Employees"
+								className="relative overflow-hidden"
+								contentClassName="pt-0"
+								headerActions={
+									<TooltipProvider>{renderOnboardingStatus()}</TooltipProvider>
+								}>
+								<div className="flex items-end justify-between">
+									<div>
+										<div className="text-2xl font-bold">{employees.length}</div>
+										<p className="text-xs text-muted-foreground">
+											Active employees on your payroll
+										</p>
+									</div>
+									<div className="text-xs text-muted-foreground">
+										{organization?.subscription_plan === "free" && (
+											<div className="flex items-center">
+												<AlertCircle className="h-3 w-3 mr-1" />
+												<span>Free limit: 5</span>
+											</div>
+										)}
+									</div>
+								</div>
+							</ContentSection>
+
+							{/* Active Shifts Card */}
+							<ContentSection
+								flat
+								title="Active Shifts"
+								className="relative overflow-hidden"
+								contentClassName="pt-0">
+								<div className="flex items-end justify-between">
+									<div>
+										<div className="text-2xl font-bold">{activeShifts}</div>
+										<p className="text-xs text-muted-foreground">
+											Shifts currently in progress
+										</p>
+									</div>
+								</div>
+							</ContentSection>
+
+							{/* Upcoming Shifts Card */}
+							<ContentSection
+								flat
+								title="Upcoming Shifts"
+								className="relative overflow-hidden"
+								contentClassName="pt-0">
+								<div className="flex items-end justify-between">
+									<div>
+										<div className="text-2xl font-bold">{upcomingShifts}</div>
+										<p className="text-xs text-muted-foreground">
+											Shifts scheduled in the future
+										</p>
+									</div>
+								</div>
+							</ContentSection>
+
+							{/* Locations Card */}
+							<ContentSection
+								flat
+								title="Locations"
+								className="relative overflow-hidden"
+								contentClassName="pt-0">
+								<div className="flex items-end justify-between">
+									<div>
+										<div className="text-2xl font-bold">{totalLocations}</div>
+										<p className="text-xs text-muted-foreground">
+											Active location sites
+										</p>
+									</div>
+									<div className="text-xs text-muted-foreground">
+										{organization?.subscription_plan === "free" && (
+											<div className="flex items-center">
+												<AlertCircle className="h-3 w-3 mr-1" />
+												<span>Free limit: 2</span>
+											</div>
+										)}
+									</div>
+								</div>
+							</ContentSection>
 						</div>
 
-						<TabsContent value="overview">
-							{/* Quick Actions Section */}
-							<Card className="mb-6">
-								<CardHeader>
-									<CardTitle className="text-lg">Quick Actions</CardTitle>
-									<CardDescription>
-										Common tasks you might want to perform
-									</CardDescription>
-								</CardHeader>
-								<CardContent>
-									<div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-										{organization && (
-											<EmployeeSheet
-												organizationId={organization.id}
-												onEmployeeUpdated={handleEmployeeAdded}
-												trigger={
-													<Button
-														variant="outline"
-														className="h-24 flex flex-col items-center justify-center w-full gap-2 text-sm hover:border-primary hover:text-primary">
-														<UserPlus className="h-6 w-6" />
-														<span>Add Employee</span>
-													</Button>
-												}
-											/>
-										)}
+						{/* Business Performance Charts */}
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+							<ContentSection
+								title="Weekly Revenue"
+								description="Last 7 days performance"
+								contentClassName="px-4 py-3"
+								headerActions={
+									<FormulaExplainer
+										formula="Weekly Revenue = Σ(Hours Worked × Employee Billing Rate) for current week"
+										description="The total revenue generated from all shifts in the current week."
+										example="If Employee A (billed at $30/hr) worked 20 hours and Employee B (billed at $35/hr) worked 15 hours, Weekly Revenue = (20 × $30) + (15 × $35) = $600 + $525 = $1,125."
+										variantColor="blue"
+									/>
+								}>
+								<BarChart data={weeklyStats.revenue} />
+							</ContentSection>
 
-										{organization && currentSchedule && (
-											<ShiftCreationSheet
-												scheduleId={currentSchedule}
-												organizationId={organization.id}
-												initialDate={new Date()}
-												trigger={
-													<Button
-														variant="outline"
-														className="h-24 flex flex-col items-center justify-center w-full gap-2 text-sm hover:border-primary hover:text-primary">
-														<CalendarClock className="h-6 w-6" />
-														<span>Create Shift</span>
-													</Button>
-												}
-											/>
-										)}
+							<ContentSection
+								title="Staff Distribution"
+								description="By employment type"
+								contentClassName="px-4 py-3"
+								headerActions={
+									<FormulaExplainer
+										formula="Staff Distribution Percentage = (Count of Staff in Category / Total Staff) × 100%"
+										description="The breakdown of your workforce by employment type."
+										example="If you have 36 total employees with 12 full-time, 18 part-time, and 6 contract workers, the distribution would be: Full-time: (12/36) × 100% = 33.3%, Part-time: (18/36) × 100% = 50%, Contract: (6/36) × 100% = 16.7%."
+										variantColor="green"
+									/>
+								}>
+								<ChartPieChart data={weeklyStats.employeeTypes} />
+							</ContentSection>
+						</div>
 
-										{organization && (
-											<LocationCreationSheet
-												organizationId={organization.id}
-												onLocationCreated={handleLocationCreated}
-												trigger={
-													<Button
-														variant="outline"
-														className="h-24 flex flex-col items-center justify-center w-full gap-2 text-sm hover:border-primary hover:text-primary">
-														<MapPin className="h-6 w-6" />
-														<span>Create Location</span>
-													</Button>
-												}
-											/>
-										)}
-									</div>
-								</CardContent>
-							</Card>
-
-							{/* Organization Key Metrics */}
-							<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-								{/* Employees Card */}
-								<Card className="relative overflow-hidden">
-									<CardHeader>
-										<CardTitle className="text-sm font-medium flex items-center justify-between">
-											<div className="flex items-center">
-												<Users className="h-4 w-4 mr-2 text-primary" />
-												Employees
-											</div>
-											<TooltipProvider>
-												{renderOnboardingStatus()}
-											</TooltipProvider>
-										</CardTitle>
-									</CardHeader>
-									<CardContent>
-										<div className="flex items-end justify-between">
-											<div>
-												<div className="text-2xl font-bold">
-													{employees.length}
-												</div>
-												<p className="text-xs text-muted-foreground">
-													Active employees on your payroll
-												</p>
-											</div>
-											<div className="text-xs text-muted-foreground">
-												{organization?.subscription_plan === "free" && (
-													<div className="flex items-center">
-														<AlertCircle className="h-3 w-3 mr-1" />
-														<span>Free limit: 5</span>
-													</div>
-												)}
-											</div>
-										</div>
-									</CardContent>
-								</Card>
-
-								{/* Active Shifts Card */}
-								<Card className="relative overflow-hidden">
-									<CardHeader>
-										<CardTitle className="text-sm font-medium flex items-center">
-											<Clock className="h-4 w-4 mr-2 text-primary" />
-											Active Shifts
-										</CardTitle>
-									</CardHeader>
-									<CardContent>
-										<div className="flex items-end justify-between">
-											<div>
-												<div className="text-2xl font-bold">{activeShifts}</div>
-												<p className="text-xs text-muted-foreground">
-													Shifts currently in progress
-												</p>
-											</div>
-										</div>
-									</CardContent>
-								</Card>
-
-								{/* Upcoming Shifts Card */}
-								<Card className="relative overflow-hidden">
-									<CardHeader>
-										<CardTitle className="text-sm font-medium flex items-center">
-											<Calendar className="h-4 w-4 mr-2 text-primary" />
-											Upcoming Shifts
-										</CardTitle>
-									</CardHeader>
-									<CardContent>
-										<div className="flex items-end justify-between">
-											<div>
-												<div className="text-2xl font-bold">
-													{upcomingShifts}
-												</div>
-												<p className="text-xs text-muted-foreground">
-													Shifts scheduled in the future
-												</p>
-											</div>
-										</div>
-									</CardContent>
-								</Card>
-
-								{/* Locations Card */}
-								<Card className="relative overflow-hidden">
-									<CardHeader>
-										<CardTitle className="text-sm font-medium flex items-center">
-											<MapPin className="h-4 w-4 mr-2 text-primary" />
-											Locations
-										</CardTitle>
-									</CardHeader>
-									<CardContent>
-										<div className="flex items-end justify-between">
-											<div>
-												<div className="text-2xl font-bold">
-													{totalLocations}
-												</div>
-												<p className="text-xs text-muted-foreground">
-													Active location sites
-												</p>
-											</div>
-											<div className="text-xs text-muted-foreground">
-												{organization?.subscription_plan === "free" && (
-													<div className="flex items-center">
-														<AlertCircle className="h-3 w-3 mr-1" />
-														<span>Free limit: 2</span>
-													</div>
-												)}
-											</div>
-										</div>
-									</CardContent>
-								</Card>
-							</div>
-
-							{/* Business Performance Charts */}
-							<div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-								<Card>
-									<CardHeader className="pb-2">
-										<CardTitle className="text-sm flex items-center justify-between">
-											<span className="flex items-center gap-2">
-												<BarChart3 className="h-4 w-4" />
-												Weekly Revenue
-											</span>
-											<FormulaExplainer
-												formula="Weekly Revenue = Σ(Hours Worked × Employee Billing Rate) for current week"
-												description="The total revenue generated from all shifts in the current week."
-												example="If Employee A (billed at $30/hr) worked 20 hours and Employee B (billed at $35/hr) worked 15 hours, Weekly Revenue = (20 × $30) + (15 × $35) = $600 + $525 = $1,125."
-												variantColor="blue"
-											/>
-										</CardTitle>
-										<CardDescription className="text-xs">
-											Last 7 days performance
-										</CardDescription>
-									</CardHeader>
-									<CardContent className="px-4 py-3">
-										<BarChart data={weeklyStats.revenue} />
-									</CardContent>
-								</Card>
-
-								<Card>
-									<CardHeader className="pb-2">
-										<CardTitle className="text-sm flex items-center justify-between">
-											<span className="flex items-center gap-2">
-												<PieChart className="h-4 w-4" />
-												Staff Distribution
-											</span>
-											<FormulaExplainer
-												formula="Staff Distribution Percentage = (Count of Staff in Category / Total Staff) × 100%"
-												description="The breakdown of your workforce by employment type."
-												example="If you have 36 total employees with 12 full-time, 18 part-time, and 6 contract workers, the distribution would be: Full-time: (12/36) × 100% = 33.3%, Part-time: (18/36) × 100% = 50%, Contract: (6/36) × 100% = 16.7%."
-												variantColor="green"
-											/>
-										</CardTitle>
-										<CardDescription className="text-xs">
-											By employment type
-										</CardDescription>
-									</CardHeader>
-									<CardContent className="px-4 py-3">
-										<ChartPieChart data={weeklyStats.employeeTypes} />
-									</CardContent>
-								</Card>
-							</div>
-
-							{/* Alerts and Notifications */}
-							<Card className="mb-6">
-								<CardHeader className="pb-2">
-									<CardTitle className="text-sm flex items-center">
-										<AlertCircle className="h-4 w-4 mr-2" />
-										Attention Required
-									</CardTitle>
-								</CardHeader>
-								<CardContent className="pt-2">
-									<div className="space-y-4">
-										<div className="flex items-start gap-3 p-3 bg-white rounded-md border">
-											<AlertCircle className="h-5 w-5 text-red-500 mt-0.5" />
-											<div>
-												<p className="font-medium text-red-700">
-													Staffing Alert
-												</p>
-												<p className="text-sm text-red-600 mb-2">
-													Downtown location is understaffed for the evening
-													shift (6pm-10pm).
-												</p>
-												<div className="flex gap-2">
-													<Button
-														size="sm"
-														variant="destructive">
-														Assign Staff
-													</Button>
-												</div>
-											</div>
-										</div>
-
-										<div className="flex items-start gap-3 p-3 bg-white rounded-md border">
-											<AlertCircle className="h-5 w-5 text-amber-500 mt-0.5" />
-											<div>
-												<p className="font-medium text-amber-700">
-													Schedule Update
-												</p>
-												<p className="text-sm text-amber-600 mb-2">
-													3 employees have requested time off for next week.
-												</p>
-												<div className="flex gap-2">
-													<Button
-														size="sm"
-														variant="outline">
-														View Requests
-													</Button>
-												</div>
-											</div>
+						{/* Alerts and Notifications */}
+						<ContentSection
+							title="Attention Required"
+							className="mb-6"
+							contentClassName="pt-2">
+							<div className="space-y-4">
+								<div className="flex items-start gap-3 p-3 bg-white rounded-md border">
+									<AlertCircle className="h-5 w-5 text-red-500 mt-0.5" />
+									<div>
+										<p className="font-medium text-red-700">Staffing Alert</p>
+										<p className="text-sm text-red-600 mb-2">
+											Downtown location is understaffed for the evening shift
+											(6pm-10pm).
+										</p>
+										<div className="flex gap-2">
+											<Button
+												size="sm"
+												variant="destructive">
+												Assign Staff
+											</Button>
 										</div>
 									</div>
-								</CardContent>
-							</Card>
-						</TabsContent>
-
-						<TabsContent value="reports">
-							{/* Reports content */}
-							<div className="grid gap-6">
-								<div className="space-y-4">
-									<h2 className="text-lg font-medium">Weekly Reports</h2>
-									<p className="text-sm text-muted-foreground">
-										These reports show key metrics from the past week to help
-										you understand your business performance.
-									</p>
 								</div>
 
-								{/* ...other report content... */}
+								<div className="flex items-start gap-3 p-3 bg-white rounded-md border">
+									<AlertCircle className="h-5 w-5 text-amber-500 mt-0.5" />
+									<div>
+										<p className="font-medium text-amber-700">
+											Schedule Update
+										</p>
+										<p className="text-sm text-amber-600 mb-2">
+											3 employees have requested time off for next week.
+										</p>
+										<div className="flex gap-2">
+											<Button
+												size="sm"
+												variant="outline">
+												View Requests
+											</Button>
+										</div>
+									</div>
+								</div>
 							</div>
-						</TabsContent>
-					</Tabs>
-				</ContentContainer>
+						</ContentSection>
+					</TabsContent>
 
+					<TabsContent value="reports">
+						{/* Reports content */}
+						<ContentSection
+							title="Weekly Reports"
+							description="These reports show key metrics from the past week to help you understand your business performance."
+							flat>
+							<div className="text-muted-foreground text-sm">
+								No reports available for the current period.
+							</div>
+						</ContentSection>
+					</TabsContent>
+				</Tabs>
+			</ContentContainer>
 		</>
 	);
 }

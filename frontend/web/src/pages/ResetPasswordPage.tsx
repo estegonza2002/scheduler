@@ -6,14 +6,6 @@ import * as z from "zod";
 import { supabase } from "../lib/supabase";
 import { toast } from "sonner";
 import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardFooter,
-	CardHeader,
-	CardTitle,
-} from "../components/ui/card";
-import {
 	Form,
 	FormControl,
 	FormField,
@@ -24,6 +16,7 @@ import {
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import { ContentContainer } from "../components/ui/content-container";
+import { ContentSection } from "../components/ui/content-section";
 
 const resetPasswordSchema = z
 	.object({
@@ -117,99 +110,18 @@ export default function ResetPasswordPage() {
 			<ContentContainer
 				maxWidth="max-w-md"
 				className="flex justify-center items-center">
-				<Card className="w-full">
-					<CardHeader className="text-center">
-						<CardTitle className="text-2xl font-bold text-primary mb-2">
-							Reset Password
-						</CardTitle>
-						<CardDescription>
-							{isResetSuccessful
-								? "Your password has been reset successfully"
-								: tokenError
-								? "Invalid or expired reset link"
-								: "Create a new password for your account"}
-						</CardDescription>
-					</CardHeader>
-					<CardContent>
-						{tokenError ? (
-							<div className="text-center space-y-4">
-								<p className="text-sm text-muted-foreground">
-									The password reset link is invalid or has expired. Please
-									request a new password reset link.
-								</p>
-								<Button
-									type="button"
-									className="w-full"
-									onClick={() => navigate("/forgot-password")}>
-									Request New Reset Link
-								</Button>
-							</div>
-						) : isResetSuccessful ? (
-							<div className="text-center space-y-4">
-								<p className="text-sm text-muted-foreground">
-									Your password has been reset successfully. You can now log in
-									with your new password.
-								</p>
-								<Button
-									type="button"
-									className="w-full"
-									onClick={handleReturnToLogin}>
-									Return to Login
-								</Button>
-							</div>
-						) : (
-							<Form {...form}>
-								<form
-									onSubmit={form.handleSubmit(onSubmit)}
-									className="space-y-4">
-									<FormField
-										control={form.control}
-										name="password"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel>New Password</FormLabel>
-												<FormControl>
-													<Input
-														type="password"
-														placeholder="Enter your new password"
-														disabled={isLoading}
-														{...field}
-													/>
-												</FormControl>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-									<FormField
-										control={form.control}
-										name="confirmPassword"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel>Confirm Password</FormLabel>
-												<FormControl>
-													<Input
-														type="password"
-														placeholder="Confirm your new password"
-														disabled={isLoading}
-														{...field}
-													/>
-												</FormControl>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-									<Button
-										type="submit"
-										className="w-full"
-										disabled={isLoading}>
-										{isLoading ? "Resetting..." : "Reset Password"}
-									</Button>
-								</form>
-							</Form>
-						)}
-					</CardContent>
-					<CardFooter className="flex justify-center">
-						{!isResetSuccessful && !tokenError && (
+				<ContentSection
+					title="Reset Password"
+					description={
+						isResetSuccessful
+							? "Your password has been reset successfully"
+							: tokenError
+							? "Invalid or expired reset link"
+							: "Create a new password for your account"
+					}
+					footer={
+						!isResetSuccessful &&
+						!tokenError && (
 							<div className="text-sm text-center">
 								<span className="text-muted-foreground">
 									Remember your password?
@@ -221,9 +133,85 @@ export default function ResetPasswordPage() {
 									Back to Login
 								</Button>
 							</div>
-						)}
-					</CardFooter>
-				</Card>
+						)
+					}>
+					{tokenError ? (
+						<div className="text-center space-y-4">
+							<p className="text-sm text-muted-foreground">
+								The password reset link is invalid or has expired. Please
+								request a new password reset link.
+							</p>
+							<Button
+								type="button"
+								className="w-full"
+								onClick={() => navigate("/forgot-password")}>
+								Request New Reset Link
+							</Button>
+						</div>
+					) : isResetSuccessful ? (
+						<div className="text-center space-y-4">
+							<p className="text-sm text-muted-foreground">
+								Your password has been reset successfully. You can now log in
+								with your new password.
+							</p>
+							<Button
+								type="button"
+								className="w-full"
+								onClick={handleReturnToLogin}>
+								Return to Login
+							</Button>
+						</div>
+					) : (
+						<Form {...form}>
+							<form
+								onSubmit={form.handleSubmit(onSubmit)}
+								className="space-y-4">
+								<FormField
+									control={form.control}
+									name="password"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>New Password</FormLabel>
+											<FormControl>
+												<Input
+													type="password"
+													placeholder="Enter your new password"
+													disabled={isLoading}
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={form.control}
+									name="confirmPassword"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Confirm Password</FormLabel>
+											<FormControl>
+												<Input
+													type="password"
+													placeholder="Confirm your new password"
+													disabled={isLoading}
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<Button
+									type="submit"
+									className="w-full"
+									disabled={isLoading}>
+									{isLoading ? "Resetting..." : "Reset Password"}
+								</Button>
+							</form>
+						</Form>
+					)}
+				</ContentSection>
 			</ContentContainer>
 		</div>
 	);

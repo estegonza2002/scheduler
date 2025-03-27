@@ -44,16 +44,69 @@ Add to your `.vscode/settings.json`:
 
 ### enforce-page-header
 
-Ensures that page components (files ending with "Page.tsx") use the PageHeader component.
+Ensures that PageHeader component is used at the top level of page components.
 
-**Error:**
+This rule checks for:
 
-- When a page component doesn't import PageHeader
-- When PageHeader is imported but not used
+- When PageHeader is not imported in a page component
+- When PageHeader is imported but not used in a page component
+- When PageHeader is used without the required 'title' prop
 
-**Auto-fix:**
+#### Valid Example:
 
-- Can auto-fix the missing import
+```jsx
+import { PageHeader } from "../components/ui/page-header";
+
+function DashboardPage() {
+	return (
+		<div>
+			<PageHeader title="Dashboard" />
+			{/* Rest of page content */}
+		</div>
+	);
+}
+```
+
+### enforce-content-container
+
+Ensures that ContentContainer component is used to wrap content in page components.
+
+This rule checks for:
+
+- When ContentContainer is not imported in a page component
+- When ContentContainer is imported but not used in a page component
+- When PageHeader is used but content is not wrapped in ContentContainer
+
+#### Valid Example:
+
+```jsx
+import { PageHeader } from "../components/ui/page-header";
+import { ContentContainer } from "../components/ui/content-container";
+
+function DashboardPage() {
+	return (
+		<div>
+			<PageHeader title="Dashboard" />
+			<ContentContainer>{/* Page content */}</ContentContainer>
+		</div>
+	);
+}
+```
+
+#### Invalid Example:
+
+```jsx
+import { PageHeader } from "../components/ui/page-header";
+
+function DashboardPage() {
+	return (
+		<div>
+			<PageHeader title="Dashboard" />
+			<div>{/* Content not wrapped in ContentContainer */}</div>
+		</div>
+	);
+}
+```
 
 ### enforce-header-content-spacing
 

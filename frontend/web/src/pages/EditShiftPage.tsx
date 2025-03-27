@@ -51,7 +51,7 @@ export default function EditShiftPage() {
 				setLoading(true);
 
 				// Load shift data
-				const shiftData = await ShiftsAPI.getById(shiftId);
+				const shiftData = await ShiftsAPI.getShiftById(shiftId);
 				if (!shiftData) {
 					toast.error("Shift not found");
 					navigate("/schedule");
@@ -61,12 +61,12 @@ export default function EditShiftPage() {
 				setShift(shiftData);
 
 				// Set form values
-				const shiftDate = parseISO(shiftData.startTime);
+				const shiftDate = parseISO(shiftData.start_time);
 				setDate(format(shiftDate, "yyyy-MM-dd"));
-				setStartTime(format(parseISO(shiftData.startTime), "HH:mm"));
-				setEndTime(format(parseISO(shiftData.endTime), "HH:mm"));
-				setLocationId(shiftData.locationId || "none");
-				setNotes(shiftData.notes || "");
+				setStartTime(format(parseISO(shiftData.start_time), "HH:mm"));
+				setEndTime(format(parseISO(shiftData.end_time), "HH:mm"));
+				setLocationId(shiftData.location_id || "none");
+				setNotes(shiftData.description || "");
 
 				// Load locations
 				const organizationId = searchParams.get("organizationId") || "org-1";
@@ -100,12 +100,13 @@ export default function EditShiftPage() {
 			const endDateTime = new Date(`${date}T${endTime}`).toISOString();
 
 			// Update shift
-			await ShiftsAPI.update({
+			await ShiftsAPI.updateShift(shiftId, {
 				...shift,
-				startTime: startDateTime,
-				endTime: endDateTime,
-				locationId: locationId === "none" ? undefined : locationId || undefined,
-				notes: notes,
+				start_time: startDateTime,
+				end_time: endDateTime,
+				location_id:
+					locationId === "none" ? undefined : locationId || undefined,
+				description: notes,
 			});
 
 			toast.success("Shift updated successfully");
@@ -151,15 +152,13 @@ export default function EditShiftPage() {
 					description="Loading shift information..."
 					showBackButton={true}
 				/>
-				
-					<ContentContainer>
-						<LoadingState
-							type="spinner"
-							message="Loading shift information..."
-							className="py-12"
-						/>
-					</ContentContainer>
-				
+				<ContentContainer>
+					<LoadingState
+						type="spinner"
+						message="Loading shift information..."
+						className="py-12"
+					/>
+				</ContentContainer>
 			</>
 		);
 	}
@@ -172,115 +171,113 @@ export default function EditShiftPage() {
 				actions={ActionButtons}
 				showBackButton={true}
 			/>
-			
-				<ContentContainer>
-					<div className="max-w-3xl mx-auto">
-						<form
-							id="edit-shift-form"
-							onSubmit={handleSubmit}
-							className="space-y-8">
-							<FormSection
-								title="Date and Time"
-								description="Set when this shift will start and end">
-								{/* Date */}
+			<ContentContainer>
+				<div className="max-w-3xl mx-auto">
+					<form
+						id="edit-shift-form"
+						onSubmit={handleSubmit}
+						className="space-y-8">
+						<FormSection
+							title="Date and Time"
+							description="Set when this shift will start and end">
+							{/* Date */}
+							<div className="space-y-2">
+								<Label htmlFor="date">Date</Label>
+								<Input
+									id="date"
+									type="date"
+									value={date}
+									onChange={(e) => setDate(e.target.value)}
+									required
+								/>
+							</div>
+
+							{/* Time Range */}
+							<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 								<div className="space-y-2">
-									<Label htmlFor="date">Date</Label>
+									<Label htmlFor="startTime">Start Time</Label>
 									<Input
-										id="date"
-										type="date"
-										value={date}
-										onChange={(e) => setDate(e.target.value)}
+										id="startTime"
+										type="time"
+										value={startTime}
+										onChange={(e) => setStartTime(e.target.value)}
 										required
 									/>
 								</div>
-
-								{/* Time Range */}
-								<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-									<div className="space-y-2">
-										<Label htmlFor="startTime">Start Time</Label>
-										<Input
-											id="startTime"
-											type="time"
-											value={startTime}
-											onChange={(e) => setStartTime(e.target.value)}
-											required
-										/>
-									</div>
-									<div className="space-y-2">
-										<Label htmlFor="endTime">End Time</Label>
-										<Input
-											id="endTime"
-											type="time"
-											value={endTime}
-											onChange={(e) => setEndTime(e.target.value)}
-											required
-										/>
-									</div>
-								</div>
-							</FormSection>
-
-							<FormSection
-								title="Location"
-								description="Assign a location for this shift">
 								<div className="space-y-2">
-									<Label htmlFor="location">Location</Label>
-									<Select
-										value={locationId}
-										onValueChange={setLocationId}>
-										<SelectTrigger id="location">
-											<SelectValue placeholder="Select a location" />
-										</SelectTrigger>
-										<SelectContent>
-											<SelectItem value="none">No location</SelectItem>
-											{locations.map((loc) => (
-												<SelectItem
-													key={loc.id}
-													value={loc.id}>
-													{loc.name}
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
-								</div>
-							</FormSection>
-
-							<FormSection
-								title="Notes"
-								description="Add any additional information or instructions">
-								<div className="space-y-2">
-									<Label htmlFor="notes">Notes (Optional)</Label>
-									<Textarea
-										id="notes"
-										value={notes}
-										onChange={(e) => setNotes(e.target.value)}
-										placeholder="Add any additional notes or instructions..."
-										rows={4}
+									<Label htmlFor="endTime">End Time</Label>
+									<Input
+										id="endTime"
+										type="time"
+										value={endTime}
+										onChange={(e) => setEndTime(e.target.value)}
+										required
 									/>
 								</div>
-							</FormSection>
-
-							{/* Form actions at the bottom */}
-							<div className="flex justify-end gap-2 pt-4 border-t">
-								<Button
-									type="button"
-									variant="outline"
-									onClick={() => navigate(`/shifts/${shiftId}`)}>
-									Cancel
-								</Button>
-								<Button
-									type="submit"
-									disabled={saving}
-									className="gap-2">
-									{saving && (
-										<div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
-									)}
-									<Save className="h-4 w-4 mr-1" /> Save Changes
-								</Button>
 							</div>
-						</form>
-					</div>
-				</ContentContainer>
-			
+						</FormSection>
+
+						<FormSection
+							title="Location"
+							description="Assign a location for this shift">
+							<div className="space-y-2">
+								<Label htmlFor="location">Location</Label>
+								<Select
+									value={locationId}
+									onValueChange={setLocationId}>
+									<SelectTrigger id="location">
+										<SelectValue placeholder="Select a location" />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="none">No location</SelectItem>
+										{locations.map((loc) => (
+											<SelectItem
+												key={loc.id}
+												value={loc.id}>
+												{loc.name}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+							</div>
+						</FormSection>
+
+						<FormSection
+							title="Notes"
+							description="Add any additional information or instructions">
+							<div className="space-y-2">
+								<Label htmlFor="notes">Notes (Optional)</Label>
+								<Textarea
+									id="notes"
+									value={notes}
+									onChange={(e) => setNotes(e.target.value)}
+									placeholder="Add any additional notes or instructions..."
+									rows={4}
+								/>
+							</div>
+						</FormSection>
+
+						{/* Form actions at the bottom */}
+						<div className="flex justify-end gap-4 pt-6 border-t">
+							<Button
+								type="button"
+								variant="outline"
+								onClick={() => navigate(`/shifts/${shiftId}`)}>
+								Cancel
+							</Button>
+							<Button
+								type="submit"
+								disabled={saving}
+								className="gap-2">
+								{saving && (
+									<div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
+								)}
+								<Save className="h-4 w-4 mr-1" /> Save Changes
+							</Button>
+						</div>
+					</form>
+				</div>
+			</ContentContainer>
 		</>
 	);
 }

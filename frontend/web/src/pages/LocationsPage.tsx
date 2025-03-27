@@ -24,12 +24,7 @@ import {
 } from "lucide-react";
 import { Badge } from "../components/ui/badge";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import {
-	Card,
-	CardTitle,
-	CardHeader,
-	CardContent,
-} from "../components/ui/card";
+import { Card } from "../components/ui/card";
 
 // Import our dialog components
 import { EditLocationDialog } from "../components/EditLocationDialog";
@@ -45,6 +40,7 @@ import { LocationCreationSheet } from "../components/LocationCreationSheet";
 import { PageHeader } from "../components/ui/page-header";
 
 import { ContentContainer } from "../components/ui/content-container";
+import { ContentSection } from "../components/ui/content-section";
 
 export default function LocationsPage() {
 	const [searchParams] = useSearchParams();
@@ -277,6 +273,7 @@ export default function LocationsPage() {
 		<>
 			<PageHeader
 				title="Locations"
+				description="Manage your organization's physical locations"
 				actions={
 					organization && (
 						<LocationCreationSheet
@@ -294,298 +291,285 @@ export default function LocationsPage() {
 					)
 				}
 			/>
-			
-				<ContentContainer>
-					{/* Stats Cards */}
-					<div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-						<Card>
-							<CardHeader className="pb-2">
-								<CardTitle className="text-base font-medium">
-									Total Locations
-								</CardTitle>
-							</CardHeader>
-							<CardContent>
-								<div className="text-2xl font-bold">{totalLocations}</div>
-								<p className="text-xs text-muted-foreground">
-									{organization?.name || "Your organization"}
-								</p>
-							</CardContent>
-						</Card>
 
-						<Card>
-							<CardHeader className="pb-2">
-								<CardTitle className="text-base font-medium">
-									Location Coverage
-								</CardTitle>
-							</CardHeader>
-							<CardContent>
-								<div className="text-2xl font-bold">{uniqueStates.length}</div>
-								<p className="text-xs text-muted-foreground">
-									States/Provinces with locations
-								</p>
-							</CardContent>
-						</Card>
+			<ContentContainer>
+				{/* Stats Cards */}
+				<ContentSection
+					title="Location Statistics"
+					className="mb-6">
+					<div className="grid gap-4 grid-cols-1 md:grid-cols-3">
+						<div className="space-y-2">
+							<h3 className="text-base font-medium">Total Locations</h3>
+							<div className="text-2xl font-bold">{totalLocations}</div>
+							<p className="text-xs text-muted-foreground">
+								{organization?.name || "Your organization"}
+							</p>
+						</div>
 
-						<Card>
-							<CardHeader className="pb-2">
-								<CardTitle className="text-base font-medium">
-									Locations per State
-								</CardTitle>
-							</CardHeader>
-							<CardContent>
-								<div className="text-2xl font-bold">{locationsPerState}</div>
-								<p className="text-xs text-muted-foreground">
-									Average locations per state
-								</p>
-							</CardContent>
-						</Card>
+						<div className="space-y-2">
+							<h3 className="text-base font-medium">Location Coverage</h3>
+							<div className="text-2xl font-bold">{uniqueStates.length}</div>
+							<p className="text-xs text-muted-foreground">
+								States/Provinces with locations
+							</p>
+						</div>
+
+						<div className="space-y-2">
+							<h3 className="text-base font-medium">Locations per State</h3>
+							<div className="text-2xl font-bold">{locationsPerState}</div>
+							<p className="text-xs text-muted-foreground">
+								Average locations per state
+							</p>
+						</div>
 					</div>
+				</ContentSection>
 
-					{/* Filters Section */}
-					<Card className="mt-6">
-						<CardContent className="pt-6">
-							<div className="flex flex-col md:flex-row justify-between space-y-2 md:space-y-0">
-								<div className="flex items-center space-x-2">
-									<div className="border rounded-md overflow-hidden">
-										<Button
-											variant="ghost"
-											size="sm"
-											className={cn(
-												"h-8 px-2 rounded-none",
-												viewMode === "table" && "bg-muted"
-											)}
-											onClick={() => setViewMode("table")}>
-											<List className="h-4 w-4" />
-										</Button>
-										<Button
-											variant="ghost"
-											size="sm"
-											className={cn(
-												"h-8 px-2 rounded-none",
-												viewMode === "cards" && "bg-muted"
-											)}
-											onClick={() => setViewMode("cards")}>
-											<LayoutGrid className="h-4 w-4" />
-										</Button>
-									</div>
-								</div>
+				{/* Filters Section */}
+				<ContentSection
+					title="Filters & View Options"
+					className="mb-6">
+					<div className="flex flex-col md:flex-row justify-between space-y-4 md:space-y-0">
+						<div className="flex items-center space-x-2">
+							<div className="border rounded-md overflow-hidden">
+								<Button
+									variant="ghost"
+									size="sm"
+									className={cn(
+										"h-8 px-2 rounded-none",
+										viewMode === "table" && "bg-muted"
+									)}
+									onClick={() => setViewMode("table")}>
+									<List className="h-4 w-4" />
+								</Button>
+								<Button
+									variant="ghost"
+									size="sm"
+									className={cn(
+										"h-8 px-2 rounded-none",
+										viewMode === "cards" && "bg-muted"
+									)}
+									onClick={() => setViewMode("cards")}>
+									<LayoutGrid className="h-4 w-4" />
+								</Button>
+							</div>
+						</div>
 
-								<div className="flex items-center space-x-2">
-									<div className="relative md:w-64">
-										<Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-										<Input
-											placeholder="Search by ID or location..."
-											value={searchTerm}
-											onChange={(e) => setSearchTerm(e.target.value)}
-											className="pl-8"
-										/>
-									</div>
-
-									<DropdownMenu>
-										<DropdownMenuTrigger asChild>
-											<Button
-												variant="outline"
-												className={cn(
-													"justify-between text-left font-normal md:w-48",
-													!stateFilter && "text-muted-foreground"
-												)}>
-												<div className="flex items-center">
-													<MapPin className="mr-2 h-4 w-4" />
-													{getStateFilterLabel()}
-												</div>
-												<ChevronDown className="h-4 w-4 opacity-50" />
-											</Button>
-										</DropdownMenuTrigger>
-										<DropdownMenuContent
-											align="end"
-											className="w-56">
-											<DropdownMenuItem onSelect={() => setStateFilter(null)}>
-												All States
-											</DropdownMenuItem>
-											<DropdownMenuSeparator />
-											{uniqueStates.map((state) => (
-												<DropdownMenuItem
-													key={state}
-													onSelect={() => setStateFilter(state || null)}>
-													{state}
-												</DropdownMenuItem>
-											))}
-										</DropdownMenuContent>
-									</DropdownMenu>
-								</div>
+						<div className="flex items-center space-x-2">
+							<div className="relative md:w-64">
+								<Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+								<Input
+									placeholder="Search by ID or location..."
+									value={searchTerm}
+									onChange={(e) => setSearchTerm(e.target.value)}
+									className="pl-8"
+								/>
 							</div>
 
-							{/* Applied filters display */}
-							{hasActiveFilters && (
-								<div className="flex items-center gap-2 mt-4">
-									<span className="text-sm font-medium text-muted-foreground">
-										Filters:
-									</span>
-									<div className="flex flex-wrap gap-2">
-										{stateFilter && (
-											<Badge className="flex items-center gap-1.5 px-2.5 py-1 bg-muted hover:bg-muted border text-foreground">
-												<MapPin className="h-3 w-3 text-muted-foreground" />
-												<span>{stateFilter}</span>
-												<button
-													onClick={() => setStateFilter(null)}
-													className="ml-1 rounded-full p-0.5 hover:bg-background/80 transition-colors"
-													aria-label="Remove state filter">
-													<X className="h-3 w-3 text-muted-foreground" />
-												</button>
-											</Badge>
-										)}
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button
+										variant="outline"
+										className={cn(
+											"justify-between text-left font-normal md:w-48",
+											!stateFilter && "text-muted-foreground"
+										)}>
+										<div className="flex items-center">
+											<MapPin className="mr-2 h-4 w-4" />
+											{getStateFilterLabel()}
+										</div>
+										<ChevronDown className="h-4 w-4 opacity-50" />
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent
+									align="end"
+									className="w-56">
+									<DropdownMenuItem onSelect={() => setStateFilter(null)}>
+										All States
+									</DropdownMenuItem>
+									<DropdownMenuSeparator />
+									{uniqueStates.map((state) => (
+										<DropdownMenuItem
+											key={state}
+											onSelect={() => setStateFilter(state || null)}>
+											{state}
+										</DropdownMenuItem>
+									))}
+								</DropdownMenuContent>
+							</DropdownMenu>
+						</div>
+					</div>
 
-										{hasActiveFilters && (
-											<button
-												onClick={handleClearFilters}
-												className="text-xs text-muted-foreground hover:text-foreground underline">
-												Clear all
-											</button>
-										)}
-									</div>
-								</div>
-							)}
-						</CardContent>
-					</Card>
+					{/* Applied filters display */}
+					{hasActiveFilters && (
+						<div className="flex items-center gap-2 mt-4">
+							<span className="text-sm font-medium text-muted-foreground">
+								Filters:
+							</span>
+							<div className="flex flex-wrap gap-2">
+								{stateFilter && (
+									<Badge className="flex items-center gap-1.5 px-2.5 py-1 bg-muted hover:bg-muted border text-foreground">
+										<MapPin className="h-3 w-3 text-muted-foreground" />
+										<span>{stateFilter}</span>
+										<button
+											onClick={() => setStateFilter(null)}
+											className="ml-1 rounded-full p-0.5 hover:bg-background/80 transition-colors"
+											aria-label="Remove state filter">
+											<X className="h-3 w-3 text-muted-foreground" />
+										</button>
+									</Badge>
+								)}
 
-					{locations.length === 0 ? (
-						<EmptyState
-							title="No locations found"
-							description="Start by adding locations to your organization"
-							icon={<MapPin className="h-6 w-6" />}
-							action={
-								organization && (
-									<LocationCreationSheet
-										organizationId={organization?.id || "org-1"}
-										onLocationCreated={(newLocation) =>
-											handleLocationsAdded([newLocation])
-										}
-										trigger={
-											<Button>
-												<Plus className="mr-2 h-4 w-4" />
-												Add First Location
-											</Button>
-										}
-									/>
-								)
-							}
-						/>
-					) : (
-						<div className="space-y-4 mt-6">
-							{filteredLocations.length === 0 ? (
-								<EmptyState
-									title="No locations found"
-									description="Try adjusting your filters or search term"
-									icon={<AlertCircle className="h-6 w-6" />}
-									size="small"
-									action={
-										hasActiveFilters ? (
-											<Button
-												variant="outline"
-												onClick={handleClearFilters}>
-												Clear Filters
-											</Button>
-										) : undefined
+								{hasActiveFilters && (
+									<button
+										onClick={handleClearFilters}
+										className="text-xs text-muted-foreground hover:text-foreground underline">
+										Clear all
+									</button>
+								)}
+							</div>
+						</div>
+					)}
+				</ContentSection>
+
+				{locations.length === 0 ? (
+					<EmptyState
+						title="No locations found"
+						description="Start by adding locations to your organization"
+						icon={<MapPin className="h-6 w-6" />}
+						action={
+							organization && (
+								<LocationCreationSheet
+									organizationId={organization?.id || "org-1"}
+									onLocationCreated={(newLocation) =>
+										handleLocationsAdded([newLocation])
+									}
+									trigger={
+										<Button>
+											<Plus className="mr-2 h-4 w-4" />
+											Add First Location
+										</Button>
 									}
 								/>
-							) : (
-								<>
-									{/* Table View */}
-									{viewMode === "table" && (
-										<DataTable
-											columns={columns}
-											data={filteredLocations}
-											onRowClick={(location) =>
-												navigate(`/locations/${location.id}`)
-											}
-										/>
-									)}
+							)
+						}
+					/>
+				) : (
+					<ContentSection
+						title="Locations"
+						className="mt-6">
+						{filteredLocations.length === 0 ? (
+							<EmptyState
+								title="No locations found"
+								description="Try adjusting your filters or search term"
+								icon={<AlertCircle className="h-6 w-6" />}
+								size="small"
+								action={
+									hasActiveFilters ? (
+										<Button
+											variant="outline"
+											onClick={handleClearFilters}>
+											Clear Filters
+										</Button>
+									) : undefined
+								}
+							/>
+						) : (
+							<>
+								{/* Table View */}
+								{viewMode === "table" && (
+									<DataTable
+										columns={columns}
+										data={filteredLocations}
+										onRowClick={(location) =>
+											navigate(`/locations/${location.id}`)
+										}
+									/>
+								)}
 
-									{/* Card View */}
-									{viewMode === "cards" && (
-										<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-											{filteredLocations.map((location) => (
-												<Card
-													key={location.id}
-													className="hover:shadow-md transition-shadow cursor-pointer group relative overflow-hidden"
-													onClick={() => navigate(`/locations/${location.id}`)}>
-													<div className="absolute inset-0 bg-gradient-to-t from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-													<div className="p-4">
-														<div className="flex items-start gap-4">
-															<div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-																<MapPin className="h-6 w-6 text-primary" />
-															</div>
-															<div className="flex-1 min-w-0">
-																<div className="flex items-center justify-between gap-2 group/name">
-																	<CardTitle className="text-lg truncate">
-																		{location.name}
-																	</CardTitle>
-																	<ChevronRight className="h-5 w-5 text-muted-foreground/50 transition-colors group-hover/name:text-primary shrink-0" />
-																</div>
-																<span className="text-sm text-muted-foreground">
-																	{location.address || "No address"}
-																</span>
-															</div>
+								{/* Card View */}
+								{viewMode === "cards" && (
+									<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+										{filteredLocations.map((location) => (
+											<Card
+												key={location.id}
+												className="hover:shadow-md transition-shadow cursor-pointer group relative overflow-hidden"
+												onClick={() => navigate(`/locations/${location.id}`)}>
+												<div className="absolute inset-0 bg-gradient-to-t from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+												<div className="p-4">
+													<div className="flex items-start gap-4">
+														<div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+															<MapPin className="h-6 w-6 text-primary" />
 														</div>
-													</div>
-													<div className="border-t px-4 py-3 space-y-2">
-														<div className="flex items-center gap-3 text-sm">
-															<Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
-															<span className="truncate">
+														<div className="flex-1 min-w-0">
+															<div className="flex items-center justify-between gap-2 group/name">
+																<h3 className="text-lg font-semibold truncate">
+																	{location.name}
+																</h3>
+																<ChevronRight className="h-5 w-5 text-muted-foreground/50 transition-colors group-hover/name:text-primary shrink-0" />
+															</div>
+															<span className="text-sm text-muted-foreground">
 																{location.address || "No address"}
 															</span>
 														</div>
-														<div className="flex items-center gap-3 text-sm">
-															<MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
-															<span>
-																{location.city}
-																{location.city && location.state ? ", " : ""}
-																{location.state}
-																{location.zipCode ? ` ${location.zipCode}` : ""}
-															</span>
-														</div>
 													</div>
-													<div className="absolute inset-0 flex items-end justify-end p-4">
-														<Button
-															onClick={(e) => {
-																e.stopPropagation();
-																navigate(`/locations/${location.id}`);
-															}}
-															variant="default"
-															size="sm"
-															className="mr-2">
-															<Eye className="h-4 w-4 mr-2" /> View Details
-														</Button>
+												</div>
+												<div className="border-t px-4 py-3 space-y-2">
+													<div className="flex items-center gap-3 text-sm">
+														<Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
+														<span className="truncate">
+															{location.address || "No address"}
+														</span>
 													</div>
-												</Card>
-											))}
-										</div>
-									)}
-								</>
-							)}
-						</div>
-					)}
+													<div className="flex items-center gap-3 text-sm">
+														<MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+														<span>
+															{location.city}
+															{location.city && location.state ? ", " : ""}
+															{location.state}
+															{location.zipCode ? ` ${location.zipCode}` : ""}
+														</span>
+													</div>
+												</div>
+												<div className="absolute inset-0 flex items-end justify-end p-4">
+													<Button
+														onClick={(e) => {
+															e.stopPropagation();
+															navigate(`/locations/${location.id}`);
+														}}
+														variant="default"
+														size="sm"
+														className="mr-2">
+														<Eye className="h-4 w-4 mr-2" /> View Details
+													</Button>
+												</div>
+											</Card>
+										))}
+									</div>
+								)}
+							</>
+						)}
+					</ContentSection>
+				)}
 
-					{/* Dialogs with controlled state */}
-					{selectedLocation && (
-						<>
-							<EditLocationDialog
-								location={selectedLocation}
-								onLocationUpdated={handleLocationUpdated}
-								open={editDialogOpen}
-								onOpenChange={setEditDialogOpen}
-							/>
+				{/* Dialogs with controlled state */}
+				{selectedLocation && (
+					<>
+						<EditLocationDialog
+							location={selectedLocation}
+							onLocationUpdated={handleLocationUpdated}
+							open={editDialogOpen}
+							onOpenChange={setEditDialogOpen}
+						/>
 
-							<DeleteLocationDialog
-								location={selectedLocation}
-								onLocationDeleted={handleLocationDeleted}
-								open={deleteDialogOpen}
-								onOpenChange={setDeleteDialogOpen}
-							/>
-						</>
-					)}
-				</ContentContainer>
-			
+						<DeleteLocationDialog
+							location={selectedLocation}
+							onLocationDeleted={handleLocationDeleted}
+							open={deleteDialogOpen}
+							onOpenChange={setDeleteDialogOpen}
+						/>
+					</>
+				)}
+			</ContentContainer>
 		</>
 	);
 }

@@ -1,10 +1,24 @@
 module.exports = {
+	parser: "@typescript-eslint/parser",
+	parserOptions: {
+		ecmaVersion: 2020,
+		sourceType: "module",
+		ecmaFeatures: {
+			jsx: true,
+		},
+	},
+	settings: {
+		react: {
+			version: "detect",
+		},
+	},
 	plugins: ["design-system"],
 	rules: {
 		"design-system/enforce-page-header": "error",
 		"design-system/prevent-direct-card": "warn",
 		"design-system/enforce-form-section": "warn",
 		"design-system/enforce-card-grid-section": "warn",
+		"design-system/enforce-content-container": "warn",
 	},
 	overrides: [
 		{
@@ -12,6 +26,7 @@ module.exports = {
 			files: ["**/src/**/*Page.tsx"],
 			rules: {
 				"design-system/enforce-page-header": "error",
+				"design-system/enforce-content-container": "warn",
 			},
 		},
 		{
@@ -28,6 +43,13 @@ module.exports = {
 			files: ["**/src/**/*Form.tsx"],
 			rules: {
 				"design-system/enforce-form-section": "warn",
+			},
+		},
+		// Only apply to TypeScript React files
+		{
+			files: ["*.tsx"],
+			rules: {
+				"design-system/enforce-page-header": "error",
 			},
 		},
 	],

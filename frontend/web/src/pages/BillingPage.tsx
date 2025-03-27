@@ -9,6 +9,7 @@ import { Separator } from "../components/ui/separator";
 import { PageHeader } from "../components/ui/page-header";
 
 import { ContentContainer } from "../components/ui/content-container";
+import { ContentSection } from "../components/ui/content-section";
 import { SecondaryLayout } from "../components/layout/SecondaryLayout";
 import { LoadingState } from "../components/ui/loading-state";
 
@@ -104,289 +105,288 @@ export default function BillingPage() {
 			}>
 			{/* Subscription Content */}
 			{activeTab === "subscription" && (
-				<div className="space-y-6">
-					<h3 className="text-lg font-medium">Available Plans</h3>
-					<p className="text-sm text-muted-foreground">
-						Choose a plan that best fits your business
-					</p>
-
-					<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-						{/* Free Plan */}
-						<div
-							className={`border rounded-lg p-5 transition-all ${
-								subscriptionPlan === "free"
-									? "bg-card border-primary"
-									: "bg-muted/10 hover:bg-card"
-							}`}>
-							<div className="mb-4">
-								<div className="flex justify-between items-center mb-2">
-									<h4 className="text-lg font-semibold">Free Plan</h4>
-									{subscriptionPlan === "free" && (
-										<div className="rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
-											Current Plan
-										</div>
-									)}
-								</div>
-								<p className="text-sm text-muted-foreground">
-									For personal or small teams
-								</p>
-							</div>
-							<div className="mb-4">
-								<span className="text-3xl font-bold">$0</span>
-								<span className="text-muted-foreground"> / month</span>
-							</div>
-							<ul className="space-y-2 text-sm mb-6">
-								<li className="flex items-start">
-									<Check className="h-4 w-4 mr-2 text-primary" />
-									<span>Up to 5 employees</span>
-								</li>
-								<li className="flex items-start">
-									<Check className="h-4 w-4 mr-2 text-primary" />
-									<span>Basic scheduling features</span>
-								</li>
-								<li className="flex items-start">
-									<Check className="h-4 w-4 mr-2 text-primary" />
-									<span>Email notifications</span>
-								</li>
-								<li className="flex items-start text-muted-foreground">
-									<span className="mr-2">✗</span>
-									<span>Advanced reporting</span>
-								</li>
-								<li className="flex items-start text-muted-foreground">
-									<span className="mr-2">✗</span>
-									<span>SMS notifications</span>
-								</li>
-							</ul>
-							{subscriptionPlan === "free" ? (
-								<Button
-									disabled
-									className="w-full">
-									Current Plan
-								</Button>
-							) : (
-								<Button
-									variant="outline"
-									className="w-full"
-									disabled={
-										subscriptionPlan === "pro" ||
-										subscriptionPlan === "business"
-									}
-									onClick={() => setSubscriptionPlan("free")}>
-									{subscriptionPlan === "pro" || subscriptionPlan === "business"
-										? "Downgrade"
-										: "Select Plan"}
-								</Button>
-							)}
-						</div>
-
-						{/* Pro Plan */}
-						<div
-							className={`border border-primary rounded-lg p-6 shadow-lg transform scale-105 z-10 transition-all ${
-								subscriptionPlan === "pro"
-									? "bg-card"
-									: "bg-muted/10 hover:bg-card"
-							} relative`}>
-							{subscriptionPlan !== "pro" && (
-								<div className="absolute -top-3 left-0 right-0 flex justify-center">
-									<div className="rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground">
-										Recommended
+				<>
+					<ContentSection
+						title="Available Plans"
+						description="Choose a plan that best fits your business needs">
+						<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+							{/* Free Plan */}
+							<div
+								className={`border rounded-lg p-5 transition-all ${
+									subscriptionPlan === "free"
+										? "bg-card border-primary"
+										: "bg-muted/10 hover:bg-card"
+								}`}>
+								<div className="mb-4">
+									<div className="flex justify-between items-center mb-2">
+										<h4 className="text-lg font-semibold">Free Plan</h4>
+										{subscriptionPlan === "free" && (
+											<div className="rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+												Current Plan
+											</div>
+										)}
 									</div>
+									<p className="text-sm text-muted-foreground">
+										For personal or small teams
+									</p>
 								</div>
-							)}
-							<div className="mb-4">
-								<div className="flex justify-between items-center mb-2">
-									<h4 className="text-lg font-semibold">Pro Plan</h4>
-									{subscriptionPlan === "pro" && (
-										<div className="rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
-											Current Plan
-										</div>
-									)}
+								<div className="mb-4">
+									<span className="text-3xl font-bold">$0</span>
+									<span className="text-muted-foreground"> / month</span>
 								</div>
-								<p className="text-sm text-muted-foreground">
-									For growing businesses
-								</p>
+								<ul className="space-y-2 text-sm mb-6">
+									<li className="flex items-start">
+										<Check className="h-4 w-4 mr-2 text-primary" />
+										<span>Up to 5 employees</span>
+									</li>
+									<li className="flex items-start">
+										<Check className="h-4 w-4 mr-2 text-primary" />
+										<span>Basic scheduling features</span>
+									</li>
+									<li className="flex items-start">
+										<Check className="h-4 w-4 mr-2 text-primary" />
+										<span>Email notifications</span>
+									</li>
+									<li className="flex items-start text-muted-foreground">
+										<span className="mr-2">✗</span>
+										<span>Advanced reporting</span>
+									</li>
+									<li className="flex items-start text-muted-foreground">
+										<span className="mr-2">✗</span>
+										<span>SMS notifications</span>
+									</li>
+								</ul>
+								{subscriptionPlan === "free" ? (
+									<Button
+										disabled
+										className="w-full">
+										Current Plan
+									</Button>
+								) : (
+									<Button
+										variant="outline"
+										className="w-full"
+										disabled={
+											subscriptionPlan === "pro" ||
+											subscriptionPlan === "business"
+										}
+										onClick={() => setSubscriptionPlan("free")}>
+										{subscriptionPlan === "pro" ||
+										subscriptionPlan === "business"
+											? "Downgrade"
+											: "Select Plan"}
+									</Button>
+								)}
 							</div>
-							<div className="mb-4">
-								<span className="text-3xl font-bold">$29</span>
-								<span className="text-muted-foreground"> / month</span>
-							</div>
-							<ul className="space-y-2 text-sm mb-6">
-								<li className="flex items-start">
-									<Check className="h-4 w-4 mr-2 text-primary" />
-									<span>Up to 25 employees</span>
-								</li>
-								<li className="flex items-start">
-									<Check className="h-4 w-4 mr-2 text-primary" />
-									<span>Advanced scheduling features</span>
-								</li>
-								<li className="flex items-start">
-									<Check className="h-4 w-4 mr-2 text-primary" />
-									<span>SMS notifications</span>
-								</li>
-								<li className="flex items-start">
-									<Check className="h-4 w-4 mr-2 text-primary" />
-									<span>Basic reporting</span>
-								</li>
-								<li className="flex items-start text-muted-foreground">
-									<span className="mr-2">✗</span>
-									<span>Advanced analytics</span>
-								</li>
-								<li className="flex items-start text-muted-foreground">
-									<span className="mr-2">✗</span>
-									<span>Priority support</span>
-								</li>
-							</ul>
-							{subscriptionPlan === "pro" ? (
-								<Button
-									disabled
-									className="w-full">
-									Current Plan
-								</Button>
-							) : subscriptionPlan === "business" ? (
-								<Button
-									variant="outline"
-									className="w-full"
-									disabled={isUpgrading}
-									onClick={() => handleUpgrade("pro")}>
-									{isUpgrading ? "Processing..." : "Downgrade to Pro"}
-								</Button>
-							) : (
-								<Button
-									disabled={isUpgrading}
-									onClick={() => handleUpgrade("pro")}
-									className="w-full">
-									{isUpgrading ? "Processing..." : "Upgrade Now"}
-								</Button>
-							)}
-						</div>
 
-						{/* Business Plan */}
-						<div
-							className={`border rounded-lg p-5 transition-all ${
-								subscriptionPlan === "business"
-									? "bg-card border-primary"
-									: "bg-muted/10 hover:bg-card"
-							}`}>
-							<div className="mb-4">
-								<div className="flex justify-between items-center mb-2">
-									<h4 className="text-lg font-semibold">Business Plan</h4>
-									{subscriptionPlan === "business" && (
-										<div className="rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
-											Current Plan
+							{/* Pro Plan */}
+							<div
+								className={`border border-primary rounded-lg p-6 shadow-lg transform scale-105 z-10 transition-all ${
+									subscriptionPlan === "pro"
+										? "bg-card"
+										: "bg-muted/10 hover:bg-card"
+								} relative`}>
+								{subscriptionPlan !== "pro" && (
+									<div className="absolute -top-3 left-0 right-0 flex justify-center">
+										<div className="rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground">
+											Recommended
 										</div>
-									)}
+									</div>
+								)}
+								<div className="mb-4">
+									<div className="flex justify-between items-center mb-2">
+										<h4 className="text-lg font-semibold">Pro Plan</h4>
+										{subscriptionPlan === "pro" && (
+											<div className="rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+												Current Plan
+											</div>
+										)}
+									</div>
+									<p className="text-sm text-muted-foreground">
+										For growing businesses
+									</p>
 								</div>
-								<p className="text-sm text-muted-foreground">
-									For established businesses
-								</p>
+								<div className="mb-4">
+									<span className="text-3xl font-bold">$29</span>
+									<span className="text-muted-foreground"> / month</span>
+								</div>
+								<ul className="space-y-2 text-sm mb-6">
+									<li className="flex items-start">
+										<Check className="h-4 w-4 mr-2 text-primary" />
+										<span>Up to 25 employees</span>
+									</li>
+									<li className="flex items-start">
+										<Check className="h-4 w-4 mr-2 text-primary" />
+										<span>Advanced scheduling features</span>
+									</li>
+									<li className="flex items-start">
+										<Check className="h-4 w-4 mr-2 text-primary" />
+										<span>SMS notifications</span>
+									</li>
+									<li className="flex items-start">
+										<Check className="h-4 w-4 mr-2 text-primary" />
+										<span>Basic reporting</span>
+									</li>
+									<li className="flex items-start text-muted-foreground">
+										<span className="mr-2">✗</span>
+										<span>Advanced analytics</span>
+									</li>
+									<li className="flex items-start text-muted-foreground">
+										<span className="mr-2">✗</span>
+										<span>Priority support</span>
+									</li>
+								</ul>
+								{subscriptionPlan === "pro" ? (
+									<Button
+										disabled
+										className="w-full">
+										Current Plan
+									</Button>
+								) : subscriptionPlan === "business" ? (
+									<Button
+										variant="outline"
+										className="w-full"
+										disabled={isUpgrading}
+										onClick={() => handleUpgrade("pro")}>
+										{isUpgrading ? "Processing..." : "Downgrade to Pro"}
+									</Button>
+								) : (
+									<Button
+										disabled={isUpgrading}
+										onClick={() => handleUpgrade("pro")}
+										className="w-full">
+										{isUpgrading ? "Processing..." : "Upgrade Now"}
+									</Button>
+								)}
 							</div>
-							<div className="mb-4">
-								<span className="text-3xl font-bold">$79</span>
-								<span className="text-muted-foreground"> / month</span>
-							</div>
-							<ul className="space-y-2 text-sm mb-6">
-								<li className="flex items-start">
-									<Check className="h-4 w-4 mr-2 text-primary" />
-									<span>Unlimited employees</span>
-								</li>
-								<li className="flex items-start">
-									<Check className="h-4 w-4 mr-2 text-primary" />
-									<span>Premium scheduling features</span>
-								</li>
-								<li className="flex items-start">
-									<Check className="h-4 w-4 mr-2 text-primary" />
-									<span>SMS and email notifications</span>
-								</li>
-								<li className="flex items-start">
-									<Check className="h-4 w-4 mr-2 text-primary" />
-									<span>Advanced reporting & analytics</span>
-								</li>
-								<li className="flex items-start">
-									<Check className="h-4 w-4 mr-2 text-primary" />
-									<span>Priority support</span>
-								</li>
-							</ul>
-							{subscriptionPlan === "business" ? (
-								<Button
-									disabled
-									className="w-full">
-									Current Plan
-								</Button>
-							) : (
-								<Button
-									disabled={isUpgrading}
-									onClick={() => handleUpgrade("business")}
-									className="w-full"
-									variant="outline">
-									{isUpgrading ? "Processing..." : "Upgrade Now"}
-								</Button>
-							)}
-						</div>
-					</div>
 
-					<div className="text-center mt-8 text-sm text-muted-foreground">
-						<p>
-							All plans include unlimited schedule creation and basic customer
-							support.
-						</p>
-						<p className="mt-2">
-							Need a custom plan for your enterprise?{" "}
-							<Button
-								variant="link"
-								className="h-auto p-0">
-								Contact us
-							</Button>
-						</p>
-					</div>
-				</div>
+							{/* Business Plan */}
+							<div
+								className={`border rounded-lg p-5 transition-all ${
+									subscriptionPlan === "business"
+										? "bg-card border-primary"
+										: "bg-muted/10 hover:bg-card"
+								}`}>
+								<div className="mb-4">
+									<div className="flex justify-between items-center mb-2">
+										<h4 className="text-lg font-semibold">Business Plan</h4>
+										{subscriptionPlan === "business" && (
+											<div className="rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+												Current Plan
+											</div>
+										)}
+									</div>
+									<p className="text-sm text-muted-foreground">
+										For established businesses
+									</p>
+								</div>
+								<div className="mb-4">
+									<span className="text-3xl font-bold">$79</span>
+									<span className="text-muted-foreground"> / month</span>
+								</div>
+								<ul className="space-y-2 text-sm mb-6">
+									<li className="flex items-start">
+										<Check className="h-4 w-4 mr-2 text-primary" />
+										<span>Unlimited employees</span>
+									</li>
+									<li className="flex items-start">
+										<Check className="h-4 w-4 mr-2 text-primary" />
+										<span>Premium scheduling features</span>
+									</li>
+									<li className="flex items-start">
+										<Check className="h-4 w-4 mr-2 text-primary" />
+										<span>SMS and email notifications</span>
+									</li>
+									<li className="flex items-start">
+										<Check className="h-4 w-4 mr-2 text-primary" />
+										<span>Advanced reporting & analytics</span>
+									</li>
+									<li className="flex items-start">
+										<Check className="h-4 w-4 mr-2 text-primary" />
+										<span>Priority support</span>
+									</li>
+								</ul>
+								{subscriptionPlan === "business" ? (
+									<Button
+										disabled
+										className="w-full">
+										Current Plan
+									</Button>
+								) : (
+									<Button
+										disabled={isUpgrading}
+										onClick={() => handleUpgrade("business")}
+										className="w-full"
+										variant="outline">
+										{isUpgrading ? "Processing..." : "Upgrade Now"}
+									</Button>
+								)}
+							</div>
+						</div>
+					</ContentSection>
+
+					<ContentSection
+						title="Additional Information"
+						description="More details about our plans and custom options">
+						<div className="text-sm text-muted-foreground">
+							<p>
+								All plans include unlimited schedule creation and basic customer
+								support.
+							</p>
+							<p className="mt-2">
+								Need a custom plan for your enterprise?{" "}
+								<Button
+									variant="link"
+									className="h-auto p-0">
+									Contact us
+								</Button>
+							</p>
+						</div>
+					</ContentSection>
+				</>
 			)}
 
 			{/* Payment Methods Content */}
 			{activeTab === "payment-methods" && (
-				<div className="space-y-6">
-					<h3 className="text-lg font-medium">Payment Methods</h3>
-					<p className="text-sm text-muted-foreground">
-						Manage your payment methods and billing information
-					</p>
-
-					<div className="flex items-center justify-between p-4 border rounded-lg mb-6">
-						<div className="flex items-center">
-							<CreditCard className="h-6 w-6 mr-3 text-primary" />
-							<div>
-								<p className="font-medium">Visa ending in 4242</p>
-								<p className="text-sm text-muted-foreground">Expires 12/25</p>
-							</div>
-						</div>
-						<div className="flex items-center gap-2">
-							<Button
-								variant="outline"
-								size="sm">
-								Edit
-							</Button>
-							<Button
-								variant="outline"
-								size="sm">
-								Remove
-							</Button>
-						</div>
-					</div>
-
-					<div className="flex justify-end">
+				<ContentSection
+					title="Payment Methods"
+					description="Manage your payment methods and billing information"
+					headerActions={
 						<Button>
 							<CreditCard className="h-4 w-4 mr-2" /> Add Payment Method
 						</Button>
+					}>
+					<div className="space-y-4">
+						<div className="flex items-center justify-between p-4 border rounded-lg">
+							<div className="flex items-center">
+								<CreditCard className="h-6 w-6 mr-3 text-primary" />
+								<div>
+									<p className="font-medium">Visa ending in 4242</p>
+									<p className="text-sm text-muted-foreground">Expires 12/25</p>
+								</div>
+							</div>
+							<div className="flex items-center gap-2">
+								<Button
+									variant="outline"
+									size="sm">
+									Edit
+								</Button>
+								<Button
+									variant="outline"
+									size="sm">
+									Remove
+								</Button>
+							</div>
+						</div>
 					</div>
-				</div>
+				</ContentSection>
 			)}
 
 			{/* Billing History Content */}
 			{activeTab === "billing-history" && (
-				<div className="space-y-6">
-					<h3 className="text-lg font-medium">Billing History</h3>
-					<p className="text-sm text-muted-foreground">
-						View your past invoices and billing history
-					</p>
-
+				<ContentSection
+					title="Billing History"
+					description="View your past invoices and billing history">
 					<div className="overflow-hidden border rounded-lg">
 						<table className="min-w-full divide-y divide-border">
 							<thead className="bg-muted/50">
@@ -477,7 +477,7 @@ export default function BillingPage() {
 							</tbody>
 						</table>
 					</div>
-				</div>
+				</ContentSection>
 			)}
 		</SecondaryLayout>
 	);

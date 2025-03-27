@@ -74,6 +74,7 @@ import {
 import { ExportDropdown } from "../components/ExportDropdown";
 import { PageHeader } from "../components/ui/page-header";
 import { ContentContainer } from "../components/ui/content-container";
+import { ContentSection } from "../components/ui/content-section";
 
 // Mock data for shifts - in a real app this would come from an API
 const mockShifts = [
@@ -430,21 +431,19 @@ export function ShiftsPage() {
 		];
 	};
 
-	// Clear all filters
-	const clearAllFilters = () => {
-		setSelectedLocation(null);
+	// Function to clear date filter
+	const clearDateFilter = () => {
 		setSelectedDate(undefined);
 		setDateRange(undefined);
 		setDateFilterType("single");
 		setDatePreset(null);
 	};
 
-	// Clear date filter
-	const clearDateFilter = () => {
-		setSelectedDate(undefined);
-		setDateRange(undefined);
-		setDateFilterType("single");
-		setDatePreset(null);
+	// Function to clear all filters
+	const clearAllFilters = () => {
+		clearDateFilter();
+		setSelectedLocation(null);
+		setSearchQuery("");
 	};
 
 	return (
@@ -462,674 +461,655 @@ export function ShiftsPage() {
 				}
 			/>
 			<ContentContainer>
-				<div className="space-y-6">
-					<div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-						<Card>
-							<CardHeader className="pb-2">
-								<CardTitle className="text-base font-medium">
-									Total Shifts
-								</CardTitle>
-							</CardHeader>
-							<CardContent>
-								<div className="text-2xl font-bold">{mockShifts.length}</div>
-								<p className="text-xs text-muted-foreground">Last 30 days</p>
-							</CardContent>
-						</Card>
+				<div className="space-y-8">
+					<ContentSection title="Summary">
+						<div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+							<Card>
+								<CardHeader className="pb-2">
+									<CardTitle className="text-base font-medium">
+										Total Shifts
+									</CardTitle>
+								</CardHeader>
+								<CardContent>
+									<div className="text-2xl font-bold">{mockShifts.length}</div>
+									<p className="text-xs text-muted-foreground">Last 30 days</p>
+								</CardContent>
+							</Card>
 
-						<Card>
-							<CardHeader className="pb-2">
-								<CardTitle className="text-base font-medium">
-									Average Hours Variance
-								</CardTitle>
-							</CardHeader>
-							<CardContent>
-								<div className="text-2xl font-bold">
-									{(
-										mockShifts.reduce((sum, shift) => sum + shift.variance, 0) /
-										mockShifts.length
-									).toFixed(1)}
-								</div>
-								<p className="text-xs text-muted-foreground">
-									Hours variance per shift
-								</p>
-							</CardContent>
-						</Card>
-
-						<Card>
-							<CardHeader className="pb-2">
-								<CardTitle className="text-base font-medium">
-									Attendance Rate
-								</CardTitle>
-							</CardHeader>
-							<CardContent>
-								<div className="text-2xl font-bold">
-									{Math.round(
-										(mockShifts.reduce(
-											(sum, shift) => sum + shift.employeesPresent,
-											0
-										) /
+							<Card>
+								<CardHeader className="pb-2">
+									<CardTitle className="text-base font-medium">
+										Average Hours Variance
+									</CardTitle>
+								</CardHeader>
+								<CardContent>
+									<div className="text-2xl font-bold">
+										{(
 											mockShifts.reduce(
-												(sum, shift) => sum + shift.employeesScheduled,
+												(sum, shift) => sum + shift.variance,
 												0
-											)) *
-											100
-									)}
-									%
-								</div>
-								<p className="text-xs text-muted-foreground">
-									Employees present vs. scheduled
-								</p>
-							</CardContent>
-						</Card>
-					</div>
-
-					<Card>
-						<CardContent className="pt-6">
-							<Tabs
-								value={currentTab}
-								onValueChange={setCurrentTab}
-								className="space-y-4">
-								<div className="flex flex-col md:flex-row justify-between space-y-2 md:space-y-0">
-									<div className="flex items-center space-x-2">
-										{currentTab !== "today" && (
-											<TabsList>
-												<TabsTrigger value="all">All Shifts</TabsTrigger>
-												<TabsTrigger value="open">Open Shifts</TabsTrigger>
-												<TabsTrigger value="today">Today's Shifts</TabsTrigger>
-											</TabsList>
-										)}
-
-										<div className="border rounded-md overflow-hidden">
-											<Button
-												variant="ghost"
-												size="sm"
-												className={cn(
-													"h-8 px-2 rounded-none",
-													viewMode === "table" && "bg-muted"
-												)}
-												onClick={() => setViewMode("table")}>
-												<List className="h-4 w-4" />
-											</Button>
-											<Button
-												variant="ghost"
-												size="sm"
-												className={cn(
-													"h-8 px-2 rounded-none",
-													viewMode === "card" && "bg-muted"
-												)}
-												onClick={() => setViewMode("card")}>
-												<LayoutGrid className="h-4 w-4" />
-											</Button>
-										</div>
+											) / mockShifts.length
+										).toFixed(1)}
 									</div>
+									<p className="text-xs text-muted-foreground">
+										Hours variance per shift
+									</p>
+								</CardContent>
+							</Card>
 
-									<div className="flex items-center space-x-2">
-										<div className="relative md:w-64">
-											<Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-											<Input
-												placeholder="Search by ID or location..."
-												value={searchQuery}
-												onChange={(e) => setSearchQuery(e.target.value)}
-												className="pl-8"
-											/>
-										</div>
+							<Card>
+								<CardHeader className="pb-2">
+									<CardTitle className="text-base font-medium">
+										Attendance Rate
+									</CardTitle>
+								</CardHeader>
+								<CardContent>
+									<div className="text-2xl font-bold">
+										{Math.round(
+											(mockShifts.reduce(
+												(sum, shift) => sum + shift.employeesPresent,
+												0
+											) /
+												mockShifts.reduce(
+													(sum, shift) => sum + shift.employeesScheduled,
+													0
+												)) *
+												100
+										)}
+										%
+									</div>
+									<p className="text-xs text-muted-foreground">
+										Employees present vs. scheduled
+									</p>
+								</CardContent>
+							</Card>
+						</div>
+					</ContentSection>
 
-										<DropdownMenu>
-											<DropdownMenuTrigger asChild>
-												<Button
-													variant="outline"
-													className={cn(
-														"justify-between text-left font-normal md:w-48",
-														!selectedLocation && "text-muted-foreground"
-													)}>
-													<div className="flex items-center">
-														<MapPin className="mr-2 h-4 w-4" />
-														{getLocationFilterLabel()}
-													</div>
-													<ChevronDown className="h-4 w-4 opacity-50" />
-												</Button>
-											</DropdownMenuTrigger>
-											<DropdownMenuContent
-												align="end"
-												className="w-56">
-												<DropdownMenuItem
-													onSelect={() => handleLocationSelect(null)}>
-													All Locations
-												</DropdownMenuItem>
-												<DropdownMenuSeparator />
-												{uniqueLocations.map((location) => (
-													<DropdownMenuItem
-														key={location}
-														onSelect={() => handleLocationSelect(location)}>
-														{location}
-													</DropdownMenuItem>
-												))}
-											</DropdownMenuContent>
-										</DropdownMenu>
+					<ContentSection title="Shift Management">
+						<Tabs
+							value={currentTab}
+							onValueChange={setCurrentTab}
+							className="space-y-6">
+							<div className="flex flex-col md:flex-row justify-between space-y-4 md:space-y-0">
+								<div className="flex items-center space-x-4">
+									{currentTab !== "today" && (
+										<TabsList>
+											<TabsTrigger value="all">All Shifts</TabsTrigger>
+											<TabsTrigger value="open">Open Shifts</TabsTrigger>
+											<TabsTrigger value="today">Today's Shifts</TabsTrigger>
+										</TabsList>
+									)}
 
-										<DropdownMenu>
-											<DropdownMenuTrigger asChild>
-												<Button
-													variant="outline"
-													className={cn(
-														"justify-between text-left font-normal md:w-48",
-														!selectedDate &&
-															!dateRange &&
-															!datePreset &&
-															"text-muted-foreground"
-													)}>
-													<div className="flex items-center">
-														<CalendarIcon className="mr-2 h-4 w-4" />
-														{getDateFilterLabel()}
-													</div>
-													<ChevronDown className="h-4 w-4 opacity-50" />
-												</Button>
-											</DropdownMenuTrigger>
-											<DropdownMenuContent
-												align="end"
-												className="w-56">
-												<DropdownMenuItem
-													onSelect={() => handleDateFilterSelect("today")}>
-													Today
-												</DropdownMenuItem>
-												<DropdownMenuItem
-													onSelect={() => handleDateFilterSelect("yesterday")}>
-													Yesterday
-												</DropdownMenuItem>
-												<DropdownMenuItem
-													onSelect={() => handleDateFilterSelect("last7days")}>
-													Last 7 days
-												</DropdownMenuItem>
-												<DropdownMenuItem
-													onSelect={() => handleDateFilterSelect("last15days")}>
-													Last 15 days
-												</DropdownMenuItem>
-												<DropdownMenuItem
-													onSelect={() => handleDateFilterSelect("last30days")}>
-													Last 30 days
-												</DropdownMenuItem>
-												<DropdownMenuSeparator />
-												<DropdownMenuItem
-													onSelect={() => handleDateFilterSelect("clear")}>
-													Clear filter
-												</DropdownMenuItem>
-											</DropdownMenuContent>
-										</DropdownMenu>
+									<div className="border rounded-md overflow-hidden">
+										<Button
+											variant="ghost"
+											size="sm"
+											className={cn(
+												"h-8 px-2 rounded-none",
+												viewMode === "table" && "bg-muted"
+											)}
+											onClick={() => setViewMode("table")}>
+											<List className="h-4 w-4" />
+										</Button>
+										<Button
+											variant="ghost"
+											size="sm"
+											className={cn(
+												"h-8 px-2 rounded-none",
+												viewMode === "card" && "bg-muted"
+											)}
+											onClick={() => setViewMode("card")}>
+											<LayoutGrid className="h-4 w-4" />
+										</Button>
+									</div>
+								</div>
 
-										<ExportDropdown
-											data={filteredShifts}
-											filename="shifts-export"
-											headers={[
-												"id",
-												"date",
-												"locationName",
-												"employeesPresent",
-												"employeesScheduled",
-												"totalScheduledHours",
-												"totalActualHours",
-												"status",
-											]}
+								<div className="flex items-center space-x-2 flex-wrap gap-2">
+									<div className="relative md:w-64">
+										<Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+										<Input
+											placeholder="Search by ID or location..."
+											value={searchQuery}
+											onChange={(e) => setSearchQuery(e.target.value)}
+											className="pl-8"
 										/>
 									</div>
+
+									<DropdownMenu>
+										<DropdownMenuTrigger asChild>
+											<Button
+												variant="outline"
+												className={cn(
+													"justify-between text-left font-normal md:w-48",
+													!selectedLocation && "text-muted-foreground"
+												)}>
+												<div className="flex items-center">
+													<MapPin className="mr-2 h-4 w-4" />
+													{getLocationFilterLabel()}
+												</div>
+												<ChevronDown className="h-4 w-4 opacity-50" />
+											</Button>
+										</DropdownMenuTrigger>
+										<DropdownMenuContent
+											align="end"
+											className="w-56">
+											<DropdownMenuItem
+												onSelect={() => handleLocationSelect(null)}>
+												All Locations
+											</DropdownMenuItem>
+											<DropdownMenuSeparator />
+											{uniqueLocations.map((location) => (
+												<DropdownMenuItem
+													key={location}
+													onSelect={() => handleLocationSelect(location)}>
+													{location}
+												</DropdownMenuItem>
+											))}
+										</DropdownMenuContent>
+									</DropdownMenu>
+
+									<DropdownMenu>
+										<DropdownMenuTrigger asChild>
+											<Button
+												variant="outline"
+												className={cn(
+													"justify-between text-left font-normal md:w-48",
+													!selectedDate &&
+														!dateRange &&
+														!datePreset &&
+														"text-muted-foreground"
+												)}>
+												<div className="flex items-center">
+													<CalendarIcon className="mr-2 h-4 w-4" />
+													{getDateFilterLabel()}
+												</div>
+												<ChevronDown className="h-4 w-4 opacity-50" />
+											</Button>
+										</DropdownMenuTrigger>
+										<DropdownMenuContent
+											align="end"
+											className="w-56">
+											<DropdownMenuItem
+												onSelect={() => handleDateFilterSelect("today")}>
+												Today
+											</DropdownMenuItem>
+											<DropdownMenuItem
+												onSelect={() => handleDateFilterSelect("yesterday")}>
+												Yesterday
+											</DropdownMenuItem>
+											<DropdownMenuItem
+												onSelect={() => handleDateFilterSelect("last7days")}>
+												Last 7 days
+											</DropdownMenuItem>
+											<DropdownMenuItem
+												onSelect={() => handleDateFilterSelect("last15days")}>
+												Last 15 days
+											</DropdownMenuItem>
+											<DropdownMenuItem
+												onSelect={() => handleDateFilterSelect("last30days")}>
+												Last 30 days
+											</DropdownMenuItem>
+											<DropdownMenuSeparator />
+											<DropdownMenuItem
+												onSelect={() => handleDateFilterSelect("clear")}>
+												Clear filter
+											</DropdownMenuItem>
+										</DropdownMenuContent>
+									</DropdownMenu>
+
+									<ExportDropdown
+										data={filteredShifts}
+										filename="shifts-export"
+										headers={[
+											"id",
+											"date",
+											"locationName",
+											"employeesPresent",
+											"employeesScheduled",
+											"totalScheduledHours",
+											"totalActualHours",
+											"status",
+										]}
+									/>
 								</div>
+							</div>
 
-								{/* Applied filters display */}
-								{hasActiveFilters && (
-									<div className="flex items-center gap-2 mb-4">
-										<span className="text-sm font-medium text-muted-foreground">
-											Filters:
-										</span>
-										<div className="flex flex-wrap gap-2">
-											{getDateFilterForDisplay().length > 0 && (
-												<Badge className="flex items-center gap-1.5 px-2.5 py-1 bg-muted hover:bg-muted border text-foreground">
-													<CalendarIcon className="h-3 w-3 text-muted-foreground" />
-													<span>{getDateFilterLabel()}</span>
-													<button
-														onClick={clearDateFilter}
-														className="ml-1 rounded-full p-0.5 hover:bg-background/80 transition-colors"
-														aria-label="Remove date filter">
-														<X className="h-3 w-3 text-muted-foreground" />
-													</button>
-												</Badge>
-											)}
-
-											{selectedLocation && (
-												<Badge className="flex items-center gap-1.5 px-2.5 py-1 bg-muted hover:bg-muted border text-foreground">
-													<MapPin className="h-3 w-3 text-muted-foreground" />
-													<span>{selectedLocation}</span>
-													<button
-														onClick={() => setSelectedLocation(null)}
-														className="ml-1 rounded-full p-0.5 hover:bg-background/80 transition-colors"
-														aria-label="Remove location filter">
-														<X className="h-3 w-3 text-muted-foreground" />
-													</button>
-												</Badge>
-											)}
-
-											{hasActiveFilters && (
+							{/* Applied filters display */}
+							{hasActiveFilters && (
+								<div className="flex items-center gap-2 mb-4">
+									<span className="text-sm font-medium text-muted-foreground">
+										Filters:
+									</span>
+									<div className="flex flex-wrap gap-2">
+										{getDateFilterForDisplay().length > 0 && (
+											<Badge className="flex items-center gap-1.5 px-2.5 py-1 bg-muted hover:bg-muted border text-foreground">
+												<CalendarIcon className="h-3 w-3 text-muted-foreground" />
+												<span>{getDateFilterLabel()}</span>
 												<button
-													onClick={clearAllFilters}
-													className="text-xs text-muted-foreground hover:text-foreground underline">
-													Clear all
+													onClick={clearDateFilter}
+													className="ml-1 rounded-full p-0.5 hover:bg-background/80 transition-colors"
+													aria-label="Remove date filter">
+													<X className="h-3 w-3 text-muted-foreground" />
 												</button>
-											)}
-										</div>
+											</Badge>
+										)}
+
+										{selectedLocation && (
+											<Badge className="flex items-center gap-1.5 px-2.5 py-1 bg-muted hover:bg-muted border text-foreground">
+												<MapPin className="h-3 w-3 text-muted-foreground" />
+												<span>{selectedLocation}</span>
+												<button
+													onClick={() => setSelectedLocation(null)}
+													className="ml-1 rounded-full p-0.5 hover:bg-background/80 transition-colors"
+													aria-label="Remove location filter">
+													<X className="h-3 w-3 text-muted-foreground" />
+												</button>
+											</Badge>
+										)}
+
+										{hasActiveFilters && (
+											<button
+												onClick={clearAllFilters}
+												className="text-xs text-muted-foreground hover:text-foreground underline">
+												Clear all
+											</button>
+										)}
+									</div>
+								</div>
+							)}
+
+							<TabsContent
+								value="all"
+								className="space-y-6">
+								{viewMode === "table" ? (
+									<div className="rounded-md border">
+										<Table>
+											<TableHeader>
+												<TableRow>
+													<TableHead>Shift ID</TableHead>
+													<TableHead>Date</TableHead>
+													<TableHead>Location</TableHead>
+													<TableHead>Employees</TableHead>
+													<TableHead>Scheduled Hours</TableHead>
+													<TableHead>Actual Hours</TableHead>
+													<TableHead>Status</TableHead>
+													<TableHead className="text-right">Actions</TableHead>
+												</TableRow>
+											</TableHeader>
+											<TableBody>
+												{filteredShifts.length > 0 ? (
+													filteredShifts.map((shift) => (
+														<TableRow key={shift.id}>
+															<TableCell>
+																<div className="font-medium">{shift.id}</div>
+															</TableCell>
+															<TableCell>
+																<div className="font-medium">
+																	{format(parseISO(shift.date), "MMM d, yyyy")}
+																</div>
+															</TableCell>
+															<TableCell>{shift.locationName}</TableCell>
+															<TableCell>
+																<div className="flex items-center">
+																	<Users className="h-4 w-4 mr-1 text-muted-foreground" />
+																	<span>
+																		{shift.employeesPresent}/
+																		{shift.employeesScheduled}
+																	</span>
+																</div>
+															</TableCell>
+															<TableCell>{shift.totalScheduledHours}</TableCell>
+															<TableCell>{shift.totalActualHours}</TableCell>
+															<TableCell>
+																<Badge
+																	variant={
+																		shift.status === "Completed"
+																			? "secondary"
+																			: "outline"
+																	}>
+																	{shift.status}
+																</Badge>
+															</TableCell>
+															<TableCell className="text-right">
+																<Link to={`/shifts/${shift.id}`}>
+																	<Button
+																		variant="ghost"
+																		size="sm"
+																		className="h-8">
+																		<Eye className="h-3.5 w-3.5 mr-1" />
+																		View
+																	</Button>
+																</Link>
+															</TableCell>
+														</TableRow>
+													))
+												) : (
+													<TableRow>
+														<TableCell
+															colSpan={8}
+															className="text-center py-6 text-muted-foreground">
+															No shifts found matching your filters
+														</TableCell>
+													</TableRow>
+												)}
+											</TableBody>
+										</Table>
+									</div>
+								) : (
+									<div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+										{filteredShifts.length > 0 ? (
+											filteredShifts.map((shift) => (
+												<Link
+													to={`/shifts/${shift.id}`}
+													key={shift.id}
+													className="no-underline">
+													<Card className="hover:border-primary transition-colors">
+														<CardHeader className="pb-2">
+															<div className="flex justify-between items-start">
+																<CardTitle className="text-base font-medium">
+																	{shift.id}
+																</CardTitle>
+																<Badge
+																	variant={
+																		shift.status === "Completed"
+																			? "secondary"
+																			: "outline"
+																	}>
+																	{shift.status}
+																</Badge>
+															</div>
+															<CardDescription>
+																{format(parseISO(shift.date), "MMM d, yyyy")}
+															</CardDescription>
+														</CardHeader>
+														<CardContent>
+															<div className="grid grid-cols-2 gap-2 text-sm">
+																<div className="flex items-center gap-1">
+																	<Users className="h-3.5 w-3.5 text-muted-foreground" />
+																	<span>
+																		{shift.employeesPresent}/
+																		{shift.employeesScheduled}
+																	</span>
+																</div>
+																<div>{shift.locationName}</div>
+																<div>Sched: {shift.totalScheduledHours}h</div>
+																<div>Actual: {shift.totalActualHours}h</div>
+															</div>
+														</CardContent>
+													</Card>
+												</Link>
+											))
+										) : (
+											<div className="col-span-full text-center py-6 text-muted-foreground">
+												No shifts found matching your filters
+											</div>
+										)}
 									</div>
 								)}
+							</TabsContent>
 
-								<TabsContent
-									value="all"
-									className="space-y-4">
-									{viewMode === "table" ? (
-										<div className="rounded-md border">
-											<Table>
-												<TableHeader>
-													<TableRow>
-														<TableHead>Shift ID</TableHead>
-														<TableHead>Date</TableHead>
-														<TableHead>Location</TableHead>
-														<TableHead>Employees</TableHead>
-														<TableHead>Scheduled Hours</TableHead>
-														<TableHead>Actual Hours</TableHead>
-														<TableHead>Status</TableHead>
-														<TableHead className="text-right">
-															Actions
-														</TableHead>
-													</TableRow>
-												</TableHeader>
-												<TableBody>
-													{filteredShifts.length > 0 ? (
-														filteredShifts.map((shift) => (
-															<TableRow key={shift.id}>
-																<TableCell>
-																	<div className="font-medium">{shift.id}</div>
-																</TableCell>
-																<TableCell>
-																	<div className="font-medium">
-																		{format(
-																			parseISO(shift.date),
-																			"MMM d, yyyy"
-																		)}
-																	</div>
-																</TableCell>
-																<TableCell>{shift.locationName}</TableCell>
-																<TableCell>
-																	<div className="flex items-center">
-																		<Users className="h-4 w-4 mr-1 text-muted-foreground" />
-																		<span>
-																			{shift.employeesPresent}/
-																			{shift.employeesScheduled}
-																		</span>
-																	</div>
-																</TableCell>
-																<TableCell>
-																	{shift.totalScheduledHours}
-																</TableCell>
-																<TableCell>{shift.totalActualHours}</TableCell>
-																<TableCell>
-																	<Badge
-																		variant={
-																			shift.status === "Completed"
-																				? "secondary"
-																				: "outline"
-																		}>
-																		{shift.status}
-																	</Badge>
-																</TableCell>
-																<TableCell className="text-right">
-																	<Link to={`/shifts/${shift.id}`}>
-																		<Button
-																			variant="ghost"
-																			size="sm"
-																			className="h-8">
-																			<Eye className="h-3.5 w-3.5 mr-1" />
-																			View
-																		</Button>
-																	</Link>
-																</TableCell>
-															</TableRow>
-														))
-													) : (
-														<TableRow>
-															<TableCell
-																colSpan={8}
-																className="text-center py-6 text-muted-foreground">
-																No shifts found matching your filters
+							<TabsContent
+								value="open"
+								className="space-y-6">
+								{viewMode === "table" ? (
+									<div className="rounded-md border">
+										<Table>
+											<TableHeader>
+												<TableRow>
+													<TableHead>Shift ID</TableHead>
+													<TableHead>Date</TableHead>
+													<TableHead>Location</TableHead>
+													<TableHead>Employees</TableHead>
+													<TableHead>Scheduled Hours</TableHead>
+													<TableHead>Actual Hours</TableHead>
+													<TableHead>Status</TableHead>
+													<TableHead className="text-right">Actions</TableHead>
+												</TableRow>
+											</TableHeader>
+											<TableBody>
+												{filteredShifts.length > 0 ? (
+													filteredShifts.map((shift) => (
+														<TableRow key={shift.id}>
+															<TableCell>
+																<div className="font-medium">{shift.id}</div>
+															</TableCell>
+															<TableCell>
+																<div className="font-medium">
+																	{format(parseISO(shift.date), "MMM d, yyyy")}
+																</div>
+															</TableCell>
+															<TableCell>{shift.locationName}</TableCell>
+															<TableCell>
+																<div className="flex items-center">
+																	<Users className="h-4 w-4 mr-1 text-muted-foreground" />
+																	<span>
+																		{shift.employeesPresent}/
+																		{shift.employeesScheduled}
+																	</span>
+																</div>
+															</TableCell>
+															<TableCell>{shift.totalScheduledHours}</TableCell>
+															<TableCell>{shift.totalActualHours}</TableCell>
+															<TableCell>
+																<Badge
+																	variant={
+																		shift.status === "Completed"
+																			? "secondary"
+																			: "outline"
+																	}>
+																	{shift.status}
+																</Badge>
+															</TableCell>
+															<TableCell className="text-right">
+																<Link to={`/shifts/${shift.id}`}>
+																	<Button
+																		variant="ghost"
+																		size="sm"
+																		className="h-8">
+																		<Eye className="h-3.5 w-3.5 mr-1" />
+																		View
+																	</Button>
+																</Link>
 															</TableCell>
 														</TableRow>
-													)}
-												</TableBody>
-											</Table>
-										</div>
-									) : (
-										<div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-											{filteredShifts.length > 0 ? (
-												filteredShifts.map((shift) => (
-													<Link
-														to={`/shifts/${shift.id}`}
-														key={shift.id}
-														className="no-underline">
-														<Card className="hover:border-primary transition-colors">
-															<CardHeader className="pb-2">
-																<div className="flex justify-between items-start">
-																	<CardTitle className="text-base font-medium">
-																		{shift.id}
-																	</CardTitle>
-																	<Badge
-																		variant={
-																			shift.status === "Completed"
-																				? "secondary"
-																				: "outline"
-																		}>
-																		{shift.status}
-																	</Badge>
-																</div>
-																<CardDescription>
-																	{format(parseISO(shift.date), "MMM d, yyyy")}
-																</CardDescription>
-															</CardHeader>
-															<CardContent>
-																<div className="grid grid-cols-2 gap-2 text-sm">
-																	<div className="flex items-center gap-1">
-																		<Users className="h-3.5 w-3.5 text-muted-foreground" />
-																		<span>
-																			{shift.employeesPresent}/
-																			{shift.employeesScheduled}
-																		</span>
-																	</div>
-																	<div>{shift.locationName}</div>
-																	<div>Sched: {shift.totalScheduledHours}h</div>
-																	<div>Actual: {shift.totalActualHours}h</div>
-																</div>
-															</CardContent>
-														</Card>
-													</Link>
-												))
-											) : (
-												<div className="col-span-full text-center py-6 text-muted-foreground">
-													No shifts found matching your filters
-												</div>
-											)}
-										</div>
-									)}
-								</TabsContent>
-
-								<TabsContent
-									value="open"
-									className="space-y-4">
-									{viewMode === "table" ? (
-										<div className="rounded-md border">
-											<Table>
-												<TableHeader>
+													))
+												) : (
 													<TableRow>
-														<TableHead>Shift ID</TableHead>
-														<TableHead>Date</TableHead>
-														<TableHead>Location</TableHead>
-														<TableHead>Employees</TableHead>
-														<TableHead>Scheduled Hours</TableHead>
-														<TableHead>Actual Hours</TableHead>
-														<TableHead>Status</TableHead>
-														<TableHead className="text-right">
-															Actions
-														</TableHead>
+														<TableCell
+															colSpan={8}
+															className="text-center py-6 text-muted-foreground">
+															No open shifts found
+														</TableCell>
 													</TableRow>
-												</TableHeader>
-												<TableBody>
-													{filteredShifts.length > 0 ? (
-														filteredShifts.map((shift) => (
-															<TableRow key={shift.id}>
-																<TableCell>
-																	<div className="font-medium">{shift.id}</div>
-																</TableCell>
-																<TableCell>
-																	<div className="font-medium">
-																		{format(
-																			parseISO(shift.date),
-																			"MMM d, yyyy"
-																		)}
-																	</div>
-																</TableCell>
-																<TableCell>{shift.locationName}</TableCell>
-																<TableCell>
-																	<div className="flex items-center">
-																		<Users className="h-4 w-4 mr-1 text-muted-foreground" />
-																		<span>
-																			{shift.employeesPresent}/
-																			{shift.employeesScheduled}
-																		</span>
-																	</div>
-																</TableCell>
-																<TableCell>
-																	{shift.totalScheduledHours}
-																</TableCell>
-																<TableCell>{shift.totalActualHours}</TableCell>
-																<TableCell>
-																	<Badge
-																		variant={
-																			shift.status === "Completed"
-																				? "secondary"
-																				: "outline"
-																		}>
-																		{shift.status}
-																	</Badge>
-																</TableCell>
-																<TableCell className="text-right">
-																	<Link to={`/shifts/${shift.id}`}>
-																		<Button
-																			variant="ghost"
-																			size="sm"
-																			className="h-8">
-																			<Eye className="h-3.5 w-3.5 mr-1" />
-																			View
-																		</Button>
-																	</Link>
-																</TableCell>
-															</TableRow>
-														))
-													) : (
-														<TableRow>
-															<TableCell
-																colSpan={8}
-																className="text-center py-6 text-muted-foreground">
-																No open shifts found
+												)}
+											</TableBody>
+										</Table>
+									</div>
+								) : (
+									<div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+										{filteredShifts.length > 0 ? (
+											filteredShifts.map((shift) => (
+												<Link
+													to={`/shifts/${shift.id}`}
+													key={shift.id}
+													className="no-underline">
+													<Card className="hover:border-primary transition-colors">
+														<CardHeader className="pb-2">
+															<div className="flex justify-between items-start">
+																<CardTitle className="text-base font-medium">
+																	{shift.id}
+																</CardTitle>
+																<Badge
+																	variant={
+																		shift.status === "Completed"
+																			? "secondary"
+																			: "outline"
+																	}>
+																	{shift.status}
+																</Badge>
+															</div>
+															<CardDescription>
+																{format(parseISO(shift.date), "MMM d, yyyy")}
+															</CardDescription>
+														</CardHeader>
+														<CardContent>
+															<div className="grid grid-cols-2 gap-2 text-sm">
+																<div className="flex items-center gap-1">
+																	<Users className="h-3.5 w-3.5 text-muted-foreground" />
+																	<span>
+																		{shift.employeesPresent}/
+																		{shift.employeesScheduled}
+																	</span>
+																</div>
+																<div>{shift.locationName}</div>
+																<div>Sched: {shift.totalScheduledHours}h</div>
+																<div>Actual: {shift.totalActualHours}h</div>
+															</div>
+														</CardContent>
+													</Card>
+												</Link>
+											))
+										) : (
+											<div className="col-span-full text-center py-6 text-muted-foreground">
+												No open shifts found
+											</div>
+										)}
+									</div>
+								)}
+							</TabsContent>
+
+							<TabsContent
+								value="today"
+								className="space-y-6">
+								{viewMode === "table" ? (
+									<div className="rounded-md border">
+										<Table>
+											<TableHeader>
+												<TableRow>
+													<TableHead>Shift ID</TableHead>
+													<TableHead>Date</TableHead>
+													<TableHead>Location</TableHead>
+													<TableHead>Employees</TableHead>
+													<TableHead>Scheduled Hours</TableHead>
+													<TableHead>Actual Hours</TableHead>
+													<TableHead>Status</TableHead>
+													<TableHead className="text-right">Actions</TableHead>
+												</TableRow>
+											</TableHeader>
+											<TableBody>
+												{filteredShifts.length > 0 ? (
+													filteredShifts.map((shift) => (
+														<TableRow key={shift.id}>
+															<TableCell>
+																<div className="font-medium">{shift.id}</div>
+															</TableCell>
+															<TableCell>
+																<div className="font-medium">
+																	{format(parseISO(shift.date), "MMM d, yyyy")}
+																</div>
+															</TableCell>
+															<TableCell>{shift.locationName}</TableCell>
+															<TableCell>
+																<div className="flex items-center">
+																	<Users className="h-4 w-4 mr-1 text-muted-foreground" />
+																	<span>
+																		{shift.employeesPresent}/
+																		{shift.employeesScheduled}
+																	</span>
+																</div>
+															</TableCell>
+															<TableCell>{shift.totalScheduledHours}</TableCell>
+															<TableCell>{shift.totalActualHours}</TableCell>
+															<TableCell>
+																<Badge
+																	variant={
+																		shift.status === "Completed"
+																			? "secondary"
+																			: "outline"
+																	}>
+																	{shift.status}
+																</Badge>
+															</TableCell>
+															<TableCell className="text-right">
+																<Link to={`/shifts/${shift.id}`}>
+																	<Button
+																		variant="ghost"
+																		size="sm"
+																		className="h-8">
+																		<Eye className="h-3.5 w-3.5 mr-1" />
+																		View
+																	</Button>
+																</Link>
 															</TableCell>
 														</TableRow>
-													)}
-												</TableBody>
-											</Table>
-										</div>
-									) : (
-										<div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-											{filteredShifts.length > 0 ? (
-												filteredShifts.map((shift) => (
-													<Link
-														to={`/shifts/${shift.id}`}
-														key={shift.id}
-														className="no-underline">
-														<Card className="hover:border-primary transition-colors">
-															<CardHeader className="pb-2">
-																<div className="flex justify-between items-start">
-																	<CardTitle className="text-base font-medium">
-																		{shift.id}
-																	</CardTitle>
-																	<Badge
-																		variant={
-																			shift.status === "Completed"
-																				? "secondary"
-																				: "outline"
-																		}>
-																		{shift.status}
-																	</Badge>
-																</div>
-																<CardDescription>
-																	{format(parseISO(shift.date), "MMM d, yyyy")}
-																</CardDescription>
-															</CardHeader>
-															<CardContent>
-																<div className="grid grid-cols-2 gap-2 text-sm">
-																	<div className="flex items-center gap-1">
-																		<Users className="h-3.5 w-3.5 text-muted-foreground" />
-																		<span>
-																			{shift.employeesPresent}/
-																			{shift.employeesScheduled}
-																		</span>
-																	</div>
-																	<div>{shift.locationName}</div>
-																	<div>Sched: {shift.totalScheduledHours}h</div>
-																	<div>Actual: {shift.totalActualHours}h</div>
-																</div>
-															</CardContent>
-														</Card>
-													</Link>
-												))
-											) : (
-												<div className="col-span-full text-center py-6 text-muted-foreground">
-													No open shifts found
-												</div>
-											)}
-										</div>
-									)}
-								</TabsContent>
-
-								<TabsContent
-									value="today"
-									className="space-y-4">
-									{viewMode === "table" ? (
-										<div className="rounded-md border">
-											<Table>
-												<TableHeader>
+													))
+												) : (
 													<TableRow>
-														<TableHead>Shift ID</TableHead>
-														<TableHead>Date</TableHead>
-														<TableHead>Location</TableHead>
-														<TableHead>Employees</TableHead>
-														<TableHead>Scheduled Hours</TableHead>
-														<TableHead>Actual Hours</TableHead>
-														<TableHead>Status</TableHead>
-														<TableHead className="text-right">
-															Actions
-														</TableHead>
+														<TableCell
+															colSpan={8}
+															className="text-center py-6 text-muted-foreground">
+															No shifts scheduled for today
+														</TableCell>
 													</TableRow>
-												</TableHeader>
-												<TableBody>
-													{filteredShifts.length > 0 ? (
-														filteredShifts.map((shift) => (
-															<TableRow key={shift.id}>
-																<TableCell>
-																	<div className="font-medium">{shift.id}</div>
-																</TableCell>
-																<TableCell>
-																	<div className="font-medium">
-																		{format(
-																			parseISO(shift.date),
-																			"MMM d, yyyy"
-																		)}
-																	</div>
-																</TableCell>
-																<TableCell>{shift.locationName}</TableCell>
-																<TableCell>
-																	<div className="flex items-center">
-																		<Users className="h-4 w-4 mr-1 text-muted-foreground" />
-																		<span>
-																			{shift.employeesPresent}/
-																			{shift.employeesScheduled}
-																		</span>
-																	</div>
-																</TableCell>
-																<TableCell>
-																	{shift.totalScheduledHours}
-																</TableCell>
-																<TableCell>{shift.totalActualHours}</TableCell>
-																<TableCell>
-																	<Badge
-																		variant={
-																			shift.status === "Completed"
-																				? "secondary"
-																				: "outline"
-																		}>
-																		{shift.status}
-																	</Badge>
-																</TableCell>
-																<TableCell className="text-right">
-																	<Link to={`/shifts/${shift.id}`}>
-																		<Button
-																			variant="ghost"
-																			size="sm"
-																			className="h-8">
-																			<Eye className="h-3.5 w-3.5 mr-1" />
-																			View
-																		</Button>
-																	</Link>
-																</TableCell>
-															</TableRow>
-														))
-													) : (
-														<TableRow>
-															<TableCell
-																colSpan={8}
-																className="text-center py-6 text-muted-foreground">
-																No shifts scheduled for today
-															</TableCell>
-														</TableRow>
-													)}
-												</TableBody>
-											</Table>
-										</div>
-									) : (
-										<div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-											{filteredShifts.length > 0 ? (
-												filteredShifts.map((shift) => (
-													<Link
-														to={`/shifts/${shift.id}`}
-														key={shift.id}
-														className="no-underline">
-														<Card className="hover:border-primary transition-colors">
-															<CardHeader className="pb-2">
-																<div className="flex justify-between items-start">
-																	<CardTitle className="text-base font-medium">
-																		{shift.id}
-																	</CardTitle>
-																	<Badge
-																		variant={
-																			shift.status === "Completed"
-																				? "secondary"
-																				: "outline"
-																		}>
-																		{shift.status}
-																	</Badge>
+												)}
+											</TableBody>
+										</Table>
+									</div>
+								) : (
+									<div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+										{filteredShifts.length > 0 ? (
+											filteredShifts.map((shift) => (
+												<Link
+													to={`/shifts/${shift.id}`}
+													key={shift.id}
+													className="no-underline">
+													<Card className="hover:border-primary transition-colors">
+														<CardHeader className="pb-2">
+															<div className="flex justify-between items-start">
+																<CardTitle className="text-base font-medium">
+																	{shift.id}
+																</CardTitle>
+																<Badge
+																	variant={
+																		shift.status === "Completed"
+																			? "secondary"
+																			: "outline"
+																	}>
+																	{shift.status}
+																</Badge>
+															</div>
+															<CardDescription>
+																{format(parseISO(shift.date), "MMM d, yyyy")}
+															</CardDescription>
+														</CardHeader>
+														<CardContent>
+															<div className="grid grid-cols-2 gap-2 text-sm">
+																<div className="flex items-center gap-1">
+																	<Users className="h-3.5 w-3.5 text-muted-foreground" />
+																	<span>
+																		{shift.employeesPresent}/
+																		{shift.employeesScheduled}
+																	</span>
 																</div>
-																<CardDescription>
-																	{format(parseISO(shift.date), "MMM d, yyyy")}
-																</CardDescription>
-															</CardHeader>
-															<CardContent>
-																<div className="grid grid-cols-2 gap-2 text-sm">
-																	<div className="flex items-center gap-1">
-																		<Users className="h-3.5 w-3.5 text-muted-foreground" />
-																		<span>
-																			{shift.employeesPresent}/
-																			{shift.employeesScheduled}
-																		</span>
-																	</div>
-																	<div>{shift.locationName}</div>
-																	<div>Sched: {shift.totalScheduledHours}h</div>
-																	<div>Actual: {shift.totalActualHours}h</div>
-																</div>
-															</CardContent>
-														</Card>
-													</Link>
-												))
-											) : (
-												<div className="col-span-full text-center py-6 text-muted-foreground">
-													No shifts scheduled for today
-												</div>
-											)}
-										</div>
-									)}
-								</TabsContent>
-							</Tabs>
-						</CardContent>
-					</Card>
+																<div>{shift.locationName}</div>
+																<div>Sched: {shift.totalScheduledHours}h</div>
+																<div>Actual: {shift.totalActualHours}h</div>
+															</div>
+														</CardContent>
+													</Card>
+												</Link>
+											))
+										) : (
+											<div className="col-span-full text-center py-6 text-muted-foreground">
+												No shifts scheduled for today
+											</div>
+										)}
+									</div>
+								)}
+							</TabsContent>
+						</Tabs>
+					</ContentSection>
 				</div>
 			</ContentContainer>
 		</>

@@ -6,14 +6,6 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { toast } from "sonner";
 import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardFooter,
-	CardHeader,
-	CardTitle,
-} from "../components/ui/card";
-import {
 	Form,
 	FormControl,
 	FormField,
@@ -24,6 +16,7 @@ import {
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import { ContentContainer } from "../components/ui/content-container";
+import { ContentSection } from "../components/ui/content-section";
 
 const forgotPasswordSchema = z.object({
 	email: z.string().email("Please enter a valid email address"),
@@ -68,67 +61,14 @@ export default function ForgotPasswordPage() {
 			<ContentContainer
 				maxWidth="max-w-md"
 				className="flex justify-center items-center">
-				<Card className="w-full">
-					<CardHeader className="text-center">
-						<CardTitle className="text-2xl font-bold text-primary mb-2">
-							Forgot Password
-						</CardTitle>
-						<CardDescription>
-							{emailSent
-								? "Check your email for a link to reset your password"
-								: "Enter your email address to reset your password"}
-						</CardDescription>
-					</CardHeader>
-					<CardContent>
-						{!emailSent ? (
-							<Form {...form}>
-								<form
-									onSubmit={form.handleSubmit(onSubmit)}
-									className="space-y-4">
-									<FormField
-										control={form.control}
-										name="email"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel>Email</FormLabel>
-												<FormControl>
-													<Input
-														type="email"
-														placeholder="you@example.com"
-														disabled={isLoading}
-														{...field}
-													/>
-												</FormControl>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-									<Button
-										type="submit"
-										className="w-full"
-										disabled={isLoading}>
-										{isLoading ? "Sending..." : "Send Reset Instructions"}
-									</Button>
-								</form>
-							</Form>
-						) : (
-							<div className="text-center space-y-4">
-								<p className="text-sm text-muted-foreground">
-									We've sent password reset instructions to your email. Please
-									check your inbox and follow the instructions to reset your
-									password.
-								</p>
-								<Button
-									type="button"
-									variant="outline"
-									className="w-full"
-									onClick={() => setEmailSent(false)}>
-									Try Again
-								</Button>
-							</div>
-						)}
-					</CardContent>
-					<CardFooter className="flex justify-center">
+				<ContentSection
+					title="Forgot Password"
+					description={
+						emailSent
+							? "Check your email for a link to reset your password"
+							: "Enter your email address to reset your password"
+					}
+					footer={
 						<div className="text-sm text-center">
 							<span className="text-muted-foreground">
 								Remember your password?
@@ -139,8 +79,55 @@ export default function ForgotPasswordPage() {
 								Back to Login
 							</Link>
 						</div>
-					</CardFooter>
-				</Card>
+					}>
+					{!emailSent ? (
+						<Form {...form}>
+							<form
+								onSubmit={form.handleSubmit(onSubmit)}
+								className="space-y-4">
+								<FormField
+									control={form.control}
+									name="email"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Email</FormLabel>
+											<FormControl>
+												<Input
+													type="email"
+													placeholder="you@example.com"
+													disabled={isLoading}
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+								<Button
+									type="submit"
+									className="w-full"
+									disabled={isLoading}>
+									{isLoading ? "Sending..." : "Send Reset Instructions"}
+								</Button>
+							</form>
+						</Form>
+					) : (
+						<div className="text-center space-y-4">
+							<p className="text-sm text-muted-foreground">
+								We've sent password reset instructions to your email. Please
+								check your inbox and follow the instructions to reset your
+								password.
+							</p>
+							<Button
+								type="button"
+								variant="outline"
+								className="w-full"
+								onClick={() => setEmailSent(false)}>
+								Try Again
+							</Button>
+						</div>
+					)}
+				</ContentSection>
 			</ContentContainer>
 		</div>
 	);

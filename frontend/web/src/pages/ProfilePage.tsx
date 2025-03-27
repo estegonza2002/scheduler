@@ -82,6 +82,7 @@ import { PageHeader } from "../components/ui/page-header";
 
 import { SecondaryLayout } from "../components/layout/SecondaryLayout";
 import { LoadingState } from "../components/ui/loading-state";
+import { ContentSection } from "../components/ui/content-section";
 
 // Get the Supabase URL from environment or use a fallback
 const supabaseUrl =
@@ -1308,35 +1309,24 @@ export default function ProfilePage() {
 			{/* Shifts Section */}
 			{activeTab === "shifts" && (
 				<div className="space-y-6">
-					<div className="flex justify-between items-center">
-						<div>
-							<h2 className="text-2xl font-bold">My Shifts</h2>
-							<p className="text-muted-foreground">
-								View your current, upcoming, and previous shifts.
-							</p>
-						</div>
-					</div>
-
-					<ShiftsSection userId={user?.id || ""} />
+					<ContentSection
+						title="My Shifts"
+						description="View your current, upcoming, and previous shifts">
+						<ShiftsSection userId={user?.id || ""} />
+					</ContentSection>
 				</div>
 			)}
 
+			{/* Notifications Tab Content */}
 			{activeTab === "notifications" && (
 				<div className="space-y-6">
-					<div className="flex justify-between items-center">
-						<div>
-							<h2 className="text-2xl font-bold">Notifications</h2>
-							<p className="text-muted-foreground">
-								Manage your notification preferences.
-							</p>
-						</div>
-					</div>
-
 					<Form {...preferencesForm}>
 						<form
 							onSubmit={preferencesForm.handleSubmit(onPreferencesSubmit)}
 							className="space-y-6">
-							<FormSection title="Notification Channels">
+							<ContentSection
+								title="Notification Channels"
+								description="Configure how you want to receive notifications">
 								<div className="space-y-4">
 									<div className="flex items-center justify-between">
 										<div className="space-y-0.5">
@@ -1416,9 +1406,11 @@ export default function ProfilePage() {
 										/>
 									</div>
 								</div>
-							</FormSection>
+							</ContentSection>
 
-							<FormSection title="Notification Type">
+							<ContentSection
+								title="Notification Types"
+								description="Select which events you'd like to be notified about">
 								<div className="space-y-4">
 									<div className="flex items-center justify-between">
 										<div className="space-y-0.5">
@@ -1544,7 +1536,7 @@ export default function ProfilePage() {
 										/>
 									</div>
 								</div>
-							</FormSection>
+							</ContentSection>
 
 							{/* Form Submission */}
 							<div className="flex justify-end">
@@ -1590,20 +1582,13 @@ export default function ProfilePage() {
 			{/* Business Profile Tab Content */}
 			{activeTab === "business-profile" && (
 				<div className="space-y-6">
-					<div>
-						<h2 className="text-2xl font-bold">Business Profile</h2>
-						<p className="text-muted-foreground">
-							Manage your business information and settings
-						</p>
-					</div>
-
 					<Form {...businessProfileForm}>
 						<form
 							onSubmit={businessProfileForm.handleSubmit(
 								onBusinessProfileSubmit
 							)}
 							className="space-y-6">
-							<FormSection
+							<ContentSection
 								title="Business Information"
 								description="Basic information about your business">
 								<div className="flex items-center gap-4 mb-6">
@@ -1658,9 +1643,9 @@ export default function ProfilePage() {
 										</FormItem>
 									)}
 								/>
-							</FormSection>
+							</ContentSection>
 
-							<FormSection
+							<ContentSection
 								title="Contact Information"
 								description="How customers and employees can reach your business">
 								<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1697,44 +1682,10 @@ export default function ProfilePage() {
 											</FormItem>
 										)}
 									/>
-
-									<FormField
-										control={businessProfileForm.control}
-										name="website"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel>Website</FormLabel>
-												<FormControl>
-													<Input
-														placeholder="https://yourbusiness.com"
-														{...field}
-													/>
-												</FormControl>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-
-									<FormField
-										control={businessProfileForm.control}
-										name="businessHours"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel>Business Hours</FormLabel>
-												<FormControl>
-													<Input
-														placeholder="Mon-Fri: 9am-5pm"
-														{...field}
-													/>
-												</FormControl>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
 								</div>
-							</FormSection>
+							</ContentSection>
 
-							<FormSection
+							<ContentSection
 								title="Business Address"
 								description="Physical location of your business">
 								<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1823,7 +1774,49 @@ export default function ProfilePage() {
 										)}
 									/>
 								</div>
-							</FormSection>
+							</ContentSection>
+
+							<ContentSection
+								title="Website"
+								description="Online presence of your business">
+								<FormField
+									control={businessProfileForm.control}
+									name="website"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Website</FormLabel>
+											<FormControl>
+												<Input
+													placeholder="https://yourbusiness.com"
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</ContentSection>
+
+							<ContentSection
+								title="Business Hours"
+								description="Operating hours of your business">
+								<FormField
+									control={businessProfileForm.control}
+									name="businessHours"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Business Hours</FormLabel>
+											<FormControl>
+												<Input
+													placeholder="Mon-Fri: 9am-5pm"
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</ContentSection>
 
 							<div className="flex justify-end">
 								<Button
@@ -1851,7 +1844,7 @@ export default function ProfilePage() {
 						<form
 							onSubmit={brandingForm.handleSubmit(onBrandingSubmit)}
 							className="space-y-6">
-							<FormSection
+							<ContentSection
 								title="Logo & Favicon"
 								description="Upload your organization's logo and favicon">
 								<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -1957,9 +1950,9 @@ export default function ProfilePage() {
 										</div>
 									</div>
 								</div>
-							</FormSection>
+							</ContentSection>
 
-							<FormSection
+							<ContentSection
 								title="Brand Colors"
 								description="Define your brand's color palette">
 								<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -2041,9 +2034,9 @@ export default function ProfilePage() {
 										)}
 									/>
 								</div>
-							</FormSection>
+							</ContentSection>
 
-							<FormSection
+							<ContentSection
 								title="Typography"
 								description="Choose fonts for your application">
 								<FormField
@@ -2073,7 +2066,7 @@ export default function ProfilePage() {
 										</FormItem>
 									)}
 								/>
-							</FormSection>
+							</ContentSection>
 
 							<div className="flex justify-end">
 								<Button

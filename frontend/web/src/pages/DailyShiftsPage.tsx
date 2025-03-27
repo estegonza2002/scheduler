@@ -59,8 +59,8 @@ import {
 } from "../components/ui/dropdown-menu";
 import { DataTable } from "../components/ui/data-table";
 import { PageHeader } from "../components/ui/page-header";
-
 import { ContentContainer } from "../components/ui/content-container";
+import { ContentSection } from "../components/ui/content-section";
 
 // Export the ShiftCreationSheet with its props for use in the AppLayout
 export function getHeaderActions() {
@@ -503,8 +503,12 @@ export default function DailyShiftsPage() {
 					</div>
 				}
 			/>
-			
-				<ContentContainer>
+
+			<ContentContainer>
+				<ContentSection
+					title="Daily Shifts View"
+					description="Manage and filter shifts for the selected date"
+					flat>
 					{/* Filters and controls */}
 					<div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
 						{/* View options */}
@@ -693,7 +697,14 @@ export default function DailyShiftsPage() {
 							</Button>
 						</div>
 					)}
+				</ContentSection>
 
+				<ContentSection
+					title={`Shifts for ${format(currentDate, "MMMM d, yyyy")}`}
+					description={`${filteredShifts.length} shift${
+						filteredShifts.length !== 1 ? "s" : ""
+					} scheduled`}
+					className="mt-6">
 					{/* Shifts display */}
 					{loading ? (
 						<div className="flex flex-col items-center justify-center p-8">
@@ -729,8 +740,8 @@ export default function DailyShiftsPage() {
 							/>
 						</div>
 					)}
-				</ContentContainer>
-			
+				</ContentSection>
+			</ContentContainer>
 		</>
 	);
 }

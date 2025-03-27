@@ -10,6 +10,7 @@ const enforcePageHeader = require("./rules/enforce-page-header");
 const preventDirectCard = require("./rules/prevent-direct-card");
 const enforceFormSection = require("./rules/enforce-form-section");
 const enforceCardGridSection = require("./rules/enforce-card-grid-section");
+const enforceContentContainer = require("./rules/enforce-content-container");
 
 module.exports = {
 	rules: {
@@ -18,6 +19,7 @@ module.exports = {
 		"prevent-direct-card": preventDirectCard,
 		"enforce-form-section": enforceFormSection,
 		"enforce-card-grid-section": enforceCardGridSection,
+		"enforce-content-container": enforceContentContainer,
 	},
 	configs: {
 		recommended: {
@@ -28,6 +30,7 @@ module.exports = {
 				"design-system/prevent-direct-card": "warn",
 				"design-system/enforce-form-section": "warn",
 				"design-system/enforce-card-grid-section": "warn",
+				"design-system/enforce-content-container": "warn",
 			},
 		},
 	},

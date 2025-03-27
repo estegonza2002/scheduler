@@ -11,6 +11,7 @@ import { ContentContainer } from "../components/ui/content-container";
 import { Button } from "../components/ui/button";
 import { PageHeader } from "../components/ui/page-header";
 import { SecondaryLayout } from "../components/layout/SecondaryLayout";
+import { ContentSection } from "../components/ui/content-section";
 
 type MessageTab = "chats" | "groups" | "active-shifts" | "one-to-one";
 
@@ -116,21 +117,28 @@ export default function MessagesPage() {
 	// Create the message sidebar component
 	const messageSidebar = (
 		<div className="flex flex-col h-full overflow-hidden border-r">
-			<div className="p-4 border-b space-y-4 flex-shrink-0">
-				<Tabs
-					defaultValue={activeTab}
-					value={activeTab}
-					onValueChange={(value) => {
-						setActiveTab(value as MessageTab);
-					}}
-					className="w-full">
-					<TabsList className="grid w-full grid-cols-3">
-						<TabsTrigger value="chats">Chats</TabsTrigger>
-						<TabsTrigger value="groups">Groups</TabsTrigger>
-						<TabsTrigger value="active-shifts">Active Shifts</TabsTrigger>
-					</TabsList>
-				</Tabs>
-			</div>
+			<ContentSection
+				title="Message Categories"
+				description="Filter your conversations"
+				flat={true}
+				className="p-0 mb-0"
+				contentClassName="p-0">
+				<div className="p-4 border-b space-y-4 flex-shrink-0">
+					<Tabs
+						defaultValue={activeTab}
+						value={activeTab}
+						onValueChange={(value) => {
+							setActiveTab(value as MessageTab);
+						}}
+						className="w-full">
+						<TabsList className="grid w-full grid-cols-3">
+							<TabsTrigger value="chats">Chats</TabsTrigger>
+							<TabsTrigger value="groups">Groups</TabsTrigger>
+							<TabsTrigger value="active-shifts">Active Shifts</TabsTrigger>
+						</TabsList>
+					</Tabs>
+				</div>
+			</ContentSection>
 
 			<div className="flex-1 overflow-y-auto overflow-x-hidden">
 				{activeTab === "chats" && (
@@ -185,15 +193,16 @@ export default function MessagesPage() {
 							useSampleData={useSampleData}
 						/>
 					) : (
-						<div className="h-full flex flex-col items-center justify-center text-muted-foreground p-8 overflow-hidden">
+						<ContentSection
+							title={emptyState.title}
+							description={emptyState.description}
+							flat={true}
+							className="h-full flex flex-col items-center justify-center p-8 border-0"
+							contentClassName="flex flex-col items-center">
 							<div className="bg-muted/30 p-4 rounded-full mb-4">
 								<MessageSquare className="h-10 w-10" />
 							</div>
-							<h3 className="text-lg font-medium mb-2">{emptyState.title}</h3>
-							<p className="text-sm text-center max-w-sm">
-								{emptyState.description}
-							</p>
-						</div>
+						</ContentSection>
 					)}
 				</div>
 			</SecondaryLayout>

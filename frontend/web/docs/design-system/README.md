@@ -1,15 +1,62 @@
 # Design System Documentation
 
-This directory contains documentation for our application's design system, focusing on ensuring consistent look and feel across all content areas while leveraging shadcn/ui components.
+This directory contains documentation for our design system implementation using shadcn/ui components with Tailwind CSS.
 
-## Documents
+## Documentation Structure
 
-- [Implementation Plan](./implementation-plan.md): Detailed plan with status tracking for implementing consistent design
-- [Component Inventory](./component-inventory.md): List of all UI components with usage guidelines
-- [Page Structure Guide](./page-structure-guide.md): Standards for page layout and structure
-- [Refactoring Checklist](./refactoring-checklist.md): Checklist for ensuring components follow design system standards
-- [ESLint Rules Plan](./eslint-rules-plan.md): Plan for implementing ESLint rules to enforce design system standards
-- [ESLint Setup Guide](./setup-eslint-rules.md): Instructions for setting up and using the design system ESLint rules
+### Implementation Plan
+
+- [Overview](./overview.md) - Purpose, status tracking, and next actions
+- [Implementation Phases](./implementation-phases.md) - The four phases of implementation
+- [Implementation Schedule](./implementation-schedule.md) - Timeline and updates
+- [Tailwind Guidelines](./tailwind-guidelines.md) - Standards for using Tailwind CSS
+- [Sample Implementation](./sample-implementation.md) - Example of proper implementation with before/after comparison
+- **[Plan Folder](./plan/)** - Detailed implementation tracking and next tasks
+  - **[Start Here](./plan/start-here.md)** - Primary entry point for current status and next tasks
+
+### Audit Process
+
+- [Audit Process](./audit-process.md) - Steps for auditing pages
+- [Audit Checklist](./audit-checklist.md) - Detailed checklist for evaluations
+- [Audit Template](./audit-template.md) - Template for documenting audit findings
+- [Audit Status](./audit-status.md) - Current progress and results of audits
+- [Audits Directory](./plan/audits/) - Detailed audit results for each page
+
+### ESLint Rules
+
+- [ESLint Rules Plan](./eslint-rules-plan.md) - Plan for implementing ESLint rules
+- [Setup ESLint Rules](./setup-eslint-rules.md) - Instructions for setting up ESLint rules
+- [ESLint Implementation Status](./plan/eslint/implementation-status.md) - Detailed tracking of ESLint rules implementation
+
+### Component Guidelines
+
+- [Component Inventory](./component-inventory.md) - Guidelines for UI components
+- [Page Structure Guide](./page-structure-guide.md) - Standards for page layout
+- [Refactoring Checklist](./refactoring-checklist.md) - Guide for refactoring components
+
+### Workshops & Training
+
+- [Workshop Plans](./plan/workshops/) - Materials for design system training
+
+## Getting Started
+
+For the most up-to-date information on the design system implementation and next steps, start with the [Start Here](./plan/start-here.md) document in the plan folder.
+
+## Implementation Principles
+
+1. Direct use of shadcn/ui components with Tailwind utility classes
+2. Consistent spacing using Tailwind's spacing scale
+3. Standardized page structure
+4. Component consolidation replacing custom wrapper components
+
+## Contributing
+
+When working on the design system:
+
+1. Update the [Start Here](./plan/start-here.md) document as tasks are completed
+2. Follow the [Refactoring Checklist](./refactoring-checklist.md) when updating components
+3. Document page audits using the [Audit Template](./plan/audits/audit-template.md)
+4. Test ESLint rules against existing code before implementation
 
 ## Design System Showcase
 

@@ -6,15 +6,6 @@ import * as z from "zod";
 import { useAuth } from "../../lib/auth";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
-import { Label } from "../ui/label";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardFooter,
-	CardHeader,
-	CardTitle,
-} from "../ui/card";
 import {
 	Form,
 	FormControl,
@@ -98,81 +89,54 @@ export const LoginForm = forwardRef<LoginFormRef>((props, ref) => {
 	}
 
 	return (
-		<Card className="w-full max-w-md mx-auto">
-			<CardHeader>
-				<CardTitle>Login</CardTitle>
-				<CardDescription>
-					Enter your credentials to access your account
-				</CardDescription>
-			</CardHeader>
-			<CardContent>
-				<Form {...form}>
-					<form
-						onSubmit={form.handleSubmit(onSubmit)}
-						className="space-y-4">
-						<FormField
-							control={form.control}
-							name="email"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Email</FormLabel>
-									<FormControl>
-										<Input
-											type="email"
-											placeholder="you@example.com"
-											disabled={isLoading}
-											{...field}
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="password"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Password</FormLabel>
-									<FormControl>
-										<Input
-											type="password"
-											placeholder="******"
-											disabled={isLoading}
-											{...field}
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
+		<Form {...form}>
+			<form
+				onSubmit={form.handleSubmit(onSubmit)}
+				className="space-y-4">
+				<FormField
+					control={form.control}
+					name="email"
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>Email</FormLabel>
+							<FormControl>
+								<Input
+									type="email"
+									placeholder="you@example.com"
+									disabled={isLoading}
+									{...field}
+								/>
+							</FormControl>
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
+				<FormField
+					control={form.control}
+					name="password"
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>Password</FormLabel>
+							<FormControl>
+								<Input
+									type="password"
+									placeholder="******"
+									disabled={isLoading}
+									{...field}
+								/>
+							</FormControl>
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
 
-						<Button
-							type="submit"
-							className="w-full"
-							disabled={isLoading}>
-							{isLoading ? "Logging in..." : "Login"}
-						</Button>
-					</form>
-				</Form>
-			</CardContent>
-			<CardFooter className="flex flex-col space-y-2">
-				<div className="text-sm text-center">
-					<span className="text-muted-foreground">Don't have an account?</span>{" "}
-					<a
-						href="/signup"
-						className="underline text-primary hover:text-primary/90">
-						Sign up
-					</a>
-				</div>
-				<div className="text-sm text-center">
-					<a
-						href="/forgot-password"
-						className="underline text-primary hover:text-primary/90">
-						Forgot your password?
-					</a>
-				</div>
-			</CardFooter>
-		</Card>
+				<Button
+					type="submit"
+					className="w-full"
+					disabled={isLoading}>
+					{isLoading ? "Logging in..." : "Login"}
+				</Button>
+			</form>
+		</Form>
 	);
 });

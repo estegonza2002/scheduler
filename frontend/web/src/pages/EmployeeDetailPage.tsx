@@ -171,73 +171,74 @@ function EmployeeStats({
 	}, [employee, shifts]);
 
 	return (
-		<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-			<Card>
-				<CardContent className="p-4">
-					<div className="flex items-center justify-between">
-						<div>
-							<p className="text-sm text-muted-foreground">Tenure</p>
-							<h3 className="text-2xl font-bold">
-								{stats.tenure} {stats.tenure === 1 ? "day" : "days"}
-							</h3>
-						</div>
-						<div className="h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
-							<CalendarIcon className="h-5 w-5 text-primary" />
-						</div>
+		<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+			<ContentSection
+				title="Tenure"
+				flat>
+				<div className="flex items-center justify-between">
+					<div>
+						<p className="text-sm text-muted-foreground">Tenure</p>
+						<h3 className="text-2xl font-bold">
+							{stats.tenure} {stats.tenure === 1 ? "day" : "days"}
+						</h3>
 					</div>
-				</CardContent>
-			</Card>
+					<div className="h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
+						<CalendarIcon className="h-5 w-5 text-primary" />
+					</div>
+				</div>
+			</ContentSection>
 
-			<Card>
-				<CardContent className="p-4">
-					<div className="flex items-center justify-between">
-						<div>
-							<p className="text-sm text-muted-foreground">Total Hours</p>
-							<h3 className="text-2xl font-bold">
-								{stats.totalHours.toFixed(1)}
-							</h3>
-						</div>
-						<div className="h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
-							<ClockIcon className="h-5 w-5 text-primary" />
-						</div>
+			<ContentSection
+				title="Total Hours"
+				flat>
+				<div className="flex items-center justify-between">
+					<div>
+						<p className="text-sm text-muted-foreground">Total Hours</p>
+						<h3 className="text-2xl font-bold">
+							{stats.totalHours.toFixed(1)}
+						</h3>
 					</div>
-				</CardContent>
-			</Card>
+					<div className="h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
+						<ClockIcon className="h-5 w-5 text-primary" />
+					</div>
+				</div>
+			</ContentSection>
 
-			<Card>
-				<CardContent className="p-4">
-					<div className="flex items-center justify-between">
-						<div>
-							<p className="text-sm text-muted-foreground">Attendance Rate</p>
-							<h3 className="text-2xl font-bold">
-								{stats.attendanceRate.toFixed(0)}%
-							</h3>
-						</div>
-						<div className="h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
-							<CheckCircle className="h-5 w-5 text-primary" />
-						</div>
+			<ContentSection
+				title="Attendance"
+				flat>
+				<div className="flex items-center justify-between">
+					<div>
+						<p className="text-sm text-muted-foreground">Attendance Rate</p>
+						<h3 className="text-2xl font-bold">
+							{stats.attendanceRate.toFixed(0)}%
+						</h3>
 					</div>
-				</CardContent>
-			</Card>
+					<div className="h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
+						<CheckCircle className="h-5 w-5 text-primary" />
+					</div>
+				</div>
+			</ContentSection>
 
 			{employee.hourlyRate && (
-				<Card className="md:col-span-3">
-					<CardContent className="p-4">
-						<div className="flex items-center justify-between">
-							<div>
-								<p className="text-sm text-muted-foreground">
-									Estimated Earnings (All Time)
-								</p>
-								<h3 className="text-2xl font-bold">
-									${stats.totalEarnings.toFixed(2)}
-								</h3>
-							</div>
-							<div className="h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
-								<DollarSign className="h-5 w-5 text-primary" />
-							</div>
+				<ContentSection
+					title="Earnings"
+					flat
+					className="md:col-span-3">
+					<div className="flex items-center justify-between">
+						<div>
+							<p className="text-sm text-muted-foreground">
+								Estimated Earnings (All Time)
+							</p>
+							<h3 className="text-2xl font-bold">
+								${stats.totalEarnings.toFixed(2)}
+							</h3>
 						</div>
-					</CardContent>
-				</Card>
+						<div className="h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
+							<DollarSign className="h-5 w-5 text-primary" />
+						</div>
+					</div>
+				</ContentSection>
 			)}
 		</div>
 	);
@@ -633,9 +634,9 @@ export default function EmployeeDetailPage() {
 	);
 
 	// Action buttons for the header
-	const ActionButtons = (
+	const ActionButtons = employee ? (
 		<>
-			{employee && employee.status === "invited" && (
+			{employee.status === "invited" && (
 				<Button
 					variant="outline"
 					size="sm"
@@ -649,53 +650,43 @@ export default function EmployeeDetailPage() {
 							toast.error("Failed to resend welcome email");
 						}
 					}}>
-					<Send className="h-4 w-4 mr-1" /> Resend Welcome Email
+					<Send className="h-4 w-4 mr-1" />
+					Resend Invite
 				</Button>
 			)}
+			<EmployeeSheet
+				employee={employee}
+				organizationId={employee.organizationId || ""}
+				trigger={
+					<Button
+						variant="outline"
+						size="sm"
+						className="h-9 mr-2">
+						<Edit className="h-4 w-4 mr-1" />
+						Edit
+					</Button>
+				}
+				onEmployeeUpdated={(updatedEmployee) => {
+					setEmployee(updatedEmployee);
+				}}
+			/>
 
-			{employee && (
-				<EmployeeSheet
-					organizationId={employee.organizationId}
-					employee={employee}
-					onEmployeeUpdated={(updatedEmployee) => setEmployee(updatedEmployee)}
-					trigger={
-						<Button
-							variant="outline"
-							size="sm"
-							className="h-9 gap-1 mr-2">
-							<Edit className="h-4 w-4" /> Edit
-						</Button>
-					}
-				/>
-			)}
-
-			{employee && employee.hourlyRate !== undefined && (
-				<Button
-					variant="outline"
-					size="sm"
-					className="h-9 gap-1 mr-2"
-					onClick={() => navigate(`/employee-earnings/${employee.id}`)}>
-					<DollarSign className="h-4 w-4 mr-1" /> Earnings Report
-				</Button>
-			)}
-
-			<AlertDialog
-				open={deleteDialogOpen}
-				onOpenChange={setDeleteDialogOpen}>
+			<AlertDialog>
 				<AlertDialogTrigger asChild>
 					<Button
 						variant="outline"
 						size="sm"
-						className="h-9 text-destructive border-destructive/30">
-						<Trash className="h-4 w-4 mr-2" /> Delete
+						className="h-9 text-destructive hover:text-destructive">
+						<Trash className="h-4 w-4 mr-1" />
+						Delete
 					</Button>
 				</AlertDialogTrigger>
 				<AlertDialogContent>
 					<AlertDialogHeader>
 						<AlertDialogTitle>Are you sure?</AlertDialogTitle>
 						<AlertDialogDescription>
-							This will permanently delete this employee record. This action
-							cannot be undone.
+							This will permanently delete the employee and all related data.
+							This action cannot be undone.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
@@ -709,7 +700,7 @@ export default function EmployeeDetailPage() {
 				</AlertDialogContent>
 			</AlertDialog>
 		</>
-	);
+	) : null;
 
 	if (loading) {
 		return (
@@ -757,7 +748,7 @@ export default function EmployeeDetailPage() {
 				showBackButton={true}
 			/>
 			<ContentContainer>
-				<div className="grid gap-6 mt-6">
+				<div className="space-y-6">
 					{/* Profile Header */}
 					<ContentSection
 						title="Overview"
@@ -795,8 +786,8 @@ export default function EmployeeDetailPage() {
 						description="Performance metrics and statistics based on employee data">
 						{shiftsLoading ? (
 							<div className="space-y-4">
-								<div className="h-24 bg-gray-200 rounded animate-pulse"></div>
-								<div className="h-24 bg-gray-200 rounded animate-pulse"></div>
+								<div className="h-24 bg-muted rounded animate-pulse"></div>
+								<div className="h-24 bg-muted rounded animate-pulse"></div>
 							</div>
 						) : (
 							employee && (
@@ -833,11 +824,11 @@ export default function EmployeeDetailPage() {
 						}>
 						{locationsLoading ? (
 							<div className="space-y-4">
-								<div className="h-10 w-1/3 bg-gray-200 rounded animate-pulse"></div>
-								<div className="h-24 bg-gray-200 rounded animate-pulse"></div>
+								<div className="h-10 w-1/3 bg-muted rounded animate-pulse"></div>
+								<div className="h-24 bg-muted rounded animate-pulse"></div>
 							</div>
 						) : assignedLocationIds.length > 0 ? (
-							<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+							<div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
 								{assignedLocationIds.map((locationId, index) => {
 									const location = locations[locationId];
 									if (!location) return null;
@@ -845,30 +836,31 @@ export default function EmployeeDetailPage() {
 									const isPrimary = index === 0; // First location is primary
 
 									return (
-										<Card key={locationId}>
-											<CardContent className="p-4">
-												<div className="flex flex-col">
-													<div className="flex justify-between">
-														<h4 className="font-medium">{location.name}</h4>
-														{isPrimary && (
-															<Badge
-																className="ml-2"
-																variant="outline">
-																Primary
-															</Badge>
-														)}
-													</div>
-													{location.address && (
-														<p className="text-sm text-muted-foreground">
-															{location.address}
-															{location.city && `, ${location.city}`}
-															{location.state && `, ${location.state}`}
-															{location.zipCode && ` ${location.zipCode}`}
-														</p>
+										<ContentSection
+											key={locationId}
+											title={location.name}
+											flat>
+											<div className="flex flex-col">
+												<div className="flex justify-between">
+													<h4 className="font-medium">{location.name}</h4>
+													{isPrimary && (
+														<Badge
+															className="ml-2"
+															variant="outline">
+															Primary
+														</Badge>
 													)}
 												</div>
-											</CardContent>
-										</Card>
+												{location.address && (
+													<p className="text-sm text-muted-foreground">
+														{location.address}
+														{location.city && `, ${location.city}`}
+														{location.state && `, ${location.state}`}
+														{location.zipCode && ` ${location.zipCode}`}
+													</p>
+												)}
+											</div>
+										</ContentSection>
 									);
 								})}
 							</div>
