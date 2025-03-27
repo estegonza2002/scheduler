@@ -262,7 +262,20 @@ export const LocationsAPI = {
 			return [];
 		}
 
-		return data as Location[];
+		// Map from DB snake_case columns to app camelCase properties
+		return data.map((location) => {
+			// Handle potential column name mismatches
+			return {
+				id: location.id,
+				name: location.name,
+				address: location.address,
+				city: location.city,
+				state: location.state,
+				zipCode: location.zipCode || location.zip_code,
+				isActive: location.isActive || location.is_active,
+				organizationId: location.organizationId || location.organization_id,
+			} as Location;
+		});
 	},
 
 	getById: async (id: string): Promise<Location | null> => {
@@ -278,13 +291,57 @@ export const LocationsAPI = {
 			return null;
 		}
 
-		return data as Location;
+		// Map from DB snake_case columns to app camelCase properties
+		return {
+			id: data.id,
+			name: data.name,
+			address: data.address,
+			city: data.city,
+			state: data.state,
+			zipCode: data.zipCode || data.zip_code,
+			isActive: data.isActive || data.is_active,
+			organizationId: data.organizationId || data.organization_id,
+		} as Location;
 	},
 
 	create: async (data: Omit<Location, "id">): Promise<Location> => {
+		console.log("Creating location with data:", data);
+
+		// Ensure we have a valid organization ID
+		if (!data.organizationId) {
+			console.warn("No organization ID provided, using default");
+			// Use default organization ID
+			// This should match the UUID used in getDefaultOrganizationId
+			data.organizationId = "79a0cd70-b7e6-4ea4-8b00-a88dfea38e25";
+		}
+
+		// Validate that organization ID is a valid UUID
+		const uuidRegex =
+			/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+		if (!uuidRegex.test(data.organizationId)) {
+			console.error(
+				"Invalid UUID format for organization ID:",
+				data.organizationId
+			);
+			throw new Error("Invalid organization ID format. Must be a valid UUID.");
+		}
+
+		// Map from app camelCase properties to DB snake_case columns
+		const dbData = {
+			name: data.name,
+			address: data.address,
+			city: data.city,
+			state: data.state,
+			zip_code: data.zipCode,
+			is_active: data.isActive,
+			organization_id: data.organizationId,
+		};
+
+		console.log("Transformed DB data:", dbData);
+
 		const { data: newLocation, error } = await supabase
 			.from("locations")
-			.insert(data)
+			.insert(dbData)
 			.select()
 			.single();
 
@@ -295,15 +352,48 @@ export const LocationsAPI = {
 		}
 
 		toast.success("Location created successfully!");
-		return newLocation as Location;
+
+		// Map from DB snake_case columns to app camelCase properties
+		return {
+			id: newLocation.id,
+			name: newLocation.name,
+			address: newLocation.address,
+			city: newLocation.city,
+			state: newLocation.state,
+			zipCode: newLocation.zipCode || newLocation.zip_code,
+			isActive: newLocation.isActive || newLocation.is_active,
+			organizationId: newLocation.organizationId || newLocation.organization_id,
+		} as Location;
 	},
 
 	update: async (
 		location: Partial<Location> & { id: string }
 	): Promise<Location | null> => {
+		// Map from app camelCase properties to DB snake_case columns
+		const dbData: any = {
+			id: location.id,
+			name: location.name,
+			address: location.address,
+			city: location.city,
+			state: location.state,
+		};
+
+		// Handle camelCase to snake_case conversions
+		if (location.zipCode !== undefined) {
+			dbData.zip_code = location.zipCode;
+		}
+
+		if (location.isActive !== undefined) {
+			dbData.is_active = location.isActive;
+		}
+
+		if (location.organizationId !== undefined) {
+			dbData.organization_id = location.organizationId;
+		}
+
 		const { data, error } = await supabase
 			.from("locations")
-			.update(location)
+			.update(dbData)
 			.eq("id", location.id)
 			.select()
 			.single();
@@ -315,7 +405,18 @@ export const LocationsAPI = {
 		}
 
 		toast.success("Location updated successfully!");
-		return data as Location;
+
+		// Map from DB snake_case columns to app camelCase properties
+		return {
+			id: data.id,
+			name: data.name,
+			address: data.address,
+			city: data.city,
+			state: data.state,
+			zipCode: data.zipCode || data.zip_code,
+			isActive: data.isActive || data.is_active,
+			organizationId: data.organizationId || data.organization_id,
+		} as Location;
 	},
 };
 
@@ -463,6 +564,8 @@ export const ShiftAssignmentsAPI = {
 // Notifications API
 export const NotificationsAPI = {
 	getAll: async (userId: string): Promise<Notification[]> => {
+		console.log("Fetching notifications for user:", userId);
+
 		const { data, error } = await supabase
 			.from("notifications")
 			.select("*")
@@ -475,13 +578,57 @@ export const NotificationsAPI = {
 			return [];
 		}
 
-		return data as Notification[];
+		// Map the snake_case column names to camelCase property names
+		return data.map((notification) => ({
+			id: notification.id,
+			userId: notification.user_id,
+			organizationId: notification.organization_id,
+			type: notification.type,
+			title: notification.title,
+			message: notification.message,
+			isRead: notification.is_read,
+			isActionRequired: notification.is_action_required,
+			actionUrl: notification.action_url,
+			relatedEntityId: notification.related_entity_id,
+			relatedEntityType: notification.related_entity_type,
+			createdAt: notification.created_at,
+		})) as Notification[];
+	},
+
+	getUnread: async (userId: string): Promise<Notification[]> => {
+		const { data, error } = await supabase
+			.from("notifications")
+			.select("*")
+			.eq("user_id", userId)
+			.eq("is_read", false)
+			.order("created_at", { ascending: false });
+
+		if (error) {
+			console.error("Error fetching unread notifications:", error);
+			return [];
+		}
+
+		// Map the snake_case column names to camelCase property names
+		return data.map((notification) => ({
+			id: notification.id,
+			userId: notification.user_id,
+			organizationId: notification.organization_id,
+			type: notification.type,
+			title: notification.title,
+			message: notification.message,
+			isRead: notification.is_read,
+			isActionRequired: notification.is_action_required,
+			actionUrl: notification.action_url,
+			relatedEntityId: notification.related_entity_id,
+			relatedEntityType: notification.related_entity_type,
+			createdAt: notification.created_at,
+		})) as Notification[];
 	},
 
 	markAsRead: async (id: string): Promise<void> => {
 		const { error } = await supabase
 			.from("notifications")
-			.update({ read: true })
+			.update({ is_read: true })
 			.eq("id", id);
 
 		if (error) {
@@ -489,30 +636,53 @@ export const NotificationsAPI = {
 			console.error("Error marking notification as read:", error);
 			throw error;
 		}
+
+		toast.success("Notification marked as read");
 	},
 
-	create: async (
-		data: Omit<Notification, "id" | "created_at" | "read">
-	): Promise<Notification> => {
-		const newNotification = {
-			...data,
-			read: false,
-			created_at: new Date().toISOString(),
-		};
-
-		const { data: createdNotification, error } = await supabase
+	markAllAsRead: async (userId: string): Promise<void> => {
+		const { error } = await supabase
 			.from("notifications")
-			.insert(newNotification)
-			.select()
-			.single();
+			.update({ is_read: true })
+			.eq("user_id", userId);
 
 		if (error) {
-			toast.error("Failed to create notification");
-			console.error("Error creating notification:", error);
+			toast.error("Failed to mark all notifications as read");
+			console.error("Error marking all notifications as read:", error);
 			throw error;
 		}
 
-		return createdNotification as Notification;
+		toast.success("All notifications marked as read");
+	},
+
+	dismissNotification: async (id: string): Promise<void> => {
+		const { error } = await supabase
+			.from("notifications")
+			.delete()
+			.eq("id", id);
+
+		if (error) {
+			toast.error("Failed to dismiss notification");
+			console.error("Error dismissing notification:", error);
+			throw error;
+		}
+
+		toast.success("Notification dismissed");
+	},
+
+	dismissAllNotifications: async (userId: string): Promise<void> => {
+		const { error } = await supabase
+			.from("notifications")
+			.delete()
+			.eq("user_id", userId);
+
+		if (error) {
+			toast.error("Failed to dismiss all notifications");
+			console.error("Error dismissing all notifications:", error);
+			throw error;
+		}
+
+		toast.success("All notifications dismissed");
 	},
 };
 

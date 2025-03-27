@@ -185,11 +185,18 @@ export function LocationCreationSheet({
 	const onSubmit = async (data: FormValues) => {
 		try {
 			setIsSubmitting(true);
-			// Add organization ID to the data
+
+			// Only include fields that are part of the Location interface
 			const locationData = {
-				...data,
+				name: data.name,
+				address: data.address,
+				city: data.city,
+				state: data.state,
+				zipCode: data.zipCode,
+				isActive: data.isActive,
 				organizationId: organizationId,
 			};
+
 			const newLocation = (await LocationsAPI.create(
 				locationData
 			)) as ExtendedLocation;

@@ -55,6 +55,7 @@ import { ContentSection } from "@/components/ui/content-section";
 
 // Import the DataCardGrid component
 import { DataCardGrid } from "@/components/ui/data-card-grid";
+import { useOrganizationId } from "@/hooks/useOrganizationId";
 
 export default function LocationsPage() {
 	const [searchParams] = useSearchParams();
@@ -63,6 +64,7 @@ export default function LocationsPage() {
 	const [locations, setLocations] = useState<Location[]>([]);
 	const [organization, setOrganization] = useState<Organization | null>(null);
 	const [viewMode, setViewMode] = useState<"table" | "cards">("table");
+	const organizationId = useOrganizationId();
 
 	// Add pagination state for card view
 	const [currentPage, setCurrentPage] = useState(1);
@@ -105,7 +107,7 @@ export default function LocationsPage() {
 					setLoadingPhase("locations");
 
 					// Now get the locations for this organization
-					const fetchedLocations = await LocationsAPI.getAll(orgs[0].id);
+					const fetchedLocations = await LocationsAPI.getAll(organizationId);
 					setLocations(fetchedLocations);
 				}
 			} catch (error) {
@@ -116,7 +118,7 @@ export default function LocationsPage() {
 		};
 
 		fetchData();
-	}, []);
+	}, [organizationId]);
 
 	const columns = useMemo<ColumnDef<Location>[]>(
 		() => [
@@ -293,7 +295,7 @@ export default function LocationsPage() {
 				description="Manage your organization's physical locations"
 				actions={
 					<LocationCreationSheet
-						organizationId={organization?.id || "org-1"}
+						organizationId={organizationId}
 						onLocationCreated={(newLocation) =>
 							handleLocationsAdded([newLocation])
 						}
@@ -317,7 +319,7 @@ export default function LocationsPage() {
 							icon={<MapPin className="h-10 w-10" />}
 							action={
 								<LocationCreationSheet
-									organizationId={organization?.id || "org-1"}
+									organizationId={organizationId}
 									onLocationCreated={(newLocation) =>
 										handleLocationsAdded([newLocation])
 									}

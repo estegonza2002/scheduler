@@ -33,6 +33,7 @@ import { FormulaExplainer } from "@/components/ui/formula-explainer";
 import { PageHeader } from "@/components/ui/page-header";
 import { ContentContainer } from "@/components/ui/content-container";
 import { ContentSection } from "@/components/ui/content-section";
+import { getDefaultOrganizationId } from "@/lib/utils";
 
 export default function DashboardPage() {
 	const { user } = useAuth();
@@ -61,7 +62,7 @@ export default function DashboardPage() {
 				// For the purpose of the demo, we'll use a hardcoded employee ID
 				// In a real app, we would get this from the logged in user
 				const employeeId = "emp-1";
-				const organizationId = "org-1";
+				const organizationId = getDefaultOrganizationId();
 
 				// Fetch data in parallel
 				const [employeeData, locationList, schedules] = await Promise.all([

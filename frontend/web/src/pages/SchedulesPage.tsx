@@ -51,6 +51,7 @@ import {
 	CardContent,
 	CardFooter,
 } from "@/components/ui/card";
+import { useOrganizationId } from "@/hooks/useOrganizationId";
 
 // Define columns outside the component to prevent re-renders
 const columns: ColumnDef<Schedule>[] = [
@@ -188,7 +189,7 @@ const columns: ColumnDef<Schedule>[] = [
 export default function SchedulesPage() {
 	const navigate = useNavigate();
 	const [searchParams] = useSearchParams();
-	const organizationId = searchParams.get("organizationId") || "org-1";
+	const organizationId = useOrganizationId();
 
 	// State for schedules data and loading
 	const [schedules, setSchedules] = useState<Schedule[]>([]);

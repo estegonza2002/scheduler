@@ -28,6 +28,7 @@ import {
 	MoreHorizontal,
 	Trash,
 	Briefcase,
+	Upload,
 } from "lucide-react";
 import { toast } from "sonner";
 import { DeleteEmployeeDialog } from "@/components/DeleteEmployeeDialog";
@@ -76,6 +77,7 @@ import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/ui/page-header";
 import { ContentSection } from "@/components/ui/content-section";
 import { DataCardGrid } from "@/components/ui/data-card-grid";
+import { getDefaultOrganizationId } from "@/lib/utils";
 
 export default function EmployeesPage() {
 	const [organization, setOrganization] = useState<Organization | null>(null);
@@ -356,7 +358,7 @@ export default function EmployeesPage() {
 						</Tooltip>
 
 						<EmployeeSheet
-							organizationId={organization?.id || "org-1"}
+							organizationId={organization?.id || getDefaultOrganizationId()}
 							onEmployeeUpdated={(newEmployee) => {
 								setEmployees((prev) => [...prev, newEmployee]);
 							}}
@@ -390,7 +392,9 @@ export default function EmployeesPage() {
 								description="Add your first employee to get started"
 								action={
 									<EmployeeSheet
-										organizationId={organization?.id || "org-1"}
+										organizationId={
+											organization?.id || getDefaultOrganizationId()
+										}
 										onEmployeeUpdated={(newEmployee) => {
 											setEmployees((prev) => [...prev, newEmployee]);
 										}}
