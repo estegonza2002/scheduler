@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Location, LocationsAPI } from "@/api";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -30,6 +30,7 @@ import {
 	Loader2,
 	MapPin,
 	Plus,
+	ChevronDown,
 } from "lucide-react";
 import {
 	GooglePlacesAutocomplete,
@@ -39,6 +40,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { BulkLocationImport } from "./BulkLocationImport";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+	Accordion,
+	AccordionContent,
+	AccordionItem,
+	AccordionTrigger,
+} from "@/components/ui/accordion";
 
 // Extended Location type to include optional fields
 interface ExtendedLocation extends Location {
@@ -46,19 +53,25 @@ interface ExtendedLocation extends Location {
 	email?: string;
 }
 
-// Form schema
-const formSchema = z.object({
-	name: z.string().min(1, "Location name is required"),
+// The schema for the form validation
+const LocationSchema = z.object({
+	name: z.string().min(2, {
+		message: "Name must be at least 2 characters long",
+	}),
 	address: z.string().optional(),
 	city: z.string().optional(),
 	state: z.string().optional(),
 	zipCode: z.string().optional(),
+	fullAddress: z.string().optional(), // Add fullAddress field
 	isActive: z.boolean().default(true),
 	phone: z.string().optional(),
-	email: z.string().optional().or(z.literal("")), // Allow empty string
+	email: z.string().email().optional(),
 });
 
-type FormValues = z.infer<typeof formSchema>;
+type FormValues = z.infer<typeof LocationSchema>;
+
+// Form schema
+const formSchema = LocationSchema;
 
 /**
  * Props for the LocationCreationSheet component
@@ -111,13 +124,29 @@ export function LocationCreationSheet({
 	const [bulkImportedLocations, setBulkImportedLocations] = useState<
 		Location[]
 	>([]);
+	const nameFieldRef = useRef<HTMLDivElement>(null);
+	const [locationSelected, setLocationSelected] = useState(false);
 
 	const isControlled = controlledOpen !== undefined;
 	const isOpened = isControlled ? controlledOpen : open;
 	const setIsOpened = isControlled ? setControlledOpen! : setOpen;
 
+	useEffect(() => {
+		if (isOpened) {
+			const timer = setTimeout(() => {
+				if (nameFieldRef.current) {
+					const input = nameFieldRef.current.querySelector("input");
+					if (input) {
+						input.focus();
+					}
+				}
+			}, 100);
+			return () => clearTimeout(timer);
+		}
+	}, [isOpened]);
+
 	const form = useForm<FormValues>({
-		resolver: zodResolver(formSchema),
+		resolver: zodResolver(LocationSchema),
 		defaultValues: {
 			name: "",
 			address: "",
@@ -159,11 +188,29 @@ export function LocationCreationSheet({
 		}
 	};
 
-	const handlePlaceSelect = (place: GooglePlaceResult) => {
-		form.setValue("address", place.address);
-		form.setValue("city", place.city);
-		form.setValue("state", place.state);
-		form.setValue("zipCode", place.zipCode);
+	const onPlaceSelect = (place: any) => {
+		if (place?.fullAddress) {
+			// Set the name field to the first part of the address if it's empty
+			if (!form.getValues("name")) {
+				form.setValue("name", place.fullAddress.split(",")[0]);
+			}
+
+			form.setValue("address", place.address);
+			form.setValue("city", place.city);
+			form.setValue("state", place.state);
+			form.setValue("zipCode", place.zipCode);
+			form.setValue("fullAddress", place.fullAddress);
+			setLocationSelected(true);
+		} else {
+			form.setValue("address", "");
+			form.setValue("city", "");
+			form.setValue("state", "");
+			form.setValue("zipCode", "");
+			form.setValue("fullAddress", "");
+			setLocationSelected(
+				place?.locationSelected !== undefined ? place.locationSelected : false
+			);
+		}
 	};
 
 	const handleOpenChange = (newOpen: boolean) => {
@@ -178,6 +225,7 @@ export function LocationCreationSheet({
 			setTimeout(() => {
 				setIsCreated(false);
 				setCreatedLocation(null);
+				setLocationSelected(false); // Reset locationSelected state
 				form.reset({
 					name: "",
 					address: "",
@@ -307,118 +355,203 @@ export function LocationCreationSheet({
 										<form
 											onSubmit={form.handleSubmit(onSubmit)}
 											className="space-y-4">
-											{/* Name Field */}
+											{/* Name Field with Google Places Suggestions */}
 											<FormField
 												control={form.control}
 												name="name"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel>Name</FormLabel>
+														<FormLabel className="text-base">
+															Enter Location Name or Address
+														</FormLabel>
 														<FormControl>
-															<div className="relative">
-																<Input
-																	placeholder="Location name"
-																	{...field}
-																	className="pl-9"
+															<div
+																className="relative"
+																ref={nameFieldRef}>
+																<GooglePlacesAutocomplete
+																	onPlaceSelect={onPlaceSelect}
+																	placeholder="Start typing a business name or address..."
+																	className="mb-0"
 																/>
-																<Building className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
 															</div>
 														</FormControl>
+														<FormDescription>
+															Type a business name or address to quickly create
+															a location
+														</FormDescription>
 														<FormMessage />
 													</FormItem>
 												)}
 											/>
 
-											{/* Address Field using Google Places Autocomplete */}
-											<FormItem>
-												<FormLabel>Address Search</FormLabel>
-												<GooglePlacesAutocomplete
-													onPlaceSelect={handlePlaceSelect}
-													placeholder="Search for an address..."
-													className="mb-0"
-												/>
-												<FormDescription>
-													Search for an address to auto-fill the fields below
-												</FormDescription>
-											</FormItem>
-
-											{/* Editable Address Fields for manual adjustment */}
-											<FormField
-												control={form.control}
-												name="address"
-												render={({ field }) => (
-													<FormItem>
-														<FormLabel>Street Address</FormLabel>
-														<FormControl>
-															<div className="relative">
-																<Input
-																	placeholder="Street address"
-																	{...field}
-																	className="pl-9"
-																/>
-																<MapPin className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+											{/* Address Information in Accordion or Read-only Display */}
+											{locationSelected ? (
+												<div className="mt-4 border rounded-md p-4 bg-muted/20">
+													<div className="flex items-center text-sm font-medium mb-2">
+														<MapPin className="h-4 w-4 mr-1 text-primary" />
+														Address Information
+														<span className="ml-auto text-xs text-muted-foreground">
+															Auto-populated
+														</span>
+													</div>
+													<div className="grid gap-2 text-sm">
+														{form.watch("address") && (
+															<div>
+																<div className="text-muted-foreground text-xs">
+																	Street Address
+																</div>
+																<div>{form.watch("address")}</div>
 															</div>
-														</FormControl>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
-
-											{/* City, State, Zip */}
-											<div className="grid grid-cols-2 gap-4">
-												<FormField
-													control={form.control}
-													name="city"
-													render={({ field }) => (
-														<FormItem>
-															<FormLabel>City</FormLabel>
-															<FormControl>
-																<Input
-																	placeholder="City"
-																	{...field}
-																/>
-															</FormControl>
-															<FormMessage />
-														</FormItem>
-													)}
-												/>
-
-												<div className="grid grid-cols-2 gap-2">
-													<FormField
-														control={form.control}
-														name="state"
-														render={({ field }) => (
-															<FormItem>
-																<FormLabel>State</FormLabel>
-																<FormControl>
-																	<Input
-																		placeholder="State"
-																		{...field}
-																	/>
-																</FormControl>
-																<FormMessage />
-															</FormItem>
 														)}
-													/>
-
-													<FormField
-														control={form.control}
-														name="zipCode"
-														render={({ field }) => (
-															<FormItem>
-																<FormLabel>ZIP</FormLabel>
-																<FormControl>
-																	<Input
-																		placeholder="ZIP"
-																		{...field}
-																	/>
-																</FormControl>
-																<FormMessage />
-															</FormItem>
-														)}
-													/>
+														<div className="grid grid-cols-3 gap-2">
+															{form.watch("city") && (
+																<div>
+																	<div className="text-muted-foreground text-xs">
+																		City
+																	</div>
+																	<div>{form.watch("city")}</div>
+																</div>
+															)}
+															{form.watch("state") && (
+																<div>
+																	<div className="text-muted-foreground text-xs">
+																		State
+																	</div>
+																	<div>{form.watch("state")}</div>
+																</div>
+															)}
+															{form.watch("zipCode") && (
+																<div>
+																	<div className="text-muted-foreground text-xs">
+																		ZIP
+																	</div>
+																	<div>{form.watch("zipCode")}</div>
+																</div>
+															)}
+														</div>
+													</div>
 												</div>
-											</div>
+											) : (
+												<Accordion
+													type="single"
+													collapsible
+													defaultValue=""
+													className="mt-4">
+													<AccordionItem
+														value="address-info"
+														className="border-b-0">
+														<AccordionTrigger className="py-2 rounded-md hover:bg-accent/50">
+															<div className="flex items-center text-sm font-medium">
+																<MapPin className="h-4 w-4 mr-1 text-muted-foreground" />
+																Address Information
+																<span className="ml-2 text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-md">
+																	Optional
+																</span>
+															</div>
+														</AccordionTrigger>
+														<AccordionContent>
+															<div className="space-y-4 pt-2">
+																<p className="text-xs text-muted-foreground">
+																	You can create a location with just a name, or
+																	add address details if needed.
+																</p>
+
+																{/* Address Field using Google Places Autocomplete */}
+																<FormItem>
+																	<FormLabel>Address Search</FormLabel>
+																	<GooglePlacesAutocomplete
+																		onPlaceSelect={onPlaceSelect}
+																		placeholder="Search for an address..."
+																		className="mb-0"
+																	/>
+																	<FormDescription>
+																		Search for an address to auto-fill the
+																		fields below
+																	</FormDescription>
+																</FormItem>
+
+																{/* Editable Address Fields for manual adjustment */}
+																<FormField
+																	control={form.control}
+																	name="address"
+																	render={({ field }) => (
+																		<FormItem>
+																			<FormLabel>Street Address</FormLabel>
+																			<FormControl>
+																				<div className="relative">
+																					<Input
+																						placeholder="Street address"
+																						{...field}
+																						className="pl-9"
+																					/>
+																					<MapPin className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+																				</div>
+																			</FormControl>
+																			<FormMessage />
+																		</FormItem>
+																	)}
+																/>
+
+																{/* City, State, Zip */}
+																<div className="grid grid-cols-2 gap-4">
+																	<FormField
+																		control={form.control}
+																		name="city"
+																		render={({ field }) => (
+																			<FormItem>
+																				<FormLabel>City</FormLabel>
+																				<FormControl>
+																					<Input
+																						placeholder="City"
+																						{...field}
+																					/>
+																				</FormControl>
+																				<FormMessage />
+																			</FormItem>
+																		)}
+																	/>
+
+																	<div className="grid grid-cols-2 gap-2">
+																		<FormField
+																			control={form.control}
+																			name="state"
+																			render={({ field }) => (
+																				<FormItem>
+																					<FormLabel>State</FormLabel>
+																					<FormControl>
+																						<Input
+																							placeholder="State"
+																							{...field}
+																						/>
+																					</FormControl>
+																					<FormMessage />
+																				</FormItem>
+																			)}
+																		/>
+
+																		<FormField
+																			control={form.control}
+																			name="zipCode"
+																			render={({ field }) => (
+																				<FormItem>
+																					<FormLabel>ZIP</FormLabel>
+																					<FormControl>
+																						<Input
+																							placeholder="ZIP"
+																							{...field}
+																						/>
+																					</FormControl>
+																					<FormMessage />
+																				</FormItem>
+																			)}
+																		/>
+																	</div>
+																</div>
+															</div>
+														</AccordionContent>
+													</AccordionItem>
+												</Accordion>
+											)}
 
 											{/* Contact Information */}
 											<div className="grid grid-cols-2 gap-4">
