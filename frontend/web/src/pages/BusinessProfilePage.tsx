@@ -36,6 +36,10 @@ import { FormPhoneInput } from "@/components/ui/form-phone-input";
 import { isValidPhoneNumber } from "react-phone-number-input";
 import { Form } from "@/components/ui/form";
 import { supabase } from "@/lib/supabase";
+import {
+	GooglePlacesAutocomplete,
+	type GooglePlaceResult,
+} from "@/components/GooglePlacesAutocomplete";
 
 // Define form schema for validation
 const businessProfileSchema = z.object({
@@ -55,9 +59,6 @@ const businessProfileSchema = z.object({
 			"Please enter a valid phone number"
 		),
 	address: z.string().optional().or(z.literal("")),
-	city: z.string().optional().or(z.literal("")),
-	state: z.string().optional().or(z.literal("")),
-	zipCode: z.string().optional().or(z.literal("")),
 	country: z.string().optional().or(z.literal("")),
 	website: z.string().url("Invalid URL").optional().or(z.literal("")),
 	businessHours: z.string().optional().or(z.literal("")),
@@ -83,6 +84,7 @@ export default function BusinessProfilePage() {
 		"free" | "pro" | "business"
 	>("free");
 	const [isUpgrading, setIsUpgrading] = useState(false);
+	const [isManualEntry, setIsManualEntry] = useState(false);
 
 	// Add local state for new business creation
 	const [newBusinessName, setNewBusinessName] = useState("");
@@ -98,9 +100,6 @@ export default function BusinessProfilePage() {
 			contactEmail: "",
 			contactPhone: "",
 			address: "",
-			city: "",
-			state: "",
-			zipCode: "",
 			country: "",
 			website: "",
 			businessHours: "",
@@ -112,43 +111,12 @@ export default function BusinessProfilePage() {
 			try {
 				setIsLoading(true);
 
-				// Direct SQL query to check if any organizations exist
-				console.log("Checking organizations with SQL query...");
-				const { data: userData } = await supabase.auth.getUser();
-				const userId = userData.user?.id;
-
-				if (userId) {
-					const { data: directData, error: directError } = await supabase.rpc(
-						"get_user_organizations",
-						{ user_id_param: userId }
-					);
-
-					if (directError) {
-						console.error("Error with RPC call:", directError);
-
-						// Try a simple direct query instead
-						const { data: sqlData, error: sqlError } = await supabase
-							.from("organizations")
-							.select("*");
-
-						if (sqlError) {
-							console.error("Error with direct SQL query:", sqlError);
-						} else {
-							console.log("Direct SQL organizations result:", sqlData);
-						}
-					} else {
-						console.log("RPC organizations result:", directData);
-					}
-				}
-
 				// Try to get organizations using the API
 				const orgs = await OrganizationsAPI.getAll();
-				console.log("Fetched organizations:", orgs);
 
 				if (orgs && orgs.length > 0) {
 					// We have organizations - set the first one for the business profile
 					const currentOrg = orgs[0] as DBOrganization;
-					console.log("Selected organization:", currentOrg);
 					setOrganization(currentOrg);
 
 					// Pre-populate the form with organization data
@@ -158,16 +126,12 @@ export default function BusinessProfilePage() {
 						contactEmail: currentOrg.contactemail || "",
 						contactPhone: currentOrg.contactphone || "",
 						address: currentOrg.address || "",
-						city: currentOrg.city || "",
-						state: currentOrg.state || "",
-						zipCode: currentOrg.zipcode || "",
 						country: currentOrg.country || "",
 						website: currentOrg.website || "",
 						businessHours: currentOrg.businesshours || "",
 					});
 				} else {
 					// No organizations found
-					console.log("No organizations found for this user");
 					toast.warning(
 						"No business profile found. Please create a business profile first."
 					);
@@ -179,9 +143,6 @@ export default function BusinessProfilePage() {
 						contactEmail: "",
 						contactPhone: "",
 						address: "",
-						city: "",
-						state: "",
-						zipCode: "",
 						country: "",
 						website: "",
 						businessHours: "",
@@ -198,9 +159,6 @@ export default function BusinessProfilePage() {
 					contactEmail: "",
 					contactPhone: "",
 					address: "",
-					city: "",
-					state: "",
-					zipCode: "",
 					country: "",
 					website: "",
 					businessHours: "",
@@ -223,9 +181,6 @@ export default function BusinessProfilePage() {
 				contactEmail: dbOrg.contactemail || "",
 				contactPhone: dbOrg.contactphone || "",
 				address: dbOrg.address || "",
-				city: dbOrg.city || "",
-				state: dbOrg.state || "",
-				zipCode: dbOrg.zipcode || "",
 				country: dbOrg.country || "",
 				website: dbOrg.website || "",
 				businessHours: dbOrg.businesshours || "",
@@ -260,8 +215,6 @@ export default function BusinessProfilePage() {
 				return;
 			}
 
-			console.log("Updating organization with values:", values);
-
 			// Map the values to match the database column names
 			const updatedFields = {
 				id: organization.id,
@@ -270,9 +223,6 @@ export default function BusinessProfilePage() {
 				contactemail: values.contactEmail,
 				contactphone: values.contactPhone,
 				address: values.address,
-				city: values.city,
-				state: values.state,
-				zipcode: values.zipCode,
 				country: values.country,
 				website: values.website,
 				businesshours: values.businessHours,
@@ -282,7 +232,6 @@ export default function BusinessProfilePage() {
 			const updatedOrg = await OrganizationsAPI.update(updatedFields as any);
 
 			if (updatedOrg) {
-				console.log("Successfully updated organization:", updatedOrg);
 				setOrganization(updatedOrg);
 				toast.success("Business profile updated successfully");
 			} else {
@@ -363,8 +312,8 @@ export default function BusinessProfilePage() {
 					onTabChange={handleTabChange}
 				/>
 			}>
-			{/* Debug panel */}
-			{process.env.NODE_ENV !== "production" && (
+			{/* Debug panel - Remove for cleaner UI */}
+			{/* {process.env.NODE_ENV !== "production" && (
 				<div className="mb-6 p-4 border border-red-300 bg-red-50 rounded-md">
 					<h3 className="font-bold">Debug Panel</h3>
 					<pre className="text-xs overflow-auto max-h-[150px]">
@@ -380,7 +329,7 @@ export default function BusinessProfilePage() {
 						)}
 					</pre>
 				</div>
-			)}
+			)} */}
 
 			<Tabs
 				defaultValue="profile"
@@ -487,53 +436,68 @@ export default function BusinessProfilePage() {
 								className="pt-2">
 								<div className="space-y-4">
 									<div className="space-y-2">
-										<Label htmlFor="address">Street Address</Label>
-										<Input
-											id="address"
-											placeholder="123 Main St"
-											{...form.register("address")}
-										/>
+										<div className="flex justify-between items-center">
+											<Label htmlFor="address">Business Address</Label>
+											<Button
+												type="button"
+												variant="ghost"
+												size="sm"
+												onClick={() => setIsManualEntry(!isManualEntry)}
+												className="text-xs">
+												{isManualEntry ? "Use Address Search" : "Manual Entry"}
+											</Button>
+										</div>
+										{!isManualEntry && (
+											<>
+												<GooglePlacesAutocomplete
+													defaultValue={
+														form.getValues("address")
+															? form.getValues("address")
+															: ""
+													}
+													placeholder="Search for your business address"
+													className="w-full"
+													onPlaceSelect={(place: GooglePlaceResult) => {
+														// Update address-related fields
+														form.setValue("address", place.address);
+														form.setValue("country", place.country || "");
+													}}
+												/>
+												<p className="text-xs text-muted-foreground mt-1">
+													Start typing to search for your business address.
+													Select a location from the dropdown to automatically
+													fill address details.
+												</p>
+											</>
+										)}
 									</div>
 
-									<div className="grid grid-cols-2 gap-4">
-										<div className="space-y-2">
-											<Label htmlFor="city">City</Label>
-											<Input
-												id="city"
-												placeholder="City"
-												{...form.register("city")}
-											/>
-										</div>
+									{isManualEntry && (
+										<>
+											<div className="space-y-2">
+												<Label htmlFor="address">
+													Address (Street, Building, etc.)
+												</Label>
+												<Input
+													id="address"
+													placeholder="Enter address manually"
+													{...form.register("address")}
+												/>
+											</div>
 
-										<div className="space-y-2">
-											<Label htmlFor="state">State/Province</Label>
-											<Input
-												id="state"
-												placeholder="State"
-												{...form.register("state")}
-											/>
-										</div>
-									</div>
-
-									<div className="grid grid-cols-2 gap-4">
-										<div className="space-y-2">
-											<Label htmlFor="zipCode">ZIP/Postal Code</Label>
-											<Input
-												id="zipCode"
-												placeholder="ZIP"
-												{...form.register("zipCode")}
-											/>
-										</div>
-
-										<div className="space-y-2">
-											<Label htmlFor="country">Country</Label>
-											<Input
-												id="country"
-												placeholder="Country"
-												{...form.register("country")}
-											/>
-										</div>
-									</div>
+											<div className="space-y-2">
+												<Label htmlFor="country">Country</Label>
+												<Input
+													id="country"
+													placeholder="Country"
+													{...form.register("country")}
+												/>
+												<p className="text-xs text-muted-foreground">
+													You can now edit the address and country manually.
+												</p>
+											</div>
+										</>
+									)}
 								</div>
 							</FormSection>
 
@@ -641,7 +605,6 @@ export default function BusinessProfilePage() {
 											}
 
 											setIsLoading(true);
-											console.log("Creating new organization...");
 
 											// Get the current user
 											const { data: userData } = await supabase.auth.getUser();
@@ -655,17 +618,12 @@ export default function BusinessProfilePage() {
 											}
 
 											// Use direct Supabase query to create organization
-											console.log(
-												"Creating organization with owner_id:",
-												userId
-											);
 											const { data, error } = await supabase
 												.from("organizations")
 												.insert({
 													name: newBusinessName,
 													description: newBusinessDescription || "",
 													owner_id: userId,
-													// Don't include the additional columns if they don't exist in the DB yet
 												})
 												.select()
 												.single();
@@ -685,7 +643,6 @@ export default function BusinessProfilePage() {
 													);
 												}
 											} else if (data) {
-												console.log("Created organization:", data);
 												toast.success("Business profile created successfully!");
 
 												try {
@@ -703,10 +660,6 @@ export default function BusinessProfilePage() {
 															.single();
 
 													if (existingMember) {
-														console.log(
-															"User is already a member of this organization:",
-															existingMember
-														);
 														// Set the organization in state
 														setOrganization(data);
 
@@ -717,9 +670,6 @@ export default function BusinessProfilePage() {
 															contactEmail: data.contactemail || "",
 															contactPhone: data.contactphone || "",
 															address: data.address || "",
-															city: data.city || "",
-															state: data.state || "",
-															zipCode: data.zipcode || "",
 															country: data.country || "",
 															website: data.website || "",
 															businessHours: data.businesshours || "",
@@ -765,9 +715,6 @@ export default function BusinessProfilePage() {
 															contactEmail: data.contactemail || "",
 															contactPhone: data.contactphone || "",
 															address: data.address || "",
-															city: data.city || "",
-															state: data.state || "",
-															zipCode: data.zipcode || "",
 															country: data.country || "",
 															website: data.website || "",
 															businessHours: data.businesshours || "",
@@ -787,9 +734,6 @@ export default function BusinessProfilePage() {
 															contactEmail: data.contactemail || "",
 															contactPhone: data.contactphone || "",
 															address: data.address || "",
-															city: data.city || "",
-															state: data.state || "",
-															zipCode: data.zipcode || "",
 															country: data.country || "",
 															website: data.website || "",
 															businessHours: data.businesshours || "",
@@ -811,7 +755,12 @@ export default function BusinessProfilePage() {
 													form.reset({
 														name: data.name || "",
 														description: data.description || "",
-														// other fields
+														contactEmail: data.contactemail || "",
+														contactPhone: data.contactphone || "",
+														address: data.address || "",
+														country: data.country || "",
+														website: data.website || "",
+														businessHours: data.businesshours || "",
 													});
 												}
 											}

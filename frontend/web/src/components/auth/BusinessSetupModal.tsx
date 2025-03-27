@@ -79,6 +79,7 @@ export function BusinessSetupModal({
 					.insert({
 						name: values.businessName,
 						description: values.businessDescription || null,
+						owner_id: user.id,
 					})
 					.select()
 					.single();
@@ -89,6 +90,25 @@ export function BusinessSetupModal({
 						"There was an issue setting up your business: " + orgError.message
 					);
 					return;
+				}
+
+				// Manually create the organization_members relationship
+				if (newOrg) {
+					const { error: memberError } = await supabase
+						.from("organization_members")
+						.insert({
+							organization_id: newOrg.id,
+							user_id: user.id,
+							role: "owner",
+						});
+
+					if (memberError) {
+						console.error(
+							"Failed to create organization membership:",
+							memberError
+						);
+						// Don't fail the whole operation if this fails, the trigger might have succeeded
+					}
 				}
 
 				toast.success("Business created successfully!");

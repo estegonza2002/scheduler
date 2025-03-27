@@ -118,6 +118,7 @@ export default function BusinessSignUpPage() {
 					.insert({
 						name: values.businessName,
 						description: values.businessDescription || null,
+						owner_id: data?.user?.id,
 					})
 					.select()
 					.single();
@@ -129,6 +130,25 @@ export default function BusinessSignUpPage() {
 					);
 					navigate("/login");
 					return;
+				}
+
+				// Manually create the organization_members relationship
+				if (data?.user?.id && newOrg) {
+					const { error: memberError } = await supabase
+						.from("organization_members")
+						.insert({
+							organization_id: newOrg.id,
+							user_id: data.user.id,
+							role: "owner",
+						});
+
+					if (memberError) {
+						console.error(
+							"Failed to create organization membership:",
+							memberError
+						);
+						// Don't fail the whole operation if this fails, the trigger might have succeeded
+					}
 				}
 
 				toast.success("Business registration successful!");

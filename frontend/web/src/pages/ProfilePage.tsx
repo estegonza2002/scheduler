@@ -158,19 +158,10 @@ const businessProfileSchema = z.object({
 	name: z.string().min(2, "Business name is required"),
 	description: z.string().optional(),
 	contactEmail: z.string().email("Invalid email address").optional(),
-	contactPhone: z
-		.string()
-		.optional()
-		.refine(
-			(val) => !val || isValidPhoneNumber(val),
-			"Please enter a valid phone number"
-		),
+	contactPhone: z.string().optional(),
 	address: z.string().optional(),
-	city: z.string().optional(),
-	state: z.string().optional(),
-	zipCode: z.string().optional(),
 	country: z.string().optional(),
-	website: z.string().url("Invalid URL").optional().or(z.literal("")),
+	website: z.string().url("Invalid URL").optional(),
 	businessHours: z.string().optional(),
 });
 
@@ -436,6 +427,7 @@ export default function ProfilePage() {
 		string | null
 	>(null);
 	const [isAvatarRemoved, setIsAvatarRemoved] = useState(false);
+	const [isManualAddressEntry, setIsManualAddressEntry] = useState(false);
 
 	// Initialize form with user data from auth context
 	const profileForm = useForm<ProfileFormValues>({
@@ -480,9 +472,6 @@ export default function ProfilePage() {
 			contactEmail: "",
 			contactPhone: "",
 			address: "",
-			city: "",
-			state: "",
-			zipCode: "",
 			country: "",
 			website: "",
 			businessHours: "",
@@ -737,9 +726,6 @@ export default function ProfilePage() {
 							contactEmail: orgs[0].contactEmail || "",
 							contactPhone: orgs[0].contactPhone || "",
 							address: orgs[0].address || "",
-							city: orgs[0].city || "",
-							state: orgs[0].state || "",
-							zipCode: orgs[0].zipCode || "",
 							country: orgs[0].country || "",
 							website: orgs[0].website || "",
 							businessHours: orgs[0].businessHours || "",
@@ -773,9 +759,6 @@ export default function ProfilePage() {
 				contactEmail: values.contactEmail,
 				contactPhone: values.contactPhone,
 				address: values.address,
-				city: values.city,
-				state: values.state,
-				zipCode: values.zipCode,
 				country: values.country,
 				website: values.website,
 				businessHours: values.businessHours,
@@ -829,6 +812,9 @@ export default function ProfilePage() {
 		) {
 			setActiveTab(tab);
 			setSearchParams({ tab });
+		} else if (tab === "business-profile") {
+			// Navigate to the business profile page
+			navigate("/business-profile");
 		}
 	};
 
@@ -1677,91 +1663,68 @@ export default function ProfilePage() {
 							<ContentSection
 								title="Business Address"
 								description="Physical location of your business">
-								<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-									<FormField
-										control={businessProfileForm.control}
-										name="address"
-										render={({ field }) => (
-											<FormItem className="col-span-2">
-												<FormLabel>Street Address</FormLabel>
-												<FormControl>
-													<Input
-														placeholder="Enter street address"
-														{...field}
-													/>
-												</FormControl>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
+								<div className="grid grid-cols-1 gap-4">
+									<div className="flex justify-between items-center">
+										<FormLabel>Address</FormLabel>
+										<Button
+											type="button"
+											variant="ghost"
+											size="sm"
+											onClick={() =>
+												setIsManualAddressEntry(!isManualAddressEntry)
+											}
+											className="text-xs">
+											{isManualAddressEntry
+												? "Disable Manual Entry"
+												: "Manual Entry"}
+										</Button>
+									</div>
 
-									<FormField
-										control={businessProfileForm.control}
-										name="city"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel>City</FormLabel>
-												<FormControl>
-													<Input
-														placeholder="Enter city"
-														{...field}
-													/>
-												</FormControl>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
+									{!isManualAddressEntry ? (
+										<p className="text-sm text-muted-foreground">
+											Click 'Manual Entry' button above to manually edit the
+											address. This is useful if the address search doesn't
+											work.
+										</p>
+									) : (
+										<>
+											<FormField
+												control={businessProfileForm.control}
+												name="address"
+												render={({ field }) => (
+													<FormItem>
+														<FormControl>
+															<Input
+																placeholder="Enter full address"
+																{...field}
+															/>
+														</FormControl>
+														<FormDescription>
+															You can now edit the address manually.
+														</FormDescription>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
 
-									<FormField
-										control={businessProfileForm.control}
-										name="state"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel>State/Province</FormLabel>
-												<FormControl>
-													<Input
-														placeholder="Enter state/province"
-														{...field}
-													/>
-												</FormControl>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-
-									<FormField
-										control={businessProfileForm.control}
-										name="zipCode"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel>ZIP/Postal Code</FormLabel>
-												<FormControl>
-													<Input
-														placeholder="Enter ZIP/postal code"
-														{...field}
-													/>
-												</FormControl>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-
-									<FormField
-										control={businessProfileForm.control}
-										name="country"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel>Country</FormLabel>
-												<FormControl>
-													<Input
-														placeholder="Enter country"
-														{...field}
-													/>
-												</FormControl>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
+											<FormField
+												control={businessProfileForm.control}
+												name="country"
+												render={({ field }) => (
+													<FormItem>
+														<FormLabel>Country</FormLabel>
+														<FormControl>
+															<Input
+																placeholder="Enter country"
+																{...field}
+															/>
+														</FormControl>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
+										</>
+									)}
 								</div>
 							</ContentSection>
 
