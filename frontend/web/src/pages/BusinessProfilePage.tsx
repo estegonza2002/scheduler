@@ -8,12 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-	Tabs,
-	TabsContent,
-	TabsList,
-	TabsTrigger,
-} from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { OrganizationsAPI, type Organization } from "@/api";
 import {
 	MapPin,
@@ -37,13 +32,21 @@ import { ProfileSidebar } from "@/components/layout/SecondaryNavbar";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingState } from "@/components/ui/loading-state";
+import { FormPhoneInput } from "@/components/ui/form-phone-input";
+import { isValidPhoneNumber } from "react-phone-number-input";
 
 // Define form schema for validation
 const businessProfileSchema = z.object({
 	name: z.string().min(2, "Business name is required"),
 	description: z.string().optional(),
 	contactEmail: z.string().email("Invalid email address").optional(),
-	contactPhone: z.string().optional(),
+	contactPhone: z
+		.string()
+		.optional()
+		.refine(
+			(val) => !val || isValidPhoneNumber(val),
+			"Please enter a valid phone number"
+		),
 	address: z.string().optional(),
 	city: z.string().optional(),
 	state: z.string().optional(),
@@ -303,14 +306,13 @@ export default function BusinessProfilePage() {
 									)}
 								</div>
 
-								<div className="space-y-2">
-									<Label htmlFor="contactPhone">Contact Phone</Label>
-									<Input
-										id="contactPhone"
-										placeholder="(123) 456-7890"
-										{...form.register("contactPhone")}
-									/>
-								</div>
+								<FormPhoneInput
+									control={form.control}
+									name="contactPhone"
+									label="Contact Phone"
+									placeholder="Enter phone number"
+									countryField="country"
+								/>
 							</div>
 						</FormSection>
 

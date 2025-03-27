@@ -1,0 +1,53 @@
+/* Additional styles for the phone input component */
+.phone-input-container .PhoneInput {
+	display: flex;
+	align-items: center;
+	width: 100%;
+}
+
+.phone-input-container .PhoneInputCountry {
+	margin-right: 0.5rem;
+	display: flex;
+	align-items: center;
+}
+
+.phone-input-container .PhoneInputCountryIcon {
+	width: 1.5rem;
+	height: 1rem;
+	border-radius: 2px;
+	overflow: hidden;
+}
+
+.phone-input-container .PhoneInputCountrySelect {
+	position: absolute;
+	top: 0;
+	left: 0;
+	height: 100%;
+	width: 100%;
+	z-index: 1;
+	border: 0;
+	opacity: 0;
+	cursor: pointer;
+}
+
+.phone-input-container .PhoneInputInput {
+	flex: 1;
+	min-width: 0;
+	height: 2.5rem;
+	border: none;
+	background: transparent;
+	padding: 0;
+	outline: none;
+}
+
+/* Ensure the input fills the parent */
+.phone-input-container {
+	position: relative;
+	width: 100%;
+}
+
+.phone-input-container .PhoneInput {
+	height: 100%;
+	border-radius: 0.375rem;
+	padding: 0 0.75rem;
+}

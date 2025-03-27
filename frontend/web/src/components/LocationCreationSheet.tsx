@@ -46,11 +46,18 @@ import {
 	AccordionItem,
 	AccordionTrigger,
 } from "@/components/ui/accordion";
+import { FormPhoneInput } from "@/components/ui/form-phone-input";
+import { isValidPhoneNumber } from "react-phone-number-input";
+import { LocationMap } from "@/components/ui/location-map";
+import { GoogleMap } from "@/components/ui/google-map";
 
 // Extended Location type to include optional fields
 interface ExtendedLocation extends Location {
 	phone?: string;
 	email?: string;
+	country?: string;
+	latitude?: number;
+	longitude?: number;
 }
 
 // The schema for the form validation
@@ -62,9 +69,18 @@ const LocationSchema = z.object({
 	city: z.string().optional(),
 	state: z.string().optional(),
 	zipCode: z.string().optional(),
-	fullAddress: z.string().optional(), // Add fullAddress field
+	country: z.string().optional(),
+	fullAddress: z.string().optional(),
+	latitude: z.number().optional(),
+	longitude: z.number().optional(),
 	isActive: z.boolean().default(true),
-	phone: z.string().optional(),
+	phone: z
+		.string()
+		.optional()
+		.refine(
+			(val) => !val || isValidPhoneNumber(val),
+			"Please enter a valid phone number"
+		),
 	email: z.string().email().optional(),
 });
 
@@ -101,6 +117,13 @@ interface LocationCreationSheetProps {
 	 * Optional additional className for the sheet content
 	 */
 	className?: string;
+}
+
+// Extend GooglePlaceResult to include country if needed
+interface ExtendedGooglePlaceResult extends GooglePlaceResult {
+	country?: string;
+	latitude?: number;
+	longitude?: number;
 }
 
 /**
@@ -188,7 +211,7 @@ export function LocationCreationSheet({
 		}
 	};
 
-	const onPlaceSelect = (place: any) => {
+	const onPlaceSelect = (place: ExtendedGooglePlaceResult) => {
 		if (place?.fullAddress) {
 			// Set the name field to the first part of the address if it's empty
 			if (!form.getValues("name")) {
@@ -200,6 +223,18 @@ export function LocationCreationSheet({
 			form.setValue("state", place.state);
 			form.setValue("zipCode", place.zipCode);
 			form.setValue("fullAddress", place.fullAddress);
+
+			// Set the country if available in the place data
+			if (place.country) {
+				form.setValue("country", place.country);
+			}
+
+			// Set coordinates if available
+			if (place.latitude !== undefined && place.longitude !== undefined) {
+				form.setValue("latitude", place.latitude);
+				form.setValue("longitude", place.longitude);
+			}
+
 			setLocationSelected(true);
 		} else {
 			form.setValue("address", "");
@@ -207,6 +242,9 @@ export function LocationCreationSheet({
 			form.setValue("state", "");
 			form.setValue("zipCode", "");
 			form.setValue("fullAddress", "");
+			form.setValue("country", "");
+			form.setValue("latitude", undefined);
+			form.setValue("longitude", undefined);
 			setLocationSelected(
 				place?.locationSelected !== undefined ? place.locationSelected : false
 			);
@@ -281,6 +319,28 @@ export function LocationCreationSheet({
 								<p className="text-muted-foreground mb-2">
 									{createdLocation.name} has been created successfully.
 								</p>
+
+								{/* Add map preview if coordinates are available */}
+								{createdLocation.latitude && createdLocation.longitude && (
+									<div className="w-full max-w-xs mb-4 mt-2">
+										<GoogleMap
+											latitude={createdLocation.latitude}
+											longitude={createdLocation.longitude}
+											height="150px"
+											popupContent={
+												<div>
+													<div className="font-medium">
+														{createdLocation.name}
+													</div>
+													<div className="text-xs">
+														{createdLocation.address}
+													</div>
+												</div>
+											}
+										/>
+									</div>
+								)}
+
 								<div className="flex flex-col gap-3 mt-6 w-full max-w-xs">
 									<Button
 										onClick={() => {
@@ -429,6 +489,21 @@ export function LocationCreationSheet({
 																</div>
 															)}
 														</div>
+
+														{/* Map Preview */}
+														{form.watch("latitude") &&
+															form.watch("longitude") && (
+																<div className="mt-4">
+																	<div className="text-muted-foreground text-xs mb-1">
+																		Map Preview
+																	</div>
+																	<GoogleMap
+																		latitude={form.watch("latitude") || 0}
+																		longitude={form.watch("longitude") || 0}
+																		height="150px"
+																	/>
+																</div>
+															)}
 													</div>
 												</div>
 											) : (
@@ -555,21 +630,12 @@ export function LocationCreationSheet({
 
 											{/* Contact Information */}
 											<div className="grid grid-cols-2 gap-4">
-												<FormField
+												<FormPhoneInput
 													control={form.control}
 													name="phone"
-													render={({ field }) => (
-														<FormItem>
-															<FormLabel>Phone</FormLabel>
-															<FormControl>
-																<Input
-																	placeholder="Phone number"
-																	{...field}
-																/>
-															</FormControl>
-															<FormMessage />
-														</FormItem>
-													)}
+													label="Phone"
+													placeholder="Enter phone number"
+													countryField="country"
 												/>
 
 												<FormField

@@ -23,6 +23,13 @@ import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { GoogleMap } from "@/components/ui/google-map";
+
+// Extended Location type to include optional fields
+interface ExtendedLocation extends Location {
+	latitude?: number;
+	longitude?: number;
+}
 
 /**
  * Props for the LocationDetailDialog component
@@ -31,7 +38,7 @@ interface LocationDetailDialogProps {
 	/**
 	 * The location data to display details for
 	 */
-	location: Location;
+	location: ExtendedLocation;
 	/**
 	 * Optional custom trigger element
 	 */
@@ -119,6 +126,23 @@ export function LocationDetailDialog({
 									)}
 								</div>
 							</CardContent>
+							{location.latitude && location.longitude && (
+								<CardContent className="px-4 pb-4 pt-0">
+									<GoogleMap
+										latitude={location.latitude}
+										longitude={location.longitude}
+										height="180px"
+										popupContent={
+											<div>
+												<div className="font-medium">{location.name}</div>
+												{fullAddress && (
+													<div className="text-xs">{fullAddress}</div>
+												)}
+											</div>
+										}
+									/>
+								</CardContent>
+							)}
 						</Card>
 
 						{/* Additional Details */}

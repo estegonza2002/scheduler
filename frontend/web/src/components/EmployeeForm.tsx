@@ -40,6 +40,8 @@ import {
 	BadgeAlert,
 	StickyNote,
 } from "lucide-react";
+import { FormPhoneInput } from "@/components/ui/form-phone-input";
+import { isValidPhoneNumber } from "react-phone-number-input";
 
 // Define available positions
 const POSITIONS = ["Supervisor", "Runner"] as const;
@@ -47,7 +49,13 @@ const POSITIONS = ["Supervisor", "Runner"] as const;
 const employeeFormSchema = z.object({
 	name: z.string().min(2, "Name must be at least 2 characters"),
 	email: z.string().email("Please enter a valid email address"),
-	phone: z.string().optional(),
+	phone: z
+		.string()
+		.optional()
+		.refine(
+			(val) => !val || isValidPhoneNumber(val),
+			"Please enter a valid phone number"
+		),
 	position: z.union([z.enum(POSITIONS), z.literal("")]).optional(),
 	hireDate: z.string().optional(),
 	address: z.string().optional(),
@@ -205,24 +213,11 @@ export function EmployeeForm({
 							title="Contact Information"
 							description="Add contact details for communication and record-keeping">
 							<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-								<FormField
+								<FormPhoneInput
 									control={form.control}
 									name="phone"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>Phone Number</FormLabel>
-											<FormControl>
-												<div className="flex items-center">
-													<Phone className="w-4 h-4 mr-2 text-muted-foreground" />
-													<Input
-														placeholder="555-123-4567"
-														{...field}
-													/>
-												</div>
-											</FormControl>
-											<FormMessage />
-										</FormItem>
-									)}
+									label="Phone Number"
+									placeholder="Enter international phone number"
 								/>
 
 								<FormField

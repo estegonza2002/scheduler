@@ -37,11 +37,25 @@ import {
 } from "./GooglePlacesAutocomplete";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { FormPhoneInput } from "@/components/ui/form-phone-input";
+import { isValidPhoneNumber } from "react-phone-number-input";
+import { LocationMap } from "@/components/ui/location-map";
+import { GoogleMap } from "@/components/ui/google-map";
 
 // Extended Location type to include optional fields
 interface ExtendedLocation extends Location {
 	phone?: string;
 	email?: string;
+	country?: string;
+	latitude?: number;
+	longitude?: number;
+}
+
+// Extend GooglePlaceResult to include country if needed
+interface ExtendedGooglePlaceResult extends GooglePlaceResult {
+	country?: string;
+	latitude?: number;
+	longitude?: number;
 }
 
 // Form schema
@@ -51,8 +65,17 @@ const formSchema = z.object({
 	city: z.string().optional(),
 	state: z.string().optional(),
 	zipCode: z.string().optional(),
+	country: z.string().optional(),
+	latitude: z.number().optional(),
+	longitude: z.number().optional(),
 	isActive: z.boolean().default(true),
-	phone: z.string().optional(),
+	phone: z
+		.string()
+		.optional()
+		.refine(
+			(val) => !val || isValidPhoneNumber(val),
+			"Please enter a valid phone number"
+		),
 	email: z.string().optional().or(z.literal("")), // Allow empty string
 });
 
@@ -102,6 +125,8 @@ export function LocationEditSheet({
 	const [open, setOpen] = useState(false);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [isUpdated, setIsUpdated] = useState(false);
+	const [updatedLocationData, setUpdatedLocationData] =
+		useState<ExtendedLocation | null>(null);
 
 	const isControlled = controlledOpen !== undefined;
 	const isOpened = isControlled ? controlledOpen : open;
@@ -115,6 +140,9 @@ export function LocationEditSheet({
 			city: location.city || "",
 			state: location.state || "",
 			zipCode: location.zipCode || "",
+			country: location.country || "",
+			latitude: location.latitude,
+			longitude: location.longitude,
 			isActive: location.isActive !== false, // Default to true if undefined
 			phone: location.phone || "",
 			email: location.email || "",
@@ -125,11 +153,15 @@ export function LocationEditSheet({
 		try {
 			setIsSubmitting(true);
 			const updatedLocation = (await LocationsAPI.update(
-				location.id,
+				location.id as unknown as string & Partial<Location> & { id: string },
 				data
 			)) as ExtendedLocation;
 			onLocationUpdated(updatedLocation);
 			setIsUpdated(true);
+
+			// Store the updated location for display on success screen
+			setUpdatedLocationData(updatedLocation);
+
 			toast.success("Location updated successfully");
 			setTimeout(() => {
 				if (setIsOpened) {
@@ -144,11 +176,22 @@ export function LocationEditSheet({
 		}
 	};
 
-	const handlePlaceSelect = (place: GooglePlaceResult) => {
+	const handlePlaceSelect = (place: ExtendedGooglePlaceResult) => {
 		form.setValue("address", place.address);
 		form.setValue("city", place.city);
 		form.setValue("state", place.state);
 		form.setValue("zipCode", place.zipCode);
+
+		// Set country if available
+		if (place.country) {
+			form.setValue("country", place.country);
+		}
+
+		// Set coordinates if available
+		if (place.latitude !== undefined && place.longitude !== undefined) {
+			form.setValue("latitude", place.latitude);
+			form.setValue("longitude", place.longitude);
+		}
 	};
 
 	// Generate a default value for Google Places Autocomplete
@@ -181,6 +224,9 @@ export function LocationEditSheet({
 					city: location.city || "",
 					state: location.state || "",
 					zipCode: location.zipCode || "",
+					country: location.country || "",
+					latitude: location.latitude,
+					longitude: location.longitude,
 					isActive: location.isActive !== false,
 					phone: location.phone || "",
 					email: location.email || "",
@@ -218,6 +264,29 @@ export function LocationEditSheet({
 								<p className="text-muted-foreground">
 									The location has been updated successfully.
 								</p>
+
+								{/* Add map preview if coordinates are available */}
+								{updatedLocationData?.latitude &&
+									updatedLocationData?.longitude && (
+										<div className="w-full max-w-xs my-4">
+											<GoogleMap
+												latitude={updatedLocationData.latitude}
+												longitude={updatedLocationData.longitude}
+												height="150px"
+												popupContent={
+													<div>
+														<div className="font-medium">
+															{updatedLocationData.name}
+														</div>
+														<div className="text-xs">
+															{updatedLocationData.address}
+														</div>
+													</div>
+												}
+											/>
+										</div>
+									)}
+
 								<Button
 									className="mt-6"
 									onClick={() => handleOpenChange(false)}>
@@ -343,23 +412,28 @@ export function LocationEditSheet({
 										</div>
 									</div>
 
+									{/* Map Preview */}
+									{form.watch("latitude") && form.watch("longitude") && (
+										<div className="mt-2 mb-4">
+											<div className="text-sm font-medium mb-1">
+												Map Preview
+											</div>
+											<GoogleMap
+												latitude={form.watch("latitude") || 0}
+												longitude={form.watch("longitude") || 0}
+												height="180px"
+											/>
+										</div>
+									)}
+
 									{/* Contact Information */}
 									<div className="grid grid-cols-2 gap-4">
-										<FormField
+										<FormPhoneInput
 											control={form.control}
 											name="phone"
-											render={({ field }) => (
-												<FormItem>
-													<FormLabel>Phone</FormLabel>
-													<FormControl>
-														<Input
-															placeholder="Phone number"
-															{...field}
-														/>
-													</FormControl>
-													<FormMessage />
-												</FormItem>
-											)}
+											label="Phone"
+											placeholder="Enter phone number"
+											countryField="country"
 										/>
 
 										<FormField

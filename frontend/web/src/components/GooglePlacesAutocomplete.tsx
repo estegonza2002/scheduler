@@ -61,6 +61,12 @@ interface PlaceDetails {
 		types: string[];
 	}>;
 	formatted_address: string;
+	geometry?: {
+		location?: {
+			lat: () => number;
+			lng: () => number;
+		};
+	};
 }
 
 // Define the types for Google Places Autocomplete result
@@ -70,7 +76,10 @@ export interface GooglePlaceResult {
 	state: string;
 	zipCode: string;
 	fullAddress: string;
-	locationSelected?: boolean; // Optional flag to indicate if a location is selected
+	country?: string;
+	latitude?: number;
+	longitude?: number;
+	locationSelected?: boolean;
 }
 
 interface GooglePlacesAutocompleteProps {
@@ -223,8 +232,6 @@ export function GooglePlacesAutocomplete({
 					autoCompleteServiceRef.current.getPlacePredictions(
 						{
 							input: searchQuery,
-							// Expand search to include more types
-							componentRestrictions: { country: "us" },
 						},
 						(
 							predictions: PlacePrediction[] | null,
@@ -277,6 +284,16 @@ export function GooglePlacesAutocomplete({
 		let city = "";
 		let state = "";
 		let zipCode = "";
+		let country = "";
+		let latitude: number | undefined = undefined;
+		let longitude: number | undefined = undefined;
+
+		// Extract coordinates if available
+		if (placeDetails.geometry && placeDetails.geometry.location) {
+			latitude = placeDetails.geometry.location.lat();
+			longitude = placeDetails.geometry.location.lng();
+			console.log("Extracted coordinates:", latitude, longitude);
+		}
 
 		// Extract street number and route for address
 		const streetNumber = placeDetails.address_components.find((component) =>
@@ -292,7 +309,7 @@ export function GooglePlacesAutocomplete({
 			address = route.long_name;
 		}
 
-		// Extract city, state, and zip
+		// Extract city, state, zip, and country
 		city =
 			placeDetails.address_components.find((component) =>
 				component.types.includes("locality")
@@ -308,12 +325,24 @@ export function GooglePlacesAutocomplete({
 				component.types.includes("postal_code")
 			)?.long_name || "";
 
+		country =
+			placeDetails.address_components.find((component) =>
+				component.types.includes("country")
+			)?.long_name || "";
+
+		// Log for debugging
+		console.log("Extracted country:", country);
+
 		return {
 			address,
 			city,
 			state,
 			zipCode,
+			country,
+			latitude,
+			longitude,
 			fullAddress: placeDetails.formatted_address,
+			locationSelected: true,
 		};
 	};
 
@@ -326,7 +355,7 @@ export function GooglePlacesAutocomplete({
 		placesServiceRef.current.getDetails(
 			{
 				placeId: place.place_id,
-				fields: ["address_component", "formatted_address", "name"],
+				fields: ["address_component", "formatted_address", "name", "geometry"],
 			},
 			(placeDetails: any, status: PlacesServiceStatus) => {
 				setIsLoading(false);
@@ -361,6 +390,9 @@ export function GooglePlacesAutocomplete({
 			city: "",
 			state: "",
 			zipCode: "",
+			country: "",
+			latitude: undefined,
+			longitude: undefined,
 			fullAddress: "",
 			locationSelected: false, // Add this flag to signal location is cleared
 		});
@@ -440,7 +472,6 @@ export function GooglePlacesAutocomplete({
 								autoCompleteServiceRef.current?.getPlacePredictions(
 									{
 										input: searchQuery,
-										componentRestrictions: { country: "us" },
 									},
 									(
 										predictions: PlacePrediction[] | null,

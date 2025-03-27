@@ -2,7 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-
 @layer base {
 	:root {
 		--background: 0 0% 100%;
@@ -95,4 +94,55 @@
 	.main-with-secondary-minimized {
 		margin-left: calc(var(--sidebar-width-icon) + 16rem) !important;
 	}
+}
+
+/* International Phone Input Styles */
+.PhoneInput {
+	display: flex;
+	align-items: center;
+	width: 100%;
+}
+
+.PhoneInputCountry {
+	margin-right: 0.5rem;
+	display: flex;
+	align-items: center;
+}
+
+.PhoneInputCountryIcon {
+	width: 1.5rem;
+	height: 1rem;
+	border-radius: 2px;
+	overflow: hidden;
+}
+
+.PhoneInputCountrySelect {
+	position: absolute;
+	top: 0;
+	left: 0;
+	height: 100%;
+	width: 100%;
+	z-index: 1;
+	border: 0;
+	opacity: 0;
+	cursor: pointer;
+}
+
+.PhoneInputInput {
+	flex: 1;
+	min-width: 0;
+	height: 2.5rem;
+	border: none;
+	background: transparent;
+	padding: 0;
+	outline: none;
+}
+
+/* Dark mode adjustments */
+.dark .PhoneInputCountrySelectArrow {
+	color: hsl(var(--foreground));
+}
+
+.dark .PhoneInputInput {
+	color: hsl(var(--foreground));
 }

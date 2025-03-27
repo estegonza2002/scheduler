@@ -83,6 +83,8 @@ import { PageHeader } from "@/components/ui/page-header";
 import { SecondaryLayout } from "@/components/layout/SecondaryLayout";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ContentSection } from "@/components/ui/content-section";
+import { FormPhoneInput } from "@/components/ui/form-phone-input";
+import { isValidPhoneNumber } from "react-phone-number-input";
 
 // Get the Supabase URL from environment or use a fallback
 const supabaseUrl =
@@ -116,7 +118,13 @@ const profileSchema = z.object({
 	firstName: z.string().min(2, "First name is required"),
 	lastName: z.string().min(2, "Last name is required"),
 	email: z.string().email("Invalid email address"),
-	phone: z.string().optional(),
+	phone: z
+		.string()
+		.optional()
+		.refine(
+			(val) => !val || isValidPhoneNumber(val),
+			"Please enter a valid phone number"
+		),
 	position: z.string().optional(),
 });
 
@@ -148,7 +156,13 @@ const businessProfileSchema = z.object({
 	name: z.string().min(2, "Business name is required"),
 	description: z.string().optional(),
 	contactEmail: z.string().email("Invalid email address").optional(),
-	contactPhone: z.string().optional(),
+	contactPhone: z
+		.string()
+		.optional()
+		.refine(
+			(val) => !val || isValidPhoneNumber(val),
+			"Please enter a valid phone number"
+		),
 	address: z.string().optional(),
 	city: z.string().optional(),
 	state: z.string().optional(),
@@ -1111,21 +1125,11 @@ export default function ProfilePage() {
 										)}
 									/>
 
-									<FormField
+									<FormPhoneInput
 										control={profileForm.control}
 										name="phone"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel>Phone Number</FormLabel>
-												<FormControl>
-													<Input
-														placeholder="Enter your phone number"
-														{...field}
-													/>
-												</FormControl>
-												<FormMessage />
-											</FormItem>
-										)}
+										label="Phone Number"
+										placeholder="Enter your phone number"
 									/>
 								</div>
 							</FormSection>
@@ -1666,21 +1670,11 @@ export default function ProfilePage() {
 										)}
 									/>
 
-									<FormField
+									<FormPhoneInput
 										control={businessProfileForm.control}
 										name="contactPhone"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel>Business Phone</FormLabel>
-												<FormControl>
-													<Input
-														placeholder="Enter business phone"
-														{...field}
-													/>
-												</FormControl>
-												<FormMessage />
-											</FormItem>
-										)}
+										label="Business Phone"
+										placeholder="Enter business phone"
 									/>
 								</div>
 							</ContentSection>
