@@ -64,6 +64,7 @@ import {
 import { OnboardingReminder } from "@/components/onboarding/OnboardingReminder";
 import { PageHeader } from "@/components/ui/page-header";
 import { LoadingState } from "@/components/ui/loading-state";
+import { Card, CardContent } from "@/components/ui/card";
 
 // Extended organization type for UI display purposes
 interface ExtendedOrganization extends Organization {
@@ -513,42 +514,46 @@ export default function AdminDashboardPage() {
 							className="mb-6"
 							contentClassName="pt-2">
 							<div className="space-y-4">
-								<div className="flex items-start gap-3 p-3 bg-white rounded-md border">
-									<AlertCircle className="h-5 w-5 text-red-500 mt-0.5" />
-									<div>
-										<p className="font-medium text-red-700">Staffing Alert</p>
-										<p className="text-sm text-red-600 mb-2">
-											Downtown location is understaffed for the evening shift
-											(6pm-10pm).
-										</p>
-										<div className="flex gap-2">
-											<Button
-												size="sm"
-												variant="destructive">
-												Assign Staff
-											</Button>
+								<Card className="bg-white">
+									<CardContent className="p-3 flex items-start gap-3">
+										<AlertCircle className="h-5 w-5 text-red-500 mt-0.5" />
+										<div>
+											<p className="font-medium text-red-700">Staffing Alert</p>
+											<p className="text-sm text-red-600 mb-2">
+												Downtown location is understaffed for the evening shift
+												(6pm-10pm).
+											</p>
+											<div className="flex gap-2">
+												<Button
+													size="sm"
+													variant="destructive">
+													Assign Staff
+												</Button>
+											</div>
 										</div>
-									</div>
-								</div>
+									</CardContent>
+								</Card>
 
-								<div className="flex items-start gap-3 p-3 bg-white rounded-md border">
-									<AlertCircle className="h-5 w-5 text-amber-500 mt-0.5" />
-									<div>
-										<p className="font-medium text-amber-700">
-											Schedule Update
-										</p>
-										<p className="text-sm text-amber-600 mb-2">
-											3 employees have requested time off for next week.
-										</p>
-										<div className="flex gap-2">
-											<Button
-												size="sm"
-												variant="outline">
-												View Requests
-											</Button>
+								<Card className="bg-white">
+									<CardContent className="p-3 flex items-start gap-3">
+										<AlertCircle className="h-5 w-5 text-amber-500 mt-0.5" />
+										<div>
+											<p className="font-medium text-amber-700">
+												Schedule Update
+											</p>
+											<p className="text-sm text-amber-600 mb-2">
+												3 employees have requested time off for next week.
+											</p>
+											<div className="flex gap-2">
+												<Button
+													size="sm"
+													variant="outline">
+													View Requests
+												</Button>
+											</div>
 										</div>
-									</div>
-								</div>
+									</CardContent>
+								</Card>
 							</div>
 						</ContentSection>
 					</TabsContent>

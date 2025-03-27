@@ -19,6 +19,7 @@ module.exports = {
 		"design-system/enforce-form-section": "warn",
 		"design-system/enforce-card-grid-section": "warn",
 		"design-system/enforce-content-container": "warn",
+		"design-system/enforce-card-structure": "warn",
 	},
 	overrides: [
 		{
@@ -36,6 +37,7 @@ module.exports = {
 				"design-system/prevent-direct-card": "warn",
 				"design-system/enforce-form-section": "warn",
 				"design-system/enforce-card-grid-section": "warn",
+				"design-system/enforce-card-structure": "warn",
 			},
 		},
 		{

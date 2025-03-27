@@ -10,12 +10,7 @@ import {
 	startOfMonth,
 	endOfMonth,
 } from "date-fns";
-import {
-	Card,
-	CardContent,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ContentContainer } from "@/components/ui/content-container";
 import { ContentSection } from "@/components/ui/content-section";
 import { Button } from "@/components/ui/button";
@@ -36,12 +31,7 @@ import {
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Separator } from "@/components/ui/separator";
-import {
-	Tabs,
-	TabsContent,
-	TabsList,
-	TabsTrigger,
-} from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { exportToCSV, exportToExcel } from "@/utils/export-utils";
 import { ExportDropdown } from "@/components/ExportDropdown";
 import { calculateHours } from "@/utils/time-calculations";
@@ -667,7 +657,7 @@ export default function EmployeeEarningsPage() {
 					}
 					className="mt-6">
 					{/* Detailed Earnings Table */}
-					<div className="rounded-md border">
+					<Card>
 						<Table>
 							<TableHeader>
 								<TableRow>
@@ -751,7 +741,7 @@ export default function EmployeeEarningsPage() {
 								)}
 							</TableBody>
 						</Table>
-					</div>
+					</Card>
 				</ContentSection>
 
 				{reportData.length > 0 && (

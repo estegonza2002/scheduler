@@ -32,6 +32,7 @@ import {
 	AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { format, parseISO } from "date-fns";
+import { Card, CardContent } from "@/components/ui/card";
 
 import { ContentContainer } from "@/components/ui/content-container";
 import { ContentSection } from "@/components/ui/content-section";
@@ -339,28 +340,30 @@ export default function LocationDetailPage() {
 						) : (
 							<div className="space-y-3">
 								{shifts.slice(0, 3).map((shift) => (
-									<div
+									<Card
 										key={shift.id}
-										className="flex justify-between items-center p-3 rounded-md border hover:bg-muted/50 cursor-pointer"
+										className="cursor-pointer hover:bg-muted/50"
 										onClick={() => navigate(`/shifts/${shift.id}`)}>
-										<div>
-											<div className="font-medium">
-												{shift.name || "Untitled Shift"}
+										<CardContent className="p-3 flex justify-between items-center">
+											<div>
+												<div className="font-medium">
+													{shift.name || "Untitled Shift"}
+												</div>
+												<div className="text-sm text-muted-foreground">
+													{format(
+														parseISO(shift.start_time),
+														"MMM d, yyyy h:mm a"
+													)}{" "}
+													-{format(parseISO(shift.end_time), "h:mm a")}
+												</div>
 											</div>
-											<div className="text-sm text-muted-foreground">
-												{format(
-													parseISO(shift.start_time),
-													"MMM d, yyyy h:mm a"
-												)}{" "}
-												-{format(parseISO(shift.end_time), "h:mm a")}
-											</div>
-										</div>
-										<Button
-											variant="ghost"
-											size="sm">
-											View
-										</Button>
-									</div>
+											<Button
+												variant="ghost"
+												size="sm">
+												View
+											</Button>
+										</CardContent>
+									</Card>
 								))}
 							</div>
 						)}
@@ -385,27 +388,29 @@ export default function LocationDetailPage() {
 						) : (
 							<div className="space-y-3">
 								{assignedEmployees.map((employee) => (
-									<div
+									<Card
 										key={employee.id}
-										className="flex justify-between items-center p-3 rounded-md border hover:bg-muted/50 cursor-pointer"
+										className="cursor-pointer hover:bg-muted/50"
 										onClick={() => navigate(`/employees/${employee.id}`)}>
-										<div className="flex items-center gap-3">
-											<div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-												{employee.name.charAt(0).toUpperCase()}
-											</div>
-											<div>
-												<div className="font-medium">{employee.name}</div>
-												<div className="text-sm text-muted-foreground">
-													{employee.email}
+										<CardContent className="p-3 flex justify-between items-center">
+											<div className="flex items-center gap-3">
+												<div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+													{employee.name.charAt(0).toUpperCase()}
+												</div>
+												<div>
+													<div className="font-medium">{employee.name}</div>
+													<div className="text-sm text-muted-foreground">
+														{employee.email}
+													</div>
 												</div>
 											</div>
-										</div>
-										<Button
-											variant="ghost"
-											size="sm">
-											View
-										</Button>
-									</div>
+											<Button
+												variant="ghost"
+												size="sm">
+												View
+											</Button>
+										</CardContent>
+									</Card>
 								))}
 							</div>
 						)}

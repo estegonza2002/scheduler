@@ -22,6 +22,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 /**
  * Props for the LocationDetailDialog component
@@ -104,19 +105,21 @@ export function LocationDetailDialog({
 				<ScrollArea className="flex-1 -mx-6 px-6">
 					<div className="space-y-6 py-2">
 						{/* Location Header */}
-						<div className="flex items-start gap-4 p-4 bg-muted/50 rounded-lg border">
-							<div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-								<Building2 className="h-7 w-7 text-primary" />
-							</div>
-							<div className="min-w-0">
-								<h3 className="text-xl font-semibold">{location.name}</h3>
-								{fullAddress && (
-									<p className="text-sm text-muted-foreground mt-1 break-words">
-										{fullAddress}
-									</p>
-								)}
-							</div>
-						</div>
+						<Card className="bg-muted/50">
+							<CardContent className="p-4 flex items-start gap-4">
+								<div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+									<Building2 className="h-7 w-7 text-primary" />
+								</div>
+								<div className="min-w-0">
+									<h3 className="text-xl font-semibold">{location.name}</h3>
+									{fullAddress && (
+										<p className="text-sm text-muted-foreground mt-1 break-words">
+											{fullAddress}
+										</p>
+									)}
+								</div>
+							</CardContent>
+						</Card>
 
 						{/* Additional Details */}
 						<div className="space-y-4">
@@ -128,51 +131,55 @@ export function LocationDetailDialog({
 							<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
 								{/* Address Section */}
 								{(location.address || location.city || location.state) && (
-									<div className="space-y-2 p-3 rounded-md border">
-										<h5 className="text-sm font-medium flex items-center">
-											<MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-											Address
-										</h5>
-										<Separator className="my-1.5" />
-										<div className="space-y-1.5 text-sm">
-											{location.address && (
-												<div className="flex items-start gap-2">
-													<Building2 className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
-													<span>{location.address}</span>
-												</div>
-											)}
-											{(location.city ||
-												location.state ||
-												location.zipCode) && (
-												<div className="flex items-start gap-2">
-													<div className="w-4 shrink-0" />
-													<span>
-														{location.city}
-														{location.city && location.state ? ", " : ""}
-														{location.state} {location.zipCode}
-													</span>
-												</div>
-											)}
-										</div>
-									</div>
+									<Card>
+										<CardContent className="p-3 space-y-2">
+											<h5 className="text-sm font-medium flex items-center">
+												<MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
+												Address
+											</h5>
+											<Separator className="my-1.5" />
+											<div className="space-y-1.5 text-sm">
+												{location.address && (
+													<div className="flex items-start gap-2">
+														<Building2 className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+														<span>{location.address}</span>
+													</div>
+												)}
+												{(location.city ||
+													location.state ||
+													location.zipCode) && (
+													<div className="flex items-start gap-2">
+														<div className="w-4 shrink-0" />
+														<span>
+															{location.city}
+															{location.city && location.state ? ", " : ""}
+															{location.state} {location.zipCode}
+														</span>
+													</div>
+												)}
+											</div>
+										</CardContent>
+									</Card>
 								)}
 
 								{/* Organization Section */}
-								<div className="space-y-2 p-3 rounded-md border">
-									<h5 className="text-sm font-medium flex items-center">
-										<Users className="h-4 w-4 mr-2 text-muted-foreground" />
-										Organization
-									</h5>
-									<Separator className="my-1.5" />
-									<div className="space-y-1.5 text-sm">
-										<div className="flex items-center justify-between">
-											<span className="text-muted-foreground">ID:</span>
-											<span className="font-mono text-xs bg-muted rounded px-1.5 py-0.5">
-												{location.organizationId}
-											</span>
+								<Card>
+									<CardContent className="p-3 space-y-2">
+										<h5 className="text-sm font-medium flex items-center">
+											<Users className="h-4 w-4 mr-2 text-muted-foreground" />
+											Organization
+										</h5>
+										<Separator className="my-1.5" />
+										<div className="space-y-1.5 text-sm">
+											<div className="flex items-center justify-between">
+												<span className="text-muted-foreground">ID:</span>
+												<span className="font-mono text-xs bg-muted rounded px-1.5 py-0.5">
+													{location.organizationId}
+												</span>
+											</div>
 										</div>
-									</div>
-								</div>
+									</CardContent>
+								</Card>
 							</div>
 						</div>
 					</div>

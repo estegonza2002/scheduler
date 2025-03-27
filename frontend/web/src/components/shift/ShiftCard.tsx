@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { Card } from "../ui/card";
+import { Card, CardHeader, CardContent } from "../ui/card";
 import { Shift, Location, Employee } from "../../api";
 import { useNavigate } from "react-router-dom";
 import { Users, ChevronRight } from "lucide-react";
@@ -29,22 +29,22 @@ export function ShiftCard({ shift, locations, employees }: ShiftCardProps) {
 	const getAssignedEmployeesCount = (): number => {
 		// For now just checking if there's a primary employee assigned
 		// In a real app, you'd likely count all assignments
-		return shift.employeeId ? 1 : 0;
+		return shift.employee_id ? 1 : 0;
 	};
 
 	return (
 		<Card
-			className="overflow-hidden hover:shadow-md hover:border-primary hover:bg-primary/5 transition-all cursor-pointer group relative"
+			className="hover:border-primary hover:bg-primary/5 transition-all cursor-pointer group"
 			onClick={() => navigate(`/shifts/${shift.id}`)}>
-			<div className="p-3">
+			<CardContent className="p-3">
 				<div className="flex justify-between items-center">
 					<div>
 						<h3 className="font-medium text-sm group-hover:text-primary">
-							{formatTime(new Date(shift.startTime))} -{" "}
-							{formatTime(new Date(shift.endTime))}
+							{formatTime(new Date(shift.start_time))} -{" "}
+							{formatTime(new Date(shift.end_time))}
 						</h3>
 						<p className="text-xs text-muted-foreground">
-							{getLocationName(shift.locationId)}
+							{getLocationName(shift.location_id)}
 						</p>
 					</div>
 					<div className="flex items-center gap-2">
@@ -55,7 +55,7 @@ export function ShiftCard({ shift, locations, employees }: ShiftCardProps) {
 						<ChevronRight className="h-4 w-4 text-muted-foreground/50 group-hover:text-primary transition-transform group-hover:translate-x-0.5" />
 					</div>
 				</div>
-			</div>
+			</CardContent>
 		</Card>
 	);
 }

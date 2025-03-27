@@ -72,6 +72,7 @@ import { AvatarWithStatus } from "@/components/ui/avatar-with-status";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/ui/page-header";
 import { ContentSection } from "@/components/ui/content-section";
+import { DataCardGrid } from "@/components/ui/data-card-grid";
 
 export default function EmployeesPage() {
 	const [organization, setOrganization] = useState<Organization | null>(null);
@@ -80,9 +81,12 @@ export default function EmployeesPage() {
 	const [loadingPhase, setLoadingPhase] = useState<
 		"organization" | "employees"
 	>("organization");
-	const [searchTerm, setSearchTerm] = useState("");
-	const [positionFilter, setPositionFilter] = useState<string | null>(null);
 	const [viewMode, setViewMode] = useState<"table" | "cards">("table");
+
+	// Add pagination state for card view
+	const [currentPage, setCurrentPage] = useState(1);
+	const [pageSize, setPageSize] = useState(25);
+
 	const {
 		employeePresence,
 		initialized: presenceInitialized,
@@ -90,31 +94,6 @@ export default function EmployeesPage() {
 		notificationsEnabled,
 	} = useEmployeePresence(organization?.id || "");
 	const navigate = useNavigate();
-
-	// Get unique positions for filtering
-	const uniquePositions = useMemo(() => {
-		return Array.from(
-			new Set(employees.map((emp) => emp.position || emp.role).filter(Boolean))
-		);
-	}, [employees]);
-
-	// Apply filters to get filtered employees
-	const filteredEmployees = useMemo(() => {
-		return employees.filter((employee) => {
-			const matchesSearch =
-				!searchTerm ||
-				employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-				employee.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-				employee.phone?.toLowerCase().includes(searchTerm.toLowerCase());
-
-			const matchesPosition =
-				!positionFilter ||
-				employee.position === positionFilter ||
-				employee.role === positionFilter;
-
-			return matchesSearch && matchesPosition;
-		});
-	}, [employees, searchTerm, positionFilter]);
 
 	// Listen for employee-added events from the system header
 	useEffect(() => {
@@ -165,6 +144,11 @@ export default function EmployeesPage() {
 						<span className="font-medium">{row.original.name}</span>
 					</div>
 				),
+				filterFn: (row, id, filterValue) => {
+					return row.original.name
+						.toLowerCase()
+						.includes(filterValue.toLowerCase());
+				},
 			},
 			{
 				accessorKey: "status",
@@ -205,6 +189,16 @@ export default function EmployeesPage() {
 						)}
 					</div>
 				),
+				filterFn: (row, id, filterValue) => {
+					return (
+						(row.original.email || "")
+							.toLowerCase()
+							.includes(filterValue.toLowerCase()) ||
+						(row.original.phone || "")
+							.toLowerCase()
+							.includes(filterValue.toLowerCase())
+					);
+				},
 			},
 			{
 				accessorKey: "position",
@@ -221,6 +215,10 @@ export default function EmployeesPage() {
 				cell: ({ row }) => (
 					<span>{row.original.position || row.original.role}</span>
 				),
+				filterFn: (row, id, filterValue) => {
+					const position = row.original.position || row.original.role || "";
+					return position.toLowerCase().includes(filterValue.toLowerCase());
+				},
 			},
 			{
 				accessorKey: "hourlyRate",
@@ -291,23 +289,21 @@ export default function EmployeesPage() {
 		fetchData();
 	}, []);
 
-	const handleSearch = (term: string) => {
-		setSearchTerm(term);
+	// Calculate pagination for card view
+	const paginatedEmployees = useMemo(() => {
+		const startIndex = (currentPage - 1) * pageSize;
+		const endIndex = startIndex + pageSize;
+		return employees.slice(startIndex, endIndex);
+	}, [employees, currentPage, pageSize]);
+
+	// Pagination handlers for card view
+	const handlePageChange = (page: number) => {
+		setCurrentPage(page);
 	};
 
-	const handleClearFilters = () => {
-		setPositionFilter(null);
-		setSearchTerm("");
-	};
-
-	// Check if any filters are active
-	const hasActiveFilters = useMemo(() => {
-		return Boolean(searchTerm || positionFilter);
-	}, [searchTerm, positionFilter]);
-
-	// Get position filter label for display
-	const getPositionFilterLabel = () => {
-		return positionFilter || "All Positions";
+	const handlePageSizeChange = (size: number) => {
+		setPageSize(size);
+		setCurrentPage(1); // Reset to first page when changing page size
 	};
 
 	if (isLoading) {
@@ -363,121 +359,48 @@ export default function EmployeesPage() {
 					</div>
 				}
 			/>
-				<ContentContainer>
-					{isLoading ? (
-						<LoadingState
-							message={
-								loadingPhase === "organization"
-									? "Loading organization information..."
-									: "Loading employee data..."
-							}
-							type="spinner"
-						/>
-					) : (
-						<ContentSection title="Employee Directory">
-							{/* Filters and view controls */}
-							<div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-								<div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
-									<SearchInput
-										placeholder="Search employees..."
-										value={searchTerm}
-										onChange={handleSearch}
-										className="w-full sm:w-[300px]"
-									/>
+			<ContentContainer>
+				{isLoading ? (
+					<LoadingState
+						message={
+							loadingPhase === "organization"
+								? "Loading organization information..."
+								: "Loading employee data..."
+						}
+						type="spinner"
+					/>
+				) : (
+					<ContentSection title="Employee Directory">
+						{/* No employees */}
+						{employees.length === 0 && (
+							<EmptyState
+								icon={<User className="h-10 w-10" />}
+								title="No employees yet"
+								description="Add your first employee to get started"
+								action={
+									<Button onClick={() => navigate("/employees/add")}>
+										<Plus className="h-4 w-4 mr-2" />
+										Add Employee
+									</Button>
+								}
+							/>
+						)}
 
-									<div className="relative">
-										<Button
-											variant="outline"
-											onClick={() => setPositionFilter(null)}
-											className="flex items-center gap-2">
-											<Filter className="h-4 w-4" />
-											{getPositionFilterLabel()}
-										</Button>
-									</div>
-								</div>
-
-								<div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-									<Tooltip>
-										<TooltipTrigger asChild>
-											<Button
-												variant="outline"
-												size="icon"
-												onClick={() => setViewMode("table")}
-												className={
-													viewMode === "table" ? "bg-muted" : "bg-transparent"
-												}>
-												<List className="h-4 w-4" />
-											</Button>
-										</TooltipTrigger>
-										<TooltipContent>List view</TooltipContent>
-									</Tooltip>
-
-									<Tooltip>
-										<TooltipTrigger asChild>
-											<Button
-												variant="outline"
-												size="icon"
-												onClick={() => setViewMode("cards")}
-												className={
-													viewMode === "cards" ? "bg-muted" : "bg-transparent"
-												}>
-												<LayoutGrid className="h-4 w-4" />
-											</Button>
-										</TooltipTrigger>
-										<TooltipContent>Card view</TooltipContent>
-									</Tooltip>
-								</div>
-							</div>
-
-							{/* No employees */}
-							{employees.length === 0 && (
-								<EmptyState
-									icon={<User className="h-10 w-10" />}
-									title="No employees yet"
-									description="Add your first employee to get started"
-									action={
-										<Button onClick={() => navigate("/employees/add")}>
-											<Plus className="h-4 w-4 mr-2" />
-											Add Employee
-										</Button>
-									}
-								/>
-							)}
-
-							{/* Employees exist, but none match filters */}
-							{employees.length > 0 && filteredEmployees.length === 0 && (
-								<EmptyState
-									icon={<AlertCircle className="h-10 w-10" />}
-									title="No matching employees"
-									description={`No employees match the current filters. Try adjusting your search or filters.`}
-									action={
-										<Button
-											variant="outline"
-											onClick={handleClearFilters}>
-											Clear all filters
-										</Button>
-									}
-								/>
-							)}
-
-							{/* Table view */}
-							{filteredEmployees.length > 0 && viewMode === "table" && (
-								<DataTable
-									columns={columns}
-									data={filteredEmployees}
-								/>
-							)}
-
-							{/* Card view */}
-							{filteredEmployees.length > 0 && viewMode === "cards" && (
-								<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-									{filteredEmployees.map((employee) => (
-										<Card
-											key={employee.id}
-											className="cursor-pointer hover:shadow-md transition-shadow"
-											onClick={() =>
-												navigate(`/employee-detail/${employee.id}`)
-											}>
+						{employees.length > 0 && (
+							<DataTable
+								columns={columns}
+								data={employees}
+								searchKey="name"
+								searchPlaceholder="Search employees..."
+								onRowClick={(employee) =>
+									navigate(`/employee-detail/${employee.id}`)
+								}
+								viewOptions={{
+									enableViewToggle: true,
+									defaultView: viewMode,
+									onViewChange: setViewMode,
+									renderCard: (employee: Employee) => (
+										<Card className="cursor-pointer hover:shadow-md transition-colors hover:border-primary h-full">
 											<CardHeader className="pb-4">
 												<div className="flex justify-between items-start">
 													<AvatarWithStatus
@@ -552,12 +475,13 @@ export default function EmployeesPage() {
 												</Button>
 											</CardFooter>
 										</Card>
-									))}
-								</div>
-							)}
-						</ContentSection>
-					)}
-				</ContentContainer>
+									),
+								}}
+							/>
+						)}
+					</ContentSection>
+				)}
+			</ContentContainer>
 		</>
 	);
 }

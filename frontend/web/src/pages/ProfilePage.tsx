@@ -1003,7 +1003,7 @@ export default function ProfilePage() {
 							onSubmit={profileForm.handleSubmit(onProfileSubmit)}
 							className="space-y-6">
 							<FormSection title="Profile Picture">
-								<div className="flex items-start gap-6">
+								<Card className="flex items-start gap-6 p-4">
 									<Avatar className="h-24 w-24 border">
 										<AvatarImage
 											src={
@@ -1051,7 +1051,7 @@ export default function ProfilePage() {
 											Recommended: Square image, at least 200x200px.
 										</p>
 									</div>
-								</div>
+								</Card>
 							</FormSection>
 
 							<FormSection title="Personal Details">
@@ -1851,48 +1851,50 @@ export default function ProfilePage() {
 									<div>
 										<Label htmlFor="logo-upload">Company Logo</Label>
 										<div className="mt-2 flex flex-col gap-4">
-											<div className="flex items-center justify-center w-full h-40 rounded-md border-2 border-dashed border-muted-foreground/25 p-4 bg-muted/10">
-												{logoPreview ? (
-													<div className="relative w-full h-full flex items-center justify-center">
-														<img
-															src={logoPreview}
-															alt="Logo preview"
-															className="max-h-32 max-w-full object-contain"
-														/>
-														<Button
-															type="button"
-															variant="destructive"
-															size="icon"
-															className="absolute -top-2 -right-2 h-8 w-8"
-															onClick={handleRemoveLogo}>
-															<Trash2 className="h-4 w-4" />
-														</Button>
-													</div>
-												) : (
-													<div className="text-center">
-														<Image className="mx-auto h-12 w-12 text-muted-foreground" />
-														<p className="mt-2 text-sm text-muted-foreground">
-															Upload your company logo (PNG, JPG, SVG)
-														</p>
-														<div className="mt-4">
-															<label
-																htmlFor="logo-upload"
-																className="cursor-pointer inline-flex items-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm hover:bg-accent">
-																<Upload className="mr-2 h-4 w-4" />
-																Choose File
-																<input
-																	id="logo-upload"
-																	name="logo"
-																	type="file"
-																	className="sr-only"
-																	accept="image/*"
-																	onChange={handleLogoChange}
-																/>
-															</label>
+											<Card className="border-2 border-dashed bg-muted/10">
+												<CardContent className="flex items-center justify-center h-40 p-4">
+													{logoPreview ? (
+														<div className="relative w-full h-full flex items-center justify-center">
+															<img
+																src={logoPreview}
+																alt="Logo preview"
+																className="max-h-32 max-w-full object-contain"
+															/>
+															<Button
+																type="button"
+																variant="destructive"
+																size="icon"
+																className="absolute -top-2 -right-2 h-8 w-8"
+																onClick={handleRemoveLogo}>
+																<Trash2 className="h-4 w-4" />
+															</Button>
 														</div>
-													</div>
-												)}
-											</div>
+													) : (
+														<div className="text-center">
+															<Image className="mx-auto h-12 w-12 text-muted-foreground" />
+															<p className="mt-2 text-sm text-muted-foreground">
+																Upload your company logo (PNG, JPG, SVG)
+															</p>
+															<div className="mt-4">
+																<label
+																	htmlFor="logo-upload"
+																	className="cursor-pointer inline-flex items-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm hover:bg-accent">
+																	<Upload className="mr-2 h-4 w-4" />
+																	Choose File
+																	<input
+																		id="logo-upload"
+																		name="logo"
+																		type="file"
+																		className="sr-only"
+																		accept="image/*"
+																		onChange={handleLogoChange}
+																	/>
+																</label>
+															</div>
+														</div>
+													)}
+												</CardContent>
+											</Card>
 											<p className="text-xs text-muted-foreground">
 												Recommended size: 512x512px. Max file size: 2MB.
 											</p>
@@ -1902,48 +1904,50 @@ export default function ProfilePage() {
 									<div>
 										<Label htmlFor="favicon-upload">Favicon</Label>
 										<div className="mt-2 flex flex-col gap-4">
-											<div className="flex items-center justify-center w-full h-40 rounded-md border-2 border-dashed border-muted-foreground/25 p-4 bg-muted/10">
-												{faviconPreview ? (
-													<div className="relative w-full h-full flex items-center justify-center">
-														<img
-															src={faviconPreview}
-															alt="Favicon preview"
-															className="max-h-16 max-w-full object-contain"
-														/>
-														<Button
-															type="button"
-															variant="destructive"
-															size="icon"
-															className="absolute -top-2 -right-2 h-8 w-8"
-															onClick={handleRemoveFavicon}>
-															<Trash2 className="h-4 w-4" />
-														</Button>
-													</div>
-												) : (
-													<div className="text-center">
-														<Image className="mx-auto h-12 w-12 text-muted-foreground" />
-														<p className="mt-2 text-sm text-muted-foreground">
-															Upload your favicon (ICO, PNG)
-														</p>
-														<div className="mt-4">
-															<label
-																htmlFor="favicon-upload"
-																className="cursor-pointer inline-flex items-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm hover:bg-accent">
-																<Upload className="mr-2 h-4 w-4" />
-																Choose File
-																<input
-																	id="favicon-upload"
-																	name="favicon"
-																	type="file"
-																	className="sr-only"
-																	accept="image/x-icon,image/png"
-																	onChange={handleFaviconChange}
-																/>
-															</label>
+											<Card className="border-2 border-dashed bg-muted/10">
+												<CardContent className="flex items-center justify-center h-40 p-4">
+													{faviconPreview ? (
+														<div className="relative w-full h-full flex items-center justify-center">
+															<img
+																src={faviconPreview}
+																alt="Favicon preview"
+																className="max-h-16 max-w-full object-contain"
+															/>
+															<Button
+																type="button"
+																variant="destructive"
+																size="icon"
+																className="absolute -top-2 -right-2 h-8 w-8"
+																onClick={handleRemoveFavicon}>
+																<Trash2 className="h-4 w-4" />
+															</Button>
 														</div>
-													</div>
-												)}
-											</div>
+													) : (
+														<div className="text-center">
+															<Image className="mx-auto h-12 w-12 text-muted-foreground" />
+															<p className="mt-2 text-sm text-muted-foreground">
+																Upload your favicon (ICO, PNG)
+															</p>
+															<div className="mt-4">
+																<label
+																	htmlFor="favicon-upload"
+																	className="cursor-pointer inline-flex items-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm hover:bg-accent">
+																	<Upload className="mr-2 h-4 w-4" />
+																	Choose File
+																	<input
+																		id="favicon-upload"
+																		name="favicon"
+																		type="file"
+																		className="sr-only"
+																		accept="image/x-icon,image/png"
+																		onChange={handleFaviconChange}
+																	/>
+																</label>
+															</div>
+														</div>
+													)}
+												</CardContent>
+											</Card>
 											<p className="text-xs text-muted-foreground">
 												Recommended size: 32x32px. Max file size: 1MB.
 											</p>

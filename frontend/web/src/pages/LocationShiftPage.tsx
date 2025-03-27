@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/table";
 import { format, parseISO } from "date-fns";
 import { PageHeader } from "@/components/ui/page-header";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function LocationShiftPage() {
 	const { locationId } = useParams<{ locationId: string }>();
@@ -226,7 +227,7 @@ export default function LocationShiftPage() {
 						title="Upcoming Shifts"
 						description={`${upcomingShifts.length} shifts scheduled in the future`}>
 						{upcomingShifts.length > 0 ? (
-							<div className="border rounded-md">
+							<Card>
 								<Table>
 									<TableHeader>
 										<TableRow>
@@ -286,35 +287,37 @@ export default function LocationShiftPage() {
 										})}
 									</TableBody>
 								</Table>
-							</div>
+							</Card>
 						) : (
-							<div className="text-center py-8 border rounded-md bg-muted/20">
-								<p className="text-muted-foreground">
-									No upcoming shifts scheduled for this location.
-								</p>
-								<ShiftCreationSheet
-									scheduleId={locationId || ""}
-									organizationId="org-1"
-									initialLocationId={locationId || ""}
-									onShiftCreated={() => {
-										// Refresh shifts after creation
-										ShiftsAPI.getAll().then((allShifts) => {
-											const locationShifts = allShifts.filter(
-												(shift) => shift.location_id === locationId
-											);
-											setShifts(locationShifts);
-											toast.success("Shift created successfully");
-										});
-									}}
-									trigger={
-										<Button
-											variant="outline"
-											className="mt-4">
-											<Calendar className="h-4 w-4 mr-2" /> Schedule a Shift
-										</Button>
-									}
-								/>
-							</div>
+							<Card className="text-center py-8 bg-muted/20">
+								<CardContent>
+									<p className="text-muted-foreground">
+										No upcoming shifts scheduled for this location.
+									</p>
+									<ShiftCreationSheet
+										scheduleId={locationId || ""}
+										organizationId="org-1"
+										initialLocationId={locationId || ""}
+										onShiftCreated={() => {
+											// Refresh shifts after creation
+											ShiftsAPI.getAll().then((allShifts) => {
+												const locationShifts = allShifts.filter(
+													(shift) => shift.location_id === locationId
+												);
+												setShifts(locationShifts);
+												toast.success("Shift created successfully");
+											});
+										}}
+										trigger={
+											<Button
+												variant="outline"
+												className="mt-4">
+												<Calendar className="h-4 w-4 mr-2" /> Schedule a Shift
+											</Button>
+										}
+									/>
+								</CardContent>
+							</Card>
 						)}
 					</ContentSection>
 
@@ -323,7 +326,7 @@ export default function LocationShiftPage() {
 						title="Past Shifts"
 						description={`${pastShifts.length} shifts completed or missed`}>
 						{pastShifts.length > 0 ? (
-							<div className="border rounded-md">
+							<Card>
 								<Table>
 									<TableHeader>
 										<TableRow>
@@ -384,7 +387,7 @@ export default function LocationShiftPage() {
 									</TableBody>
 								</Table>
 								{pastShifts.length > 10 && (
-									<div className="flex justify-center p-4 border-t">
+									<CardContent className="flex justify-center p-4 border-t">
 										<Button
 											variant="outline"
 											size="sm"
@@ -393,15 +396,17 @@ export default function LocationShiftPage() {
 											}>
 											View All Shift History
 										</Button>
-									</div>
+									</CardContent>
 								)}
-							</div>
+							</Card>
 						) : (
-							<div className="text-center py-8 border rounded-md bg-muted/20">
-								<p className="text-muted-foreground">
-									No shift history available for this location.
-								</p>
-							</div>
+							<Card className="text-center py-8 bg-muted/20">
+								<CardContent>
+									<p className="text-muted-foreground">
+										No shift history available for this location.
+									</p>
+								</CardContent>
+							</Card>
 						)}
 					</ContentSection>
 				</div>

@@ -25,11 +25,14 @@ import {
 	MapPin,
 	X,
 	LayoutGrid,
-	Table,
+	Table as TableIcon,
 	Calendar as CalendarComponent,
 	AlertCircle,
 	Maximize2,
 	User,
+	SearchX,
+	List,
+	Clock,
 } from "lucide-react";
 import { ShiftCreationSheet } from "@/components/ShiftCreationSheet";
 import {
@@ -61,6 +64,10 @@ import { DataTable } from "@/components/ui/data-table";
 import { PageHeader } from "@/components/ui/page-header";
 import { ContentContainer } from "@/components/ui/content-container";
 import { ContentSection } from "@/components/ui/content-section";
+import { cn } from "@/lib/utils";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ColumnDef } from "@tanstack/react-table";
+import { DataCardGrid } from "@/components/ui/data-card-grid";
 
 // Export the ShiftCreationSheet with its props for use in the AppLayout
 export function getHeaderActions() {
@@ -96,7 +103,6 @@ export default function DailyShiftsPage() {
 		return dateParam ? new Date(dateParam) : new Date();
 	});
 	const [shifts, setShifts] = useState<Shift[]>([]);
-	const [filteredShifts, setFilteredShifts] = useState<Shift[]>([]);
 	const [locations, setLocations] = useState<Location[]>([]);
 	const [employees, setEmployees] = useState<Employee[]>([]);
 	const [schedules, setSchedules] = useState<Schedule[]>([]);
@@ -104,9 +110,6 @@ export default function DailyShiftsPage() {
 	const [loadingPhase, setLoadingPhase] = useState<string>("shifts");
 	const [selectedSchedule, setSelectedSchedule] = useState<string | null>(null);
 	const organizationId = searchParams.get("organizationId") || "org-1"; // Default to first org
-	const [searchTerm, setSearchTerm] = useState("");
-	const [selectedLocationIds, setSelectedLocationIds] = useState<string[]>([]);
-	const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
 	const [viewMode, setViewMode] = useState<"table" | "cards">("cards");
 	const [currentPage, setCurrentPage] = useState<number>(1);
 	const [itemsPerPage, setItemsPerPage] = useState<number>(25);
@@ -125,83 +128,6 @@ export default function DailyShiftsPage() {
 			...Object.fromEntries(searchParams.entries()),
 			date: newDate.toISOString().split("T")[0],
 		});
-	};
-
-	// Apply filters to shifts
-	useEffect(() => {
-		let result = [...shifts];
-
-		// Apply search term filter
-		if (searchTerm) {
-			const term = searchTerm.toLowerCase();
-			result = result.filter((shift) => {
-				const locationMatch = locations
-					.find((loc) => loc.id === shift.location_id)
-					?.name?.toLowerCase()
-					.includes(term);
-				const employeeMatch = employees
-					.find((emp) => emp.id === shift.user_id)
-					?.name?.toLowerCase()
-					.includes(term);
-				const timeMatch =
-					format(new Date(shift.start_time), "h:mm a")
-						.toLowerCase()
-						.includes(term) ||
-					format(new Date(shift.end_time), "h:mm a")
-						.toLowerCase()
-						.includes(term);
-
-				return locationMatch || employeeMatch || timeMatch;
-			});
-		}
-
-		// Apply location filter
-		if (selectedLocationIds.length > 0) {
-			result = result.filter((shift) =>
-				selectedLocationIds.includes(shift.location_id || "")
-			);
-		}
-
-		// Apply employee filter
-		if (selectedEmployeeIds.length > 0) {
-			result = result.filter((shift) =>
-				selectedEmployeeIds.includes(shift.user_id || "")
-			);
-		}
-
-		setFilteredShifts(result);
-	}, [
-		shifts,
-		searchTerm,
-		selectedLocationIds,
-		selectedEmployeeIds,
-		locations,
-		employees,
-	]);
-
-	// Reset filters
-	const resetFilters = () => {
-		setSearchTerm("");
-		setSelectedLocationIds([]);
-		setSelectedEmployeeIds([]);
-	};
-
-	// Toggle location filter
-	const toggleLocationFilter = (locationId: string) => {
-		setSelectedLocationIds((prev) =>
-			prev.includes(locationId)
-				? prev.filter((id) => id !== locationId)
-				: [...prev, locationId]
-		);
-	};
-
-	// Toggle employee filter
-	const toggleEmployeeFilter = (employeeId: string) => {
-		setSelectedEmployeeIds((prev) =>
-			prev.includes(employeeId)
-				? prev.filter((id) => id !== employeeId)
-				: [...prev, employeeId]
-		);
 	};
 
 	// Fetch schedules and shifts
@@ -232,9 +158,7 @@ export default function DailyShiftsPage() {
 
 			console.log("API returned shifts:", allShifts);
 
-			// No need to filter shifts here as the API should do that
 			setShifts(allShifts);
-			setFilteredShifts(allShifts);
 
 			// Get all unique location IDs from the shifts
 			setLoadingPhase("locations");
@@ -309,18 +233,11 @@ export default function DailyShiftsPage() {
 		return assignedEmployees;
 	};
 
-	// Calculate pagination
-	const totalItems = filteredShifts.length;
-	const totalPages = Math.ceil(totalItems / itemsPerPage);
-	const paginatedShifts = filteredShifts.slice(
+	// Calculate pagination for card view
+	const paginatedShifts = shifts.slice(
 		(currentPage - 1) * itemsPerPage,
 		currentPage * itemsPerPage
 	);
-
-	// Reset page when filters change
-	useEffect(() => {
-		setCurrentPage(1);
-	}, [searchTerm, selectedLocationIds, selectedEmployeeIds, viewMode]);
 
 	// Render the shift card
 	const ShiftCard = ({ shift }: { shift: Shift }) => {
@@ -329,45 +246,60 @@ export default function DailyShiftsPage() {
 
 		return (
 			<Card
-				className="cursor-pointer hover:shadow-md transition-all border"
+				className="cursor-pointer hover:shadow-sm transition-all border hover:border-primary"
 				onClick={() => navigate(`/shifts/${shift.id}`)}>
-				<CardHeader className="pb-1 px-3 pt-3">
+				<CardHeader className="pb-1 px-4 pt-4">
 					<div className="flex justify-between items-center w-full">
-						<h3 className="font-medium text-sm">
+						<h3 className="font-medium text-sm flex items-center">
+							<div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center mr-2 flex-shrink-0">
+								<Clock className="h-3.5 w-3.5 text-primary" />
+							</div>
 							{formatTime(new Date(shift.start_time))} -{" "}
 							{formatTime(new Date(shift.end_time))}
 						</h3>
 						{hasEmployees ? (
-							<div className="flex items-center gap-1">
-								<User className="h-4 w-4 text-muted-foreground" />
-								<span className="text-xs text-muted-foreground">
-									{assignedEmployees.length}
-								</span>
-							</div>
+							<Badge
+								variant="outline"
+								className="flex items-center gap-1">
+								<User className="h-3.5 w-3.5 text-muted-foreground" />
+								<span>{assignedEmployees.length}</span>
+							</Badge>
 						) : (
-							<div className="flex items-center gap-1">
-								<User className="h-4 w-4 text-destructive" />
-								<span className="text-xs text-destructive">0</span>
-							</div>
+							<Badge
+								variant="destructive"
+								className="flex items-center gap-1">
+								<AlertCircle className="h-3.5 w-3.5" />
+								<span>Open</span>
+							</Badge>
 						)}
 					</div>
 				</CardHeader>
-				<CardContent className="pt-0 px-3 pb-3">
-					<div className="flex items-center text-sm text-muted-foreground">
-						<MapPin className="h-4 w-4 mr-1" />
-						<span>{getLocationName(shift.location_id)}</span>
+				<CardContent className="pt-1 px-4 pb-4">
+					<div className="text-xs text-muted-foreground mb-1.5 flex items-center">
+						<MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
+						<span className="truncate">
+							{getLocationName(shift.location_id)}
+						</span>
 					</div>
+					{shift.name && (
+						<p className="text-sm font-medium truncate">{shift.name}</p>
+					)}
+					{shift.description && (
+						<p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+							{shift.description}
+						</p>
+					)}
 				</CardContent>
 			</Card>
 		);
 	};
 
-	// Table columns with rendering
-	const tableColumns = [
+	// Define columns outside the component to prevent re-renders
+	const tableColumns: ColumnDef<Shift>[] = [
 		{
 			accessorKey: "time",
 			header: "Time",
-			cell: ({ row }: { row: any }) => {
+			cell: ({ row }) => {
 				const shift = row.original;
 				return (
 					<div>
@@ -380,14 +312,21 @@ export default function DailyShiftsPage() {
 		{
 			accessorKey: "location",
 			header: "Location",
-			cell: ({ row }: { row: any }) => (
-				<div>{getLocationName(row.original.location_id)}</div>
+			cell: ({ row }) => (
+				<div className="flex items-center">
+					<MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
+					<span>{getLocationName(row.original.location_id)}</span>
+				</div>
 			),
+			filterFn: (row, id, filterValue) => {
+				const location = getLocationName(row.original.location_id);
+				return location.toLowerCase().includes(filterValue.toLowerCase());
+			},
 		},
 		{
-			accessorKey: "employees",
+			accessorKey: "employee",
 			header: "Employees",
-			cell: ({ row }: { row: any }) => {
+			cell: ({ row }) => {
 				const shift = row.original;
 				const assignedEmployees = getAssignedEmployees(shift);
 				const hasEmployees = assignedEmployees.length > 0;
@@ -395,53 +334,48 @@ export default function DailyShiftsPage() {
 				return (
 					<div>
 						{hasEmployees ? (
-							<Badge variant="outline">
-								{assignedEmployees.length}{" "}
-								{assignedEmployees.length === 1 ? "employee" : "employees"}
+							<Badge
+								variant="outline"
+								className="flex items-center gap-1">
+								<User className="h-3.5 w-3.5 text-muted-foreground" />
+								<span>
+									{assignedEmployees.length}{" "}
+									{assignedEmployees.length === 1 ? "employee" : "employees"}
+								</span>
 							</Badge>
 						) : (
-							<Badge variant="destructive">No employees</Badge>
+							<Badge
+								variant="destructive"
+								className="flex items-center gap-1">
+								<AlertCircle className="h-3.5 w-3.5" />
+								<span>No employees</span>
+							</Badge>
 						)}
 					</div>
 				);
 			},
+			filterFn: (row, id, filterValue) => {
+				const employee = getEmployeeName(row.original.user_id);
+				return employee.toLowerCase().includes(filterValue.toLowerCase());
+			},
 		},
 		{
 			id: "actions",
-			cell: ({ row }: { row: any }) => {
+			header: () => <div className="text-right">Actions</div>,
+			cell: ({ row }) => {
 				return (
-					<Button
-						variant="ghost"
-						size="sm"
-						onClick={() => navigate(`/shifts/${row.original.id}`)}>
-						View
-					</Button>
+					<div className="flex justify-end">
+						<Button
+							variant="ghost"
+							size="sm"
+							onClick={() => navigate(`/shifts/${row.original.id}`)}>
+							View
+						</Button>
+					</div>
 				);
 			},
 		},
 	];
-
-	// Empty state component
-	const EmptyShiftsState = () => (
-		<div className="flex flex-col items-center justify-center py-8 my-4 border rounded-md bg-muted/10">
-			<CalendarComponent className="h-12 w-12 mb-3 text-muted-foreground" />
-			<div className="text-xl font-medium mb-2">No shifts scheduled</div>
-			<div className="text-muted-foreground mb-4">
-				No shifts scheduled for {format(currentDate, "EEEE, MMMM d, yyyy")}
-			</div>
-			<ShiftCreationSheet
-				scheduleId={selectedSchedule || ""}
-				organizationId={organizationId}
-				initialDate={currentDate}
-				trigger={
-					<Button className="bg-primary hover:bg-primary/90 text-white h-9">
-						<Plus className="h-5 w-5 mr-2" />
-						Create Shift
-					</Button>
-				}
-			/>
-		</div>
-	);
 
 	return (
 		<>
@@ -506,239 +440,62 @@ export default function DailyShiftsPage() {
 
 			<ContentContainer>
 				<ContentSection
-					title="Daily Shifts View"
-					description="Manage and filter shifts for the selected date"
-					flat>
-					{/* Filters and controls */}
-					<div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-						{/* View options */}
-						<div className="flex items-center gap-3">
-							{/* View mode switcher */}
-							<div className="flex items-center border rounded-md">
-								<Button
-									variant="ghost"
-									size="icon"
-									className={`rounded-l-md rounded-r-none h-9 w-9 ${
-										viewMode === "cards"
-											? "bg-background shadow-sm"
-											: "bg-transparent hover:bg-transparent"
-									}`}
-									onClick={() => setViewMode("cards")}>
-									<LayoutGrid className="h-5 w-5" />
-								</Button>
-								<Button
-									variant="ghost"
-									size="icon"
-									className={`rounded-l-none rounded-r-md h-9 w-9 ${
-										viewMode === "table"
-											? "bg-background shadow-sm"
-											: "bg-transparent hover:bg-transparent"
-									}`}
-									onClick={() => setViewMode("table")}>
-									<Table className="h-5 w-5" />
-								</Button>
-							</div>
-
-							<Button
-								variant="outline"
-								className="flex items-center gap-2 h-9"
-								onClick={() =>
-									navigate(
-										`/schedule/monthly?date=${format(
-											currentDate,
-											"yyyy-MM-dd"
-										)}&scheduleId=${
-											selectedSchedule || ""
-										}&organizationId=${organizationId}`
-									)
-								}>
-								<Maximize2 className="h-5 w-5" />
-								<span>Monthly View</span>
-							</Button>
-						</div>
-					</div>
-
-					{/* Search and filters directly in the header section */}
-					<div className="flex flex-wrap items-center gap-2 mt-4">
-						<div className="relative flex-1 min-w-[300px]">
-							<Search className="absolute left-2.5 top-2.5 h-5 w-5 text-muted-foreground" />
-							<Input
-								placeholder="Search shifts by location, employee, or time..."
-								className="pl-9 h-9"
-								value={searchTerm}
-								onChange={(e) => setSearchTerm(e.target.value)}
-							/>
-						</div>
-
-						<div className="flex items-center gap-2">
-							<DropdownMenu>
-								<DropdownMenuTrigger>
-									<Button
-										variant="outline"
-										className="flex items-center gap-2 h-9">
-										<MapPin className="h-5 w-5" />
-										<span>Locations</span>
-										{selectedLocationIds.length > 0 && (
-											<Badge
-												variant="secondary"
-												className="ml-1">
-												{selectedLocationIds.length}
-											</Badge>
-										)}
-									</Button>
-								</DropdownMenuTrigger>
-								<DropdownMenuContent
-									align="end"
-									className="w-[200px]">
-									<DropdownMenuLabel>Filter by location</DropdownMenuLabel>
-									<DropdownMenuSeparator />
-									{locations.map((location) => (
-										<DropdownMenuCheckboxItem
-											key={location.id}
-											checked={selectedLocationIds.includes(location.id)}
-											onCheckedChange={() => toggleLocationFilter(location.id)}>
-											{location.name}
-										</DropdownMenuCheckboxItem>
-									))}
-								</DropdownMenuContent>
-							</DropdownMenu>
-
-							<DropdownMenu>
-								<DropdownMenuTrigger>
-									<Button
-										variant="outline"
-										className="flex items-center gap-2 h-9">
-										<User className="h-5 w-5" />
-										<span>Employees</span>
-										{selectedEmployeeIds.length > 0 && (
-											<Badge
-												variant="secondary"
-												className="ml-1">
-												{selectedEmployeeIds.length}
-											</Badge>
-										)}
-									</Button>
-								</DropdownMenuTrigger>
-								<DropdownMenuContent
-									align="end"
-									className="w-[200px]">
-									<DropdownMenuLabel>Filter by employee</DropdownMenuLabel>
-									<DropdownMenuSeparator />
-									{employees.map((employee) => (
-										<DropdownMenuCheckboxItem
-											key={employee.id}
-											checked={selectedEmployeeIds.includes(employee.id)}
-											onCheckedChange={() => toggleEmployeeFilter(employee.id)}>
-											{employee.name}
-										</DropdownMenuCheckboxItem>
-									))}
-								</DropdownMenuContent>
-							</DropdownMenu>
-
-							{(selectedLocationIds.length > 0 ||
-								selectedEmployeeIds.length > 0 ||
-								searchTerm) && (
-								<Button
-									variant="ghost"
-									size="icon"
-									className="h-9 w-9"
-									onClick={resetFilters}
-									title="Clear filters">
-									<X className="h-5 w-5" />
-								</Button>
-							)}
-						</div>
-					</div>
-
-					{/* Active filters */}
-					{(selectedLocationIds.length > 0 ||
-						selectedEmployeeIds.length > 0) && (
-						<div className="flex flex-wrap gap-2 mt-3">
-							{selectedLocationIds.map((id) => (
-								<Badge
-									key={id}
-									variant="outline"
-									className="flex items-center gap-1 py-1 px-2">
-									<MapPin className="h-4 w-4" />
-									{getLocationName(id)}
-									<Button
-										variant="ghost"
-										size="icon"
-										className="h-5 w-5 ml-1 p-0 hover:bg-muted"
-										onClick={() => toggleLocationFilter(id)}>
-										<X className="h-4 w-4" />
-									</Button>
-								</Badge>
-							))}
-
-							{selectedEmployeeIds.map((id) => (
-								<Badge
-									key={id}
-									variant="outline"
-									className="flex items-center gap-1 py-1 px-2">
-									<User className="h-4 w-4" />
-									{getEmployeeName(id)}
-									<Button
-										variant="ghost"
-										size="icon"
-										className="h-5 w-5 ml-1 p-0 hover:bg-muted"
-										onClick={() => toggleEmployeeFilter(id)}>
-										<X className="h-4 w-4" />
-									</Button>
-								</Badge>
-							))}
-
-							<Button
-								variant="ghost"
-								size="sm"
-								className="text-xs h-7"
-								onClick={resetFilters}>
-								Clear all
-							</Button>
-						</div>
-					)}
-				</ContentSection>
-
-				<ContentSection
 					title={`Shifts for ${format(currentDate, "MMMM d, yyyy")}`}
-					description={`${filteredShifts.length} shift${
-						filteredShifts.length !== 1 ? "s" : ""
+					description={`${shifts.length} shift${
+						shifts.length !== 1 ? "s" : ""
 					} scheduled`}
-					className="mt-6">
-					{/* Shifts display */}
+					headerActions={
+						<Button
+							variant="outline"
+							className="flex items-center gap-2 h-8"
+							onClick={() =>
+								navigate(
+									`/schedule/monthly?date=${format(currentDate, "yyyy-MM-dd")}`
+								)
+							}>
+							<Maximize2 className="h-4 w-4" />
+							<span>Monthly View</span>
+						</Button>
+					}>
+					{/* Shifts display with standardized patterns */}
 					{loading ? (
 						<div className="flex flex-col items-center justify-center p-8">
 							<Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
 							<p className="text-muted-foreground">Loading {loadingPhase}...</p>
 						</div>
-					) : filteredShifts.length === 0 ? (
-						<EmptyShiftsState />
-					) : viewMode === "cards" ? (
-						<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-							{paginatedShifts.map((shift) => (
-								<ShiftCard
-									key={shift.id}
-									shift={shift}
+					) : shifts.length === 0 ? (
+						<EmptyState
+							title="No shifts found"
+							description="There are no shifts scheduled for this date."
+							icon={<CalendarComponent className="h-10 w-10" />}
+							action={
+								<ShiftCreationSheet
+									scheduleId={selectedSchedule || ""}
+									organizationId={organizationId}
+									initialDate={currentDate}
+									trigger={
+										<Button>
+											<Plus className="h-4 w-4 mr-2" />
+											Create Shift
+										</Button>
+									}
 								/>
-							))}
-						</div>
+							}
+						/>
 					) : (
-						<div className="rounded-md border">
-							<DataTable
-								columns={tableColumns}
-								data={filteredShifts}
-								externalPagination={{
-									pageIndex: currentPage - 1, // Convert from 1-based to 0-based
-									pageSize: itemsPerPage,
-									totalItems: totalItems,
-									setPageIndex: (pageIndex) => setCurrentPage(pageIndex + 1), // Convert from 0-based to 1-based
-									setPageSize: (pageSize) => {
-										setItemsPerPage(pageSize);
-										setCurrentPage(1);
-									},
-								}}
-							/>
-						</div>
+						<DataTable
+							columns={tableColumns}
+							data={shifts}
+							searchKey="location"
+							searchPlaceholder="Search shifts..."
+							viewOptions={{
+								enableViewToggle: true,
+								defaultView: viewMode,
+								onViewChange: setViewMode,
+								renderCard: (shift: Shift) => <ShiftCard shift={shift} />,
+							}}
+							onRowClick={(shift) => navigate(`/shifts/${shift.id}`)}
+						/>
 					)}
 				</ContentSection>
 			</ContentContainer>

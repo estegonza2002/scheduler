@@ -12,6 +12,89 @@ import { ContentContainer } from "@/components/ui/content-container";
 import { ContentSection } from "@/components/ui/content-section";
 import { SecondaryLayout } from "@/components/layout/SecondaryLayout";
 import { LoadingState } from "@/components/ui/loading-state";
+import {
+	Card,
+	CardContent,
+	CardHeader,
+	CardTitle,
+	CardFooter,
+} from "@/components/ui/card";
+import { DataTable } from "@/components/ui/data-table";
+import { ColumnDef } from "@tanstack/react-table";
+
+// Define invoice interface
+interface Invoice {
+	id: string;
+	date: string;
+	amount: string;
+	status: "paid" | "pending" | "failed";
+}
+
+// Define the columns for the invoice table
+const invoiceColumns: ColumnDef<Invoice>[] = [
+	{
+		accessorKey: "date",
+		header: "Date",
+	},
+	{
+		accessorKey: "amount",
+		header: "Amount",
+	},
+	{
+		accessorKey: "status",
+		header: "Status",
+		cell: ({ row }) => {
+			const status = row.original.status;
+			return (
+				<span
+					className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+						status === "paid"
+							? "bg-green-100 text-green-800"
+							: status === "pending"
+							? "bg-yellow-100 text-yellow-800"
+							: "bg-red-100 text-red-800"
+					}`}>
+					{status.charAt(0).toUpperCase() + status.slice(1)}
+				</span>
+			);
+		},
+	},
+	{
+		id: "actions",
+		header: "Invoice",
+		cell: ({ row }) => {
+			return (
+				<Button
+					variant="link"
+					className="p-0 h-auto font-normal">
+					<Receipt className="h-4 w-4 mr-1" /> View
+				</Button>
+			);
+		},
+	},
+];
+
+// Mock data for invoices
+const invoiceData: Invoice[] = [
+	{
+		id: "INV-001",
+		date: "Mar 15, 2025",
+		amount: "$29.00",
+		status: "paid",
+	},
+	{
+		id: "INV-002",
+		date: "Feb 15, 2025",
+		amount: "$29.00",
+		status: "paid",
+	},
+	{
+		id: "INV-003",
+		date: "Jan 15, 2025",
+		amount: "$29.00",
+		status: "paid",
+	},
+];
 
 export default function BillingPage() {
 	const navigate = useNavigate();
@@ -357,27 +440,31 @@ export default function BillingPage() {
 						</Button>
 					}>
 					<div className="space-y-4">
-						<div className="flex items-center justify-between p-4 border rounded-lg">
-							<div className="flex items-center">
-								<CreditCard className="h-6 w-6 mr-3 text-primary" />
-								<div>
-									<p className="font-medium">Visa ending in 4242</p>
-									<p className="text-sm text-muted-foreground">Expires 12/25</p>
+						<Card>
+							<CardContent className="p-4 flex items-center justify-between">
+								<div className="flex items-center">
+									<CreditCard className="h-6 w-6 mr-3 text-primary" />
+									<div>
+										<p className="font-medium">Visa ending in 4242</p>
+										<p className="text-sm text-muted-foreground">
+											Expires 12/25
+										</p>
+									</div>
 								</div>
-							</div>
-							<div className="flex items-center gap-2">
-								<Button
-									variant="outline"
-									size="sm">
-									Edit
-								</Button>
-								<Button
-									variant="outline"
-									size="sm">
-									Remove
-								</Button>
-							</div>
-						</div>
+								<div className="flex items-center gap-2">
+									<Button
+										variant="outline"
+										size="sm">
+										Edit
+									</Button>
+									<Button
+										variant="outline"
+										size="sm">
+										Remove
+									</Button>
+								</div>
+							</CardContent>
+						</Card>
 					</div>
 				</ContentSection>
 			)}
@@ -387,96 +474,53 @@ export default function BillingPage() {
 				<ContentSection
 					title="Billing History"
 					description="View your past invoices and billing history">
-					<div className="overflow-hidden border rounded-lg">
-						<table className="min-w-full divide-y divide-border">
-							<thead className="bg-muted/50">
-								<tr>
-									<th
-										scope="col"
-										className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-										Date
-									</th>
-									<th
-										scope="col"
-										className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-										Amount
-									</th>
-									<th
-										scope="col"
-										className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-										Status
-									</th>
-									<th
-										scope="col"
-										className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-										Invoice
-									</th>
-								</tr>
-							</thead>
-							<tbody className="bg-background divide-y divide-border">
-								<tr>
-									<td className="px-6 py-4 whitespace-nowrap text-sm">
-										Mar 15, 2025
-									</td>
-									<td className="px-6 py-4 whitespace-nowrap text-sm">
-										$29.00
-									</td>
-									<td className="px-6 py-4 whitespace-nowrap">
-										<span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-											Paid
-										</span>
-									</td>
-									<td className="px-6 py-4 whitespace-nowrap text-sm text-primary">
+					<DataTable
+						columns={invoiceColumns}
+						data={invoiceData}
+						searchKey="date"
+						searchPlaceholder="Search invoices..."
+						viewOptions={{
+							enableViewToggle: true,
+							defaultView: "table",
+							renderCard: (invoice: Invoice) => (
+								<Card className="hover:shadow-sm transition-all cursor-pointer">
+									<CardHeader className="pb-2">
+										<div className="flex justify-between items-center">
+											<CardTitle className="text-base font-medium">
+												{invoice.date}
+											</CardTitle>
+											<span
+												className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+													invoice.status === "paid"
+														? "bg-green-100 text-green-800"
+														: invoice.status === "pending"
+														? "bg-yellow-100 text-yellow-800"
+														: "bg-red-100 text-red-800"
+												}`}>
+												{invoice.status.charAt(0).toUpperCase() +
+													invoice.status.slice(1)}
+											</span>
+										</div>
+									</CardHeader>
+									<CardContent className="pb-2">
+										<p className="text-2xl font-bold mb-1">{invoice.amount}</p>
+										<p className="text-sm text-muted-foreground">
+											Invoice #{invoice.id}
+										</p>
+									</CardContent>
+									<CardFooter className="pt-0">
 										<Button
-											variant="link"
-											className="p-0 h-auto font-normal">
-											<Receipt className="h-4 w-4 mr-1" /> View
+											variant="outline"
+											size="sm"
+											className="w-full">
+											<Receipt className="h-4 w-4 mr-2" />
+											View Invoice
 										</Button>
-									</td>
-								</tr>
-								<tr>
-									<td className="px-6 py-4 whitespace-nowrap text-sm">
-										Feb 15, 2025
-									</td>
-									<td className="px-6 py-4 whitespace-nowrap text-sm">
-										$29.00
-									</td>
-									<td className="px-6 py-4 whitespace-nowrap">
-										<span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-											Paid
-										</span>
-									</td>
-									<td className="px-6 py-4 whitespace-nowrap text-sm text-primary">
-										<Button
-											variant="link"
-											className="p-0 h-auto font-normal">
-											<Receipt className="h-4 w-4 mr-1" /> View
-										</Button>
-									</td>
-								</tr>
-								<tr>
-									<td className="px-6 py-4 whitespace-nowrap text-sm">
-										Jan 15, 2025
-									</td>
-									<td className="px-6 py-4 whitespace-nowrap text-sm">
-										$29.00
-									</td>
-									<td className="px-6 py-4 whitespace-nowrap">
-										<span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-											Paid
-										</span>
-									</td>
-									<td className="px-6 py-4 whitespace-nowrap text-sm text-primary">
-										<Button
-											variant="link"
-											className="p-0 h-auto font-normal">
-											<Receipt className="h-4 w-4 mr-1" /> View
-										</Button>
-									</td>
-								</tr>
-							</tbody>
-						</table>
-					</div>
+									</CardFooter>
+								</Card>
+							),
+						}}
+					/>
 				</ContentSection>
 			)}
 		</SecondaryLayout>

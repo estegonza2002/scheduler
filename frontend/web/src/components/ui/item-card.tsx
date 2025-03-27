@@ -81,28 +81,26 @@ export function ItemCard({
 	return (
 		<Card
 			className={cn(
-				"overflow-hidden transition-all",
-				selectable && "cursor-pointer hover:border-primary/50",
+				"transition-colors",
+				selectable && "cursor-pointer hover:border-primary",
 				selected && "border-primary ring-2 ring-primary/30",
-				onClick && "cursor-pointer hover:shadow-md",
+				onClick && "cursor-pointer",
 				className
 			)}
 			onClick={onClick}>
 			{badge && <div className="absolute top-2 right-2 z-10">{badge}</div>}
 
-			<CardHeader className="relative p-0">
-				{image && (
-					<div className="h-40 w-full overflow-hidden">
-						<img
-							src={image}
-							alt={title}
-							className="h-full w-full object-cover"
-						/>
-					</div>
-				)}
-			</CardHeader>
+			{image && (
+				<div className="w-full aspect-video overflow-hidden">
+					<img
+						src={image}
+						alt={title}
+						className="h-full w-full object-cover"
+					/>
+				</div>
+			)}
 
-			<CardContent className={cn("pt-4", !image && "pt-6")}>
+			<CardHeader className={cn(!image && "pt-6")}>
 				<div className="flex items-center gap-3">
 					{(icon || initials) && !image && (
 						<Avatar>
@@ -115,8 +113,8 @@ export function ItemCard({
 							)}
 						</Avatar>
 					)}
-					<div>
-						<h3 className="font-semibold">{title}</h3>
+					<div className="min-w-0 flex-1">
+						<h3 className="font-semibold truncate">{title}</h3>
 						{description && (
 							<p className="text-sm text-muted-foreground">{description}</p>
 						)}
@@ -124,16 +122,14 @@ export function ItemCard({
 				</div>
 
 				{metadata && (
-					<div className="mt-4 text-sm text-muted-foreground">{metadata}</div>
+					<div className="mt-2 text-sm text-muted-foreground">{metadata}</div>
 				)}
+			</CardHeader>
 
-				{children && <div className="mt-4">{children}</div>}
-			</CardContent>
+			{children && <CardContent>{children}</CardContent>}
 
 			{actions && (
-				<CardFooter className="flex justify-end gap-2 border-t p-4">
-					{actions}
-				</CardFooter>
+				<CardFooter className="flex justify-end gap-2">{actions}</CardFooter>
 			)}
 		</Card>
 	);

@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { Helmet } from "react-helmet";
 import { useNotifications } from "@/lib/notification-context";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,6 +21,10 @@ import {
 	Database,
 	X,
 	ChevronDown,
+	Calendar as CalendarIcon,
+	Clock,
+	SearchX,
+	Filter,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { Notification } from "@/api";
@@ -43,18 +46,147 @@ import {
 	AlertTriangle,
 	Briefcase,
 	Calendar,
-	Clock,
 	FileEdit,
 	Mail,
 	MessageCircle,
 	User,
 } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
 import { NotificationItem } from "@/components/NotificationItem";
-
 import { ContentContainer } from "@/components/ui/content-container";
 import { PageHeader } from "@/components/ui/page-header";
 import { ContentSection } from "@/components/ui/content-section";
+import { Card, CardContent } from "@/components/ui/card";
+import { DataTable } from "@/components/ui/data-table";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ColumnDef } from "@tanstack/react-table";
+
+// Define columns outside the component to prevent re-renders
+const columns: ColumnDef<Notification>[] = [
+	{
+		accessorKey: "id",
+		header: "ID",
+		cell: ({ row }) => (
+			<span className="font-mono text-xs">{row.getValue("id")}</span>
+		),
+	},
+	{
+		accessorKey: "type",
+		header: "Type",
+		cell: ({ row }) => {
+			const type = row.getValue("type") as string;
+			const icon = getNotificationIcon(type);
+			const label = getNotificationTypeLabel(type);
+			return (
+				<div className="flex items-center">
+					<div className="mr-2 flex-shrink-0">{icon}</div>
+					<span>{label}</span>
+				</div>
+			);
+		},
+	},
+	{
+		accessorKey: "title",
+		header: "Title",
+		cell: ({ row }) => (
+			<span className="font-medium">{row.getValue("title")}</span>
+		),
+	},
+	{
+		accessorKey: "message",
+		header: "Message",
+		cell: ({ row }) => (
+			<div className="max-w-md truncate">{row.getValue("message")}</div>
+		),
+	},
+	{
+		accessorKey: "createdAt",
+		header: "Time",
+		cell: ({ row }) => {
+			const date = new Date(row.getValue("createdAt") as string);
+			return (
+				<div className="flex items-center">
+					<Clock className="mr-2 h-4 w-4 text-muted-foreground" />
+					<span>{formatDistanceToNow(date, { addSuffix: true })}</span>
+				</div>
+			);
+		},
+	},
+	{
+		id: "actions",
+		cell: ({ row }) => {
+			const notification = row.original;
+			const isRead = notification.isRead;
+
+			return (
+				<div className="flex items-center justify-end">
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<Button
+								variant="ghost"
+								size="icon">
+								<ChevronDown className="h-4 w-4" />
+							</Button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent
+							align="end"
+							className="w-[160px]">
+							{!isRead && (
+								<DropdownMenuItem
+									onClick={() => handleMarkAsReadClick(notification.id)}>
+									<Check className="mr-2 h-4 w-4" />
+									<span>Mark as read</span>
+								</DropdownMenuItem>
+							)}
+							{notification.actionUrl && (
+								<DropdownMenuItem asChild>
+									<Link to={notification.actionUrl}>
+										<CalendarIcon className="mr-2 h-4 w-4" />
+										<span>View Details</span>
+									</Link>
+								</DropdownMenuItem>
+							)}
+							<DropdownMenuSeparator />
+							<DropdownMenuItem
+								className="text-destructive"
+								onClick={() => handleDismissClick(notification.id)}>
+								<Trash2 className="mr-2 h-4 w-4" />
+								<span>Delete</span>
+							</DropdownMenuItem>
+						</DropdownMenuContent>
+					</DropdownMenu>
+				</div>
+			);
+		},
+	},
+];
+
+// Helper function to get readable labels for notification types
+function getNotificationTypeLabel(type: string): string {
+	switch (type) {
+		case "shift_update":
+			return "Shift Update";
+		case "shift_reminder":
+			return "Reminder";
+		case "request_update":
+			return "Request Update";
+		case "system":
+			return "System";
+		case "message":
+			return "Message";
+		case "document":
+			return "Document";
+		case "calendar":
+			return "Calendar";
+		case "user":
+			return "User";
+		case "email":
+			return "Email";
+		case "task":
+			return "Task";
+		default:
+			return type.replace(/_/g, " ");
+	}
+}
 
 export default function NotificationsPage() {
 	const {
@@ -69,109 +201,95 @@ export default function NotificationsPage() {
 		toggleSampleData,
 	} = useNotifications();
 
-	const [filter, setFilter] = useState<"all" | "unread" | "read">("all");
-	const [selectedTypes, setSelectedTypes] = useState<string[]>(["all"]);
+	// Table filters
+	const [currentPage, setCurrentPage] = useState(1);
+	const [pageSize, setPageSize] = useState(25);
 	const [searchQuery, setSearchQuery] = useState("");
-	const [sortBy, setSortBy] = useState<"newest" | "oldest">("newest");
+	const [readFilter, setReadFilter] = useState<string | null>(null);
+	const [typeFilter, setTypeFilter] = useState<string | null>(null);
+	const [viewMode, setViewMode] = useState<"table" | "cards">("table");
 
-	// Available notification types with icons
+	// Available notification types with icons for filter
 	const notificationTypes = [
-		{ value: "all", label: "All types" },
 		{
 			value: "shift_update",
 			label: "Shift Updates",
-			icon: <Clock className="h-4 w-4 text-blue-500 mr-2" />,
 		},
 		{
 			value: "shift_reminder",
 			label: "Reminders",
-			icon: <Bell className="h-4 w-4 text-purple-500 mr-2" />,
 		},
 		{
 			value: "request_update",
 			label: "Request Updates",
-			icon: <Check className="h-4 w-4 text-green-500 mr-2" />,
 		},
 		{
 			value: "system",
 			label: "System",
-			icon: <AlertTriangle className="h-4 w-4 text-amber-500 mr-2" />,
 		},
 		{
 			value: "message",
 			label: "Messages",
-			icon: <MessageCircle className="h-4 w-4 text-indigo-500 mr-2" />,
 		},
 		{
 			value: "document",
 			label: "Documents",
-			icon: <FileEdit className="h-4 w-4 text-rose-500 mr-2" />,
 		},
 		{
 			value: "calendar",
 			label: "Calendar",
-			icon: <Calendar className="h-4 w-4 text-cyan-500 mr-2" />,
 		},
 		{
 			value: "user",
 			label: "User",
-			icon: <User className="h-4 w-4 text-emerald-500 mr-2" />,
 		},
 		{
 			value: "email",
 			label: "Email",
-			icon: <Mail className="h-4 w-4 text-orange-500 mr-2" />,
 		},
 		{
 			value: "task",
 			label: "Tasks",
-			icon: <Briefcase className="h-4 w-4 text-violet-500 mr-2" />,
 		},
 	];
 
-	// Handle type selection
-	const toggleType = (type: string) => {
-		if (type === "all") {
-			setSelectedTypes(["all"]);
-			return;
-		}
-
-		// Remove 'all' if it's in the selection and we're selecting something else
-		let newSelection = selectedTypes.filter((t) => t !== "all");
-
-		if (selectedTypes.includes(type)) {
-			newSelection = newSelection.filter((t) => t !== type);
-		} else {
-			newSelection.push(type);
-		}
-
-		if (newSelection.length === 0) {
-			setSelectedTypes(["all"]);
-		} else {
-			setSelectedTypes(newSelection);
-		}
-	};
+	// Read status filter options
+	const readStatusOptions = [
+		{ value: "all", label: "All" },
+		{ value: "unread", label: "Unread Only" },
+		{ value: "read", label: "Read Only" },
+	];
 
 	// Use sample notifications when useSampleData is true
 	const displayNotifications = useSampleData
 		? sampleNotifications
 		: notifications;
 
+	// Handle mark as read
+	const handleMarkAsRead = (id: string) => {
+		if (!useSampleData) {
+			markAsRead(id);
+		}
+	};
+
+	// Handle dismiss notification
+	const handleDismiss = (id: string) => {
+		if (!useSampleData) {
+			dismissNotification(id);
+		}
+	};
+
 	// Filter notifications based on current filters
-	const filteredNotifications = displayNotifications
-		.filter((notification) => {
-			// Apply read/unread filter
-			if (filter === "unread" && notification.isRead) return false;
-			if (filter === "read" && !notification.isRead) return false;
+	const getFilteredNotifications = () => {
+		return displayNotifications.filter((notification) => {
+			// Filter by read status
+			if (readFilter === "unread" && notification.isRead) return false;
+			if (readFilter === "read" && !notification.isRead) return false;
 
-			// Apply type filter - now supports multiple types
-			if (
-				!selectedTypes.includes("all") &&
-				!selectedTypes.includes(notification.type)
-			)
-				return false;
+			// Filter by type
+			if (typeFilter && notification.type !== typeFilter) return false;
 
-			// Apply search filter
+			// Filter by search query
 			if (searchQuery) {
 				const query = searchQuery.toLowerCase();
 				return (
@@ -181,63 +299,132 @@ export default function NotificationsPage() {
 			}
 
 			return true;
-		})
-		.sort((a, b) => {
-			const dateA = new Date(a.createdAt).getTime();
-			const dateB = new Date(b.createdAt).getTime();
-			return sortBy === "newest" ? dateB - dateA : dateA - dateB;
 		});
-
-	// Group notifications by date
-	const groupedNotifications: {
-		[key: string]: (typeof displayNotifications)[number][];
-	} = {};
-
-	filteredNotifications.forEach((notification) => {
-		const date = new Date(notification.createdAt);
-		const today = new Date();
-		const yesterday = new Date(today);
-		yesterday.setDate(yesterday.getDate() - 1);
-
-		let dateStr: string;
-
-		if (date.toDateString() === today.toDateString()) {
-			dateStr = "Today";
-		} else if (date.toDateString() === yesterday.toDateString()) {
-			dateStr = "Yesterday";
-		} else {
-			dateStr = format(date, "MMM d, yyyy");
-		}
-
-		if (!groupedNotifications[dateStr]) {
-			groupedNotifications[dateStr] = [];
-		}
-
-		groupedNotifications[dateStr].push(notification);
-	});
-
-	const handleMarkAsRead = (id: string) => {
-		if (!useSampleData) {
-			markAsRead(id);
-		}
 	};
 
-	const handleDismiss = (id: string) => {
-		if (!useSampleData) {
-			dismissNotification(id);
-		}
+	const filteredNotifications = getFilteredNotifications();
+
+	// Calculate pagination
+	const totalPages = Math.ceil(filteredNotifications.length / pageSize);
+	const paginatedNotifications = filteredNotifications.slice(
+		(currentPage - 1) * pageSize,
+		currentPage * pageSize
+	);
+
+	// Handle page change
+	const handlePageChange = (page: number) => {
+		setCurrentPage(page);
 	};
 
-	const handleMarkAllAsRead = () => {
-		if (!useSampleData) {
-			markAllAsRead();
-		}
+	// Handle page size change
+	const handlePageSizeChange = (size: number) => {
+		setPageSize(size);
+		setCurrentPage(1);
 	};
 
-	const handleClearAll = () => {
-		if (!useSampleData) {
-			dismissAllNotifications();
-		}
+	// Clear all filters
+	const handleClearFilters = () => {
+		setSearchQuery("");
+		setReadFilter(null);
+		setTypeFilter(null);
+		setCurrentPage(1);
+	};
+
+	// Get filter label for display
+	const getTypeFilterLabel = () => {
+		if (!typeFilter) return "All Types";
+		const selectedType = notificationTypes.find(
+			(type) => type.value === typeFilter
+		);
+		return selectedType ? selectedType.label : "All Types";
+	};
+
+	// Determine if any filters are active
+	const hasActiveFilters = Boolean(searchQuery || readFilter || typeFilter);
+
+	// Notification card for card view
+	const NotificationCard = ({
+		notification,
+	}: {
+		notification: Notification;
+	}) => {
+		const icon = getNotificationIcon(notification.type);
+		const formattedTime = formatDistanceToNow(
+			new Date(notification.createdAt),
+			{
+				addSuffix: true,
+			}
+		);
+
+		return (
+			<Card
+				className={cn(!notification.isRead && "bg-muted/10 border-primary/20")}>
+				<CardContent className="p-4">
+					<div className="flex items-start gap-4">
+						<div
+							className={cn(
+								"rounded-full p-2 flex-shrink-0",
+								!notification.isRead ? "bg-primary/10" : "bg-muted"
+							)}>
+							{icon}
+						</div>
+
+						<div className="flex-1 min-w-0">
+							<div className="flex justify-between items-start gap-2">
+								<div>
+									<h3
+										className={cn(
+											"text-sm font-medium",
+											!notification.isRead && "font-semibold"
+										)}>
+										{notification.title}
+									</h3>
+									<p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+										{notification.message}
+									</p>
+								</div>
+								<Badge
+									variant={notification.isRead ? "outline" : "secondary"}
+									className="ml-auto">
+									{notification.isRead ? "Read" : "Unread"}
+								</Badge>
+							</div>
+
+							<div className="flex justify-between items-center mt-3">
+								<div className="flex items-center text-xs text-muted-foreground">
+									<Clock className="h-3 w-3 mr-1" />
+									<span>{formattedTime}</span>
+								</div>
+
+								<div className="flex items-center gap-2">
+									{!notification.isRead && (
+										<Button
+											variant="outline"
+											size="sm"
+											className="h-7 px-2"
+											onClick={() => handleMarkAsRead(notification.id)}
+											disabled={useSampleData}>
+											<Check className="h-3 w-3 mr-1" />
+											Mark read
+										</Button>
+									)}
+
+									<Button
+										variant="outline"
+										size="sm"
+										className="h-7 px-2 text-destructive border-destructive/20 hover:bg-destructive/10"
+										onClick={() => handleDismiss(notification.id)}
+										disabled={useSampleData}>
+										<Trash2 className="h-3 w-3 mr-1" />
+										Delete
+									</Button>
+								</div>
+							</div>
+						</div>
+					</div>
+				</CardContent>
+			</Card>
+		);
 	};
 
 	// Notification actions for the page header
@@ -259,7 +446,7 @@ export default function NotificationsPage() {
 			<Button
 				variant="outline"
 				size="sm"
-				onClick={handleMarkAllAsRead}
+				onClick={markAllAsRead}
 				disabled={filteredNotifications.filter((n) => !n.isRead).length === 0}>
 				<Check className="h-4 w-4 mr-2" />
 				Mark All Read
@@ -267,7 +454,7 @@ export default function NotificationsPage() {
 			<Button
 				variant="outline"
 				size="sm"
-				onClick={handleClearAll}
+				onClick={dismissAllNotifications}
 				disabled={filteredNotifications.length === 0}>
 				<Trash2 className="h-4 w-4 mr-2" />
 				Clear All
@@ -284,199 +471,101 @@ export default function NotificationsPage() {
 			/>
 
 			<ContentContainer>
-				<ContentSection
-					title="Notification Filters"
-					description="Search and filter your notifications"
-					flat>
-					<div className="flex flex-col md:flex-row gap-4">
-						<div className="flex-1 relative">
-							<Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-							<Input
-								placeholder="Search notifications..."
-								className="pl-8"
-								value={searchQuery}
-								onChange={(e) => setSearchQuery(e.target.value)}
+				<ContentSection title="Notification Management">
+					{/* Read status filter */}
+					<div className="flex items-center gap-2 mt-4">
+						<Select
+							value={readFilter || "all"}
+							onValueChange={(value) => {
+								setReadFilter(value === "all" ? null : value);
+								setCurrentPage(1);
+							}}>
+							<SelectTrigger className="w-[180px]">
+								<SelectValue placeholder="Filter by status" />
+							</SelectTrigger>
+							<SelectContent>
+								{readStatusOptions.map((option) => (
+									<SelectItem
+										key={option.value}
+										value={option.value}>
+										{option.label}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+
+						{/* Sample data toggle */}
+						<div className="ml-auto flex items-center gap-2">
+							<span className="text-sm text-muted-foreground">
+								Use sample data:
+							</span>
+							<Switch
+								checked={useSampleData}
+								onCheckedChange={toggleSampleData}
 							/>
-						</div>
-
-						<div className="flex flex-wrap gap-2">
-							<Select
-								value={filter}
-								onValueChange={(value) => setFilter(value as any)}>
-								<SelectTrigger className="w-[130px]">
-									<SelectValue placeholder="Filter" />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value="all">All</SelectItem>
-									<SelectItem value="unread">Unread</SelectItem>
-									<SelectItem value="read">Read</SelectItem>
-								</SelectContent>
-							</Select>
-
-							<DropdownMenu>
-								<DropdownMenuTrigger asChild>
-									<Button
-										variant="outline"
-										className="w-[150px] justify-between">
-										<span className="truncate">
-											{selectedTypes.includes("all")
-												? "All types"
-												: `${selectedTypes.length} selected`}
-										</span>
-										<ChevronDown className="h-4 w-4 opacity-50" />
-									</Button>
-								</DropdownMenuTrigger>
-								<DropdownMenuContent className="w-[220px]">
-									<DropdownMenuLabel>Notification Types</DropdownMenuLabel>
-									<DropdownMenuSeparator />
-									<ScrollArea className="h-[300px]">
-										<div className="p-1">
-											<div
-												className="relative flex cursor-default select-none items-center rounded-sm py-1.5 px-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
-												onClick={() => toggleType("all")}>
-												<div className="mr-2 h-4 w-4 flex items-center justify-center">
-													{selectedTypes.includes("all") && (
-														<Check className="h-4 w-4" />
-													)}
-												</div>
-												<span>All types</span>
-											</div>
-
-											{notificationTypes
-												.filter((t) => t.value !== "all")
-												.map((type) => (
-													<div
-														key={type.value}
-														className="relative flex cursor-default select-none items-center rounded-sm py-1.5 px-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
-														onClick={() => toggleType(type.value)}>
-														<div className="mr-2 h-4 w-4 flex items-center justify-center">
-															{selectedTypes.includes(type.value) && (
-																<Check className="h-4 w-4" />
-															)}
-														</div>
-														{type.icon}
-														<span>{type.label}</span>
-													</div>
-												))}
-										</div>
-									</ScrollArea>
-								</DropdownMenuContent>
-							</DropdownMenu>
-
-							<Select
-								value={sortBy}
-								onValueChange={(value) => setSortBy(value as any)}>
-								<SelectTrigger className="w-[150px]">
-									<SelectValue placeholder="Sort by" />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value="newest">Newest first</SelectItem>
-									<SelectItem value="oldest">Oldest first</SelectItem>
-								</SelectContent>
-							</Select>
 						</div>
 					</div>
 
-					{/* Display selected types as badges if not "all" */}
-					{!selectedTypes.includes("all") && selectedTypes.length > 0 && (
-						<div className="flex flex-wrap gap-1 items-center mt-4">
-							<span className="text-sm text-muted-foreground mr-1">
-								Filtered by:
-							</span>
-							{selectedTypes.map((typeValue) => {
-								const typeObj = notificationTypes.find(
-									(t) => t.value === typeValue
-								);
-								return (
-									<Badge
-										key={typeValue}
-										variant="outline"
-										className="flex items-center gap-1 pr-1">
-										{typeObj?.icon && (
-											<span className="scale-75">{typeObj.icon}</span>
-										)}
-										<span>
-											{typeObj?.label
-												.replace(" Updates", "")
-												.replace(" Notifications", "")}
-										</span>
-										<Button
-											variant="ghost"
-											size="icon"
-											className="h-4 w-4 ml-1 hover:bg-muted"
-											onClick={() => toggleType(typeValue)}>
-											<X className="h-3 w-3" />
-										</Button>
-									</Badge>
-								);
-							})}
-							<Button
-								variant="ghost"
-								size="sm"
-								className="text-xs h-7"
-								onClick={() => setSelectedTypes(["all"])}>
-								Clear filters
-							</Button>
-						</div>
-					)}
-
-					<div className="flex justify-between items-center mt-4">
-						<p className="text-sm text-muted-foreground font-medium bg-muted/40 px-3 py-1 rounded-full">
+					{/* Notification count */}
+					<div className="mt-4">
+						<p className="text-sm text-muted-foreground">
 							{filteredNotifications.length === 0
 								? "No notifications found"
 								: `Showing ${filteredNotifications.length} notification${
 										filteredNotifications.length !== 1 ? "s" : ""
-								  }${useSampleData ? " (Sample Data)" : ""}`}
+								  }`}
+							{useSampleData && " (Sample Data)"}
 						</p>
 					</div>
-				</ContentSection>
 
-				<ContentSection
-					title="Notification Messages"
-					description="Your latest notifications and alerts"
-					className="mt-6">
-					{loading ? (
-						<div className="flex items-center justify-center p-6 border rounded-lg bg-background">
-							<div className="animate-spin rounded-full h-6 w-6 border-2 border-b-transparent border-primary"></div>
-						</div>
-					) : filteredNotifications.length === 0 ? (
-						<div className="flex flex-col items-center justify-center p-8 text-center border rounded-lg bg-background">
-							<div className="bg-muted/30 p-4 rounded-full mb-3">
-								<Bell className="h-10 w-10 text-muted-foreground" />
+					{/* Notifications content */}
+					<div className="mt-6">
+						{loading ? (
+							<div className="flex flex-col items-center justify-center p-8">
+								<RefreshCw className="h-8 w-8 animate-spin text-primary mb-2" />
+								<p className="text-muted-foreground">
+									Loading notifications...
+								</p>
 							</div>
-							<h3 className="text-lg font-medium">No notifications found</h3>
-							<p className="text-sm text-muted-foreground mt-1 max-w-sm">
-								{notifications.length > 0
-									? "Try changing your filters to see more notifications"
-									: "You don't have any notifications yet. They'll appear here when you receive them."}
-							</p>
-						</div>
-					) : (
-						<div className="border rounded-lg overflow-hidden bg-background">
-							<div className="h-[calc(100vh-350px)] overflow-y-auto">
-								{Object.entries(groupedNotifications).map(
-									([date, notifications]) => (
-										<div
-											key={date}
-											className="relative">
-											<div className="sticky top-0 z-20 py-2 px-4 font-medium text-primary bg-background/95 backdrop-blur-sm border-b shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-												{date}
-											</div>
-											{notifications.map((notification) => (
-												<NotificationItem
-													key={notification.id}
-													notification={notification}
-													onMarkAsRead={handleMarkAsRead}
-													onDismiss={handleDismiss}
-													useSampleData={useSampleData}
-												/>
-											))}
-										</div>
-									)
-								)}
-							</div>
-						</div>
-					)}
+						) : filteredNotifications.length === 0 ? (
+							<EmptyState
+								icon={<Bell className="h-10 w-10" />}
+								title="No notifications found"
+								description={
+									notifications.length > 0
+										? "Try changing your filters to see more notifications"
+										: "You don't have any notifications yet. They'll appear here when you receive them."
+								}
+								action={
+									hasActiveFilters ? (
+										<Button
+											variant="outline"
+											onClick={handleClearFilters}>
+											Clear filters
+										</Button>
+									) : undefined
+								}
+							/>
+						) : viewMode === "table" ? (
+							<>
+								<DataTable
+									columns={columns}
+									data={paginatedNotifications}
+								/>
+							</>
+						) : (
+							<>
+								<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+									{paginatedNotifications.map((notification) => (
+										<NotificationCard
+											key={notification.id}
+											notification={notification}
+										/>
+									))}
+								</div>
+							</>
+						)}
+					</div>
 				</ContentSection>
 			</ContentContainer>
 		</>

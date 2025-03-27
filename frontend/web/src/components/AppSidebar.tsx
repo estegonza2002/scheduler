@@ -36,6 +36,7 @@ import { useState, useEffect } from "react";
 import { OrganizationsAPI, type Organization } from "@/api";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Card, CardContent } from "@/components/ui/card";
 
 type NavItem = {
 	icon: React.ReactNode;
@@ -281,8 +282,8 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 				{/* Upgrade Banner */}
 				{!isPaidUser && (
 					<div className="px-2 mt-auto">
-						<div className="rounded-lg border bg-card text-card-foreground shadow">
-							<div className="p-4">
+						<Card>
+							<CardContent className="p-4">
 								<div className="flex items-center gap-2 mb-3">
 									<Sparkles className="h-5 w-5 text-primary" />
 									<h4 className="font-medium">Upgrade to Pro</h4>
@@ -295,8 +296,8 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 									className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 w-full">
 									Upgrade
 								</Link>
-							</div>
-						</div>
+							</CardContent>
+						</Card>
 					</div>
 				)}
 			</SidebarContent>

@@ -1,35 +1,22 @@
-import * as React from "react";
-import { useState } from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import {
-	Popover,
-	PopoverContent,
-	PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-	Tabs,
-	TabsContent,
-	TabsList,
-	TabsTrigger,
-} from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@/components/ui/table";
+	Calendar as CalendarIcon,
+	ChevronDown,
+	ChevronLeft,
+	ChevronRight,
+	Clock,
+	Eye,
+	LayoutGrid,
+	List,
+	MapPin,
+	Pencil,
+	Plus,
+	Search,
+	SearchX,
+	Users,
+	X,
+} from "lucide-react";
 import {
 	format,
 	parseISO,
@@ -42,28 +29,18 @@ import {
 	startOfDay,
 	endOfDay,
 } from "date-fns";
-import {
-	Calendar as CalendarIcon,
-	ChevronRight,
-	Clock,
-	Download,
-	FileText,
-	Filter,
-	Search,
-	Users,
-	Plus,
-	Pencil,
-	Eye,
-	LayoutGrid,
-	List,
-	ChevronDown,
-	MapPin,
-	Check,
-	X,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { DateRange } from "react-day-picker";
+import { Button } from "@/components/ui/button";
+import {
+	Card,
+	CardContent,
+	CardFooter,
+	CardHeader,
+	CardTitle,
+	CardDescription,
+} from "@/components/ui/card";
+import { ContentContainer } from "@/components/ui/content-container";
+import { ContentSection } from "@/components/ui/content-section";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -71,10 +48,48 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { EmptyState } from "@/components/ui/empty-state";
 import { ExportDropdown } from "@/components/ExportDropdown";
+import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
-import { ContentContainer } from "@/components/ui/content-container";
-import { ContentSection } from "@/components/ui/content-section";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+import {
+	ColumnDef,
+	ColumnFiltersState,
+	SortingState,
+	flexRender,
+	getCoreRowModel,
+	getFilteredRowModel,
+	getPaginationRowModel,
+	getSortedRowModel,
+	useReactTable,
+} from "@tanstack/react-table";
+
+import { cn } from "@/lib/utils";
+import { Calendar } from "@/components/ui/calendar";
+import { DateRange } from "react-day-picker";
 
 // Mock data for shifts - in a real app this would come from an API
 const mockShifts = [
@@ -210,6 +225,140 @@ const mockShifts = [
 	},
 ];
 
+// Define columns with sorting enabled
+const columns: ColumnDef<(typeof mockShifts)[0]>[] = [
+	{
+		accessorKey: "id",
+		header: "Shift ID",
+		cell: ({ row }) => (
+			<span className="font-medium">{row.getValue("id")}</span>
+		),
+	},
+	{
+		accessorKey: "date",
+		header: "Date",
+		cell: ({ row }) => {
+			const date = row.getValue("date") as string;
+			return <span>{format(parseISO(date), "MMM d, yyyy")}</span>;
+		},
+		filterFn: (row, id, value) => {
+			if (!value) return true;
+			const rowDate = parseISO(row.getValue(id));
+			if (typeof value === "string") return false; // Not used
+
+			// Custom filter for date range
+			if (value.dateRange && value.dateRange.from && value.dateRange.to) {
+				return isWithinInterval(rowDate, {
+					start: startOfDay(value.dateRange.from),
+					end: endOfDay(value.dateRange.to),
+				});
+			}
+
+			// Custom filter for single date
+			if (value.selectedDate) {
+				return isWithinInterval(rowDate, {
+					start: startOfDay(value.selectedDate),
+					end: endOfDay(value.selectedDate),
+				});
+			}
+
+			return false;
+		},
+	},
+	{
+		accessorKey: "locationName",
+		header: "Location",
+		cell: ({ row }) => (
+			<div className="flex items-center">
+				<MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
+				<span>{row.getValue("locationName")}</span>
+			</div>
+		),
+	},
+	{
+		accessorKey: "employeesScheduled",
+		header: "Employees",
+		cell: ({ row }) => {
+			const count = row.getValue("employeesScheduled") as number;
+			return (
+				<div className="flex items-center">
+					<Users className="mr-2 h-4 w-4 text-muted-foreground" />
+					<span>{count} scheduled</span>
+				</div>
+			);
+		},
+	},
+	{
+		accessorKey: "totalScheduledHours",
+		header: "Scheduled Hours",
+		cell: ({ row }) => <span>{row.getValue("totalScheduledHours")} hrs</span>,
+	},
+	{
+		accessorKey: "totalActualHours",
+		header: "Actual Hours",
+		cell: ({ row }) => <span>{row.getValue("totalActualHours")} hrs</span>,
+	},
+	{
+		accessorKey: "status",
+		header: "Status",
+		cell: ({ row }) => {
+			const status = row.getValue("status") as string;
+			return (
+				<Badge
+					variant={status === "Completed" ? "secondary" : "default"}
+					className="whitespace-nowrap">
+					{status}
+				</Badge>
+			);
+		},
+	},
+	{
+		id: "actions",
+		header: () => <div className="text-right">Actions</div>,
+		cell: ({ row }) => {
+			return (
+				<div className="flex justify-end gap-2">
+					<Button
+						variant="ghost"
+						size="icon"
+						asChild>
+						<Link to={`/shifts/${row.getValue("id")}`}>
+							<Eye className="h-4 w-4" />
+						</Link>
+					</Button>
+					<Button
+						variant="ghost"
+						size="icon"
+						asChild>
+						<Link to={`/shifts/${row.getValue("id")}/edit`}>
+							<Pencil className="h-4 w-4" />
+						</Link>
+					</Button>
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<Button
+								variant="ghost"
+								size="icon">
+								<ChevronDown className="h-4 w-4" />
+							</Button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent align="end">
+							<DropdownMenuItem asChild>
+								<Link to={`/shifts/${row.getValue("id")}/details`}>
+									View Details
+								</Link>
+							</DropdownMenuItem>
+							<DropdownMenuItem asChild>
+								<Link to={`/shifts/${row.getValue("id")}/logs`}>View Logs</Link>
+							</DropdownMenuItem>
+						</DropdownMenuContent>
+					</DropdownMenu>
+				</div>
+			);
+		},
+	},
+];
+
 export function ShiftsPage() {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
@@ -219,17 +368,90 @@ export function ShiftsPage() {
 	>("single");
 	const [datePreset, setDatePreset] = useState<string | null>(null);
 	const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
-	const [currentTab, setCurrentTab] = useState("today");
-	const [viewMode, setViewMode] = useState<"table" | "card">("table");
+	const [currentTab, setCurrentTab] = useState("all");
+	const [viewMode, setViewMode] = useState<"table" | "cards">("table");
 
-	// Mock organization and schedule IDs - in a real app these would come from context/props
-	const organizationId = "org-123";
-	const scheduleId = "schedule-456";
+	// TanStack Table state
+	const [sorting, setSorting] = React.useState<SortingState>([]);
+	const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
+		[]
+	);
+	const [pagination, setPagination] = React.useState({
+		pageIndex: 0,
+		pageSize: 25,
+	});
+
+	// Filter shifts based on current tab
+	const getTabFilteredShifts = () => {
+		let filtered = [...mockShifts];
+
+		// Apply tab filter
+		if (currentTab === "open") {
+			filtered = filtered.filter((shift) => shift.status === "Open");
+		} else if (currentTab === "today") {
+			filtered = filtered.filter((shift) => isToday(parseISO(shift.date)));
+		}
+
+		return filtered;
+	};
+
+	const tabFilteredShifts = getTabFilteredShifts();
+
+	// Setup the react table instance
+	const table = useReactTable({
+		data: tabFilteredShifts,
+		columns,
+		getCoreRowModel: getCoreRowModel(),
+		getPaginationRowModel: getPaginationRowModel(),
+		onSortingChange: setSorting,
+		getSortedRowModel: getSortedRowModel(),
+		onColumnFiltersChange: setColumnFilters,
+		getFilteredRowModel: getFilteredRowModel(),
+		onPaginationChange: setPagination,
+		state: {
+			sorting,
+			columnFilters,
+			pagination,
+		},
+	});
+
+	// Apply filters programmatically when filter controls are used
+	React.useEffect(() => {
+		// Apply search filter
+		if (searchQuery) {
+			table.getColumn("id")?.setFilterValue(searchQuery);
+		} else {
+			table.getColumn("id")?.setFilterValue("");
+		}
+
+		// Apply location filter
+		if (selectedLocation) {
+			table.getColumn("locationName")?.setFilterValue(selectedLocation);
+		} else {
+			table.getColumn("locationName")?.setFilterValue("");
+		}
+
+		// Apply date filters
+		if (selectedDate || (dateRange && dateRange.from && dateRange.to)) {
+			table.getColumn("date")?.setFilterValue({
+				selectedDate,
+				dateRange,
+			});
+		} else {
+			table.getColumn("date")?.setFilterValue(null);
+		}
+	}, [searchQuery, selectedLocation, selectedDate, dateRange, table]);
 
 	// Get unique locations from mock data
 	const uniqueLocations = Array.from(
 		new Set(mockShifts.map((shift) => shift.locationName))
 	);
+
+	// Create location filter options in the format required by the filter dropdown
+	const locationFilterOptions = uniqueLocations.map((location) => ({
+		label: location,
+		value: location,
+	}));
 
 	// Handle location filter selection
 	const handleLocationSelect = (location: string | null) => {
@@ -258,860 +480,820 @@ export function ShiftsPage() {
 				setDateFilterType("preset");
 				setDatePreset("Yesterday");
 				break;
-			case "last7days":
+			case "this_week":
+				const startThis = subDays(today, today.getDay());
+				const endThis = new Date(startThis);
+				endThis.setDate(startThis.getDate() + 6);
 				setSelectedDate(undefined);
-				setDateRange({
-					from: subDays(today, 6),
-					to: today,
-				});
+				setDateRange({ from: startThis, to: endThis });
 				setDateFilterType("preset");
-				setDatePreset("Last 7 Days");
+				setDatePreset("This Week");
 				break;
-			case "last15days":
+			case "last_week":
+				const startLast = subDays(today, today.getDay() + 7);
+				const endLast = new Date(startLast);
+				endLast.setDate(startLast.getDate() + 6);
 				setSelectedDate(undefined);
-				setDateRange({
-					from: subDays(today, 14),
-					to: today,
-				});
+				setDateRange({ from: startLast, to: endLast });
 				setDateFilterType("preset");
-				setDatePreset("Last 15 Days");
+				setDatePreset("Last Week");
 				break;
-			case "last30days":
-				setSelectedDate(undefined);
-				setDateRange({
-					from: subDays(today, 29),
-					to: today,
-				});
-				setDateFilterType("preset");
-				setDatePreset("Last 30 Days");
-				break;
-			case "clear":
-				setSelectedDate(undefined);
-				setDateRange(undefined);
+			case "custom":
 				setDateFilterType("single");
 				setDatePreset(null);
+				break;
+			case "custom_range":
+				setDateFilterType("range");
+				setDatePreset(null);
+				break;
+			default:
 				break;
 		}
 	};
 
-	// Filter shifts based on search, date, location, and tab
-	const filteredShifts = mockShifts.filter((shift) => {
-		// Filter by search query (location)
-		const matchesSearch =
-			searchQuery === "" ||
-			shift.locationName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-			shift.id.toLowerCase().includes(searchQuery.toLowerCase());
-
-		// Filter by date/date range
-		let matchesDate = true;
-		const shiftDate = parseISO(shift.date);
-
-		if (dateFilterType === "single" && selectedDate) {
-			// Single date filter - match the exact date
-			matchesDate =
-				format(shiftDate, "yyyy-MM-dd") === format(selectedDate, "yyyy-MM-dd");
-		} else if (dateFilterType === "range" && dateRange && dateRange.from) {
-			// Date range filter
-			if (dateRange.to) {
-				// Complete range
-				matchesDate = isWithinInterval(shiftDate, {
-					start: startOfDay(dateRange.from),
-					end: endOfDay(dateRange.to),
-				});
-			} else {
-				// Only from date
-				matchesDate = shiftDate >= startOfDay(dateRange.from);
-			}
-		} else if (dateFilterType === "preset") {
-			// Preset filters
-			if (datePreset === "Today") {
-				matchesDate = isWithinInterval(shiftDate, {
-					start: startOfToday(),
-					end: endOfToday(),
-				});
-			} else if (datePreset === "Yesterday") {
-				const yesterday = subDays(new Date(), 1);
-				matchesDate = isWithinInterval(shiftDate, {
-					start: startOfDay(yesterday),
-					end: endOfDay(yesterday),
-				});
-			} else if (dateRange && dateRange.from && dateRange.to) {
-				// For Last 7 Days and Last 30 Days
-				matchesDate = isWithinInterval(shiftDate, {
-					start: startOfDay(dateRange.from),
-					end: endOfDay(dateRange.to),
-				});
-			}
+	// Get date filter label for display
+	const getDateFilterLabel = () => {
+		if (!selectedDate && !dateRange && !datePreset) {
+			return "";
 		}
 
-		// Filter by location
-		const matchesLocation =
-			!selectedLocation || shift.locationName === selectedLocation;
-
-		// Filter by tab
-		const matchesTab =
-			currentTab === "all" ||
-			(currentTab === "open" && shift.status === "Open") ||
-			(currentTab === "today" && isToday(parseISO(shift.date)));
-
-		return matchesSearch && matchesDate && matchesLocation && matchesTab;
-	});
-
-	// Function to get date filter label
-	const getDateFilterLabel = () => {
 		if (datePreset) {
 			return datePreset;
 		}
 
-		if (dateFilterType === "range" && dateRange) {
-			if (dateRange.from && dateRange.to) {
-				return `${format(dateRange.from, "MMM d")} - ${format(
-					dateRange.to,
-					"MMM d, yyyy"
-				)}`;
-			}
-			if (dateRange.from) {
-				return `From ${format(dateRange.from, "MMM d, yyyy")}`;
-			}
-		}
-
 		if (selectedDate) {
-			return format(selectedDate, "PPP");
+			return format(selectedDate, "MMM d, yyyy");
 		}
 
-		return "Filter by date";
-	};
-
-	// Check if any filters are applied
-	const hasActiveFilters =
-		selectedLocation !== null ||
-		selectedDate !== undefined ||
-		dateRange !== undefined;
-
-	// Get date filter for display
-	const getDateFilterForDisplay = () => {
-		if (!selectedDate && !dateRange && !datePreset) return [];
-
-		// For date range selections, provide more detailed information
-		if (dateFilterType === "range" && dateRange) {
-			const fromDate = dateRange.from
-				? format(dateRange.from, "MMM d, yyyy")
-				: "";
-			const toDate = dateRange.to ? format(dateRange.to, "MMM d, yyyy") : "";
-
-			if (dateRange.from && dateRange.to) {
-				return [
-					{
-						label: `${format(dateRange.from, "MMM d")} - ${format(
-							dateRange.to,
-							"MMM d, yyyy"
-						)}`,
-						details: `From ${fromDate} to ${toDate}`,
-					},
-				];
-			}
-			if (dateRange.from) {
-				return [
-					{
-						label: `From ${format(dateRange.from, "MMM d, yyyy")}`,
-						details: `Starting ${fromDate}`,
-					},
-				];
-			}
+		if (dateRange && dateRange.from && dateRange.to) {
+			return `${format(dateRange.from, "MMM d")} - ${format(
+				dateRange.to,
+				"MMM d, yyyy"
+			)}`;
 		}
 
-		// For single date or preset selections
-		return [
-			{
-				label: getDateFilterLabel(),
-				details: selectedDate
-					? `${format(selectedDate, "EEEE, MMMM d, yyyy")}`
-					: "",
-			},
-		];
+		return "";
 	};
 
-	// Function to clear date filter
+	// Clear date filter
 	const clearDateFilter = () => {
 		setSelectedDate(undefined);
 		setDateRange(undefined);
-		setDateFilterType("single");
 		setDatePreset(null);
 	};
 
-	// Function to clear all filters
+	// Clear all filters
 	const clearAllFilters = () => {
-		clearDateFilter();
-		setSelectedLocation(null);
 		setSearchQuery("");
+		setSelectedLocation(null);
+		clearDateFilter();
+		table.resetColumnFilters();
 	};
 
+	// Determine if any filters are active
+	const hasActiveFilters = Boolean(
+		searchQuery || selectedLocation || selectedDate || dateRange || datePreset
+	);
+
+	// Calculate pagination
+	const totalPages = Math.ceil(tabFilteredShifts.length / pagination.pageSize);
+	const paginatedShifts = tabFilteredShifts.slice(
+		pagination.pageIndex * pagination.pageSize,
+		(pagination.pageIndex + 1) * pagination.pageSize
+	);
+
+	// Render shift card for card view
+	const ShiftCard = ({ shift }: { shift: (typeof mockShifts)[0] }) => (
+		<Card className="cursor-pointer hover:shadow-sm transition-all border hover:border-primary">
+			<CardHeader className="pb-2 px-4 pt-4">
+				<div className="flex items-center justify-between w-full">
+					<div className="flex items-center">
+						<div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center mr-2 flex-shrink-0">
+							<Calendar className="h-3.5 w-3.5 text-primary" />
+						</div>
+						<CardTitle className="text-base">{shift.id}</CardTitle>
+					</div>
+					<Badge
+						variant={shift.status === "Completed" ? "secondary" : "default"}
+						className="whitespace-nowrap">
+						{shift.status}
+					</Badge>
+				</div>
+				<CardDescription className="ml-9">
+					{format(parseISO(shift.date), "MMM d, yyyy")}
+				</CardDescription>
+			</CardHeader>
+			<CardContent className="space-y-3 pb-4 px-4">
+				<div className="flex items-center text-sm">
+					<MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
+					<span className="truncate">{shift.locationName}</span>
+				</div>
+				<div className="flex items-center text-sm">
+					<Users className="mr-2 h-4 w-4 text-muted-foreground" />
+					<span>
+						{shift.employeesPresent}/{shift.employeesScheduled} employees
+					</span>
+				</div>
+				<div className="flex items-center text-sm">
+					<Clock className="mr-2 h-4 w-4 text-muted-foreground" />
+					<span>
+						{shift.totalActualHours}/{shift.totalScheduledHours} hours
+					</span>
+				</div>
+			</CardContent>
+			<CardFooter className="border-t pt-3 px-4 flex justify-end gap-2">
+				<Button
+					variant="outline"
+					size="sm"
+					className="h-8 px-3"
+					asChild>
+					<Link
+						to={`/shifts/${shift.id}`}
+						className="flex items-center">
+						<Eye className="mr-1.5 h-3.5 w-3.5" />
+						View
+					</Link>
+				</Button>
+				<Button
+					variant="outline"
+					size="sm"
+					className="h-8 px-3"
+					asChild>
+					<Link
+						to={`/shifts/${shift.id}/edit`}
+						className="flex items-center">
+						<Pencil className="mr-1.5 h-3.5 w-3.5" />
+						Edit
+					</Link>
+				</Button>
+			</CardFooter>
+		</Card>
+	);
+
 	return (
-		<>
+		<ContentContainer>
 			<PageHeader
 				title="Shifts"
-				description="View and manage all your scheduled shifts"
+				description="View and manage all shifts for your organization"
 				actions={
-					<Link to="/shifts/create">
-						<Button className="flex items-center gap-1">
-							<Plus size={16} />
-							Create Shift
+					<div className="flex items-center gap-2">
+						<ExportDropdown
+							data={table.getFilteredRowModel().rows.map((row) => row.original)}
+							filename="shifts-export"
+							headers={[
+								"id",
+								"date",
+								"locationName",
+								"employeesPresent",
+								"employeesScheduled",
+								"totalScheduledHours",
+								"totalActualHours",
+								"status",
+							]}
+						/>
+						<Button>
+							<Plus className="mr-2 h-4 w-4" /> Create Shift
 						</Button>
-					</Link>
+					</div>
 				}
 			/>
-			<ContentContainer>
-				<div className="space-y-8">
-					<ContentSection title="Summary">
-						<div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-							<Card>
-								<CardHeader className="pb-2">
-									<CardTitle className="text-base font-medium">
-										Total Shifts
-									</CardTitle>
-								</CardHeader>
-								<CardContent>
-									<div className="text-2xl font-bold">{mockShifts.length}</div>
-									<p className="text-xs text-muted-foreground">Last 30 days</p>
-								</CardContent>
-							</Card>
 
-							<Card>
-								<CardHeader className="pb-2">
-									<CardTitle className="text-base font-medium">
-										Average Hours Variance
-									</CardTitle>
-								</CardHeader>
-								<CardContent>
-									<div className="text-2xl font-bold">
-										{(
-											mockShifts.reduce(
-												(sum, shift) => sum + shift.variance,
-												0
-											) / mockShifts.length
-										).toFixed(1)}
-									</div>
-									<p className="text-xs text-muted-foreground">
-										Hours variance per shift
-									</p>
-								</CardContent>
-							</Card>
+			<ContentSection title="Shift Management">
+				<Tabs
+					value={currentTab}
+					onValueChange={(value) => {
+						setCurrentTab(value);
+						table.resetColumnFilters();
+					}}
+					className="space-y-6">
+					<TabsList className="mb-4">
+						<TabsTrigger value="all">All Shifts</TabsTrigger>
+						<TabsTrigger value="open">Open Shifts</TabsTrigger>
+						<TabsTrigger value="today">Today's Shifts</TabsTrigger>
+					</TabsList>
 
-							<Card>
-								<CardHeader className="pb-2">
-									<CardTitle className="text-base font-medium">
-										Attendance Rate
-									</CardTitle>
-								</CardHeader>
-								<CardContent>
-									<div className="text-2xl font-bold">
-										{Math.round(
-											(mockShifts.reduce(
-												(sum, shift) => sum + shift.employeesPresent,
-												0
-											) /
-												mockShifts.reduce(
-													(sum, shift) => sum + shift.employeesScheduled,
-													0
-												)) *
-												100
-										)}
-										%
-									</div>
-									<p className="text-xs text-muted-foreground">
-										Employees present vs. scheduled
-									</p>
-								</CardContent>
-							</Card>
-						</div>
-					</ContentSection>
-
-					<ContentSection title="Shift Management">
-						<Tabs
-							value={currentTab}
-							onValueChange={setCurrentTab}
-							className="space-y-6">
-							<div className="flex flex-col md:flex-row justify-between space-y-4 md:space-y-0">
-								<div className="flex items-center space-x-4">
-									{currentTab !== "today" && (
-										<TabsList>
-											<TabsTrigger value="all">All Shifts</TabsTrigger>
-											<TabsTrigger value="open">Open Shifts</TabsTrigger>
-											<TabsTrigger value="today">Today's Shifts</TabsTrigger>
-										</TabsList>
+					{/* Search and filter UI */}
+					<div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+						<div className="flex items-center gap-2">
+							<div className="border rounded-md overflow-hidden">
+								<Button
+									variant="ghost"
+									size="sm"
+									className={cn(
+										"h-8 px-2 rounded-none",
+										viewMode === "table" && "bg-muted"
 									)}
+									onClick={() => setViewMode("table")}>
+									<List className="h-4 w-4" />
+								</Button>
+								<Button
+									variant="ghost"
+									size="sm"
+									className={cn(
+										"h-8 px-2 rounded-none",
+										viewMode === "cards" && "bg-muted"
+									)}
+									onClick={() => setViewMode("cards")}>
+									<LayoutGrid className="h-4 w-4" />
+								</Button>
+							</div>
+						</div>
 
-									<div className="border rounded-md overflow-hidden">
-										<Button
-											variant="ghost"
-											size="sm"
-											className={cn(
-												"h-8 px-2 rounded-none",
-												viewMode === "table" && "bg-muted"
-											)}
-											onClick={() => setViewMode("table")}>
-											<List className="h-4 w-4" />
-										</Button>
-										<Button
-											variant="ghost"
-											size="sm"
-											className={cn(
-												"h-8 px-2 rounded-none",
-												viewMode === "card" && "bg-muted"
-											)}
-											onClick={() => setViewMode("card")}>
-											<LayoutGrid className="h-4 w-4" />
-										</Button>
-									</div>
-								</div>
-
-								<div className="flex items-center space-x-2 flex-wrap gap-2">
-									<div className="relative md:w-64">
-										<Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-										<Input
-											placeholder="Search by ID or location..."
-											value={searchQuery}
-											onChange={(e) => setSearchQuery(e.target.value)}
-											className="pl-8"
-										/>
-									</div>
-
-									<DropdownMenu>
-										<DropdownMenuTrigger asChild>
-											<Button
-												variant="outline"
-												className={cn(
-													"justify-between text-left font-normal md:w-48",
-													!selectedLocation && "text-muted-foreground"
-												)}>
-												<div className="flex items-center">
-													<MapPin className="mr-2 h-4 w-4" />
-													{getLocationFilterLabel()}
-												</div>
-												<ChevronDown className="h-4 w-4 opacity-50" />
-											</Button>
-										</DropdownMenuTrigger>
-										<DropdownMenuContent
-											align="end"
-											className="w-56">
-											<DropdownMenuItem
-												onSelect={() => handleLocationSelect(null)}>
-												All Locations
-											</DropdownMenuItem>
-											<DropdownMenuSeparator />
-											{uniqueLocations.map((location) => (
-												<DropdownMenuItem
-													key={location}
-													onSelect={() => handleLocationSelect(location)}>
-													{location}
-												</DropdownMenuItem>
-											))}
-										</DropdownMenuContent>
-									</DropdownMenu>
-
-									<DropdownMenu>
-										<DropdownMenuTrigger asChild>
-											<Button
-												variant="outline"
-												className={cn(
-													"justify-between text-left font-normal md:w-48",
-													!selectedDate &&
-														!dateRange &&
-														!datePreset &&
-														"text-muted-foreground"
-												)}>
-												<div className="flex items-center">
-													<CalendarIcon className="mr-2 h-4 w-4" />
-													{getDateFilterLabel()}
-												</div>
-												<ChevronDown className="h-4 w-4 opacity-50" />
-											</Button>
-										</DropdownMenuTrigger>
-										<DropdownMenuContent
-											align="end"
-											className="w-56">
-											<DropdownMenuItem
-												onSelect={() => handleDateFilterSelect("today")}>
-												Today
-											</DropdownMenuItem>
-											<DropdownMenuItem
-												onSelect={() => handleDateFilterSelect("yesterday")}>
-												Yesterday
-											</DropdownMenuItem>
-											<DropdownMenuItem
-												onSelect={() => handleDateFilterSelect("last7days")}>
-												Last 7 days
-											</DropdownMenuItem>
-											<DropdownMenuItem
-												onSelect={() => handleDateFilterSelect("last15days")}>
-												Last 15 days
-											</DropdownMenuItem>
-											<DropdownMenuItem
-												onSelect={() => handleDateFilterSelect("last30days")}>
-												Last 30 days
-											</DropdownMenuItem>
-											<DropdownMenuSeparator />
-											<DropdownMenuItem
-												onSelect={() => handleDateFilterSelect("clear")}>
-												Clear filter
-											</DropdownMenuItem>
-										</DropdownMenuContent>
-									</DropdownMenu>
-
-									<ExportDropdown
-										data={filteredShifts}
-										filename="shifts-export"
-										headers={[
-											"id",
-											"date",
-											"locationName",
-											"employeesPresent",
-											"employeesScheduled",
-											"totalScheduledHours",
-											"totalActualHours",
-											"status",
-										]}
-									/>
-								</div>
+						<div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+							<div className="relative w-full sm:w-64">
+								<Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+								<Input
+									placeholder="Search by ID or location..."
+									value={searchQuery}
+									onChange={(e) => setSearchQuery(e.target.value)}
+									className="pl-8"
+								/>
 							</div>
 
-							{/* Applied filters display */}
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button
+										variant="outline"
+										className="justify-between text-left font-normal w-[180px]">
+										<div className="flex items-center">
+											<MapPin className="mr-2 h-4 w-4" />
+											{getLocationFilterLabel()}
+										</div>
+										<ChevronDown className="h-4 w-4 opacity-50" />
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent
+									align="end"
+									className="w-[180px]">
+									<DropdownMenuItem onClick={() => handleLocationSelect(null)}>
+										All Locations
+									</DropdownMenuItem>
+									<DropdownMenuSeparator />
+									{uniqueLocations.map((location) => (
+										<DropdownMenuItem
+											key={location}
+											onClick={() => handleLocationSelect(location)}>
+											{location}
+										</DropdownMenuItem>
+									))}
+								</DropdownMenuContent>
+							</DropdownMenu>
+
+							{/* Date filter */}
+							<Popover>
+								<PopoverTrigger asChild>
+									<Button
+										variant="outline"
+										size="sm"
+										className={cn(
+											"h-9 gap-1 w-[180px]",
+											(selectedDate || dateRange || datePreset) && "bg-muted"
+										)}>
+										<CalendarIcon className="h-3.5 w-3.5 mr-1" />
+										{getDateFilterLabel() || "Date Filter"}
+									</Button>
+								</PopoverTrigger>
+								<PopoverContent
+									className="w-auto p-0"
+									align="start">
+									<div className="p-2">
+										<div className="grid gap-1">
+											<Button
+												variant="ghost"
+												size="sm"
+												className="justify-start font-normal"
+												onClick={() => handleDateFilterSelect("today")}>
+												Today
+											</Button>
+											<Button
+												variant="ghost"
+												size="sm"
+												className="justify-start font-normal"
+												onClick={() => handleDateFilterSelect("yesterday")}>
+												Yesterday
+											</Button>
+											<Button
+												variant="ghost"
+												size="sm"
+												className="justify-start font-normal"
+												onClick={() => handleDateFilterSelect("this_week")}>
+												This Week
+											</Button>
+											<Button
+												variant="ghost"
+												size="sm"
+												className="justify-start font-normal"
+												onClick={() => handleDateFilterSelect("last_week")}>
+												Last Week
+											</Button>
+										</div>
+										<div className="mt-3 border-t pt-3">
+											{dateFilterType === "single" ? (
+												<Calendar
+													mode="single"
+													selected={selectedDate}
+													onSelect={(date) => setSelectedDate(date)}
+													initialFocus
+												/>
+											) : (
+												<Calendar
+													mode="range"
+													selected={dateRange}
+													onSelect={setDateRange}
+													numberOfMonths={2}
+													initialFocus
+												/>
+											)}
+										</div>
+										<div className="mt-3 border-t pt-3 flex gap-2">
+											<Button
+												variant="outline"
+												size="sm"
+												className="w-full"
+												onClick={() => handleDateFilterSelect("custom")}>
+												Single Date
+											</Button>
+											<Button
+												variant="outline"
+												size="sm"
+												className="w-full"
+												onClick={() => handleDateFilterSelect("custom_range")}>
+												Date Range
+											</Button>
+										</div>
+									</div>
+								</PopoverContent>
+							</Popover>
+
 							{hasActiveFilters && (
-								<div className="flex items-center gap-2 mb-4">
-									<span className="text-sm font-medium text-muted-foreground">
-										Filters:
-									</span>
-									<div className="flex flex-wrap gap-2">
-										{getDateFilterForDisplay().length > 0 && (
-											<Badge className="flex items-center gap-1.5 px-2.5 py-1 bg-muted hover:bg-muted border text-foreground">
-												<CalendarIcon className="h-3 w-3 text-muted-foreground" />
-												<span>{getDateFilterLabel()}</span>
-												<button
-													onClick={clearDateFilter}
-													className="ml-1 rounded-full p-0.5 hover:bg-background/80 transition-colors"
-													aria-label="Remove date filter">
-													<X className="h-3 w-3 text-muted-foreground" />
-												</button>
-											</Badge>
-										)}
-
-										{selectedLocation && (
-											<Badge className="flex items-center gap-1.5 px-2.5 py-1 bg-muted hover:bg-muted border text-foreground">
-												<MapPin className="h-3 w-3 text-muted-foreground" />
-												<span>{selectedLocation}</span>
-												<button
-													onClick={() => setSelectedLocation(null)}
-													className="ml-1 rounded-full p-0.5 hover:bg-background/80 transition-colors"
-													aria-label="Remove location filter">
-													<X className="h-3 w-3 text-muted-foreground" />
-												</button>
-											</Badge>
-										)}
-
-										{hasActiveFilters && (
-											<button
-												onClick={clearAllFilters}
-												className="text-xs text-muted-foreground hover:text-foreground underline">
-												Clear all
-											</button>
-										)}
-									</div>
-								</div>
+								<Button
+									variant="ghost"
+									size="sm"
+									onClick={clearAllFilters}
+									className="h-9">
+									<X className="h-4 w-4 mr-1" />
+									Clear
+								</Button>
 							)}
+						</div>
+					</div>
 
-							<TabsContent
-								value="all"
-								className="space-y-6">
-								{viewMode === "table" ? (
-									<div className="rounded-md border">
-										<Table>
-											<TableHeader>
-												<TableRow>
-													<TableHead>Shift ID</TableHead>
-													<TableHead>Date</TableHead>
-													<TableHead>Location</TableHead>
-													<TableHead>Employees</TableHead>
-													<TableHead>Scheduled Hours</TableHead>
-													<TableHead>Actual Hours</TableHead>
-													<TableHead>Status</TableHead>
-													<TableHead className="text-right">Actions</TableHead>
-												</TableRow>
-											</TableHeader>
-											<TableBody>
-												{filteredShifts.length > 0 ? (
-													filteredShifts.map((shift) => (
-														<TableRow key={shift.id}>
-															<TableCell>
-																<div className="font-medium">{shift.id}</div>
-															</TableCell>
-															<TableCell>
-																<div className="font-medium">
-																	{format(parseISO(shift.date), "MMM d, yyyy")}
-																</div>
-															</TableCell>
-															<TableCell>{shift.locationName}</TableCell>
-															<TableCell>
-																<div className="flex items-center">
-																	<Users className="h-4 w-4 mr-1 text-muted-foreground" />
-																	<span>
-																		{shift.employeesPresent}/
-																		{shift.employeesScheduled}
-																	</span>
-																</div>
-															</TableCell>
-															<TableCell>{shift.totalScheduledHours}</TableCell>
-															<TableCell>{shift.totalActualHours}</TableCell>
-															<TableCell>
-																<Badge
-																	variant={
-																		shift.status === "Completed"
-																			? "secondary"
-																			: "outline"
-																	}>
-																	{shift.status}
-																</Badge>
-															</TableCell>
-															<TableCell className="text-right">
-																<Link to={`/shifts/${shift.id}`}>
-																	<Button
-																		variant="ghost"
-																		size="sm"
-																		className="h-8">
-																		<Eye className="h-3.5 w-3.5 mr-1" />
-																		View
-																	</Button>
-																</Link>
-															</TableCell>
-														</TableRow>
-													))
-												) : (
-													<TableRow>
-														<TableCell
-															colSpan={8}
-															className="text-center py-6 text-muted-foreground">
-															No shifts found matching your filters
+					{/* Applied date filter badges */}
+					{(selectedDate || dateRange || datePreset) && (
+						<div className="flex items-center gap-2 mb-4">
+							<Badge className="flex items-center gap-1.5 px-2.5 py-1 bg-muted hover:bg-muted border text-foreground">
+								<CalendarIcon className="h-3 w-3 text-muted-foreground" />
+								<span>{getDateFilterLabel()}</span>
+								<button
+									onClick={clearDateFilter}
+									className="ml-1 rounded-full p-0.5 hover:bg-background/80 transition-colors"
+									aria-label="Remove date filter">
+									<X className="h-3 w-3 text-muted-foreground" />
+								</button>
+							</Badge>
+						</div>
+					)}
+
+					{/* Tab content */}
+					<TabsContent
+						value="all"
+						forceMount={true}
+						hidden={currentTab !== "all"}
+						className="space-y-6">
+						{table.getFilteredRowModel().rows.length === 0 ? (
+							<EmptyState
+								icon={<SearchX className="h-10 w-10" />}
+								title="No shifts found"
+								description="No shifts match your current filters. Try adjusting your search criteria."
+								action={
+									<Button
+										variant="outline"
+										onClick={clearAllFilters}>
+										Clear filters
+									</Button>
+								}
+							/>
+						) : viewMode === "table" ? (
+							<div className="rounded-md border">
+								<Table>
+									<TableHeader>
+										{table.getHeaderGroups().map((headerGroup) => (
+											<TableRow key={headerGroup.id}>
+												{headerGroup.headers.map((header) => (
+													<TableHead key={header.id}>
+														{header.isPlaceholder
+															? null
+															: flexRender(
+																	header.column.columnDef.header,
+																	header.getContext()
+															  )}
+													</TableHead>
+												))}
+											</TableRow>
+										))}
+									</TableHeader>
+									<TableBody>
+										{table.getRowModel().rows.length > 0 ? (
+											table.getRowModel().rows.map((row) => (
+												<TableRow
+													key={row.id}
+													data-state={row.getIsSelected() && "selected"}>
+													{row.getVisibleCells().map((cell) => (
+														<TableCell key={cell.id}>
+															{flexRender(
+																cell.column.columnDef.cell,
+																cell.getContext()
+															)}
 														</TableCell>
-													</TableRow>
-												)}
-											</TableBody>
-										</Table>
-									</div>
-								) : (
-									<div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-										{filteredShifts.length > 0 ? (
-											filteredShifts.map((shift) => (
-												<Link
-													to={`/shifts/${shift.id}`}
-													key={shift.id}
-													className="no-underline">
-													<Card className="hover:border-primary transition-colors">
-														<CardHeader className="pb-2">
-															<div className="flex justify-between items-start">
-																<CardTitle className="text-base font-medium">
-																	{shift.id}
-																</CardTitle>
-																<Badge
-																	variant={
-																		shift.status === "Completed"
-																			? "secondary"
-																			: "outline"
-																	}>
-																	{shift.status}
-																</Badge>
-															</div>
-															<CardDescription>
-																{format(parseISO(shift.date), "MMM d, yyyy")}
-															</CardDescription>
-														</CardHeader>
-														<CardContent>
-															<div className="grid grid-cols-2 gap-2 text-sm">
-																<div className="flex items-center gap-1">
-																	<Users className="h-3.5 w-3.5 text-muted-foreground" />
-																	<span>
-																		{shift.employeesPresent}/
-																		{shift.employeesScheduled}
-																	</span>
-																</div>
-																<div>{shift.locationName}</div>
-																<div>Sched: {shift.totalScheduledHours}h</div>
-																<div>Actual: {shift.totalActualHours}h</div>
-															</div>
-														</CardContent>
-													</Card>
-												</Link>
+													))}
+												</TableRow>
 											))
 										) : (
-											<div className="col-span-full text-center py-6 text-muted-foreground">
-												No shifts found matching your filters
-											</div>
+											<TableRow>
+												<TableCell
+													colSpan={columns.length}
+													className="h-24 text-center">
+													No results.
+												</TableCell>
+											</TableRow>
 										)}
-									</div>
-								)}
-							</TabsContent>
+									</TableBody>
+								</Table>
+							</div>
+						) : (
+							<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+								{table.getRowModel().rows.map((row) => (
+									<ShiftCard
+										key={row.id}
+										shift={row.original}
+									/>
+								))}
+							</div>
+						)}
 
-							<TabsContent
-								value="open"
-								className="space-y-6">
-								{viewMode === "table" ? (
-									<div className="rounded-md border">
-										<Table>
-											<TableHeader>
-												<TableRow>
-													<TableHead>Shift ID</TableHead>
-													<TableHead>Date</TableHead>
-													<TableHead>Location</TableHead>
-													<TableHead>Employees</TableHead>
-													<TableHead>Scheduled Hours</TableHead>
-													<TableHead>Actual Hours</TableHead>
-													<TableHead>Status</TableHead>
-													<TableHead className="text-right">Actions</TableHead>
-												</TableRow>
-											</TableHeader>
-											<TableBody>
-												{filteredShifts.length > 0 ? (
-													filteredShifts.map((shift) => (
-														<TableRow key={shift.id}>
-															<TableCell>
-																<div className="font-medium">{shift.id}</div>
-															</TableCell>
-															<TableCell>
-																<div className="font-medium">
-																	{format(parseISO(shift.date), "MMM d, yyyy")}
-																</div>
-															</TableCell>
-															<TableCell>{shift.locationName}</TableCell>
-															<TableCell>
-																<div className="flex items-center">
-																	<Users className="h-4 w-4 mr-1 text-muted-foreground" />
-																	<span>
-																		{shift.employeesPresent}/
-																		{shift.employeesScheduled}
-																	</span>
-																</div>
-															</TableCell>
-															<TableCell>{shift.totalScheduledHours}</TableCell>
-															<TableCell>{shift.totalActualHours}</TableCell>
-															<TableCell>
-																<Badge
-																	variant={
-																		shift.status === "Completed"
-																			? "secondary"
-																			: "outline"
-																	}>
-																	{shift.status}
-																</Badge>
-															</TableCell>
-															<TableCell className="text-right">
-																<Link to={`/shifts/${shift.id}`}>
-																	<Button
-																		variant="ghost"
-																		size="sm"
-																		className="h-8">
-																		<Eye className="h-3.5 w-3.5 mr-1" />
-																		View
-																	</Button>
-																</Link>
-															</TableCell>
-														</TableRow>
-													))
-												) : (
-													<TableRow>
-														<TableCell
-															colSpan={8}
-															className="text-center py-6 text-muted-foreground">
-															No open shifts found
-														</TableCell>
-													</TableRow>
-												)}
-											</TableBody>
-										</Table>
+						{/* Pagination Controls */}
+						<div className="flex items-center justify-between">
+							<div className="flex-1 text-sm text-muted-foreground">
+								Showing{" "}
+								{table.getFilteredRowModel().rows.length > 0
+									? table.getState().pagination.pageIndex *
+											table.getState().pagination.pageSize +
+									  1
+									: 0}{" "}
+								to{" "}
+								{Math.min(
+									(table.getState().pagination.pageIndex + 1) *
+										table.getState().pagination.pageSize,
+									table.getFilteredRowModel().rows.length
+								)}{" "}
+								of {table.getFilteredRowModel().rows.length} entries
+							</div>
+							<div className="flex items-center space-x-6">
+								<div className="flex items-center space-x-2">
+									<p className="text-sm text-muted-foreground">
+										Items per page
+									</p>
+									<Select
+										value={`${table.getState().pagination.pageSize}`}
+										onValueChange={(value) => {
+											table.setPageSize(Number(value));
+										}}>
+										<SelectTrigger className="h-8 w-[70px]">
+											<SelectValue
+												placeholder={table.getState().pagination.pageSize}
+											/>
+										</SelectTrigger>
+										<SelectContent side="top">
+											{[25, 50, 100, 200].map((pageSize) => (
+												<SelectItem
+													key={pageSize}
+													value={`${pageSize}`}>
+													{pageSize}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								</div>
+
+								<div className="flex items-center space-x-2">
+									<Button
+										variant="outline"
+										size="sm"
+										onClick={() => table.previousPage()}
+										disabled={!table.getCanPreviousPage()}
+										className="h-8 w-8 p-0">
+										<ChevronLeft className="h-4 w-4" />
+									</Button>
+									<div className="flex items-center text-sm text-muted-foreground">
+										Page {table.getState().pagination.pageIndex + 1} of{" "}
+										{table.getPageCount()}
 									</div>
-								) : (
-									<div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-										{filteredShifts.length > 0 ? (
-											filteredShifts.map((shift) => (
-												<Link
-													to={`/shifts/${shift.id}`}
-													key={shift.id}
-													className="no-underline">
-													<Card className="hover:border-primary transition-colors">
-														<CardHeader className="pb-2">
-															<div className="flex justify-between items-start">
-																<CardTitle className="text-base font-medium">
-																	{shift.id}
-																</CardTitle>
-																<Badge
-																	variant={
-																		shift.status === "Completed"
-																			? "secondary"
-																			: "outline"
-																	}>
-																	{shift.status}
-																</Badge>
-															</div>
-															<CardDescription>
-																{format(parseISO(shift.date), "MMM d, yyyy")}
-															</CardDescription>
-														</CardHeader>
-														<CardContent>
-															<div className="grid grid-cols-2 gap-2 text-sm">
-																<div className="flex items-center gap-1">
-																	<Users className="h-3.5 w-3.5 text-muted-foreground" />
-																	<span>
-																		{shift.employeesPresent}/
-																		{shift.employeesScheduled}
-																	</span>
-																</div>
-																<div>{shift.locationName}</div>
-																<div>Sched: {shift.totalScheduledHours}h</div>
-																<div>Actual: {shift.totalActualHours}h</div>
-															</div>
-														</CardContent>
-													</Card>
-												</Link>
+									<Button
+										variant="outline"
+										size="sm"
+										onClick={() => table.nextPage()}
+										disabled={!table.getCanNextPage()}
+										className="h-8 w-8 p-0">
+										<ChevronRight className="h-4 w-4" />
+									</Button>
+								</div>
+							</div>
+						</div>
+					</TabsContent>
+
+					<TabsContent
+						value="open"
+						forceMount={true}
+						hidden={currentTab !== "open"}
+						className="space-y-6">
+						{table.getFilteredRowModel().rows.length === 0 ? (
+							<EmptyState
+								icon={<SearchX className="h-10 w-10" />}
+								title="No open shifts found"
+								description="No open shifts match your current filters. Try adjusting your search criteria."
+								action={
+									<Button
+										variant="outline"
+										onClick={clearAllFilters}>
+										Clear filters
+									</Button>
+								}
+							/>
+						) : viewMode === "table" ? (
+							<div className="rounded-md border">
+								<Table>
+									<TableHeader>
+										{table.getHeaderGroups().map((headerGroup) => (
+											<TableRow key={headerGroup.id}>
+												{headerGroup.headers.map((header) => (
+													<TableHead key={header.id}>
+														{header.isPlaceholder
+															? null
+															: flexRender(
+																	header.column.columnDef.header,
+																	header.getContext()
+															  )}
+													</TableHead>
+												))}
+											</TableRow>
+										))}
+									</TableHeader>
+									<TableBody>
+										{table.getRowModel().rows.length > 0 ? (
+											table.getRowModel().rows.map((row) => (
+												<TableRow
+													key={row.id}
+													data-state={row.getIsSelected() && "selected"}>
+													{row.getVisibleCells().map((cell) => (
+														<TableCell key={cell.id}>
+															{flexRender(
+																cell.column.columnDef.cell,
+																cell.getContext()
+															)}
+														</TableCell>
+													))}
+												</TableRow>
 											))
 										) : (
-											<div className="col-span-full text-center py-6 text-muted-foreground">
-												No open shifts found
-											</div>
+											<TableRow>
+												<TableCell
+													colSpan={columns.length}
+													className="h-24 text-center">
+													No results.
+												</TableCell>
+											</TableRow>
 										)}
-									</div>
-								)}
-							</TabsContent>
+									</TableBody>
+								</Table>
+							</div>
+						) : (
+							<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+								{table.getRowModel().rows.map((row) => (
+									<ShiftCard
+										key={row.id}
+										shift={row.original}
+									/>
+								))}
+							</div>
+						)}
 
-							<TabsContent
-								value="today"
-								className="space-y-6">
-								{viewMode === "table" ? (
-									<div className="rounded-md border">
-										<Table>
-											<TableHeader>
-												<TableRow>
-													<TableHead>Shift ID</TableHead>
-													<TableHead>Date</TableHead>
-													<TableHead>Location</TableHead>
-													<TableHead>Employees</TableHead>
-													<TableHead>Scheduled Hours</TableHead>
-													<TableHead>Actual Hours</TableHead>
-													<TableHead>Status</TableHead>
-													<TableHead className="text-right">Actions</TableHead>
-												</TableRow>
-											</TableHeader>
-											<TableBody>
-												{filteredShifts.length > 0 ? (
-													filteredShifts.map((shift) => (
-														<TableRow key={shift.id}>
-															<TableCell>
-																<div className="font-medium">{shift.id}</div>
-															</TableCell>
-															<TableCell>
-																<div className="font-medium">
-																	{format(parseISO(shift.date), "MMM d, yyyy")}
-																</div>
-															</TableCell>
-															<TableCell>{shift.locationName}</TableCell>
-															<TableCell>
-																<div className="flex items-center">
-																	<Users className="h-4 w-4 mr-1 text-muted-foreground" />
-																	<span>
-																		{shift.employeesPresent}/
-																		{shift.employeesScheduled}
-																	</span>
-																</div>
-															</TableCell>
-															<TableCell>{shift.totalScheduledHours}</TableCell>
-															<TableCell>{shift.totalActualHours}</TableCell>
-															<TableCell>
-																<Badge
-																	variant={
-																		shift.status === "Completed"
-																			? "secondary"
-																			: "outline"
-																	}>
-																	{shift.status}
-																</Badge>
-															</TableCell>
-															<TableCell className="text-right">
-																<Link to={`/shifts/${shift.id}`}>
-																	<Button
-																		variant="ghost"
-																		size="sm"
-																		className="h-8">
-																		<Eye className="h-3.5 w-3.5 mr-1" />
-																		View
-																	</Button>
-																</Link>
-															</TableCell>
-														</TableRow>
-													))
-												) : (
-													<TableRow>
-														<TableCell
-															colSpan={8}
-															className="text-center py-6 text-muted-foreground">
-															No shifts scheduled for today
-														</TableCell>
-													</TableRow>
-												)}
-											</TableBody>
-										</Table>
+						{/* Pagination Controls */}
+						<div className="flex items-center justify-between">
+							<div className="flex-1 text-sm text-muted-foreground">
+								Showing{" "}
+								{table.getFilteredRowModel().rows.length > 0
+									? table.getState().pagination.pageIndex *
+											table.getState().pagination.pageSize +
+									  1
+									: 0}{" "}
+								to{" "}
+								{Math.min(
+									(table.getState().pagination.pageIndex + 1) *
+										table.getState().pagination.pageSize,
+									table.getFilteredRowModel().rows.length
+								)}{" "}
+								of {table.getFilteredRowModel().rows.length} entries
+							</div>
+							<div className="flex items-center space-x-6">
+								<div className="flex items-center space-x-2">
+									<p className="text-sm text-muted-foreground">
+										Items per page
+									</p>
+									<Select
+										value={`${table.getState().pagination.pageSize}`}
+										onValueChange={(value) => {
+											table.setPageSize(Number(value));
+										}}>
+										<SelectTrigger className="h-8 w-[70px]">
+											<SelectValue
+												placeholder={table.getState().pagination.pageSize}
+											/>
+										</SelectTrigger>
+										<SelectContent side="top">
+											{[25, 50, 100, 200].map((pageSize) => (
+												<SelectItem
+													key={pageSize}
+													value={`${pageSize}`}>
+													{pageSize}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								</div>
+
+								<div className="flex items-center space-x-2">
+									<Button
+										variant="outline"
+										size="sm"
+										onClick={() => table.previousPage()}
+										disabled={!table.getCanPreviousPage()}
+										className="h-8 w-8 p-0">
+										<ChevronLeft className="h-4 w-4" />
+									</Button>
+									<div className="flex items-center text-sm text-muted-foreground">
+										Page {table.getState().pagination.pageIndex + 1} of{" "}
+										{table.getPageCount()}
 									</div>
-								) : (
-									<div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-										{filteredShifts.length > 0 ? (
-											filteredShifts.map((shift) => (
-												<Link
-													to={`/shifts/${shift.id}`}
-													key={shift.id}
-													className="no-underline">
-													<Card className="hover:border-primary transition-colors">
-														<CardHeader className="pb-2">
-															<div className="flex justify-between items-start">
-																<CardTitle className="text-base font-medium">
-																	{shift.id}
-																</CardTitle>
-																<Badge
-																	variant={
-																		shift.status === "Completed"
-																			? "secondary"
-																			: "outline"
-																	}>
-																	{shift.status}
-																</Badge>
-															</div>
-															<CardDescription>
-																{format(parseISO(shift.date), "MMM d, yyyy")}
-															</CardDescription>
-														</CardHeader>
-														<CardContent>
-															<div className="grid grid-cols-2 gap-2 text-sm">
-																<div className="flex items-center gap-1">
-																	<Users className="h-3.5 w-3.5 text-muted-foreground" />
-																	<span>
-																		{shift.employeesPresent}/
-																		{shift.employeesScheduled}
-																	</span>
-																</div>
-																<div>{shift.locationName}</div>
-																<div>Sched: {shift.totalScheduledHours}h</div>
-																<div>Actual: {shift.totalActualHours}h</div>
-															</div>
-														</CardContent>
-													</Card>
-												</Link>
+									<Button
+										variant="outline"
+										size="sm"
+										onClick={() => table.nextPage()}
+										disabled={!table.getCanNextPage()}
+										className="h-8 w-8 p-0">
+										<ChevronRight className="h-4 w-4" />
+									</Button>
+								</div>
+							</div>
+						</div>
+					</TabsContent>
+
+					<TabsContent
+						value="today"
+						forceMount={true}
+						hidden={currentTab !== "today"}
+						className="space-y-6">
+						{table.getFilteredRowModel().rows.length === 0 ? (
+							<EmptyState
+								icon={<SearchX className="h-10 w-10" />}
+								title="No shifts for today"
+								description="No shifts scheduled for today match your current filters."
+								action={
+									<Button
+										variant="outline"
+										onClick={clearAllFilters}>
+										Clear filters
+									</Button>
+								}
+							/>
+						) : viewMode === "table" ? (
+							<div className="rounded-md border">
+								<Table>
+									<TableHeader>
+										{table.getHeaderGroups().map((headerGroup) => (
+											<TableRow key={headerGroup.id}>
+												{headerGroup.headers.map((header) => (
+													<TableHead key={header.id}>
+														{header.isPlaceholder
+															? null
+															: flexRender(
+																	header.column.columnDef.header,
+																	header.getContext()
+															  )}
+													</TableHead>
+												))}
+											</TableRow>
+										))}
+									</TableHeader>
+									<TableBody>
+										{table.getRowModel().rows.length > 0 ? (
+											table.getRowModel().rows.map((row) => (
+												<TableRow
+													key={row.id}
+													data-state={row.getIsSelected() && "selected"}>
+													{row.getVisibleCells().map((cell) => (
+														<TableCell key={cell.id}>
+															{flexRender(
+																cell.column.columnDef.cell,
+																cell.getContext()
+															)}
+														</TableCell>
+													))}
+												</TableRow>
 											))
 										) : (
-											<div className="col-span-full text-center py-6 text-muted-foreground">
-												No shifts scheduled for today
-											</div>
+											<TableRow>
+												<TableCell
+													colSpan={columns.length}
+													className="h-24 text-center">
+													No results.
+												</TableCell>
+											</TableRow>
 										)}
+									</TableBody>
+								</Table>
+							</div>
+						) : (
+							<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+								{table.getRowModel().rows.map((row) => (
+									<ShiftCard
+										key={row.id}
+										shift={row.original}
+									/>
+								))}
+							</div>
+						)}
+
+						{/* Pagination Controls */}
+						<div className="flex items-center justify-between">
+							<div className="flex-1 text-sm text-muted-foreground">
+								Showing{" "}
+								{table.getFilteredRowModel().rows.length > 0
+									? table.getState().pagination.pageIndex *
+											table.getState().pagination.pageSize +
+									  1
+									: 0}{" "}
+								to{" "}
+								{Math.min(
+									(table.getState().pagination.pageIndex + 1) *
+										table.getState().pagination.pageSize,
+									table.getFilteredRowModel().rows.length
+								)}{" "}
+								of {table.getFilteredRowModel().rows.length} entries
+							</div>
+							<div className="flex items-center space-x-6">
+								<div className="flex items-center space-x-2">
+									<p className="text-sm text-muted-foreground">
+										Items per page
+									</p>
+									<Select
+										value={`${table.getState().pagination.pageSize}`}
+										onValueChange={(value) => {
+											table.setPageSize(Number(value));
+										}}>
+										<SelectTrigger className="h-8 w-[70px]">
+											<SelectValue
+												placeholder={table.getState().pagination.pageSize}
+											/>
+										</SelectTrigger>
+										<SelectContent side="top">
+											{[25, 50, 100, 200].map((pageSize) => (
+												<SelectItem
+													key={pageSize}
+													value={`${pageSize}`}>
+													{pageSize}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								</div>
+
+								<div className="flex items-center space-x-2">
+									<Button
+										variant="outline"
+										size="sm"
+										onClick={() => table.previousPage()}
+										disabled={!table.getCanPreviousPage()}
+										className="h-8 w-8 p-0">
+										<ChevronLeft className="h-4 w-4" />
+									</Button>
+									<div className="flex items-center text-sm text-muted-foreground">
+										Page {table.getState().pagination.pageIndex + 1} of{" "}
+										{table.getPageCount()}
 									</div>
-								)}
-							</TabsContent>
-						</Tabs>
-					</ContentSection>
-				</div>
-			</ContentContainer>
-		</>
+									<Button
+										variant="outline"
+										size="sm"
+										onClick={() => table.nextPage()}
+										disabled={!table.getCanNextPage()}
+										className="h-8 w-8 p-0">
+										<ChevronRight className="h-4 w-4" />
+									</Button>
+								</div>
+							</div>
+						</div>
+					</TabsContent>
+				</Tabs>
+			</ContentSection>
+		</ContentContainer>
 	);
 }
