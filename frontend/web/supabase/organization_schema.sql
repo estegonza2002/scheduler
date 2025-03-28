@@ -170,4 +170,71 @@ BEGIN
   JOIN organization_members om ON o.id = om.organization_id
   WHERE om.user_id = auth.uid();
 END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to create the employee_locations table if it doesn't exist
+CREATE OR REPLACE FUNCTION create_employee_locations()
+RETURNS void AS $$
+BEGIN
+  -- Check if the table already exists
+  IF NOT EXISTS (
+    SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'employee_locations'
+  ) THEN
+    -- Create the employee_locations table
+    CREATE TABLE employee_locations (
+      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+      employee_id UUID NOT NULL,
+      location_id UUID NOT NULL,
+      UNIQUE (employee_id, location_id)
+    );
+
+    -- Enable Row Level Security
+    ALTER TABLE employee_locations ENABLE ROW LEVEL SECURITY;
+
+    -- Policy: Users can see employee locations for their organization
+    CREATE POLICY "Users can view employee_locations in their organizations" 
+      ON employee_locations FOR SELECT 
+      USING (
+        EXISTS (
+          SELECT 1 FROM employees e
+          JOIN organization_members om ON e.organization_id = om.organization_id
+          WHERE e.id = employee_locations.employee_id AND om.user_id = auth.uid()
+        )
+      );
+
+    -- Policy: Users can insert employee locations for their organization
+    CREATE POLICY "Users can insert employee_locations in their organizations" 
+      ON employee_locations FOR INSERT 
+      WITH CHECK (
+        EXISTS (
+          SELECT 1 FROM employees e
+          JOIN organization_members om ON e.organization_id = om.organization_id
+          WHERE e.id = employee_locations.employee_id AND om.user_id = auth.uid()
+        )
+      );
+
+    -- Policy: Users can update employee locations for their organization
+    CREATE POLICY "Users can update employee_locations in their organizations" 
+      ON employee_locations FOR UPDATE 
+      USING (
+        EXISTS (
+          SELECT 1 FROM employees e
+          JOIN organization_members om ON e.organization_id = om.organization_id
+          WHERE e.id = employee_locations.employee_id AND om.user_id = auth.uid()
+        )
+      );
+
+    -- Policy: Users can delete employee locations for their organization
+    CREATE POLICY "Users can delete employee_locations in their organizations" 
+      ON employee_locations FOR DELETE 
+      USING (
+        EXISTS (
+          SELECT 1 FROM employees e
+          JOIN organization_members om ON e.organization_id = om.organization_id
+          WHERE e.id = employee_locations.employee_id AND om.user_id = auth.uid()
+        )
+      );
+  END IF;
+END;
 $$ LANGUAGE plpgsql SECURITY DEFINER; 

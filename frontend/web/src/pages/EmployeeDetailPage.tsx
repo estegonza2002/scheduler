@@ -9,6 +9,7 @@ import {
 	ShiftsAPI,
 	LocationsAPI,
 	Location,
+	EmployeeLocationsAPI,
 } from "@/api";
 import {
 	Mail,
@@ -36,6 +37,7 @@ import {
 	TrendingUp,
 	MapPinIcon,
 	Plus,
+	Building2,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -642,6 +644,7 @@ export default function EmployeeDetailPage() {
 	const [activeTab, setActiveTab] = useState<
 		"overview" | "shifts" | "locations" | "earnings"
 	>("overview");
+	const [locationSheetOpen, setLocationSheetOpen] = useState(false);
 
 	// Initialize the presence service when we have an employee
 	const { employeePresence, initialized: presenceInitialized } =
@@ -698,24 +701,14 @@ export default function EmployeeDetailPage() {
 			try {
 				setLocationsLoading(true);
 
-				// Fetch employee to get assigned locations
+				// Fetch employee to get basic info
 				const employeeData = await EmployeesAPI.getById(employeeId);
 				if (!employeeData) return;
 
-				// Get location assignments from custom properties
-				// @ts-ignore - locationAssignments is a custom property
-				const locAssignments = employeeData.locationAssignments || [];
-				// @ts-ignore - locationAssignment is a custom property (for backwards compatibility)
-				const primaryLocation = employeeData.locationAssignment;
-
-				// If we have locationAssignments, use that; otherwise, fall back to single locationAssignment
-				const assignedIds =
-					locAssignments.length > 0
-						? locAssignments
-						: primaryLocation
-						? [primaryLocation]
-						: [];
-
+				// Get assigned location IDs from the employee_locations table
+				const assignedIds = await EmployeeLocationsAPI.getByEmployeeId(
+					employeeId || ""
+				);
 				setAssignedLocationIds(assignedIds);
 
 				// Fetch all locations for the organization
@@ -746,34 +739,47 @@ export default function EmployeeDetailPage() {
 
 	// Handler for location assignments
 	const handleLocationsAssigned = async (newLocationIds: string[]) => {
-		setAssignedLocationIds(newLocationIds);
+		try {
+			// First update the employee_locations table
+			const success = await EmployeeLocationsAPI.assignLocations(
+				employeeId || "",
+				newLocationIds
+			);
 
-		// Update locations map with any new locations
-		const locationsMap = { ...locations };
-		for (const locationId of newLocationIds) {
-			if (!locationsMap[locationId]) {
-				const location = await LocationsAPI.getById(locationId);
-				if (location) {
-					locationsMap[locationId] = location;
+			if (!success) {
+				toast.error("Failed to assign locations. Please try again.");
+				return false;
+			}
+
+			// Update local state
+			setAssignedLocationIds(newLocationIds);
+
+			// Update locations map with any new locations
+			const locationsMap = { ...locations };
+			for (const locationId of newLocationIds) {
+				if (!locationsMap[locationId]) {
+					const location = await LocationsAPI.getById(locationId);
+					if (location) {
+						locationsMap[locationId] = location;
+					}
 				}
 			}
-		}
-		setLocations(locationsMap);
+			setLocations(locationsMap);
 
-		// If employee exists, also update the employee record
-		if (employee) {
-			try {
-				await EmployeesAPI.update(employee.id, {
-					...employee,
-					// @ts-ignore - custom properties
-					locationAssignments: newLocationIds,
-					// @ts-ignore - backward compatibility
-					locationAssignment: newLocationIds[0] || null,
-				});
-			} catch (error) {
-				console.error("Error updating employee locations:", error);
-				toast.error("Failed to save location assignments");
-			}
+			// Close the sheet after successful assignment
+			setTimeout(() => {
+				setLocationSheetOpen(false);
+			}, 1500);
+
+			// Show success message
+			toast.success(
+				`Successfully assigned ${newLocationIds.length} location(s)`
+			);
+			return true;
+		} catch (error) {
+			console.error("Error updating employee locations:", error);
+			toast.error("Failed to save location assignments. Please try again.");
+			return false;
 		}
 	};
 
@@ -968,6 +974,25 @@ export default function EmployeeDetailPage() {
 										</div>
 									)}
 
+									{!locationsLoading &&
+										assignedLocationIds.length > 0 &&
+										locations[assignedLocationIds[0]] && (
+											<div className="flex items-center">
+												<Building2 className="h-4 w-4 mr-2 text-muted-foreground" />
+												<div className="flex items-center gap-2">
+													<span className="truncate">
+														{locations[assignedLocationIds[0]].name}
+													</span>
+													<Badge
+														className="text-xs"
+														variant="outline"
+														size="sm">
+														Primary
+													</Badge>
+												</div>
+											</div>
+										)}
+
 									{employee.hourlyRate !== undefined && (
 										<div className="flex items-center">
 											<DollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
@@ -993,13 +1018,20 @@ export default function EmployeeDetailPage() {
 									<button
 										className="flex items-center w-full text-left px-3 py-3 border rounded"
 										onClick={() => {
-											const sheet = document.getElementById(
-												"location-sheet-trigger"
-											);
-											if (sheet) sheet.click();
+											setLocationSheetOpen(true);
+											setActiveTab("locations");
 										}}>
 										<MapPin className="h-4 w-4 mr-2" />
-										Assign to Location
+										<div className="flex-1 flex justify-between items-center">
+											<span>Assign to Location</span>
+											{!locationsLoading && assignedLocationIds.length > 0 && (
+												<Badge
+													variant="secondary"
+													className="ml-2">
+													{assignedLocationIds.length}
+												</Badge>
+											)}
+										</div>
 									</button>
 
 									<button className="flex items-center w-full text-left px-3 py-3 border rounded">
@@ -1116,6 +1148,8 @@ export default function EmployeeDetailPage() {
 											allLocations={allLocations}
 											assignedLocationIds={assignedLocationIds}
 											onLocationsAssigned={handleLocationsAssigned}
+											open={locationSheetOpen}
+											onOpenChange={setLocationSheetOpen}
 											trigger={
 												<Button
 													id="location-sheet-trigger"
@@ -1143,31 +1177,36 @@ export default function EmployeeDetailPage() {
 											const isPrimary = index === 0; // First location is primary
 
 											return (
-												<ContentSection
-													key={locationId}
-													title={location.name}
-													flat>
-													<div className="flex flex-col">
-														<div className="flex justify-between">
-															<h4 className="font-medium">{location.name}</h4>
-															{isPrimary && (
-																<Badge
-																	className="ml-2"
-																	variant="outline">
-																	Primary
-																</Badge>
+												<Card key={locationId}>
+													<CardContent className="pt-6">
+														<div className="flex flex-col">
+															<div className="flex justify-between items-start">
+																<h4 className="font-medium text-lg">
+																	{location.name}
+																</h4>
+																{isPrimary && (
+																	<Badge
+																		className="ml-2"
+																		variant="outline">
+																		Primary
+																	</Badge>
+																)}
+															</div>
+															{location.address && (
+																<p className="text-sm text-muted-foreground mt-2">
+																	{location.address}
+																	{location.city && `, ${location.city}`}
+																	{location.state && `, ${location.state}`}
+																	{location.zipCode && ` ${location.zipCode}`}
+																</p>
 															)}
+															<div className="flex items-center mt-4 text-sm text-muted-foreground">
+																<MapPin className="h-4 w-4 mr-2 opacity-70" />
+																<span>Location</span>
+															</div>
 														</div>
-														{location.address && (
-															<p className="text-sm text-muted-foreground">
-																{location.address}
-																{location.city && `, ${location.city}`}
-																{location.state && `, ${location.state}`}
-																{location.zipCode && ` ${location.zipCode}`}
-															</p>
-														)}
-													</div>
-												</ContentSection>
+													</CardContent>
+												</Card>
 											);
 										})}
 									</div>
@@ -1183,6 +1222,8 @@ export default function EmployeeDetailPage() {
 												allLocations={allLocations}
 												assignedLocationIds={assignedLocationIds}
 												onLocationsAssigned={handleLocationsAssigned}
+												open={locationSheetOpen}
+												onOpenChange={setLocationSheetOpen}
 												trigger={
 													<Button size="sm">
 														<Plus className="h-4 w-4 mr-2" />

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Employee, EmployeesAPI, Location, LocationsAPI } from "@/api";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,7 +38,7 @@ interface LocationAssignmentSheetProps {
 	/**
 	 * Callback fired when locations are assigned
 	 */
-	onLocationsAssigned: (locationIds: string[]) => void;
+	onLocationsAssigned: (locationIds: string[]) => Promise<boolean> | boolean;
 	/**
 	 * Optional custom trigger element
 	 */
@@ -84,14 +84,30 @@ export function LocationAssignmentSheet({
 	const isOpened = isControlled ? controlledOpen : open;
 	const setIsOpened = isControlled ? setControlledOpen! : setOpen;
 
+	// Update selected locations when assigned locations change or when sheet opens
+	useEffect(() => {
+		if (isOpened) {
+			setSelectedLocationIds(assignedLocationIds || []);
+		}
+	}, [isOpened, assignedLocationIds]);
+
 	// Filter the locations for assignment
 	const getFilteredLocations = () => {
-		if (!searchTerm) return allLocations;
+		let filteredLocations = allLocations;
 
-		// Filter by name if search term is present
-		return allLocations.filter((loc) =>
-			loc.name.toLowerCase().includes(searchTerm.toLowerCase())
-		);
+		// Filter by search term if present
+		if (searchTerm) {
+			filteredLocations = filteredLocations.filter((loc) =>
+				loc.name.toLowerCase().includes(searchTerm.toLowerCase())
+			);
+		}
+
+		return filteredLocations;
+	};
+
+	// Check if a location is already assigned
+	const isLocationAssigned = (locationId: string) => {
+		return assignedLocationIds.includes(locationId);
 	};
 
 	// Toggle location selection
@@ -105,36 +121,28 @@ export function LocationAssignmentSheet({
 
 	// Assign selected locations to the employee
 	const assignLocationsToEmployee = async () => {
-		if (!employeeId || selectedLocationIds.length === 0) return;
+		if (!employeeId || selectedLocationIds.length === 0) {
+			toast.error("Please select at least one location to assign");
+			return;
+		}
 
 		try {
 			setIsSubmitting(true);
 
-			// Get the current employee data
-			const employee = await EmployeesAPI.getById(employeeId);
-			if (employee) {
-				// Update the employee with the new location assignments
-				await EmployeesAPI.update(employeeId, {
-					...employee,
-					// Use a custom property to store the assigned locations
-					// @ts-ignore - locationAssignments is a custom property for multi-location support
-					locationAssignments: selectedLocationIds,
-					// Keep the primary location as the first one for backwards compatibility
-					// @ts-ignore - locationAssignment is a custom property from the existing code
-					locationAssignment: selectedLocationIds[0] || null,
-				});
+			// Call the parent callback which will handle the assignment
+			const success = await onLocationsAssigned(selectedLocationIds);
+
+			if (success) {
+				setAssignedCount(selectedLocationIds.length);
+				setIsAssigned(true);
+				// Success message is handled in the parent component
+			} else {
+				// If the parent callback returned false, don't show success state
+				throw new Error("Failed to update employee locations");
 			}
-
-			setAssignedCount(selectedLocationIds.length);
-			onLocationsAssigned(selectedLocationIds);
-			setIsAssigned(true);
-
-			toast.success(
-				`${selectedLocationIds.length} location(s) assigned to this employee`
-			);
 		} catch (error) {
 			console.error("Error assigning locations:", error);
-			toast.error("Failed to assign locations");
+			toast.error("Failed to assign locations. Please try again.");
 		} finally {
 			setIsSubmitting(false);
 		}
@@ -148,7 +156,11 @@ export function LocationAssignmentSheet({
 			setIsOpened(newOpen);
 		}
 
-		if (!newOpen) {
+		if (newOpen) {
+			// Reset success state when opening the sheet
+			setIsAssigned(false);
+			setSearchTerm("");
+		} else {
 			// Reset state when sheet closes
 			setTimeout(() => {
 				setIsAssigned(false);
@@ -229,13 +241,17 @@ export function LocationAssignmentSheet({
 										const isSelected = selectedLocationIds.includes(
 											location.id
 										);
+										const isAlreadyAssigned = isLocationAssigned(location.id);
 										return (
 											<div
 												key={location.id}
 												className={cn(
 													"flex items-center gap-3 p-3 border rounded hover:bg-accent/5 cursor-pointer",
 													isSelected &&
-														"bg-primary/5 border-primary/20 hover:bg-primary/10"
+														"bg-primary/5 border-primary/20 hover:bg-primary/10",
+													isAlreadyAssigned &&
+														!isSelected &&
+														"bg-muted/10 border-muted-foreground/20"
 												)}
 												onClick={() => toggleLocationSelection(location.id)}>
 												<Checkbox
@@ -246,7 +262,14 @@ export function LocationAssignmentSheet({
 													className="rounded-sm"
 												/>
 												<div className="flex-1 min-w-0">
-													<div className="font-medium">{location.name}</div>
+													<div className="font-medium flex items-center gap-2">
+														{location.name}
+														{isAlreadyAssigned && !isSelected && (
+															<span className="text-xs text-muted-foreground bg-muted/20 px-2 py-0.5 rounded-full">
+																Assigned
+															</span>
+														)}
+													</div>
 													<div className="text-xs text-muted-foreground truncate">
 														{location.address &&
 															`${location.address}${
@@ -274,6 +297,7 @@ export function LocationAssignmentSheet({
 										Cancel
 									</Button>
 									<Button
+										type="button"
 										onClick={assignLocationsToEmployee}
 										disabled={selectedLocationIds.length === 0 || isSubmitting}>
 										{isSubmitting ? (

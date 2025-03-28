@@ -119,6 +119,7 @@ export interface Employee {
 	status: string;
 	isOnline: boolean;
 	lastActive: string;
+	custom_properties?: Record<string, any>; // For storing custom properties like locationAssignments
 }
 
 export interface Location {

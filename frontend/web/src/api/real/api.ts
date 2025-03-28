@@ -866,6 +866,102 @@ export const NotificationsAPI = {
 	},
 };
 
+// Employee Locations API
+export const EmployeeLocationsAPI = {
+	getByEmployeeId: async (employeeId: string): Promise<string[]> => {
+		try {
+			// First, try to find records in the employee_locations table
+			const { data, error } = await supabase
+				.from("employee_locations")
+				.select("location_id")
+				.eq("employee_id", employeeId);
+
+			if (error) {
+				console.error("Error fetching employee locations:", error);
+				// If table doesn't exist yet, assume no locations
+				if (error.code === "42P01") {
+					// undefined_table
+					console.log("employee_locations table does not exist yet");
+					return [];
+				}
+				throw error;
+			}
+
+			// Return array of location IDs
+			return data.map((item) => item.location_id);
+		} catch (error) {
+			console.error("Error in getByEmployeeId:", error);
+			return [];
+		}
+	},
+
+	assignLocations: async (
+		employeeId: string,
+		locationIds: string[]
+	): Promise<boolean> => {
+		try {
+			// First try to query the employee_locations table to see if it exists
+			const { data: testData, error: testError } = await supabase
+				.from("employee_locations")
+				.select("id")
+				.limit(1);
+
+			// If we get a table doesn't exist error, we'll inform the user
+			if (testError && testError.code === "42P01") {
+				console.error(
+					"The employee_locations table doesn't exist in the database"
+				);
+				toast.error(
+					"Failed to assign locations: Database table not set up properly. Please contact support."
+				);
+				return false;
+			}
+
+			// Remove any existing assignments
+			const { error: deleteError } = await supabase
+				.from("employee_locations")
+				.delete()
+				.eq("employee_id", employeeId);
+
+			if (deleteError) {
+				console.error(
+					"Error deleting existing employee locations:",
+					deleteError
+				);
+				toast.error("Failed to update employee locations");
+				return false;
+			}
+
+			// Skip insert if no locations to assign
+			if (locationIds.length === 0) {
+				return true;
+			}
+
+			// Insert new assignments
+			const rowsToInsert = locationIds.map((locationId) => ({
+				employee_id: employeeId,
+				location_id: locationId,
+			}));
+
+			const { error: insertError } = await supabase
+				.from("employee_locations")
+				.insert(rowsToInsert);
+
+			if (insertError) {
+				console.error("Error inserting employee locations:", insertError);
+				toast.error("Failed to assign locations");
+				return false;
+			}
+
+			return true;
+		} catch (error) {
+			console.error("Error in assignLocations:", error);
+			toast.error("An unexpected error occurred. Please try again.");
+			return false;
+		}
+	},
+};
+
 // SchedulesAPI for backward compatibility
 export const SchedulesAPI = {
 	getAll: async (organizationId?: string): Promise<Schedule[]> => {
@@ -879,4 +975,4 @@ export const SchedulesAPI = {
 	create: async (data: ScheduleCreateInput): Promise<Schedule> => {
 		return ShiftsAPI.createSchedule(data);
 	},
-};
+}; // End of SchedulesAPI

@@ -16,6 +16,7 @@ import {
 	SchedulesAPI as MockSchedulesAPI,
 	ShiftAssignmentsAPI as MockShiftAssignmentsAPI,
 	ShiftsAPI as MockShiftsAPI,
+	EmployeeLocationsAPI as MockEmployeeLocationsAPI,
 	initMockData,
 } from "./mock/api";
 
@@ -24,9 +25,9 @@ import {
 	LocationsAPI as RealLocationsAPI,
 	NotificationsAPI as RealNotificationsAPI,
 	OrganizationsAPI as RealOrganizationsAPI,
-	SchedulesAPI as RealSchedulesAPI,
 	ShiftAssignmentsAPI as RealShiftAssignmentsAPI,
 	ShiftsAPI as RealShiftsAPI,
+	EmployeeLocationsAPI as RealEmployeeLocationsAPI,
 } from "./real/api";
 
 // Log which API implementation is being used
@@ -49,8 +50,11 @@ export const NotificationsAPI = USE_MOCK_API
 export const OrganizationsAPI = USE_MOCK_API
 	? MockOrganizationsAPI
 	: RealOrganizationsAPI;
-export const SchedulesAPI = USE_MOCK_API ? MockSchedulesAPI : RealSchedulesAPI;
+export const SchedulesAPI = USE_MOCK_API ? MockSchedulesAPI : RealShiftsAPI;
 export const ShiftAssignmentsAPI = USE_MOCK_API
 	? MockShiftAssignmentsAPI
 	: RealShiftAssignmentsAPI;
 export const ShiftsAPI = USE_MOCK_API ? MockShiftsAPI : RealShiftsAPI;
+export const EmployeeLocationsAPI = USE_MOCK_API
+	? MockEmployeeLocationsAPI
+	: RealEmployeeLocationsAPI;

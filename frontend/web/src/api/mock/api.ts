@@ -25,6 +25,9 @@ import {
 	generateLargeMockData,
 } from "./data";
 
+// Add a new storage for employee-location relationships
+const mockEmployeeLocations: { employeeId: string; locationId: string }[] = [];
+
 // Organizations API
 export const OrganizationsAPI = {
 	getAll: async (): Promise<Organization[]> => {
@@ -730,6 +733,45 @@ export const NotificationsAPI = {
 
 		mockNotifications.push(newNotification);
 		return newNotification;
+	},
+};
+
+// Employee Locations API
+export const EmployeeLocationsAPI = {
+	getByEmployeeId: async (employeeId: string): Promise<string[]> => {
+		await delay(300);
+		return mockEmployeeLocations
+			.filter((el) => el.employeeId === employeeId)
+			.map((el) => el.locationId);
+	},
+
+	assignLocations: async (
+		employeeId: string,
+		locationIds: string[]
+	): Promise<boolean> => {
+		await delay(500);
+		try {
+			// Remove existing assignments
+			const existingIndex = mockEmployeeLocations.findIndex(
+				(el) => el.employeeId === employeeId
+			);
+			if (existingIndex !== -1) {
+				mockEmployeeLocations.splice(existingIndex, 1);
+			}
+
+			// Add new assignments
+			for (const locationId of locationIds) {
+				mockEmployeeLocations.push({
+					employeeId,
+					locationId,
+				});
+			}
+
+			return true;
+		} catch (error) {
+			console.error("Error assigning locations in mock API:", error);
+			return false;
+		}
 	},
 };
 
