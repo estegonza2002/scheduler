@@ -1,5 +1,6 @@
 import { toast } from "sonner";
 import { supabase } from "../../lib/supabase";
+import { format, parseISO } from "date-fns";
 import {
 	Employee,
 	Location,
@@ -12,7 +13,13 @@ import {
 	ScheduleCreateInput,
 	ShiftItemCreateInput,
 	ShiftCreateInput,
-} from "../mock/types"; // Reuse the same types
+	Subscription,
+	PaymentMethod,
+	Invoice,
+	SubscriptionUpdateParams,
+	CheckoutSession,
+	SubscriptionPlan,
+} from "../types"; // Import from main types file
 
 // Organizations API
 export const OrganizationsAPI = {
@@ -1010,3 +1017,597 @@ export const SchedulesAPI = {
 		return ShiftsAPI.createSchedule(data);
 	},
 }; // End of SchedulesAPI
+
+// Messages and Conversations API
+export const ConversationsAPI = {
+	getAll: async (organizationId: string): Promise<Conversation[]> => {
+		const { data, error } = await supabase
+			.from("conversations")
+			.select("*, participants(*)")
+			.eq("organization_id", organizationId);
+
+		if (error) {
+			console.error("Error fetching conversations:", error);
+			return [];
+		}
+
+		return data.map((conversation) => ({
+			id: conversation.id,
+			name: conversation.name,
+			type: conversation.type,
+			avatar: conversation.avatar,
+			participants: conversation.participants?.length || 0,
+			isActive: conversation.is_active,
+			lastMessage: conversation.last_message,
+			lastMessageTime: conversation.last_message_time,
+			unreadCount: conversation.unread_count || 0,
+			organizationId: conversation.organization_id,
+		}));
+	},
+
+	getById: async (id: string): Promise<Conversation | null> => {
+		const { data, error } = await supabase
+			.from("conversations")
+			.select("*, participants(*)")
+			.eq("id", id)
+			.single();
+
+		if (error) {
+			console.error("Error fetching conversation:", error);
+			return null;
+		}
+
+		return {
+			id: data.id,
+			name: data.name,
+			type: data.type,
+			avatar: data.avatar,
+			participants: data.participants?.length || 0,
+			isActive: data.is_active,
+			lastMessage: data.last_message,
+			lastMessageTime: data.last_message_time,
+			unreadCount: data.unread_count || 0,
+			organizationId: data.organization_id,
+		};
+	},
+
+	create: async (data: ConversationCreateInput): Promise<Conversation> => {
+		const { data: conversation, error } = await supabase
+			.from("conversations")
+			.insert({
+				...data,
+				created_at: new Date().toISOString(),
+				updated_at: new Date().toISOString(),
+			})
+			.select()
+			.single();
+
+		if (error) {
+			toast.error("Failed to create conversation");
+			throw error;
+		}
+
+		return {
+			id: conversation.id,
+			name: conversation.name,
+			type: conversation.type,
+			avatar: conversation.avatar,
+			participants: conversation.participants?.length || 0,
+			isActive: conversation.is_active,
+			lastMessage: conversation.last_message,
+			lastMessageTime: conversation.last_message_time,
+			unreadCount: conversation.unread_count || 0,
+			organizationId: conversation.organization_id,
+		};
+	},
+};
+
+export const MessagesAPI = {
+	getAll: async (conversationId: string): Promise<Message[]> => {
+		const { data, error } = await supabase
+			.from("messages")
+			.select("*, sender:user_id(*)")
+			.eq("conversation_id", conversationId)
+			.order("created_at", { ascending: true });
+
+		if (error) {
+			console.error("Error fetching messages:", error);
+			return [];
+		}
+
+		const currentUser = (await supabase.auth.getUser()).data.user;
+
+		return data.map((message) => ({
+			id: message.id,
+			senderId: message.user_id,
+			senderName: message.sender?.name || "Unknown User",
+			senderAvatar: message.sender?.avatar || "",
+			content: message.content,
+			timestamp: format(parseISO(message.created_at), "h:mm a"),
+			isCurrentUser: message.user_id === currentUser?.id,
+		}));
+	},
+
+	send: async (data: MessageCreateInput): Promise<Message> => {
+		const currentUser = (await supabase.auth.getUser()).data.user;
+		if (!currentUser) {
+			throw new Error("User not authenticated");
+		}
+
+		const { data: message, error } = await supabase
+			.from("messages")
+			.insert({
+				...data,
+				user_id: currentUser.id,
+				created_at: new Date().toISOString(),
+			})
+			.select("*, sender:user_id(*)")
+			.single();
+
+		if (error) {
+			toast.error("Failed to send message");
+			throw error;
+		}
+
+		// Update conversation's last message
+		await supabase
+			.from("conversations")
+			.update({
+				last_message: data.content,
+				last_message_time: new Date().toISOString(),
+				updated_at: new Date().toISOString(),
+			})
+			.eq("id", data.conversation_id);
+
+		return {
+			id: message.id,
+			senderId: message.user_id,
+			senderName: message.sender?.name || "Unknown User",
+			senderAvatar: message.sender?.avatar || "",
+			content: message.content,
+			timestamp: format(parseISO(message.created_at), "h:mm a"),
+			isCurrentUser: true,
+		};
+	},
+};
+
+// Types for Messages and Conversations
+export interface Message {
+	id: string;
+	senderId: string;
+	senderName: string;
+	senderAvatar: string;
+	content: string;
+	timestamp: string;
+	isCurrentUser: boolean;
+}
+
+export interface MessageCreateInput {
+	conversation_id: string;
+	content: string;
+}
+
+export interface Conversation {
+	id: string;
+	name: string;
+	type: "chats" | "groups" | "active-shifts" | "one-to-one";
+	avatar: string;
+	participants: number;
+	isActive?: boolean;
+	lastMessage?: string;
+	lastMessageTime?: string;
+	unreadCount: number;
+	organizationId: string;
+}
+
+export interface ConversationCreateInput {
+	name: string;
+	type: Conversation["type"];
+	avatar?: string;
+	organization_id: string;
+	is_active?: boolean;
+}
+
+// Billing API
+export const BillingAPI = {
+	// Subscriptions
+	getSubscription: async (
+		organizationId: string
+	): Promise<Subscription | null> => {
+		try {
+			// First get the organization to find its subscription_id
+			const { data: org, error: orgError } = await supabase
+				.from("organizations")
+				.select("subscription_id, stripe_customer_id")
+				.eq("id", organizationId)
+				.single();
+
+			if (orgError || !org.subscription_id) {
+				console.error("Error fetching organization subscription:", orgError);
+				// If no subscription_id, return a default free subscription
+				return {
+					id: "free_subscription",
+					status: "active",
+					plan: "free",
+					current_period_start: new Date().toISOString(),
+					current_period_end: new Date(
+						Date.now() + 30 * 24 * 60 * 60 * 1000
+					).toISOString(),
+					cancel_at_period_end: false,
+				};
+			}
+
+			// Call the Stripe endpoint to get subscription details
+			const response = await fetch(
+				`/api/stripe/subscriptions/${org.subscription_id}`,
+				{
+					method: "GET",
+					headers: {
+						"Content-Type": "application/json",
+					},
+				}
+			);
+
+			if (!response.ok) {
+				throw new Error(`Failed to fetch subscription: ${response.statusText}`);
+			}
+
+			const subscription = await response.json();
+			return subscription;
+		} catch (error) {
+			console.error("Error fetching subscription:", error);
+			toast.error("Failed to load subscription information");
+			return null;
+		}
+	},
+
+	updateSubscription: async (
+		organizationId: string,
+		params: SubscriptionUpdateParams
+	): Promise<Subscription | null> => {
+		try {
+			// First get the organization to find its subscription_id
+			const { data: org, error: orgError } = await supabase
+				.from("organizations")
+				.select("subscription_id, stripe_customer_id")
+				.eq("id", organizationId)
+				.single();
+
+			if (orgError) {
+				console.error("Error fetching organization:", orgError);
+				toast.error("Failed to update subscription");
+				return null;
+			}
+
+			// If upgrading from free, create a new subscription
+			if (!org.subscription_id || org.subscription_id === "free_subscription") {
+				// Redirect to checkout instead
+				const checkoutSession = await BillingAPI.createCheckoutSession(
+					organizationId,
+					params.plan
+				);
+				if (checkoutSession && checkoutSession.url) {
+					window.location.href = checkoutSession.url;
+				}
+				return null;
+			}
+
+			// Call the Stripe endpoint to update subscription
+			const response = await fetch(
+				`/api/stripe/subscriptions/${org.subscription_id}`,
+				{
+					method: "PATCH",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({ plan: params.plan }),
+				}
+			);
+
+			if (!response.ok) {
+				throw new Error(
+					`Failed to update subscription: ${response.statusText}`
+				);
+			}
+
+			const subscription = await response.json();
+			toast.success(`Successfully updated to ${params.plan} plan`);
+			return subscription;
+		} catch (error) {
+			console.error("Error updating subscription:", error);
+			toast.error("Failed to update subscription");
+			return null;
+		}
+	},
+
+	cancelSubscription: async (organizationId: string): Promise<boolean> => {
+		try {
+			// First get the organization to find its subscription_id
+			const { data: org, error: orgError } = await supabase
+				.from("organizations")
+				.select("subscription_id")
+				.eq("id", organizationId)
+				.single();
+
+			if (
+				orgError ||
+				!org.subscription_id ||
+				org.subscription_id === "free_subscription"
+			) {
+				console.error("Error fetching organization subscription:", orgError);
+				toast.error("No active subscription found");
+				return false;
+			}
+
+			// Call the Stripe endpoint to cancel subscription
+			const response = await fetch(
+				`/api/stripe/subscriptions/${org.subscription_id}/cancel`,
+				{
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+				}
+			);
+
+			if (!response.ok) {
+				throw new Error(
+					`Failed to cancel subscription: ${response.statusText}`
+				);
+			}
+
+			toast.success("Subscription successfully canceled at period end");
+			return true;
+		} catch (error) {
+			console.error("Error canceling subscription:", error);
+			toast.error("Failed to cancel subscription");
+			return false;
+		}
+	},
+
+	// Payment Methods
+	getPaymentMethods: async (
+		organizationId: string
+	): Promise<PaymentMethod[]> => {
+		try {
+			// First get the organization to find its stripe_customer_id
+			const { data: org, error: orgError } = await supabase
+				.from("organizations")
+				.select("stripe_customer_id")
+				.eq("id", organizationId)
+				.single();
+
+			if (orgError || !org.stripe_customer_id) {
+				console.error("Error fetching organization:", orgError);
+				return [];
+			}
+
+			// Call the Stripe endpoint to get payment methods
+			const response = await fetch(
+				`/api/stripe/payment-methods?customerId=${org.stripe_customer_id}`,
+				{
+					method: "GET",
+					headers: {
+						"Content-Type": "application/json",
+					},
+				}
+			);
+
+			if (!response.ok) {
+				throw new Error(
+					`Failed to fetch payment methods: ${response.statusText}`
+				);
+			}
+
+			const paymentMethods = await response.json();
+			return paymentMethods;
+		} catch (error) {
+			console.error("Error fetching payment methods:", error);
+			toast.error("Failed to load payment methods");
+			return [];
+		}
+	},
+
+	addPaymentMethod: async (
+		organizationId: string,
+		paymentMethodId: string
+	): Promise<PaymentMethod | null> => {
+		try {
+			// First get the organization to find its stripe_customer_id
+			const { data: org, error: orgError } = await supabase
+				.from("organizations")
+				.select("stripe_customer_id")
+				.eq("id", organizationId)
+				.single();
+
+			if (orgError) {
+				console.error("Error fetching organization:", orgError);
+				toast.error("Failed to add payment method");
+				return null;
+			}
+
+			// If there's no customer ID, create one first
+			let customerId = org.stripe_customer_id;
+			if (!customerId) {
+				const userResponse = await supabase.auth.getUser();
+				const user = userResponse.data.user;
+
+				// Create customer in Stripe
+				const customerResponse = await fetch(`/api/stripe/customers`, {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({
+						email: user?.email,
+						name: user?.user_metadata?.full_name || user?.email,
+						organizationId: organizationId,
+					}),
+				});
+
+				if (!customerResponse.ok) {
+					throw new Error(
+						`Failed to create customer: ${customerResponse.statusText}`
+					);
+				}
+
+				const customerData = await customerResponse.json();
+				customerId = customerData.id;
+
+				// Update organization with new customer ID
+				await supabase
+					.from("organizations")
+					.update({ stripe_customer_id: customerId })
+					.eq("id", organizationId);
+			}
+
+			// Call the Stripe endpoint to attach payment method
+			const response = await fetch(`/api/stripe/payment-methods/attach`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					customerId,
+					paymentMethodId,
+				}),
+			});
+
+			if (!response.ok) {
+				throw new Error(`Failed to add payment method: ${response.statusText}`);
+			}
+
+			const paymentMethod = await response.json();
+			toast.success("Payment method added successfully");
+			return paymentMethod;
+		} catch (error) {
+			console.error("Error adding payment method:", error);
+			toast.error("Failed to add payment method");
+			return null;
+		}
+	},
+
+	removePaymentMethod: async (
+		organizationId: string,
+		paymentMethodId: string
+	): Promise<boolean> => {
+		try {
+			// Call the Stripe endpoint to detach payment method
+			const response = await fetch(
+				`/api/stripe/payment-methods/${paymentMethodId}/detach`,
+				{
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+				}
+			);
+
+			if (!response.ok) {
+				throw new Error(
+					`Failed to remove payment method: ${response.statusText}`
+				);
+			}
+
+			toast.success("Payment method removed successfully");
+			return true;
+		} catch (error) {
+			console.error("Error removing payment method:", error);
+			toast.error("Failed to remove payment method");
+			return false;
+		}
+	},
+
+	// Invoices
+	getInvoices: async (organizationId: string): Promise<Invoice[]> => {
+		try {
+			// First get the organization to find its stripe_customer_id
+			const { data: org, error: orgError } = await supabase
+				.from("organizations")
+				.select("stripe_customer_id")
+				.eq("id", organizationId)
+				.single();
+
+			if (orgError || !org.stripe_customer_id) {
+				console.error("Error fetching organization:", orgError);
+				return [];
+			}
+
+			// Call the Stripe endpoint to get invoices
+			const response = await fetch(
+				`/api/stripe/invoices?customerId=${org.stripe_customer_id}`,
+				{
+					method: "GET",
+					headers: {
+						"Content-Type": "application/json",
+					},
+				}
+			);
+
+			if (!response.ok) {
+				throw new Error(`Failed to fetch invoices: ${response.statusText}`);
+			}
+
+			const invoices = await response.json();
+			return invoices;
+		} catch (error) {
+			console.error("Error fetching invoices:", error);
+			toast.error("Failed to load invoice history");
+			return [];
+		}
+	},
+
+	// Checkout
+	createCheckoutSession: async (
+		organizationId: string,
+		plan: SubscriptionPlan
+	): Promise<CheckoutSession | null> => {
+		try {
+			// First get the organization details
+			const { data: org, error: orgError } = await supabase
+				.from("organizations")
+				.select("*")
+				.eq("id", organizationId)
+				.single();
+
+			if (orgError) {
+				console.error("Error fetching organization:", orgError);
+				toast.error("Failed to create checkout session");
+				return null;
+			}
+
+			const userResponse = await supabase.auth.getUser();
+			const user = userResponse.data.user;
+
+			// Create checkout session
+			const response = await fetch(`/api/stripe/checkout-sessions`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					customerId: org.stripe_customer_id,
+					organizationId,
+					plan,
+					email: user?.email,
+					name: org.name,
+					successUrl: `${window.location.origin}/billing?success=true`,
+					cancelUrl: `${window.location.origin}/billing`,
+				}),
+			});
+
+			if (!response.ok) {
+				throw new Error(
+					`Failed to create checkout session: ${response.statusText}`
+				);
+			}
+
+			const session = await response.json();
+			return session;
+		} catch (error) {
+			console.error("Error creating checkout session:", error);
+			toast.error("Failed to create checkout session");
+			return null;
+		}
+	},
+};

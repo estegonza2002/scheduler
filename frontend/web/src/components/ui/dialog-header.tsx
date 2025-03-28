@@ -54,12 +54,7 @@ export function DialogHeader({
 	actionsClassName,
 }: DialogHeaderProps) {
 	return (
-		<div
-			className={cn(
-				"border-b",
-				"py-4 px-[var(--header-spacing-x)]",
-				className
-			)}>
+		<div className={cn("border-b", "py-4 px-4 sm:px-6 lg:px-8", className)}>
 			<div className="flex flex-col gap-4">
 				<div className="flex items-center justify-between">
 					<h2

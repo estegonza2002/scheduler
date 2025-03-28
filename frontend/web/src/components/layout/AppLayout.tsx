@@ -3,66 +3,21 @@ import {
 	useLocation,
 	useNavigate,
 	useSearchParams,
-	Link,
 } from "react-router-dom";
 import {
 	Sidebar,
 	SidebarInset,
 	SidebarProvider,
-	SidebarTrigger,
 	useSidebar,
 } from "../ui/sidebar";
-import { Separator } from "../ui/separator";
 import { AppSidebar } from "../AppSidebar";
-import { Button } from "../ui/button";
-import {
-	Calendar as CalendarIcon,
-	ChevronLeft,
-	ChevronRight,
-	Plus,
-	Grid,
-	User,
-	MapPin,
-	RefreshCw,
-	Settings,
-	LogOut,
-	Shield,
-	ClipboardList,
-	Users,
-} from "lucide-react";
 import { useEffect, useState } from "react";
-import { format, addDays, subDays } from "date-fns";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
-import { Calendar } from "../ui/calendar";
-import { ShiftCreationSheet } from "../ShiftCreationSheet";
-import { AddEmployeeDialog } from "../AddEmployeeDialog";
-import { LocationFormDialog } from "../LocationFormDialog";
+import { format } from "date-fns";
 import { OrganizationsAPI, Organization } from "../../api";
-import { useNotifications } from "../../lib/notification-context";
 import { useLayout } from "../../lib/layout-context";
-import { Switch } from "../ui/switch";
-import { cn } from "../../lib/utils";
-import {
-	ScheduleSidebar,
-	LocationsSidebar,
-	EmployeesSidebar,
-	SecondaryNavbar,
-} from "./SecondaryNavbar";
 import { useAuth } from "../../lib/auth";
-import {
-	AlertDialog,
-	AlertDialogAction,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-	AlertDialogTrigger,
-} from "../ui/alert-dialog";
-import { getHeaderActions } from "../../pages/DailyShiftsPage";
+import { ScheduleSidebar } from "./SecondaryNavbar";
 import { OnboardingModal } from "../onboarding/OnboardingModal";
-import { EmployeeSheet } from "../EmployeeSheet";
 
 // Layout content component that can access the sidebar context
 function LayoutContent({

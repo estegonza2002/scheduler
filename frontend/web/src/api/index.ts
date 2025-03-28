@@ -1,8 +1,8 @@
 // API implementation using real APIs
 import { toast } from "sonner";
 
-// Re-export all types from the mock module
-export * from "./mock/types";
+// Re-export all types
+export * from "./types";
 
 // Import real API implementations
 import {
@@ -13,6 +13,7 @@ import {
 	ShiftAssignmentsAPI,
 	ShiftsAPI,
 	EmployeeLocationsAPI,
+	BillingAPI,
 } from "./real/api";
 
 // Log that we're using the real API implementation
@@ -28,4 +29,5 @@ export {
 	ShiftAssignmentsAPI,
 	ShiftsAPI,
 	EmployeeLocationsAPI,
+	BillingAPI,
 };

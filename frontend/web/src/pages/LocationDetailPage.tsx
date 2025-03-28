@@ -48,6 +48,9 @@ import { LocationSubNav } from "@/components/LocationSubNav";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { EmployeeAssignmentSheet } from "@/components/EmployeeAssignmentSheet";
+import { useAuth } from "@/lib/auth";
+import { getDefaultOrganizationId } from "@/lib/utils";
+import { useOrganizationId } from "@/hooks/useOrganizationId";
 
 // Update Location type to include optional fields
 interface ExtendedLocation extends Location {
@@ -62,27 +65,6 @@ const isUUID = (id: string): boolean => {
 	return uuidPattern.test(id);
 };
 
-// Function to get a valid test employee ID based on the current data format
-const getTestEmployeeId = async (): Promise<string> => {
-	try {
-		// Get all employees
-		const organizationId = "org-1"; // Default organization ID
-		const allEmployees = await EmployeesAPI.getAll(organizationId);
-
-		// Find the first employee ID to use as a test
-		if (allEmployees.length > 0) {
-			console.log("Found employee to use for test:", allEmployees[0]);
-			return allEmployees[0].id;
-		}
-
-		// Fallback to emp-1 for mock data
-		return "emp-1";
-	} catch (error) {
-		console.error("Error determining test employee ID:", error);
-		return "emp-1"; // Default for mock data
-	}
-};
-
 export default function LocationDetailPage() {
 	const { locationId } = useParams<{ locationId: string }>();
 	const navigate = useNavigate();
@@ -93,6 +75,8 @@ export default function LocationDetailPage() {
 	const [loading, setLoading] = useState<boolean>(true);
 	const [loadingPhase, setLoadingPhase] = useState<string>("location");
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
+	const { user } = useAuth();
+	const organizationId = useOrganizationId();
 
 	useEffect(() => {
 		const fetchLocation = async () => {
@@ -127,7 +111,6 @@ export default function LocationDetailPage() {
 
 				// Fetch all employees
 				setLoadingPhase("employees");
-				const organizationId = "org-1";
 				const employees = await EmployeesAPI.getAll(organizationId);
 				setAllEmployees(employees);
 
@@ -149,7 +132,7 @@ export default function LocationDetailPage() {
 		};
 
 		fetchLocation();
-	}, [locationId, navigate]);
+	}, [locationId, navigate, organizationId]);
 
 	const handleDeleteLocation = async () => {
 		if (!location) return;
@@ -165,6 +148,28 @@ export default function LocationDetailPage() {
 		} catch (error) {
 			console.error("Error deleting location:", error);
 			toast.error("Failed to delete location");
+		}
+	};
+
+	const getCurrentEmployeeId = async () => {
+		if (!user?.id) {
+			console.error("No user ID available");
+			return null;
+		}
+
+		try {
+			const employees = await EmployeesAPI.getAll(organizationId);
+			const employee = employees.find((emp) => emp.email === user.email);
+
+			if (!employee) {
+				console.error("No employee record found for current user");
+				return null;
+			}
+
+			return employee.id;
+		} catch (error) {
+			console.error("Error finding current employee:", error);
+			return null;
 		}
 	};
 
@@ -368,90 +373,26 @@ export default function LocationDetailPage() {
 						title="Assigned Employees"
 						description={`${assignedEmployees.length} employees assigned to this location`}
 						headerActions={
-							<div className="flex gap-2">
-								<EmployeeAssignmentSheet
-									locationId={locationId || ""}
-									locationName={location?.name || "Location"}
-									allEmployees={allEmployees}
-									assignedEmployees={assignedEmployees}
-									onEmployeesAssigned={(newlyAssignedEmployees) => {
-										setAssignedEmployees((prev) => [
-											...prev,
-											...newlyAssignedEmployees,
-										]);
-									}}
-									trigger={
-										<Button
-											variant="outline"
-											size="sm">
-											<UserPlus className="h-4 w-4 mr-2" />
-											Assign Employee
-										</Button>
-									}
-								/>
-								{/* Add a test button for quickly assigning an employee to this location */}
-								<Button
-									variant="outline"
-									size="sm"
-									onClick={async () => {
-										if (!locationId) return;
-
-										try {
-											// Get organization ID (in a real app this would come from a context)
-											const organizationId = "org-1";
-
-											// Get all employees
-											const allEmployees = await EmployeesAPI.getAll(
-												organizationId
-											);
-											console.log(
-												"DEBUG: Test button - All employees:",
-												allEmployees
-											);
-
-											if (allEmployees.length === 0) {
-												toast.error("No employees found in database");
-												return;
-											}
-
-											// Find an employee that's not already assigned
-											const unassignedEmployees = allEmployees.filter(
-												(emp) =>
-													!assignedEmployees.some(
-														(assigned) => assigned.id === emp.id
-													)
-											);
-
-											console.log(
-												"DEBUG: Test button - Unassigned employees:",
-												unassignedEmployees
-											);
-
-											if (unassignedEmployees.length > 0) {
-												// Just add the first unassigned employee directly to UI without API call
-												const employeeToAdd = unassignedEmployees[0];
-												toast.success(
-													`Adding ${employeeToAdd.name} to this location`
-												);
-												setAssignedEmployees((prev) => [
-													...prev,
-													employeeToAdd,
-												]);
-											} else if (allEmployees.length > 0) {
-												toast.info(
-													"All employees are already assigned to this location"
-												);
-											} else {
-												toast.error("No employees found");
-											}
-										} catch (error) {
-											console.error("Error in finding employees:", error);
-											toast.error("Failed to add test employee");
-										}
-									}}>
-									Add Test Employee
-								</Button>
-							</div>
+							<EmployeeAssignmentSheet
+								locationId={locationId || ""}
+								locationName={location?.name || "Location"}
+								allEmployees={allEmployees}
+								assignedEmployees={assignedEmployees}
+								onEmployeesAssigned={(newlyAssignedEmployees) => {
+									setAssignedEmployees((prev) => [
+										...prev,
+										...newlyAssignedEmployees,
+									]);
+								}}
+								trigger={
+									<Button
+										variant="outline"
+										size="sm">
+										<UserPlus className="h-4 w-4 mr-2" />
+										Assign Employee
+									</Button>
+								}
+							/>
 						}>
 						{assignedEmployees.length === 0 ? (
 							<EmptyState

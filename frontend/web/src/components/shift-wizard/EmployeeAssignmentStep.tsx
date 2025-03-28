@@ -112,11 +112,6 @@ export function EmployeeAssignmentStep({
 
 	// Handle employee selection/deselection
 	const toggleEmployeeSelection = (employee: Employee) => {
-		// Don't allow selection of invited employees
-		if (employee.status === "invited") {
-			return;
-		}
-
 		const isSelected = selectedEmployees.some((e) => e.id === employee.id);
 
 		if (isSelected) {
@@ -231,15 +226,13 @@ export function EmployeeAssignmentStep({
 
 					{/* Add alert for invited employees */}
 					{invitedEmployees.length > 0 && (
-						<Alert
-							variant="destructive"
-							className="mb-4 bg-red-50 border-red-200 mt-4">
-							<AlertCircle className="h-4 w-4 text-red-600" />
-							<AlertTitle className="text-red-800">
+						<Alert className="mb-4 bg-blue-50 border-blue-200 mt-4">
+							<AlertCircle className="h-4 w-4 text-blue-600" />
+							<AlertTitle className="text-blue-800">
 								{invitedEmployees.length} employee
-								{invitedEmployees.length !== 1 ? "s" : ""} can't be scheduled
+								{invitedEmployees.length !== 1 ? "s" : ""} with pending signup
 							</AlertTitle>
-							<AlertDescription className="text-red-700">
+							<AlertDescription className="text-blue-700">
 								Some employees have pending signups and cannot be scheduled
 								until they complete their account setup.
 							</AlertDescription>
@@ -415,61 +408,53 @@ export function EmployeeAssignmentStep({
 										{/* Show invited employees with disabled state */}
 										{invitedEmployees.length > 0 && (
 											<div className="mt-4 mb-2">
-												<h4 className="text-sm font-medium flex items-center mb-2 text-red-800">
-													<UserX className="h-4 w-4 mr-1.5 text-red-600" />
+												<h4 className="text-sm font-medium flex items-center mb-2 text-blue-800">
+													<UserX className="h-4 w-4 mr-1.5 text-blue-600" />
 													Employees with pending signup
 												</h4>
 												<div className="space-y-2">
 													{invitedEmployees.map((employee) => (
-														<TooltipProvider key={employee.id}>
-															<Tooltip>
-																<TooltipTrigger asChild>
-																	<Card className="opacity-70 border-red-200">
-																		<CardContent className="p-3 flex justify-between items-center">
-																			<div className="flex items-center gap-3">
-																				<div className="h-5 w-5 flex items-center justify-center">
-																					<UserX className="h-4 w-4 text-red-500" />
-																				</div>
-																				<Avatar className="h-8 w-8">
-																					<AvatarFallback>
-																						{employee.name
-																							.split(" ")
-																							.map((n) => n[0])
-																							.join("")}
-																					</AvatarFallback>
-																				</Avatar>
-																				<div>
-																					<div className="font-medium flex items-center">
-																						{employee.name}
-																						<Badge
-																							variant="destructive"
-																							className="ml-2 text-xs bg-red-500">
-																							Pending Signup
-																						</Badge>
-																					</div>
-																					<div className="text-sm text-muted-foreground">
-																						Cannot be scheduled
-																					</div>
-																				</div>
+														<Card
+															key={employee.id}
+															className={`cursor-pointer transition-all ${
+																isEmployeeSelected(employee.id)
+																	? "border-primary bg-primary/5"
+																	: "hover:border-muted-foreground"
+															}`}
+															onClick={() => toggleEmployeeSelection(employee)}>
+															<Card className="opacity-70 border-red-200">
+																<CardContent className="p-3 flex justify-between items-center">
+																	<div className="flex items-center gap-3">
+																		<Checkbox
+																			checked={isEmployeeSelected(employee.id)}
+																			onCheckedChange={() =>
+																				toggleEmployeeSelection(employee)
+																			}
+																			className="h-5 w-5"
+																		/>
+																		<Avatar className="h-8 w-8">
+																			<AvatarFallback>
+																				{employee.name
+																					.split(" ")
+																					.map((n) => n[0])
+																					.join("")}
+																			</AvatarFallback>
+																		</Avatar>
+																		<div>
+																			<div className="font-medium flex items-center">
+																				{employee.name}
+																				<Badge className="ml-2 text-xs bg-red-500">
+																					Pending Signup
+																				</Badge>
 																			</div>
-																		</CardContent>
-																	</Card>
-																</TooltipTrigger>
-																<TooltipContent
-																	side="top"
-																	className="max-w-xs p-3">
-																	<p className="font-medium mb-1">
-																		Cannot schedule this employee
-																	</p>
-																	<p className="text-sm">
-																		This employee hasn't completed their account
-																		setup yet. They need to accept the
-																		invitation and create their account before
-																		they can be scheduled.
-																	</p>
-																</TooltipContent>
-															</Tooltip>
-														</TooltipProvider>
+																			<div className="text-sm text-muted-foreground">
+																				Can now be scheduled
+																			</div>
+																		</div>
+																	</div>
+																</CardContent>
+															</Card>
+														</Card>
 													))}
 												</div>
 											</div>

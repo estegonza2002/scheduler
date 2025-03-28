@@ -72,35 +72,7 @@ import { DataCardGrid } from "@/components/ui/data-card-grid";
 import { DatePicker } from "@/components/ui/date-picker";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { useOrganizationId } from "@/hooks/useOrganizationId";
-
-// Export the ShiftCreationSheet with its props for use in the AppLayout
-export function getHeaderActions() {
-	// Get the URL parameters
-	const [searchParams] = useSearchParams();
-	const dateParam = searchParams.get("date");
-	const currentDate = dateParam ? new Date(dateParam) : new Date();
-
-	// Get organization ID from context instead of URL
-	const organizationId = useOrganizationId();
-	console.log("Using organization ID in ShiftCreationSheet:", organizationId);
-
-	// In a real app, you would fetch this or store it in context
-	const selectedSchedule = "sch-4"; // Spring 2025 schedule
-
-	return (
-		<ShiftCreationSheet
-			scheduleId={selectedSchedule}
-			organizationId={organizationId}
-			initialDate={currentDate}
-			trigger={
-				<Button className="bg-primary hover:bg-primary/90 text-white h-9">
-					<Plus className="h-5 w-5 mr-2" />
-					Create Shift
-				</Button>
-			}
-		/>
-	);
-}
+import { toast } from "sonner";
 
 export default function DailyShiftsPage() {
 	const [searchParams, setSearchParams] = useSearchParams();
@@ -115,7 +87,7 @@ export default function DailyShiftsPage() {
 	const [schedules, setSchedules] = useState<Schedule[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [loadingPhase, setLoadingPhase] = useState<string>("shifts");
-	const [selectedSchedule, setSelectedSchedule] = useState<string | null>(null);
+	const [selectedSchedule, setSelectedSchedule] = useState<string>("");
 	const organizationId = useOrganizationId();
 	const [viewMode, setViewMode] = useState<"table" | "cards">("cards");
 	const [currentPage, setCurrentPage] = useState<number>(1);
@@ -144,16 +116,44 @@ export default function DailyShiftsPage() {
 			setLoading(true);
 			setLoadingPhase("shifts");
 
-			// For demonstration, use hardcoded mock data
-			setShifts([]);
+			// Fetch schedules first
+			const schedules = await ShiftsAPI.getAllSchedules(organizationId);
+			setSchedules(schedules);
 
-			// Simulating loading delay
-			setTimeout(() => {
-				setLoading(false);
-				setLoadingPhase("");
-			}, 500);
+			// If no schedule is selected, use the first one
+			const targetSchedule = selectedSchedule || schedules[0]?.id || "";
+			if (!selectedSchedule && schedules[0]?.id) {
+				setSelectedSchedule(schedules[0].id);
+			}
+
+			if (!targetSchedule) {
+				setShifts([]);
+				return;
+			}
+
+			// Fetch shifts for the selected schedule
+			const shifts = await ShiftsAPI.getShiftsForSchedule(targetSchedule);
+
+			// Filter shifts for the current date
+			const dateStr = format(currentDate, "yyyy-MM-dd");
+			const filteredShifts = shifts.filter((shift) => {
+				const shiftDate = format(new Date(shift.start_time), "yyyy-MM-dd");
+				return shiftDate === dateStr;
+			});
+
+			setShifts(filteredShifts);
+
+			// Fetch locations and employees for the organization
+			const [locations, employees] = await Promise.all([
+				LocationsAPI.getAll(organizationId),
+				EmployeesAPI.getAll(organizationId),
+			]);
+
+			setLocations(locations);
+			setEmployees(employees);
 		} catch (error) {
 			console.error("Error fetching shifts:", error);
+			toast.error("Failed to fetch shifts");
 		} finally {
 			setLoading(false);
 			setLoadingPhase("");
@@ -342,6 +342,23 @@ export default function DailyShiftsPage() {
 		},
 	];
 
+	// Export the ShiftCreationSheet with its props for use in the AppLayout
+	function getHeaderActions() {
+		return (
+			<ShiftCreationSheet
+				scheduleId={selectedSchedule}
+				organizationId={organizationId}
+				initialDate={currentDate}
+				trigger={
+					<Button className="bg-primary hover:bg-primary/90 text-white h-9">
+						<Plus className="h-5 w-5 mr-2" />
+						Create Shift
+					</Button>
+				}
+			/>
+		);
+	}
+
 	return (
 		<>
 			<PageHeader
@@ -389,7 +406,7 @@ export default function DailyShiftsPage() {
 							Today
 						</Button>
 						<ShiftCreationSheet
-							scheduleId={selectedSchedule || "sch-4"}
+							scheduleId={selectedSchedule}
 							organizationId={organizationId}
 							initialDate={currentDate}
 							trigger={
@@ -435,7 +452,7 @@ export default function DailyShiftsPage() {
 							icon={<CalendarComponent className="h-10 w-10" />}
 							action={
 								<ShiftCreationSheet
-									scheduleId={selectedSchedule || "sch-4"}
+									scheduleId={selectedSchedule}
 									organizationId={organizationId}
 									initialDate={currentDate}
 									trigger={

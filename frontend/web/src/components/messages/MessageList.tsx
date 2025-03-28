@@ -1,9 +1,12 @@
 import { useState, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Input } from "../ui/input";
-import { Search } from "lucide-react";
-import { MessageSquare } from "lucide-react";
+import { Search, MessageSquare } from "lucide-react";
 import { cn } from "../../lib/utils";
+import { ConversationsAPI, Conversation } from "@/api/real/api";
+import { format, parseISO } from "date-fns";
+import { toast } from "sonner";
+import { useOrganization } from "@/lib/organization-context";
 
 type MessageListProps = {
 	type: "chats" | "groups" | "active-shifts" | "one-to-one";
@@ -12,112 +15,76 @@ type MessageListProps = {
 	fullWidth?: boolean;
 };
 
-type Conversation = {
-	id: string;
-	name: string;
-	avatar: string;
-	lastMessage: string;
-	timestamp: string;
-	unread: number;
-};
-
 export function MessageList({
 	type,
 	onSelectConversation,
 	selectedId,
 	fullWidth,
 }: MessageListProps) {
+	const { getCurrentOrganizationId } = useOrganization();
 	const [searchQuery, setSearchQuery] = useState("");
 	const [conversations, setConversations] = useState<Conversation[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
 
 	useEffect(() => {
-		// This would be replaced by a real API call in production
-		// For now we'll use mock data until the real API is connected
+		async function fetchConversations() {
+			try {
+				setLoading(true);
+				setError(null);
+				const orgId = getCurrentOrganizationId();
+				const fetchedConversations = await ConversationsAPI.getAll(orgId);
 
-		// Mock data for sample conversations
-		const mockConversations: Record<string, Conversation[]> = {
-			chats: [
-				{
-					id: "chat-1",
-					name: "General Chat",
-					avatar: "",
-					lastMessage: "Has anyone seen the new schedule?",
-					timestamp: "10:30 AM",
-					unread: 3,
-				},
-				// ... other chats
-			],
-			groups: [
-				{
-					id: "group-1",
-					name: "Front Desk Team",
-					avatar: "",
-					lastMessage: "Meeting at 3 PM today",
-					timestamp: "9:45 AM",
-					unread: 2,
-				},
-				// ... other groups
-			],
-			"active-shifts": [
-				{
-					id: "shift-1",
-					name: "Morning Shift (8AM-4PM)",
-					avatar: "",
-					lastMessage: "Alex: Running late by 15 min",
-					timestamp: "Just now",
-					unread: 5,
-				},
-				// ... other active shifts
-			],
-			"one-to-one": [
-				{
-					id: "user-1",
-					name: "John Smith",
-					avatar: "",
-					lastMessage: "Can we discuss my schedule?",
-					timestamp: "11:20 AM",
-					unread: 1,
-				},
-				// ... other direct messages
-			],
-		};
+				// Filter conversations by type
+				const filteredConversations = fetchedConversations.filter(
+					(conv) => conv.type === type
+				);
 
-		// Get conversations and sort them: first by unread count (descending), then by recency
-		const conversations = [...(mockConversations[type] || [])];
+				// Sort conversations by last message date
+				const sortedConversations = [...filteredConversations].sort((a, b) => {
+					if (!a.lastMessageTime || !b.lastMessageTime) return 0;
+					return (
+						parseISO(b.lastMessageTime).getTime() -
+						parseISO(a.lastMessageTime).getTime()
+					);
+				});
 
-		// Sort conversations - first by unread messages, then by recency
-		conversations.sort((a, b) => {
-			// First sort by unread (more unread messages first)
-			if (a.unread !== b.unread) {
-				return b.unread - a.unread;
+				setConversations(sortedConversations);
+			} catch (err) {
+				console.error("Failed to fetch conversations:", err);
+				setError("Failed to load conversations");
+				toast.error("Failed to load conversations");
+			} finally {
+				setLoading(false);
 			}
+		}
 
-			// Then sort by timestamp (convert relative times to a numeric value for sorting)
-			const timeValues: Record<string, number> = {
-				"Just now": 6,
-				"30 min ago": 5,
-				"10:30 AM": 4,
-				"11:20 AM": 4,
-				"9:45 AM": 4,
-				Yesterday: 3,
-				"2 days ago": 2,
-				"3 days ago": 1,
-			};
-
-			const aTimeValue = timeValues[a.timestamp] || 0;
-			const bTimeValue = timeValues[b.timestamp] || 0;
-
-			return bTimeValue - aTimeValue;
-		});
-
-		setConversations(conversations);
-	}, [type]);
+		fetchConversations();
+	}, [type, getCurrentOrganizationId]);
 
 	const filteredConversations = conversations.filter(
 		(conversation) =>
 			conversation.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-			conversation.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
+			(conversation.lastMessage || "")
+				.toLowerCase()
+				.includes(searchQuery.toLowerCase())
 	);
+
+	if (loading) {
+		return (
+			<div className="flex flex-col items-center justify-center h-full text-muted-foreground p-8">
+				<p>Loading conversations...</p>
+			</div>
+		);
+	}
+
+	if (error) {
+		return (
+			<div className="flex flex-col items-center justify-center h-full text-muted-foreground p-8">
+				<p className="text-red-500">{error}</p>
+			</div>
+		);
+	}
 
 	return (
 		<div className="flex flex-col h-full overflow-hidden">
@@ -164,7 +131,7 @@ export function MessageList({
 							<div className="relative">
 								<Avatar className="h-10 w-10">
 									<AvatarImage
-										src={conversation.avatar}
+										src={conversation.avatar || ""}
 										alt={conversation.name}
 									/>
 									<AvatarFallback>
@@ -175,9 +142,9 @@ export function MessageList({
 											.toUpperCase()}
 									</AvatarFallback>
 								</Avatar>
-								{conversation.unread > 0 && (
+								{conversation.unreadCount > 0 && (
 									<div className="absolute -top-1 -right-1 bg-primary text-primary-foreground rounded-full text-xs w-5 h-5 flex items-center justify-center">
-										{conversation.unread}
+										{conversation.unreadCount}
 									</div>
 								)}
 							</div>
@@ -187,11 +154,13 @@ export function MessageList({
 										{conversation.name}
 									</p>
 									<p className="text-xs text-muted-foreground whitespace-nowrap">
-										{conversation.timestamp}
+										{conversation.lastMessageTime
+											? format(parseISO(conversation.lastMessageTime), "p")
+											: "No messages"}
 									</p>
 								</div>
 								<p className="text-xs text-muted-foreground truncate">
-									{conversation.lastMessage}
+									{conversation.lastMessage || "No messages yet"}
 								</p>
 							</div>
 						</div>

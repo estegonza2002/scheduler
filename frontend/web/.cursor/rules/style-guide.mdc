@@ -1,0 +1,6 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+Only use shadCN component with Tailwind. Absolutly no custom css or unceseary warppers. 

@@ -7,9 +7,15 @@ module.exports = {
 		"\\.(jpg|jpeg|png|gif|webp|svg)$": "<rootDir>/__mocks__/fileMock.js",
 	},
 	transform: {
-		"^.+\\.(ts|tsx|js|jsx)$": "babel-jest",
+		"^.+\\.(ts|tsx|js|jsx)$": [
+			"babel-jest",
+			{ configFile: "./babel.config.cjs" },
+		],
 	},
-	testMatch: ["**/__tests__/**/*.test.(ts|tsx|js|jsx)"],
+	testMatch: [
+		"**/__tests__/**/*.test.(ts|tsx|js|jsx)",
+		"**/*.a11y.test.{js,jsx,ts,tsx}",
+	],
 	collectCoverageFrom: [
 		"src/**/*.{js,jsx,ts,tsx}",
 		"!src/**/*.d.ts",

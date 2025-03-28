@@ -1,25 +1,26 @@
 import React, { ReactNode } from "react";
 import { cn } from "../../lib/utils";
-import { SecondaryNavbar } from "./SecondaryNavbar";
 import { ContentContainer } from "../ui/content-container";
 import { PageHeader } from "../ui/page-header";
 
-interface SecondaryLayoutProps {
+type SecondaryLayoutProps = {
+	/** The main content to display in the content area */
 	children: ReactNode;
+	/** Page title displayed in the header */
 	title: string;
+	/** Optional description displayed under the title */
 	description?: string;
+	/** The secondary navigation sidebar component to display */
 	sidebar: ReactNode;
+	/** Optional additional CSS classes */
 	className?: string;
-}
+};
 
 /**
  * SecondaryLayout - A standardized layout for pages with secondary navigation
  *
- * @param children - The main content to display in the content area
- * @param title - Page title displayed in the header
- * @param description - Optional description displayed under the title
- * @param sidebar - The secondary navigation sidebar component to display
- * @param className - Optional additional CSS classes
+ * Provides a consistent structure with a header, sidebar, and content area
+ * for pages that require supplementary navigation.
  */
 export function SecondaryLayout({
 	children,

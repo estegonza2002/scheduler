@@ -1,19 +1,25 @@
 import React, { ReactNode } from "react";
 import { cn } from "../../lib/utils";
-import { MiniCalendar } from "../MiniCalendar";
-import { SidebarProvider, Sidebar, SidebarInset } from "../ui/sidebar";
-import { useLocation } from "react-router-dom";
-import { CalendarIcon, ListTodo, Calendar, CalendarDays } from "lucide-react";
+import { Button } from "../ui/button";
 import { useAuth } from "../../lib/auth";
 import { format } from "date-fns";
-import { Button } from "../ui/button";
 
-interface SecondaryNavbarProps {
+type SidebarState = "expanded" | "collapsed";
+
+type SecondaryNavbarProps = {
+	/** Content to render inside the navbar */
 	children: ReactNode;
+	/** Optional additional classes */
 	className?: string;
-	sidebarState?: "expanded" | "collapsed";
-}
+	/** State of the sidebar - expanded or collapsed */
+	sidebarState?: SidebarState;
+};
 
+/**
+ * SecondaryNavbar - Base component for secondary navigation sidebars
+ *
+ * Provides the structure and styling for all secondary navigation components
+ */
 export function SecondaryNavbar({
 	children,
 	className,
@@ -40,19 +46,28 @@ export function SecondaryNavbar({
 	);
 }
 
+type ScheduleSidebarProps = {
+	/** Current view mode */
+	viewMode: "calendar" | "daily";
+	/** Handler for view mode changes */
+	onViewModeChange: (mode: "calendar" | "daily") => void;
+	/** Handler for viewing today */
+	onViewToday: () => void;
+	/** State of the sidebar */
+	sidebarState?: SidebarState;
+};
+
+/**
+ * ScheduleSidebar - Secondary navigation for schedule pages
+ *
+ * Provides schedule selection, view options, and calendar navigation
+ */
 export function ScheduleSidebar({
 	viewMode,
 	onViewModeChange,
 	onViewToday,
 	sidebarState,
-}: {
-	viewMode: "calendar" | "daily";
-	onViewModeChange: (mode: "calendar" | "daily") => void;
-	onViewToday: () => void;
-	sidebarState?: "expanded" | "collapsed";
-}) {
-	const today = new Date();
-
+}: ScheduleSidebarProps) {
 	return (
 		<SecondaryNavbar sidebarState={sidebarState}>
 			<div className="space-y-6">
@@ -209,6 +224,30 @@ export function ScheduleSidebar({
 	);
 }
 
+type LocationsSidebarProps = {
+	/** Handler for search input changes */
+	onSearch: (term: string) => void;
+	/** Current state filter value */
+	stateFilter: string | null;
+	/** Handler for state filter changes */
+	onStateFilterChange: (state: string | null) => void;
+	/** Current status filter value */
+	statusFilter: string | null;
+	/** Handler for status filter changes */
+	onStatusFilterChange: (status: string | null) => void;
+	/** Handler for clearing all filters */
+	onClearFilters: () => void;
+	/** List of available states */
+	states: string[];
+	/** State of the sidebar */
+	sidebarState?: SidebarState;
+};
+
+/**
+ * LocationsSidebar - Secondary navigation for locations pages
+ *
+ * Provides filters and search functionality for locations
+ */
 export function LocationsSidebar({
 	onSearch,
 	stateFilter,
@@ -218,16 +257,7 @@ export function LocationsSidebar({
 	onClearFilters,
 	states,
 	sidebarState,
-}: {
-	onSearch: (term: string) => void;
-	stateFilter: string | null;
-	onStateFilterChange: (state: string | null) => void;
-	statusFilter: string | null;
-	onStatusFilterChange: (status: string | null) => void;
-	onClearFilters: () => void;
-	states: string[];
-	sidebarState?: "expanded" | "collapsed";
-}) {
+}: LocationsSidebarProps) {
 	return (
 		<SecondaryNavbar sidebarState={sidebarState}>
 			<h3 className="text-sm font-medium text-muted-foreground mb-4">
@@ -306,6 +336,26 @@ export function LocationsSidebar({
 	);
 }
 
+type EmployeesSidebarProps = {
+	/** Handler for search input changes */
+	onSearch: (term: string) => void;
+	/** Current position filter value */
+	positionFilter: string | null;
+	/** Handler for position filter changes */
+	onPositionFilterChange: (position: string | null) => void;
+	/** Handler for clearing all filters */
+	onClearFilters: () => void;
+	/** List of available positions */
+	positions: string[];
+	/** State of the sidebar */
+	sidebarState?: SidebarState;
+};
+
+/**
+ * EmployeesSidebar - Secondary navigation for employees pages
+ *
+ * Provides filters and search functionality for employees
+ */
 export function EmployeesSidebar({
 	onSearch,
 	positionFilter,
@@ -313,14 +363,7 @@ export function EmployeesSidebar({
 	onClearFilters,
 	positions,
 	sidebarState,
-}: {
-	onSearch: (term: string) => void;
-	positionFilter: string | null;
-	onPositionFilterChange: (position: string | null) => void;
-	onClearFilters: () => void;
-	positions: string[];
-	sidebarState?: "expanded" | "collapsed";
-}) {
+}: EmployeesSidebarProps) {
 	return (
 		<SecondaryNavbar sidebarState={sidebarState}>
 			<h3 className="text-sm font-medium text-muted-foreground mb-4">
@@ -381,15 +424,25 @@ export function EmployeesSidebar({
 	);
 }
 
+type ProfileSidebarProps = {
+	/** Currently active tab */
+	activeTab: string;
+	/** Handler for tab changes */
+	onTabChange: (tab: string) => void;
+	/** State of the sidebar */
+	sidebarState?: SidebarState;
+};
+
+/**
+ * ProfileSidebar - Secondary navigation for profile settings pages
+ *
+ * Provides navigation between different profile and settings sections
+ */
 export function ProfileSidebar({
 	activeTab,
 	onTabChange,
 	sidebarState,
-}: {
-	activeTab: string;
-	onTabChange: (tab: string) => void;
-	sidebarState?: "expanded" | "collapsed";
-}) {
+}: ProfileSidebarProps) {
 	const { user } = useAuth();
 	const isAdmin = user?.user_metadata?.role === "admin";
 	const hasPaidSubscription = true; // For demo purposes, showing all options
@@ -443,15 +496,6 @@ export function ProfileSidebar({
 							className="w-full justify-start text-left font-normal">
 							Business Profile
 						</Button>
-
-						{/* Branding button hidden temporarily
-						<Button
-							variant={activeTab === "branding" ? "secondary" : "ghost"}
-							onClick={() => onTabChange("branding")}
-							className="w-full justify-start text-left font-normal">
-							Branding
-						</Button>
-						*/}
 
 						{/* Billing options */}
 						<div className="mt-8 mb-3">

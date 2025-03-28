@@ -56,15 +56,24 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
 		if (!user) return;
 
 		setLoading(true);
+
+		const userId = user.id;
+		if (!userId) {
+			console.error("No user ID available");
+			setLoading(false);
+			return;
+		}
+
 		try {
-			const userId = user.id || "user-1"; // Fallback for mock data
-			const data = await NotificationsAPI.getAll(userId);
-			setNotifications(data);
+			const notifications = await NotificationsAPI.getAll(userId);
+			setNotifications(notifications);
 			setError(null);
-		} catch (err) {
-			console.error("Error fetching notifications:", err);
+		} catch (error) {
+			console.error("Error fetching notifications:", error);
 			setError(
-				err instanceof Error ? err : new Error("Error fetching notifications")
+				error instanceof Error
+					? error
+					: new Error("Failed to fetch notifications")
 			);
 		} finally {
 			setLoading(false);
@@ -75,13 +84,15 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
 		if (!user) return;
 
 		try {
-			const userId = user.id || "user-1"; // Fallback for mock data
+			const userId = user.id;
+			if (!userId) {
+				console.error("No user ID available");
+				return;
+			}
 			const currentIds = new Set(notifications.map((n: Notification) => n.id));
 
-			// Only call this if the API supports it
-			const api = NotificationsAPI as any;
-			if (typeof api.getUnread === "function") {
-				const unreadNotifications = await api.getUnread(userId);
+			try {
+				const unreadNotifications = await NotificationsAPI.getUnread(userId);
 
 				// Find only new notifications not currently in the state
 				const newNotifications = unreadNotifications.filter(
@@ -103,24 +114,28 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
 					// Update the notifications state
 					setNotifications((prev) => [...newNotifications, ...prev]);
 				}
+			} catch (apiErr) {
+				console.error("Error calling getUnread API:", apiErr);
 			}
 		} catch (err) {
 			console.error("Error fetching unread notifications:", err);
 		}
 	};
 
-	const markAsRead = async (id: string) => {
+	const markAsRead = async (notificationId: string) => {
+		if (!user) return;
+
+		const userId = user.id;
+		if (!userId) {
+			console.error("No user ID available");
+			return;
+		}
+
 		try {
-			await NotificationsAPI.markAsRead(id);
-			setNotifications((prev) =>
-				prev.map((notification) =>
-					notification.id === id
-						? { ...notification, isRead: true }
-						: notification
-				)
-			);
-		} catch (err) {
-			console.error("Error marking notification as read:", err);
+			await NotificationsAPI.markAsRead(notificationId);
+			await fetchNotifications();
+		} catch (error) {
+			console.error("Error marking notification as read:", error);
 		}
 	};
 
@@ -128,17 +143,22 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
 		if (!user) return;
 
 		try {
-			const userId = user.id || "user-1";
-
-			// Only call this if the API supports it
-			const api = NotificationsAPI as any;
-			if (typeof api.markAllAsRead === "function") {
-				await api.markAllAsRead(userId);
+			const userId = user.id;
+			if (!userId) {
+				console.error("No user ID available");
+				return;
 			}
 
-			setNotifications((prev) =>
-				prev.map((notification) => ({ ...notification, isRead: true }))
-			);
+			try {
+				await NotificationsAPI.markAllAsRead(userId);
+
+				// Update local state to reflect the change
+				setNotifications((prev) =>
+					prev.map((notification) => ({ ...notification, isRead: true }))
+				);
+			} catch (apiErr) {
+				console.error("Error calling markAllAsRead API:", apiErr);
+			}
 		} catch (err) {
 			console.error("Error marking all notifications as read:", err);
 		}
@@ -146,15 +166,16 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
 
 	const dismissNotification = async (id: string) => {
 		try {
-			// Only call this if the API supports it
-			const api = NotificationsAPI as any;
-			if (typeof api.dismissNotification === "function") {
-				await api.dismissNotification(id);
-			}
+			try {
+				await NotificationsAPI.dismissNotification(id);
 
-			setNotifications((prev) =>
-				prev.filter((notification) => notification.id !== id)
-			);
+				// Update local state to reflect the change
+				setNotifications((prev) =>
+					prev.filter((notification) => notification.id !== id)
+				);
+			} catch (apiErr) {
+				console.error("Error calling dismissNotification API:", apiErr);
+			}
 		} catch (err) {
 			console.error("Error dismissing notification:", err);
 		}
@@ -164,15 +185,20 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
 		if (!user) return;
 
 		try {
-			const userId = user.id || "user-1";
-
-			// Only call this if the API supports it
-			const api = NotificationsAPI as any;
-			if (typeof api.dismissAllNotifications === "function") {
-				await api.dismissAllNotifications(userId);
+			const userId = user.id;
+			if (!userId) {
+				console.error("No user ID available");
+				return;
 			}
 
-			setNotifications([]);
+			try {
+				await NotificationsAPI.dismissAllNotifications(userId);
+
+				// Update local state to reflect the change
+				setNotifications([]);
+			} catch (apiErr) {
+				console.error("Error calling dismissAllNotifications API:", apiErr);
+			}
 		} catch (err) {
 			console.error("Error dismissing all notifications:", err);
 		}

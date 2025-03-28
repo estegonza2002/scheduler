@@ -27,7 +27,7 @@ import {
 import { Link } from "react-router-dom";
 import { ShiftsAPI, EmployeesAPI, LocationsAPI } from "@/api";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Shift, Employee, Location } from "../api/mock/types";
+import { Shift, Employee, Location, Schedule } from "../api/types";
 import { format, addDays } from "date-fns";
 import { FormulaExplainer } from "@/components/ui/formula-explainer";
 import { PageHeader } from "@/components/ui/page-header";
@@ -59,26 +59,35 @@ export default function DashboardPage() {
 		const fetchEmployeeData = async () => {
 			setIsLoading(true);
 			try {
-				// For the purpose of the demo, we'll use a hardcoded employee ID
-				// In a real app, we would get this from the logged in user
-				const employeeId = "emp-1";
+				// Get the current user's ID from auth
+				const userId = user?.id;
+				if (!userId) {
+					console.error("No user ID available");
+					return;
+				}
+
 				const organizationId = getDefaultOrganizationId();
 
+				// First get the employee record for the current user
+				const employees = await EmployeesAPI.getAll(organizationId);
+				const employeeData = employees.find((emp) => emp.email === user.email);
+
+				if (!employeeData) {
+					console.error("No employee record found for current user");
+					return;
+				}
+
 				// Fetch data in parallel
-				const [employeeData, locationList, schedules] = await Promise.all([
-					EmployeesAPI.getById(employeeId),
+				const [locationList, schedules] = await Promise.all([
 					LocationsAPI.getAll(organizationId),
 					ShiftsAPI.getAllSchedules(organizationId),
 				]);
 
-				if (employeeData) {
-					setEmployee(employeeData);
-				}
-
+				setEmployee(employeeData);
 				setLocations(locationList);
 
 				// Get shifts for each schedule
-				const shiftsPromises = schedules.map((schedule) =>
+				const shiftsPromises = schedules.map((schedule: Schedule) =>
 					ShiftsAPI.getShiftsForSchedule(schedule.id)
 				);
 				const shiftsArrays = await Promise.all(shiftsPromises);
@@ -86,7 +95,7 @@ export default function DashboardPage() {
 
 				// Filter shifts for current employee
 				const myShifts = allShifts.filter(
-					(shift) => shift.user_id === employeeId
+					(shift: Shift) => shift.user_id === employeeData.id
 				);
 
 				// Today's date
@@ -94,7 +103,7 @@ export default function DashboardPage() {
 				today.setHours(0, 0, 0, 0);
 
 				// Filter today's shifts
-				const todayShifts = myShifts.filter((shift) => {
+				const todayShifts = myShifts.filter((shift: Shift) => {
 					const shiftDate = new Date(shift.start_time);
 					shiftDate.setHours(0, 0, 0, 0);
 					return shiftDate.getTime() === today.getTime();
@@ -102,13 +111,13 @@ export default function DashboardPage() {
 
 				// Filter upcoming shifts (not including today)
 				const upcoming = myShifts
-					.filter((shift) => {
+					.filter((shift: Shift) => {
 						const shiftDate = new Date(shift.start_time);
 						shiftDate.setHours(0, 0, 0, 0);
 						return shiftDate > today;
 					})
 					.sort(
-						(a, b) =>
+						(a: Shift, b: Shift) =>
 							new Date(a.start_time).getTime() -
 							new Date(b.start_time).getTime()
 					);
@@ -120,7 +129,25 @@ export default function DashboardPage() {
 				const hoursThisWeek = calculateHoursWorked(myShifts, 0);
 				const hoursLastWeek = calculateHoursWorked(myShifts, -7);
 
-				const hourlyRate = employeeData?.hourlyRate || 15;
+				const hourlyRate = employeeData?.hourlyRate || 0;
+
+				// Calculate breaks remaining for current shift
+				const currentShift = todayShifts.find((shift) => {
+					const now = new Date();
+					const start = new Date(shift.start_time);
+					const end = new Date(shift.end_time);
+					return now >= start && now <= end;
+				});
+
+				// For now, we'll calculate breaks based on shift duration
+				// In the future, this should come from the backend
+				const breaksRemaining = currentShift
+					? Math.floor(
+							(new Date(currentShift.end_time).getTime() -
+								new Date(currentShift.start_time).getTime()) /
+								(1000 * 60 * 60 * 4)
+					  )
+					: 0;
 
 				setPersonalStats({
 					hoursThisWeek,
@@ -128,11 +155,11 @@ export default function DashboardPage() {
 					earningsThisWeek: hoursThisWeek * hourlyRate,
 					earningsLastWeek: hoursLastWeek * hourlyRate,
 					shiftsCompleted: myShifts.filter(
-						(shift) => new Date(shift.end_time) < today
+						(shift: Shift) => new Date(shift.end_time) < today
 					).length,
 					shiftsUpcoming: upcoming.length,
-					breaksRemaining: 2, // Mock data
-					timeOffRequests: 1, // Mock data
+					breaksRemaining,
+					timeOffRequests: 0, // This will be implemented when we add time-off request functionality
 				});
 			} catch (error) {
 				console.error("Error fetching employee data:", error);
@@ -552,39 +579,7 @@ export default function DashboardPage() {
 				</ContentSection>
 
 				{/* Notifications and alerts for employee */}
-				{personalStats.timeOffRequests > 0 && (
-					<ContentSection
-						title="Pending Requests"
-						description="Time off and approval status"
-						flat>
-						<Card className="border-2 border-amber-100 hover:border-amber-200 transition-colors mb-6">
-							<CardHeader className="pb-2 bg-gradient-to-r from-amber-50 to-transparent">
-								<CardTitle className="text-sm flex items-center text-amber-700">
-									<Bell className="h-4 w-4 mr-2" />
-									Pending Requests
-								</CardTitle>
-							</CardHeader>
-							<CardContent className="pt-2 px-6 pb-4">
-								<div className="flex items-start gap-3">
-									<div>
-										<p className="text-sm text-amber-700">
-											You have <strong>{personalStats.timeOffRequests}</strong>{" "}
-											pending time-off request awaiting approval.
-										</p>
-										<div className="mt-3">
-											<Button
-												size="sm"
-												variant="outline"
-												className="border-amber-300 text-amber-700 hover:bg-amber-100">
-												View Request
-											</Button>
-										</div>
-									</div>
-								</div>
-							</CardContent>
-						</Card>
-					</ContentSection>
-				)}
+				{/* Time off requests section removed until functionality is implemented */}
 			</ContentContainer>
 		</>
 	);

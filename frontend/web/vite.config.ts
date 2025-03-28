@@ -11,14 +11,14 @@ export default defineConfig({
 		},
 	},
 	server: {
-		port: 5176,
+		port: 5173,
 		host: "localhost",
 		strictPort: true,
 		hmr: {
 			timeout: 120000, // Increase timeout for WebSocket connection
 			protocol: "ws",
 			host: "localhost",
-			port: 5176,
+			port: 5173,
 		},
 	},
 });

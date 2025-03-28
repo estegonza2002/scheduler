@@ -17,9 +17,6 @@ import {
 	List,
 	Building2,
 	ChevronRight,
-	Search,
-	X,
-	ChevronDown,
 	Eye,
 	MoreHorizontal,
 	Edit,
@@ -47,28 +44,14 @@ import { ColumnDef } from "@tanstack/react-table";
 
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingState } from "@/components/ui/loading-state";
-import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
 import { LocationCreationSheet } from "@/components/LocationCreationSheet";
 import { PageHeader } from "@/components/ui/page-header";
 
 import { ContentContainer } from "@/components/ui/content-container";
 import { ContentSection } from "@/components/ui/content-section";
 
-// Import the DataCardGrid component
-import { DataCardGrid } from "@/components/ui/data-card-grid";
 import { useOrganizationId } from "@/hooks/useOrganizationId";
 import { LocationFormDialog } from "@/components/LocationFormDialog";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@/components/ui/table";
-import { SearchInput } from "@/components/ui/search-input";
-import { DataTableViewOptions } from "@/components/ui/data-table";
 
 export default function LocationsPage() {
 	const [searchParams] = useSearchParams();
@@ -77,8 +60,6 @@ export default function LocationsPage() {
 	const [locations, setLocations] = useState<Location[]>([]);
 	const [organization, setOrganization] = useState<Organization | null>(null);
 	const [viewMode, setViewMode] = useState<"table" | "cards">("table");
-	const [viewFilter, setViewFilter] = useState("all");
-	const [searchQuery, setSearchQuery] = useState("");
 	const organizationId = useOrganizationId();
 
 	// Add pagination state for card view
@@ -337,38 +318,6 @@ export default function LocationsPage() {
 
 			<ContentContainer>
 				<ContentSection title="Locations">
-					<div className="flex items-center justify-between mb-4">
-						<div className="flex items-center gap-2">
-							<SearchInput
-								value={searchQuery}
-								onChange={setSearchQuery}
-								placeholder="Search locations..."
-							/>
-						</div>
-						<div className="flex items-center gap-2">
-							<select
-								value={viewFilter}
-								onChange={(e) => setViewFilter(e.target.value)}
-								className="p-2 rounded border">
-								<option value="all">All</option>
-								<option value="active">Active</option>
-								<option value="inactive">Inactive</option>
-							</select>
-							<LocationCreationSheet
-								organizationId={organizationId}
-								onLocationCreated={(newLocation) =>
-									handleLocationsAdded([newLocation])
-								}
-								trigger={
-									<Button className="md:hidden">
-										<PlusCircle className="h-4 w-4 mr-2" />
-										Add Location
-									</Button>
-								}
-							/>
-						</div>
-					</div>
-
 					{/* No locations */}
 					{locations.length === 0 ? (
 						<EmptyState

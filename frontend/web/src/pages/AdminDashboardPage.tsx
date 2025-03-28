@@ -1,37 +1,18 @@
-import {
-	useState,
-	useEffect,
-	useCallback,
-	useMemo,
-	useLayoutEffect,
-} from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { useLayout } from "@/lib/layout-context";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-	Building2,
-	Users,
-	Calendar,
-	ClipboardList,
 	Plus,
-	PieChart,
-	Mail,
-	Phone,
-	Loader2,
-	TrendingUp,
 	MapPin,
-	Clock,
-	AlertCircle,
 	CheckCircle2,
-	Eye,
-	BarChart3,
 	CalendarClock,
 	UserPlus,
 	Settings,
-	Bot,
 	Sparkles,
+	AlertCircle,
 } from "lucide-react";
 import {
 	Organization,
@@ -41,17 +22,8 @@ import {
 	ShiftsAPI,
 	LocationsAPI,
 } from "@/api";
-import { AddEmployeeDialog } from "@/components/AddEmployeeDialog";
-import { EmployeeDetailDialog } from "@/components/EmployeeDetailDialog";
 import { ContentContainer } from "@/components/ui/content-container";
 import { ContentSection } from "@/components/ui/content-section";
-import {
-	BarChart,
-	Chart,
-	LineChart,
-	PieChart as ChartPieChart,
-} from "@/components/ui/charts";
-import { FormulaExplainer } from "@/components/ui/formula-explainer";
 import { EmployeeSheet } from "@/components/EmployeeSheet";
 import { ShiftCreationSheet } from "@/components/ShiftCreationSheet";
 import { LocationCreationSheet } from "@/components/LocationCreationSheet";
@@ -61,17 +33,26 @@ import {
 	Tooltip,
 	TooltipTrigger,
 	TooltipContent,
-	TooltipProvider,
 } from "@/components/ui/tooltip";
 import { OnboardingReminder } from "@/components/onboarding/OnboardingReminder";
 import { PageHeader } from "@/components/ui/page-header";
 import { LoadingState } from "@/components/ui/loading-state";
-import { Card, CardContent } from "@/components/ui/card";
 import { SmarterAI } from "@/components/SmarterAI";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { DollarSign, Users, Calendar } from "lucide-react";
 
 // Extended organization type for UI display purposes
 interface ExtendedOrganization extends Organization {
 	subscription_plan: "free" | "pro" | "business";
+}
+
+// TODO: Replace with real analytics types from analytics integration
+interface WeeklyStats {
+	revenue: { name: string; value: number }[];
+	staffing: { name: string; value: number }[];
+	employeeTypes: { name: string; value: number }[];
+	locationPerformance: { name: string; value: number }[];
 }
 
 export default function AdminDashboardPage() {
@@ -97,35 +78,35 @@ export default function AdminDashboardPage() {
 	const [totalLocations, setTotalLocations] = useState(0);
 	const [currentSchedule, setCurrentSchedule] = useState<string>(""); // For shift creation
 	const [showAI, setShowAI] = useState<boolean>(true);
-	const [weeklyStats, setWeeklyStats] = useState({
+	const [weeklyStats, setWeeklyStats] = useState<WeeklyStats>({
 		revenue: [
-			{ name: "Mon", value: 1200 },
-			{ name: "Tue", value: 1800 },
-			{ name: "Wed", value: 1400 },
-			{ name: "Thu", value: 2100 },
-			{ name: "Fri", value: 2400 },
-			{ name: "Sat", value: 1900 },
-			{ name: "Sun", value: 1100 },
+			{ name: "Mon", value: 1200 }, // Mock data
+			{ name: "Tue", value: 1800 }, // Mock data
+			{ name: "Wed", value: 1400 }, // Mock data
+			{ name: "Thu", value: 2100 }, // Mock data
+			{ name: "Fri", value: 2400 }, // Mock data
+			{ name: "Sat", value: 1900 }, // Mock data
+			{ name: "Sun", value: 1100 }, // Mock data
 		],
 		staffing: [
-			{ name: "Mon", value: 12 },
-			{ name: "Tue", value: 14 },
-			{ name: "Wed", value: 10 },
-			{ name: "Thu", value: 15 },
-			{ name: "Fri", value: 18 },
-			{ name: "Sat", value: 20 },
-			{ name: "Sun", value: 8 },
+			{ name: "Mon", value: 12 }, // Mock data
+			{ name: "Tue", value: 14 }, // Mock data
+			{ name: "Wed", value: 10 }, // Mock data
+			{ name: "Thu", value: 15 }, // Mock data
+			{ name: "Fri", value: 18 }, // Mock data
+			{ name: "Sat", value: 20 }, // Mock data
+			{ name: "Sun", value: 8 }, // Mock data
 		],
 		employeeTypes: [
-			{ name: "Full-time", value: 12 },
-			{ name: "Part-time", value: 18 },
-			{ name: "Contract", value: 6 },
+			{ name: "Full-time", value: 12 }, // Mock data
+			{ name: "Part-time", value: 18 }, // Mock data
+			{ name: "Contract", value: 6 }, // Mock data
 		],
 		locationPerformance: [
-			{ name: "Downtown", value: 4200 },
-			{ name: "Uptown", value: 3100 },
-			{ name: "West End", value: 2800 },
-			{ name: "East Side", value: 3600 },
+			{ name: "Downtown", value: 4200 }, // Mock data
+			{ name: "Uptown", value: 3100 }, // Mock data
+			{ name: "West End", value: 2800 }, // Mock data
+			{ name: "East Side", value: 3600 }, // Mock data
 		],
 	});
 	const navigate = useNavigate();
@@ -321,31 +302,108 @@ export default function AdminDashboardPage() {
 			<ContentContainer>
 				{/* Always show the AI interface at the top of the dashboard */}
 				<SmarterAI
-					onClose={() => {}} // Don't allow closing completely
-					onMinimize={() => {}} // Don't allow minimizing
+					onClose={() => setShowAI(false)}
+					onMinimize={() => setShowAI(false)}
 					isHero={true}
 				/>
 
 				<OnboardingReminder />
-				<Tabs defaultValue="overview">
-					<div className="flex justify-between items-center mb-4">
-						<TabsList className="w-auto">
-							<TabsTrigger value="overview">Overview</TabsTrigger>
-							<TabsTrigger value="reports">Reports</TabsTrigger>
-						</TabsList>
 
-						<div className="flex space-x-2">
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={() => navigate("/business-profile")}>
-								<Building2 className="h-4 w-4 mr-2" />
-								Business Settings
-							</Button>
-						</div>
-					</div>
+				<Tabs defaultValue="overview">
+					<TabsList>
+						<TabsTrigger value="overview">Overview</TabsTrigger>
+						<TabsTrigger value="analytics">Analytics</TabsTrigger>
+						<TabsTrigger value="reports">Reports</TabsTrigger>
+					</TabsList>
 
 					<TabsContent value="overview">
+						<Alert className="mb-6">
+							<AlertCircle className="h-4 w-4" />
+							<AlertTitle>Mock Data</AlertTitle>
+							<AlertDescription>
+								This dashboard is currently using mock data. Analytics
+								integration is planned - see issues/analytics-integration.md
+							</AlertDescription>
+						</Alert>
+
+						{/* Overview content */}
+						<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+							{/* Revenue Card */}
+							<Card>
+								<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+									<CardTitle className="text-sm font-medium">
+										Total Revenue (Mock)
+									</CardTitle>
+									<DollarSign className="h-4 w-4 text-muted-foreground" />
+								</CardHeader>
+								<CardContent>
+									<div className="text-2xl font-bold">
+										$
+										{weeklyStats.revenue.reduce(
+											(sum, day) => sum + day.value,
+											0
+										)}
+									</div>
+									<p className="text-xs text-muted-foreground">
+										+20% from last month (Mock)
+									</p>
+								</CardContent>
+							</Card>
+
+							{/* Active Employees Card */}
+							<Card>
+								<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+									<CardTitle className="text-sm font-medium">
+										Active Employees
+									</CardTitle>
+									<Users className="h-4 w-4 text-muted-foreground" />
+								</CardHeader>
+								<CardContent>
+									<div className="text-2xl font-bold">{employees.length}</div>
+									<p className="text-xs text-muted-foreground">
+										{totalLocations} locations
+									</p>
+								</CardContent>
+							</Card>
+
+							{/* Active Shifts Card */}
+							<Card>
+								<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+									<CardTitle className="text-sm font-medium">
+										Active Shifts
+									</CardTitle>
+									<Calendar className="h-4 w-4 text-muted-foreground" />
+								</CardHeader>
+								<CardContent>
+									<div className="text-2xl font-bold">{activeShifts}</div>
+									<p className="text-xs text-muted-foreground">
+										{upcomingShifts} upcoming
+									</p>
+								</CardContent>
+							</Card>
+
+							{/* Employee Types Card */}
+							<Card>
+								<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+									<CardTitle className="text-sm font-medium">
+										Employee Types (Mock)
+									</CardTitle>
+									<Users className="h-4 w-4 text-muted-foreground" />
+								</CardHeader>
+								<CardContent>
+									<div className="text-2xl font-bold">
+										{weeklyStats.employeeTypes.reduce(
+											(sum, type) => sum + type.value,
+											0
+										)}
+									</div>
+									<p className="text-xs text-muted-foreground">
+										Across all types
+									</p>
+								</CardContent>
+							</Card>
+						</div>
+
 						{/* Quick Actions Section */}
 						<ContentSection
 							title="Quick Actions"
@@ -366,7 +424,6 @@ export default function AdminDashboardPage() {
 										}
 									/>
 								)}
-
 								{organization && (
 									<LocationCreationSheet
 										organizationId={organization.id}
@@ -381,10 +438,9 @@ export default function AdminDashboardPage() {
 										}
 									/>
 								)}
-
-								{organization && currentSchedule && (
+								{organization && (
 									<ShiftCreationSheet
-										scheduleId={currentSchedule}
+										scheduleId={currentSchedule || "sch-6"}
 										organizationId={organization.id}
 										initialDate={new Date()}
 										trigger={
@@ -401,7 +457,29 @@ export default function AdminDashboardPage() {
 						</ContentSection>
 					</TabsContent>
 
+					<TabsContent value="analytics">
+						<Alert className="mb-6">
+							<AlertCircle className="h-4 w-4" />
+							<AlertTitle>Mock Data</AlertTitle>
+							<AlertDescription>
+								Analytics features are currently using mock data. Real analytics
+								integration is planned - see issues/analytics-integration.md
+							</AlertDescription>
+						</Alert>
+
+						{/* ... rest of the existing analytics content ... */}
+					</TabsContent>
+
 					<TabsContent value="reports">
+						<Alert className="mb-6">
+							<AlertCircle className="h-4 w-4" />
+							<AlertTitle>Mock Data</AlertTitle>
+							<AlertDescription>
+								Reports are currently using mock data. Real reporting system
+								integration is planned - see issues/analytics-integration.md
+							</AlertDescription>
+						</Alert>
+
 						{/* Reports content */}
 						<ContentSection
 							title="Weekly Reports"

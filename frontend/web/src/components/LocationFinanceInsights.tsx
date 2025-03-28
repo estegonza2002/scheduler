@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Location, Shift, Employee } from "@/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { calculateHours } from "../utils/time-calculations";
+import { calculateHours, calculateTotalCost } from "../utils/time-calculations";
 import { FormulaExplainer } from "@/components/ui/formula-explainer";
 import {
 	DollarSign,
@@ -18,6 +18,9 @@ import {
 	differenceInDays,
 	isBefore,
 	subMonths,
+	isAfter,
+	startOfMonth,
+	endOfMonth,
 } from "date-fns";
 
 interface LocationFinanceInsightsProps {
@@ -39,24 +42,39 @@ export function LocationFinanceInsights({
 		avgShiftCost: 0,
 		avgHourlyWage: 0,
 		projectedMonthlyEarnings: 0,
+		loading: true,
 	});
 
 	useEffect(() => {
 		// Calculate finance insights based on location data, shifts, and employees
 		const calculateFinanceStats = () => {
 			const now = new Date();
+			const currentMonth = now;
 			const lastMonth = subMonths(now, 1);
+			const currentMonthStart = startOfMonth(currentMonth);
+			const lastMonthStart = startOfMonth(lastMonth);
+			const currentMonthEnd = endOfMonth(currentMonth);
+			const lastMonthEnd = endOfMonth(lastMonth);
 
-			// For demo purposes, we'll simulate some financial data
-			// In a real app, this would come from actual financial data
+			// Calculate base revenue per hour based on average hourly rate × markup
+			const totalHourlyRates = employees.reduce(
+				(sum, emp) => sum + (emp.hourlyRate || 0),
+				0
+			);
+			const avgHourlyWage =
+				employees.length > 0 ? totalHourlyRates / employees.length : 0;
 
-			// Calculate total revenue (simulated for demo)
-			const baseRevenuePerHour = 100; // Simulated base revenue per hour
+			// Markup factor represents the rate at which revenue exceeds labor costs
+			// A realistic value for service businesses is typically between 2-4×
+			const markupFactor = 3;
+			const baseRevenuePerHour = avgHourlyWage * markupFactor;
 
-			// Calculate total hours for revenue calculation
-			const totalHours = shifts.reduce((total, shift) => {
+			// Calculate total hours for current month's revenue calculation
+			const currentMonthHours = shifts.reduce((total, shift) => {
+				const shiftDate = parseISO(shift.start_time);
 				if (
-					isBefore(parseISO(shift.end_time), now) &&
+					isAfter(shiftDate, currentMonthStart) &&
+					isBefore(shiftDate, currentMonthEnd) &&
 					shift.status !== "canceled"
 				) {
 					return (
@@ -66,13 +84,31 @@ export function LocationFinanceInsights({
 				return total;
 			}, 0);
 
-			// Simulate revenue based on hours
-			const totalRevenue = totalHours * baseRevenuePerHour;
-
-			// Calculate labor costs
-			const laborCosts = shifts.reduce((total, shift) => {
+			// Calculate total hours for last month's revenue comparison
+			const lastMonthHours = shifts.reduce((total, shift) => {
+				const shiftDate = parseISO(shift.start_time);
 				if (
-					isBefore(parseISO(shift.end_time), now) &&
+					isAfter(shiftDate, lastMonthStart) &&
+					isBefore(shiftDate, lastMonthEnd) &&
+					shift.status !== "canceled"
+				) {
+					return (
+						total + parseFloat(calculateHours(shift.start_time, shift.end_time))
+					);
+				}
+				return total;
+			}, 0);
+
+			// Calculate revenue based on hours
+			const currentMonthRevenue = currentMonthHours * baseRevenuePerHour;
+			const lastMonthRevenue = lastMonthHours * baseRevenuePerHour;
+
+			// Calculate labor costs for current month
+			const laborCosts = shifts.reduce((total, shift) => {
+				const shiftDate = parseISO(shift.start_time);
+				if (
+					isAfter(shiftDate, currentMonthStart) &&
+					isBefore(shiftDate, currentMonthEnd) &&
 					shift.status !== "canceled"
 				) {
 					const hours = parseFloat(
@@ -86,52 +122,83 @@ export function LocationFinanceInsights({
 				return total;
 			}, 0);
 
-			// Calculate profit margin
-			const profitMargin =
-				totalRevenue > 0
-					? ((totalRevenue - laborCosts) / totalRevenue) * 100
+			// Calculate revenue growth between months
+			const revenueGrowth =
+				lastMonthRevenue > 0
+					? ((currentMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100
 					: 0;
 
-			// Calculate average hourly wage
-			const totalHourlyRates = employees.reduce(
-				(sum, emp) => sum + (emp.hourlyRate || 0),
-				0
-			);
-			const avgHourlyWage =
-				employees.length > 0 ? totalHourlyRates / employees.length : 0;
+			// Calculate profit margin
+			const profitMargin =
+				currentMonthRevenue > 0
+					? ((currentMonthRevenue - laborCosts) / currentMonthRevenue) * 100
+					: 0;
 
 			// Calculate average shift cost
+			const currentMonthShifts = shifts.filter((shift) => {
+				const shiftDate = parseISO(shift.start_time);
+				return (
+					isAfter(shiftDate, currentMonthStart) &&
+					isBefore(shiftDate, currentMonthEnd) &&
+					shift.status !== "canceled"
+				);
+			});
+			const avgShiftCost =
+				currentMonthShifts.length > 0
+					? laborCosts / currentMonthShifts.length
+					: 0;
+
+			// Calculate projected monthly earnings based on daily average
+			// Use all available historical data for a more accurate projection
 			const completedShifts = shifts.filter(
 				(shift) =>
 					isBefore(parseISO(shift.end_time), now) && shift.status !== "canceled"
-			).length;
-			const avgShiftCost =
-				completedShifts > 0 ? laborCosts / completedShifts : 0;
+			);
 
-			// Simulate revenue growth (random number between -10 and 20 for demo)
-			const revenueGrowth = Math.floor(Math.random() * 30) - 10;
+			let projectedMonthlyEarnings = 0;
 
-			// Simulate projected monthly earnings
-			const daysInMonth = 30;
-			const dailyAverage =
-				totalRevenue /
-				Math.max(
-					1,
-					differenceInDays(
-						now,
-						parseISO(shifts[0]?.start_time || now.toISOString())
-					)
+			if (completedShifts.length > 0) {
+				// Find the earliest shift date to calculate the total period
+				const earliestShift = completedShifts.reduce((earliest, shift) => {
+					const shiftDate = parseISO(shift.start_time);
+					return shiftDate < earliest ? shiftDate : earliest;
+				}, now);
+
+				const totalDays = Math.max(1, differenceInDays(now, earliestShift));
+				const totalCompletedRevenue = completedShifts.reduce((total, shift) => {
+					const hours = parseFloat(
+						calculateHours(shift.start_time, shift.end_time)
+					);
+					return total + hours * baseRevenuePerHour;
+				}, 0);
+
+				// Calculate daily average and project for 30 days
+				const dailyAverage = totalCompletedRevenue / totalDays;
+				projectedMonthlyEarnings = dailyAverage * 30;
+			} else {
+				// If no historical data, use current month's data for projection
+				const daysInMonth =
+					differenceInDays(currentMonthEnd, currentMonthStart) + 1;
+				const daysPassed = Math.min(
+					differenceInDays(now, currentMonthStart) + 1,
+					daysInMonth
 				);
-			const projectedMonthlyEarnings = dailyAverage * daysInMonth;
+
+				if (daysPassed > 0) {
+					const dailyAverage = currentMonthRevenue / daysPassed;
+					projectedMonthlyEarnings = dailyAverage * daysInMonth;
+				}
+			}
 
 			setStats({
-				totalRevenue,
+				totalRevenue: currentMonthRevenue,
 				laborCosts,
 				profitMargin,
 				revenueGrowth,
 				avgShiftCost,
 				avgHourlyWage,
 				projectedMonthlyEarnings,
+				loading: false,
 			});
 		};
 
@@ -151,7 +218,7 @@ export function LocationFinanceInsights({
 							</span>
 							<FormulaExplainer
 								formula="Total Revenue = Total Hours × Base Revenue Per Hour"
-								description="Sum of all revenue generated by this location. For demonstration purposes, we calculate this as the total hours worked multiplied by a base revenue rate per hour."
+								description="Sum of all revenue generated by this location based on hours worked multiplied by an average revenue rate per hour."
 								example="If 150 hours were worked and the base revenue per hour is $100, then Total Revenue = 150 × $100 = $15,000."
 								variantColor="emerald"
 							/>
@@ -165,12 +232,12 @@ export function LocationFinanceInsights({
 							{stats.revenueGrowth >= 0 ? (
 								<span className="flex items-center text-emerald-600">
 									<TrendingUp className="h-3 w-3 mr-1" /> Up{" "}
-									{stats.revenueGrowth}% this month
+									{Math.abs(stats.revenueGrowth).toFixed(1)}% from last month
 								</span>
 							) : (
 								<span className="flex items-center text-red-600">
 									<TrendingDown className="h-3 w-3 mr-1" /> Down{" "}
-									{Math.abs(stats.revenueGrowth)}% this month
+									{Math.abs(stats.revenueGrowth).toFixed(1)}% from last month
 								</span>
 							)}
 						</div>
@@ -251,7 +318,7 @@ export function LocationFinanceInsights({
 							</span>
 							<FormulaExplainer
 								formula="Projected Monthly Earnings = (Total Revenue / Days Since First Shift) × 30"
-								description="An estimate of monthly earnings based on the average daily revenue since the first recorded shift, projected over a standard 30-day month."
+								description="An estimate of monthly earnings based on the average daily revenue from historical data, projected over a standard 30-day month."
 								example="If Total Revenue is $5,000 over 10 days since the first shift, then Projected Monthly Earnings = ($5,000 / 10) × 30 = $500 × 30 = $15,000."
 								variantColor="indigo"
 							/>
@@ -262,7 +329,7 @@ export function LocationFinanceInsights({
 							${stats.projectedMonthlyEarnings.toFixed(2)}
 						</div>
 						<div className="text-sm mt-1 text-muted-foreground">
-							Avg. hourly: ${stats.avgHourlyWage.toFixed(2)}/hr
+							Avg. hourly wage: ${stats.avgHourlyWage.toFixed(2)}/hr
 						</div>
 					</CardContent>
 				</Card>

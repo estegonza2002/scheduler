@@ -16,6 +16,7 @@ import {
 	ChevronRight,
 	X,
 	Sparkles,
+	AlertCircle,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { ScrollArea } from "../ui/scroll-area";
@@ -26,6 +27,9 @@ import { LocationFormDialog } from "../LocationFormDialog";
 import { AddEmployeeDialog } from "../AddEmployeeDialog";
 import { ShiftCreationSheet } from "../ShiftCreationSheet";
 import { Badge } from "../ui/badge";
+import React from "react";
+import { ShiftsAPI, SchedulesAPI, ScheduleCreateInput } from "@/api";
+import { useOrganizationId } from "@/hooks/useOrganizationId";
 
 /**
  * Onboarding Modal to guide new operators through their initial setup
@@ -35,6 +39,7 @@ export function OnboardingModal() {
 		useOnboarding();
 	const { user, updateUserMetadata } = useAuth();
 	const navigate = useNavigate();
+	const organizationId = useOrganizationId();
 
 	const [locationSheetOpen, setLocationSheetOpen] = useState(false);
 	const [employeeDialogOpen, setEmployeeDialogOpen] = useState(false);
@@ -42,20 +47,67 @@ export function OnboardingModal() {
 	const [showCelebration, setShowCelebration] = useState<OnboardingStep | null>(
 		null
 	);
+	const [defaultScheduleId, setDefaultScheduleId] = useState<string | null>(
+		null
+	);
+	const [isCreatingSchedule, setIsCreatingSchedule] = useState(false);
+	const [scheduleError, setScheduleError] = useState<string | null>(null);
 
 	// Keep modal open while onboarding is active
 	const isOpen = onboardingState.isActive;
-
-	// Use the organizationId from the onboarding state
-	const organizationId = onboardingState.organizationId || "org-1";
-
-	// Mock scheduleId - in production this would come from the API
-	const scheduleId = "sch-1";
 
 	// Calculate completed steps percentage
 	const totalSteps = 4; // welcome, location, employees, shift
 	const completedCount = onboardingState.completedSteps.length;
 	const progressPercentage = Math.floor((completedCount / totalSteps) * 100);
+
+	// Fetch or create a default schedule when organization ID is available
+	useEffect(() => {
+		const fetchOrCreateDefaultSchedule = async () => {
+			if (!organizationId) return;
+
+			try {
+				setIsCreatingSchedule(true);
+				setScheduleError(null);
+
+				// First try to find existing schedules
+				const schedules = await ShiftsAPI.getAllSchedules(organizationId);
+
+				if (schedules && schedules.length > 0) {
+					// Use the first schedule found
+					setDefaultScheduleId(schedules[0].id);
+					console.log("Using existing schedule:", schedules[0].id);
+				} else {
+					// Create a default schedule if none exists
+					const newSchedule: ScheduleCreateInput = {
+						organization_id: organizationId,
+						name: "Default Schedule",
+						description: "Default schedule created during onboarding",
+						start_time: new Date().toISOString(),
+						end_time: new Date(
+							new Date().setHours(23, 59, 59, 999)
+						).toISOString(),
+						is_schedule: true,
+					};
+
+					const createdSchedule = await ShiftsAPI.createSchedule(newSchedule);
+					setDefaultScheduleId(createdSchedule.id);
+					console.log("Created new default schedule:", createdSchedule.id);
+				}
+			} catch (error) {
+				console.error("Error fetching/creating default schedule:", error);
+				setScheduleError(
+					"Failed to prepare schedule. You may need to create one manually later."
+				);
+				// Set a temporary ID to allow the onboarding to continue
+				setDefaultScheduleId("temp-schedule-id");
+			} finally {
+				setIsCreatingSchedule(false);
+			}
+		};
+
+		fetchOrCreateDefaultSchedule();
+	}, [organizationId]);
 
 	const handleSkipOnboarding = async () => {
 		// Mark onboarding as completed in user metadata
@@ -192,29 +244,145 @@ export function OnboardingModal() {
 	);
 
 	// Step component for creating shifts
-	const ShiftStep = () => (
-		<div className="py-6">
-			<div className="flex items-center mb-4">
-				<Calendar className="h-6 w-6 text-primary mr-3" />
-				<h3 className="text-xl font-semibold">Create Your First Shift</h3>
-			</div>
-			<p className="text-muted-foreground mb-6">
-				Schedule your first shift by assigning employees to work at your
-				location.
-			</p>
-			<Button
-				onClick={() => setShiftSheetOpen(true)}
-				className="w-full">
-				Create Shift <ChevronRight className="ml-2 h-4 w-4" />
-			</Button>
-			{onboardingState.shiftCreated && (
-				<div className="mt-4 flex items-center text-sm text-green-600">
-					<CheckCircle className="h-4 w-4 mr-2" />
-					Shift created successfully
+	const ShiftStep = () => {
+		// Create temporary button ref to programmatically click
+		const buttonRef = React.useRef<HTMLButtonElement>(null);
+
+		// Effect to trigger sheet when state changes
+		useEffect(() => {
+			if (shiftSheetOpen && buttonRef.current) {
+				buttonRef.current.click();
+				setShiftSheetOpen(false); // Reset state after triggering
+			}
+		}, [shiftSheetOpen]);
+
+		return (
+			<div className="py-6">
+				<div className="flex items-center mb-4">
+					<Calendar className="h-6 w-6 text-primary mr-3" />
+					<h3 className="text-xl font-semibold">Create Your First Shift</h3>
 				</div>
-			)}
-		</div>
-	);
+				<p className="text-muted-foreground mb-6">
+					Schedule your first shift by assigning employees to work at your
+					location.
+				</p>
+
+				{isCreatingSchedule ? (
+					<div className="flex justify-center">
+						<div
+							role="status"
+							className="flex items-center gap-2">
+							<svg
+								aria-hidden="true"
+								className="w-6 h-6 text-muted-foreground animate-spin dark:text-muted fill-primary"
+								viewBox="0 0 100 101"
+								fill="none"
+								xmlns="http://www.w3.org/2000/svg">
+								<path
+									d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
+									fill="currentColor"
+								/>
+								<path
+									d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
+									fill="currentFill"
+								/>
+							</svg>
+							<span>Preparing schedule...</span>
+						</div>
+					</div>
+				) : scheduleError ? (
+					<div className="mb-4 bg-yellow-50 p-3 rounded-md border border-yellow-200">
+						<div className="flex items-start">
+							<AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5 mr-2" />
+							<div>
+								<p className="text-sm text-yellow-700">{scheduleError}</p>
+								<Button
+									variant="outline"
+									size="sm"
+									className="mt-2"
+									onClick={() => fetchOrCreateDefaultSchedule()}>
+									Try Again
+								</Button>
+							</div>
+						</div>
+					</div>
+				) : null}
+
+				<Button
+					onClick={() => setShiftSheetOpen(true)}
+					className="w-full"
+					disabled={isCreatingSchedule || !defaultScheduleId}>
+					Create Shift <ChevronRight className="ml-2 h-4 w-4" />
+				</Button>
+
+				{onboardingState.shiftCreated && (
+					<div className="mt-4 flex items-center text-sm text-green-600">
+						<CheckCircle className="h-4 w-4 mr-2" />
+						Shift created successfully
+					</div>
+				)}
+
+				{/* Add the ShiftCreationSheet here with hidden trigger */}
+				{defaultScheduleId && (
+					<ShiftCreationSheet
+						scheduleId={defaultScheduleId}
+						organizationId={organizationId || ""}
+						onShiftCreated={handleShiftCreated}
+						trigger={
+							<button
+								ref={buttonRef}
+								className="hidden"
+							/>
+						}
+					/>
+				)}
+			</div>
+		);
+	};
+
+	// Function to fetch or create default schedule
+	const fetchOrCreateDefaultSchedule = async () => {
+		if (!organizationId) return;
+
+		try {
+			setIsCreatingSchedule(true);
+			setScheduleError(null);
+
+			// First try to find existing schedules
+			const schedules = await ShiftsAPI.getAllSchedules(organizationId);
+
+			if (schedules && schedules.length > 0) {
+				// Use the first schedule found
+				setDefaultScheduleId(schedules[0].id);
+				console.log("Using existing schedule:", schedules[0].id);
+			} else {
+				// Create a default schedule if none exists
+				const newSchedule: ScheduleCreateInput = {
+					organization_id: organizationId,
+					name: "Default Schedule",
+					description: "Default schedule created during onboarding",
+					start_time: new Date().toISOString(),
+					end_time: new Date(
+						new Date().setHours(23, 59, 59, 999)
+					).toISOString(),
+					is_schedule: true,
+				};
+
+				const createdSchedule = await ShiftsAPI.createSchedule(newSchedule);
+				setDefaultScheduleId(createdSchedule.id);
+				console.log("Created new default schedule:", createdSchedule.id);
+			}
+		} catch (error) {
+			console.error("Error fetching/creating default schedule:", error);
+			setScheduleError(
+				"Failed to prepare schedule. You may need to create one manually later."
+			);
+			// Set a temporary ID to allow the onboarding to continue
+			setDefaultScheduleId("temp-schedule-id");
+		} finally {
+			setIsCreatingSchedule(false);
+		}
+	};
 
 	// Step component for completion
 	const CompleteStep = () => (
@@ -415,22 +583,16 @@ export function OnboardingModal() {
 			{/* Additional UI components for each step, opened as needed */}
 			<LocationFormDialog
 				mode="add"
-				organizationId={organizationId}
+				organizationId={organizationId || ""}
 				open={locationSheetOpen}
 				onOpenChange={setLocationSheetOpen}
 				onSuccess={handleLocationCreated}
 			/>
 
 			<AddEmployeeDialog
-				organizationId={organizationId}
+				organizationId={organizationId || ""}
 				trigger={<></>}
 				onEmployeesAdded={handleEmployeesAdded}
-			/>
-
-			<ShiftCreationSheet
-				scheduleId={scheduleId}
-				organizationId={organizationId}
-				onShiftCreated={handleShiftCreated}
 			/>
 		</>
 	);

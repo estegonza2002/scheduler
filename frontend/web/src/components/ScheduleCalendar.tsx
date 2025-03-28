@@ -74,7 +74,7 @@ const CalendarDay = ({
 }: CalendarDayProps) => {
 	const isToday = isSameDay(date, new Date());
 	const shiftsOnDay = shifts.filter((shift) =>
-		isSameDay(parseISO(shift.startTime), date)
+		isSameDay(parseISO(shift.start_time), date)
 	);
 
 	// Get location-based color scheme
@@ -121,17 +121,18 @@ const CalendarDay = ({
 			{shiftsOnDay.slice(0, 3).map((shift) => (
 				<CalendarDayItem
 					key={shift.id}
-					title={`${formatLocationName(shift.locationId)}: ${formatShiftTime(
-						shift.startTime
-					)} - ${formatShiftTime(shift.endTime)}`}>
+					title={`${formatLocationName(shift.location_id)}: ${formatShiftTime(
+						shift.start_time
+					)} - ${formatShiftTime(shift.end_time)}`}>
 					<Badge
 						variant="outline"
-						colorScheme={getLocationColorScheme(shift.locationId)}
+						colorScheme={getLocationColorScheme(shift.location_id)}
 						className="w-full truncate justify-start font-normal">
 						<MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
 						<span className="truncate">
-							{formatShiftTime(shift.startTime)}{" "}
-							{shift.locationId && `· ${formatLocationName(shift.locationId)}`}
+							{formatShiftTime(shift.start_time)}{" "}
+							{shift.location_id &&
+								`· ${formatLocationName(shift.location_id)}`}
 						</span>
 					</Badge>
 				</CalendarDayItem>
@@ -146,18 +147,24 @@ const CalendarDay = ({
 interface ScheduleCalendarProps {
 	currentMonth?: Date;
 	onDateSelect?: (date: Date, shifts: Shift[]) => void;
+	organizationId: string;
 }
 
 export function ScheduleCalendar({
 	currentMonth: externalMonth,
 	onDateSelect,
+	organizationId,
 }: ScheduleCalendarProps) {
 	const [currentMonth, setCurrentMonth] = useState<Date>(
 		externalMonth || new Date()
 	);
 	const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 	const [shifts, setShifts] = useState<Shift[]>([]);
-	const [allShifts, setAllShifts] = useState<Shift[]>([]); // Store all shifts before filtering
+	const [viewRange, setViewRange] = useState({
+		start: startOfWeek(new Date()),
+		end: endOfWeek(new Date()),
+	});
+	const [allShifts, setAllShifts] = useState<Shift[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 
@@ -178,19 +185,15 @@ export function ScheduleCalendar({
 	const handleDateSelect = (date: Date) => {
 		setSelectedDate(date);
 
-		// Get shifts for the selected date
+		// Get shifts for the selected date using correct property names
 		const shiftsForDate = shifts.filter((shift) =>
-			isSameDay(parseISO(shift.startTime), date)
+			isSameDay(parseISO(shift.start_time), date)
 		);
 
-		// Notify parent component if callback provided
 		if (onDateSelect) {
 			onDateSelect(date, shiftsForDate);
 		}
 	};
-
-	const [searchParams] = useSearchParams();
-	const organizationId = searchParams.get("organizationId") || "org-1"; // Default to first org
 
 	// Get dates for the current month view
 	const monthStart = startOfMonth(currentMonth);
@@ -220,228 +223,64 @@ export function ScheduleCalendar({
 		fetchLocationsAndEmployees();
 	}, [organizationId]);
 
+	// Fetch real shifts from the API
+	useEffect(() => {
+		const fetchShifts = async () => {
+			try {
+				const schedules = await ShiftsAPI.getAllSchedules(organizationId);
+				const shiftsPromises = schedules.map((schedule) =>
+					ShiftsAPI.getShiftsForSchedule(schedule.id)
+				);
+				const shiftsArrays = await Promise.all(shiftsPromises);
+				const allShifts = shiftsArrays.flat();
+				setShifts(allShifts);
+			} catch (error) {
+				console.error("Error fetching shifts:", error);
+			}
+		};
+
+		fetchShifts();
+	}, [organizationId]);
+
+	// Filter shifts for the current view
+	const visibleShifts = shifts.filter((shift) => {
+		const shiftStart = new Date(shift.start_time);
+		return shiftStart >= viewRange.start && shiftStart <= viewRange.end;
+	});
+
+	// Group shifts by date and location
+	const groupedShifts = visibleShifts.reduce((acc, shift) => {
+		const date = format(new Date(shift.start_time), "yyyy-MM-dd");
+		const locationId = shift.location_id || "unassigned";
+
+		if (!acc[date]) {
+			acc[date] = {};
+		}
+		if (!acc[date][locationId]) {
+			acc[date][locationId] = [];
+		}
+		acc[date][locationId].push(shift);
+		return acc;
+	}, {} as Record<string, Record<string, Shift[]>>);
+
 	// Apply filters when they change
 	useEffect(() => {
-		if (!allShifts.length) return;
-
 		let filteredShifts = [...allShifts];
 
-		// Apply location filter
 		if (selectedLocationId) {
 			filteredShifts = filteredShifts.filter(
-				(shift) => shift.locationId === selectedLocationId
+				(shift) => shift.location_id === selectedLocationId
 			);
 		}
 
-		// Apply employee filter
 		if (selectedEmployeeId) {
 			filteredShifts = filteredShifts.filter(
-				(shift) => shift.employeeId === selectedEmployeeId
+				(shift) => shift.user_id === selectedEmployeeId
 			);
 		}
 
 		setShifts(filteredShifts);
-	}, [selectedLocationId, selectedEmployeeId, allShifts]);
-
-	// Main data fetching effect
-	useEffect(() => {
-		async function fetchShifts() {
-			try {
-				setLoading(true);
-				// Get the first schedule for the organization
-				const schedules = await SchedulesAPI.getAll(organizationId);
-
-				if (schedules.length === 0) {
-					setShifts([]);
-					setAllShifts([]);
-					setLoading(false);
-					return;
-				}
-
-				// Use the first schedule
-				const firstSchedule = schedules[0];
-				// Use the API to get real shifts, but also add some mock shifts for demonstration
-				const realShifts = await ShiftsAPI.getAll(firstSchedule.id);
-
-				// Create some mock shifts for demonstration (showing how it looks with more data)
-				const today = new Date();
-				const tomorrow = new Date(today);
-				tomorrow.setDate(tomorrow.getDate() + 1);
-
-				const nextWeek = new Date(today);
-				nextWeek.setDate(nextWeek.getDate() + 7);
-
-				const mockShifts: Shift[] = [
-					// Add shifts for today
-					{
-						id: "mock-1",
-						scheduleId: firstSchedule.id,
-						employeeId: "emp-1",
-						locationId: "loc-1",
-						startTime: new Date(
-							today.getFullYear(),
-							today.getMonth(),
-							today.getDate(),
-							9,
-							0
-						).toISOString(),
-						endTime: new Date(
-							today.getFullYear(),
-							today.getMonth(),
-							today.getDate(),
-							17,
-							0
-						).toISOString(),
-						notes:
-							"Morning shift supervisor. Will cover register during lunch breaks.",
-					},
-					{
-						id: "mock-2",
-						scheduleId: firstSchedule.id,
-						employeeId: "emp-2",
-						locationId: "loc-2",
-						startTime: new Date(
-							today.getFullYear(),
-							today.getMonth(),
-							today.getDate(),
-							10,
-							0
-						).toISOString(),
-						endTime: new Date(
-							today.getFullYear(),
-							today.getMonth(),
-							today.getDate(),
-							18,
-							0
-						).toISOString(),
-						notes: "Inventory check scheduled for 2pm",
-					},
-
-					// Add shifts for tomorrow
-					{
-						id: "mock-3",
-						scheduleId: firstSchedule.id,
-						employeeId: "emp-3",
-						locationId: "loc-3",
-						startTime: new Date(
-							tomorrow.getFullYear(),
-							tomorrow.getMonth(),
-							tomorrow.getDate(),
-							8,
-							0
-						).toISOString(),
-						endTime: new Date(
-							tomorrow.getFullYear(),
-							tomorrow.getMonth(),
-							tomorrow.getDate(),
-							16,
-							0
-						).toISOString(),
-						notes: "New employee - needs training",
-					},
-
-					// Add several shifts for a day next week to show multiple shifts
-					{
-						id: "mock-4",
-						scheduleId: firstSchedule.id,
-						employeeId: "emp-1",
-						locationId: "loc-1",
-						startTime: new Date(
-							nextWeek.getFullYear(),
-							nextWeek.getMonth(),
-							nextWeek.getDate(),
-							7,
-							0
-						).toISOString(),
-						endTime: new Date(
-							nextWeek.getFullYear(),
-							nextWeek.getMonth(),
-							nextWeek.getDate(),
-							15,
-							0
-						).toISOString(),
-						notes: "Early shift for holiday rush",
-					},
-					{
-						id: "mock-5",
-						scheduleId: firstSchedule.id,
-						employeeId: "emp-2",
-						locationId: "loc-2",
-						startTime: new Date(
-							nextWeek.getFullYear(),
-							nextWeek.getMonth(),
-							nextWeek.getDate(),
-							8,
-							0
-						).toISOString(),
-						endTime: new Date(
-							nextWeek.getFullYear(),
-							nextWeek.getMonth(),
-							nextWeek.getDate(),
-							16,
-							0
-						).toISOString(),
-					},
-					{
-						id: "mock-6",
-						scheduleId: firstSchedule.id,
-						employeeId: "emp-3",
-						locationId: "loc-3",
-						startTime: new Date(
-							nextWeek.getFullYear(),
-							nextWeek.getMonth(),
-							nextWeek.getDate(),
-							12,
-							0
-						).toISOString(),
-						endTime: new Date(
-							nextWeek.getFullYear(),
-							nextWeek.getMonth(),
-							nextWeek.getDate(),
-							20,
-							0
-						).toISOString(),
-						notes: "Will be handling evening cash reconciliation",
-					},
-					{
-						id: "mock-7",
-						scheduleId: firstSchedule.id,
-						employeeId: "emp-4",
-						locationId: "loc-1",
-						startTime: new Date(
-							nextWeek.getFullYear(),
-							nextWeek.getMonth(),
-							nextWeek.getDate(),
-							16,
-							0
-						).toISOString(),
-						endTime: new Date(
-							nextWeek.getFullYear(),
-							nextWeek.getMonth(),
-							nextWeek.getDate(),
-							23,
-							0
-						).toISOString(),
-						notes: "Preparing special dinner menu",
-					},
-				];
-
-				// Combine real and mock shifts
-				const combinedShifts = [...realShifts, ...mockShifts];
-				setAllShifts(combinedShifts);
-				setShifts(combinedShifts); // Initial state before filters
-				setError(null);
-			} catch (err) {
-				console.error("Error fetching shifts:", err);
-				setError("Failed to load shifts");
-				toast.error("Failed to load shifts");
-			} finally {
-				setLoading(false);
-			}
-		}
-
-		fetchShifts();
-	}, [organizationId]);
+	}, [allShifts, selectedLocationId, selectedEmployeeId]);
 
 	// Reset filters
 	const handleResetFilters = () => {

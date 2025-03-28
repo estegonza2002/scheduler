@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
 	Dialog,
 	DialogContent,
@@ -16,6 +16,10 @@ import { ScrollArea } from "../ui/scroll-area";
 import { useAuth } from "../../lib/auth";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../ui/tabs";
 import { Badge } from "../ui/badge";
+import { EmployeesAPI, Employee } from "@/api";
+import { LoadingState } from "../ui/loading-state";
+import { useOrganization } from "@/lib/organization-context";
+import { toast } from "sonner";
 
 type NewConversationModalProps = {
 	onStartConversation: (userId: string, isGroup?: boolean) => void;
@@ -49,7 +53,11 @@ export function NewConversationModal({
 	const [searchQuery, setSearchQuery] = useState("");
 	const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
 	const [groupName, setGroupName] = useState("");
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
+	const [users, setUsers] = useState<User[]>([]);
 	const { user } = useAuth();
+	const { getCurrentOrganizationId } = useOrganization();
 
 	// Use external open state if provided, otherwise use internal state
 	const dialogOpen = isOpen !== undefined ? isOpen : internalOpen;
@@ -61,69 +69,42 @@ export function NewConversationModal({
 		}
 	};
 
-	// Mock users data - in a real app, this would come from an API
-	const users: User[] = [
-		{
-			id: "user-1",
-			name: "John Smith",
-			avatar: "",
-			role: "Front Desk",
-		},
-		{
-			id: "user-2",
-			name: "Emma Johnson",
-			avatar: "",
-			role: "Kitchen Staff",
-		},
-		{
-			id: "user-3",
-			name: "Michael Brown",
-			avatar: "",
-			role: "Wait Staff",
-		},
-		{
-			id: "user-4",
-			name: "Lisa Davis",
-			avatar: "",
-			role: "Manager",
-		},
-	];
+	// Fetch users when the modal opens
+	useEffect(() => {
+		const fetchUsers = async () => {
+			try {
+				setLoading(true);
+				setError(null);
+				const organizationId = getCurrentOrganizationId();
+				const employees = await EmployeesAPI.getAll(organizationId);
 
-	// Mock groups data
-	const groups: Group[] = [
-		{
-			id: "group-1",
-			name: "Front Desk Team",
-			description: "All front desk staff members",
-			avatar: "",
-			memberCount: 5,
-		},
-		{
-			id: "group-2",
-			name: "Kitchen Staff",
-			description: "Kitchen and food preparation team",
-			avatar: "",
-			memberCount: 8,
-		},
-		{
-			id: "group-3",
-			name: "Wait Staff",
-			description: "All waiters and waitresses",
-			avatar: "",
-			memberCount: 12,
-		},
-	];
+				// Map employees to users format
+				const mappedUsers = employees.map((employee) => ({
+					id: employee.id,
+					name: employee.name,
+					avatar: employee.avatar || "",
+					role: employee.position || employee.role || "Employee",
+				}));
+
+				setUsers(mappedUsers);
+			} catch (err) {
+				console.error("Error fetching users:", err);
+				setError("Failed to load users");
+				toast.error("Failed to load users");
+			} finally {
+				setLoading(false);
+			}
+		};
+
+		if (dialogOpen) {
+			fetchUsers();
+		}
+	}, [dialogOpen, getCurrentOrganizationId]);
 
 	const filteredUsers = users.filter(
 		(user) =>
 			user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
 			user.role.toLowerCase().includes(searchQuery.toLowerCase())
-	);
-
-	const filteredGroups = groups.filter(
-		(group) =>
-			group.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-			group.description.toLowerCase().includes(searchQuery.toLowerCase())
 	);
 
 	const handleStartOneOnOne = (userId: string) => {
@@ -186,28 +167,54 @@ export function NewConversationModal({
 									onChange={(e) => setSearchQuery(e.target.value)}
 								/>
 							</div>
-							<ScrollArea className="h-[300px]">
-								<div className="space-y-2">
-									{filteredUsers.map((user) => (
-										<Button
-											key={user.id}
-											variant="ghost"
-											className="w-full justify-start gap-3 h-auto py-3"
-											onClick={() => handleStartOneOnOne(user.id)}>
-											<Avatar>
-												<AvatarImage src={user.avatar} />
-												<AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-											</Avatar>
-											<div className="flex flex-col items-start">
-												<span className="font-medium">{user.name}</span>
-												<span className="text-xs text-muted-foreground">
-													{user.role}
-												</span>
-											</div>
-										</Button>
-									))}
+							{loading ? (
+								<LoadingState
+									message="Loading users..."
+									type="spinner"
+									className="py-8"
+								/>
+							) : error ? (
+								<div className="py-8 text-center text-muted-foreground">
+									<p className="text-red-500">{error}</p>
+									<Button
+										variant="outline"
+										onClick={() => setDialogOpen(false)}
+										className="mt-4">
+										Close
+									</Button>
 								</div>
-							</ScrollArea>
+							) : (
+								<ScrollArea className="h-[300px]">
+									<div className="space-y-2">
+										{filteredUsers.length === 0 ? (
+											<div className="py-8 text-center text-muted-foreground">
+												<p>No users found</p>
+											</div>
+										) : (
+											filteredUsers.map((user) => (
+												<Button
+													key={user.id}
+													variant="ghost"
+													className="w-full justify-start gap-3 h-auto py-3"
+													onClick={() => handleStartOneOnOne(user.id)}>
+													<Avatar>
+														<AvatarImage src={user.avatar} />
+														<AvatarFallback>
+															{user.name.charAt(0)}
+														</AvatarFallback>
+													</Avatar>
+													<div className="flex flex-col items-start">
+														<span className="font-medium">{user.name}</span>
+														<span className="text-xs text-muted-foreground">
+															{user.role}
+														</span>
+													</div>
+												</Button>
+											))
+										)}
+									</div>
+								</ScrollArea>
+							)}
 						</TabsContent>
 						<TabsContent
 							value="group"
@@ -255,42 +262,65 @@ export function NewConversationModal({
 											))}
 										</div>
 									)}
-									<ScrollArea className="h-[200px]">
-										<div className="space-y-2">
-											{filteredUsers.map((user) => (
-												<Button
-													key={user.id}
-													variant={
-														selectedUsers.includes(user.id)
-															? "default"
-															: "ghost"
-													}
-													className="w-full justify-start gap-3 h-auto py-3"
-													onClick={() => toggleUserSelection(user.id)}>
-													<Avatar>
-														<AvatarImage src={user.avatar} />
-														<AvatarFallback>
-															{user.name.charAt(0)}
-														</AvatarFallback>
-													</Avatar>
-													<div className="flex flex-col items-start">
-														<span className="font-medium">{user.name}</span>
-														<span className="text-xs text-muted-foreground">
-															{user.role}
-														</span>
-													</div>
-													{selectedUsers.includes(user.id) && (
-														<Check className="h-4 w-4 ml-auto" />
-													)}
-												</Button>
-											))}
+									{loading ? (
+										<LoadingState
+											message="Loading users..."
+											type="spinner"
+											className="py-8"
+										/>
+									) : error ? (
+										<div className="py-8 text-center text-muted-foreground">
+											<p className="text-red-500">{error}</p>
 										</div>
-									</ScrollArea>
+									) : (
+										<ScrollArea className="h-[200px]">
+											<div className="space-y-2">
+												{filteredUsers.length === 0 ? (
+													<div className="py-8 text-center text-muted-foreground">
+														<p>No users found</p>
+													</div>
+												) : (
+													filteredUsers.map((user) => (
+														<Button
+															key={user.id}
+															variant={
+																selectedUsers.includes(user.id)
+																	? "default"
+																	: "ghost"
+															}
+															className="w-full justify-start gap-3 h-auto py-3"
+															onClick={() => toggleUserSelection(user.id)}>
+															<Avatar>
+																<AvatarImage src={user.avatar} />
+																<AvatarFallback>
+																	{user.name.charAt(0)}
+																</AvatarFallback>
+															</Avatar>
+															<div className="flex flex-col items-start">
+																<span className="font-medium">{user.name}</span>
+																<span className="text-xs text-muted-foreground">
+																	{user.role}
+																</span>
+															</div>
+															{selectedUsers.includes(user.id) && (
+																<Check className="h-4 w-4 ml-auto" />
+															)}
+														</Button>
+													))
+												)}
+											</div>
+										</ScrollArea>
+									)}
 								</div>
 								<Button
 									className="w-full"
 									onClick={handleStartGroup}
-									disabled={selectedUsers.length === 0 || !groupName.trim()}>
+									disabled={
+										loading ||
+										!!error ||
+										selectedUsers.length === 0 ||
+										!groupName.trim()
+									}>
 									Create Group ({selectedUsers.length} members)
 								</Button>
 							</div>

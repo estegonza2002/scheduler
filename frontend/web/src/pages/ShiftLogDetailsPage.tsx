@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import {
@@ -17,13 +17,14 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from "@/components/ui/popover";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import {
 	Calendar as CalendarIcon,
 	Filter,
 	Search,
 	X,
 	SearchX,
+	Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ExportDropdown } from "@/components/ExportDropdown";
@@ -34,68 +35,24 @@ import { DataTable } from "@/components/ui/data-table";
 import { FilterGroup } from "@/components/ui/filter-group";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ColumnDef } from "@tanstack/react-table";
+import { ShiftsAPI, LocationsAPI, Employee, Location, Shift } from "@/api";
+import { useParams } from "react-router-dom";
 
-// Mock data for shifts - in a real app this would come from an API
-const mockShifts = [
-	{
-		id: "1",
-		employee: "John Smith",
-		date: "2023-06-10",
-		startTime: "09:00",
-		endTime: "17:00",
-		location: "Downtown Store",
-		status: "Completed",
-		planned: 8,
-		actual: 8,
-	},
-	{
-		id: "2",
-		employee: "Jane Doe",
-		date: "2023-06-10",
-		startTime: "10:00",
-		endTime: "18:30",
-		location: "Downtown Store",
-		status: "Completed",
-		planned: 8,
-		actual: 8.5,
-	},
-	{
-		id: "3",
-		employee: "Mike Johnson",
-		date: "2023-06-11",
-		startTime: "08:00",
-		endTime: "14:00",
-		location: "Westside Location",
-		status: "Completed",
-		planned: 6,
-		actual: 6,
-	},
-	{
-		id: "4",
-		employee: "Sarah Williams",
-		date: "2023-06-12",
-		startTime: "12:00",
-		endTime: "20:00",
-		location: "East Mall",
-		status: "No Show",
-		planned: 8,
-		actual: 0,
-	},
-	{
-		id: "5",
-		employee: "Robert Brown",
-		date: "2023-06-13",
-		startTime: "09:00",
-		endTime: "17:30",
-		location: "Downtown Store",
-		status: "Completed",
-		planned: 8,
-		actual: 8.5,
-	},
-];
+// Define the ShiftLog type that combines Shift with employee and location info
+interface ShiftLog {
+	id: string;
+	employee: string;
+	date: string;
+	start_time: string;
+	end_time: string;
+	location: string;
+	status: string;
+	planned_hours: number;
+	actual_hours: number;
+}
 
-// Define columns outside the component to prevent re-renders
-const columns: ColumnDef<(typeof mockShifts)[0]>[] = [
+// Define columns with the new data structure
+const columns: ColumnDef<ShiftLog>[] = [
 	{
 		accessorKey: "employee",
 		header: "Employee",
@@ -106,14 +63,17 @@ const columns: ColumnDef<(typeof mockShifts)[0]>[] = [
 	{
 		accessorKey: "date",
 		header: "Date",
-		cell: ({ row }) => <span>{row.getValue("date")}</span>,
+		cell: ({ row }) => (
+			<span>{format(parseISO(row.getValue("date")), "MMM dd, yyyy")}</span>
+		),
 	},
 	{
 		accessorKey: "time",
 		header: "Time",
 		cell: ({ row }) => (
 			<span>
-				{row.original.startTime} - {row.original.endTime}
+				{format(parseISO(row.original.start_time), "h:mm a")} -{" "}
+				{format(parseISO(row.original.end_time), "h:mm a")}
 			</span>
 		),
 	},
@@ -129,29 +89,29 @@ const columns: ColumnDef<(typeof mockShifts)[0]>[] = [
 			const status = row.getValue("status") as string;
 			return (
 				<Badge
-					variant={status === "Completed" ? "secondary" : "destructive"}
+					variant={status === "completed" ? "secondary" : "destructive"}
 					className="whitespace-nowrap">
-					{status}
+					{status.charAt(0).toUpperCase() + status.slice(1)}
 				</Badge>
 			);
 		},
 	},
 	{
-		accessorKey: "planned",
+		accessorKey: "planned_hours",
 		header: "Planned Hours",
-		cell: ({ row }) => <span>{row.getValue("planned")}</span>,
+		cell: ({ row }) => <span>{row.getValue("planned_hours")}</span>,
 	},
 	{
-		accessorKey: "actual",
+		accessorKey: "actual_hours",
 		header: "Actual Hours",
-		cell: ({ row }) => <span>{row.getValue("actual")}</span>,
+		cell: ({ row }) => <span>{row.getValue("actual_hours")}</span>,
 	},
 	{
 		id: "variance",
 		header: "Variance",
 		cell: ({ row }) => {
-			const planned = row.getValue("planned") as number;
-			const actual = row.getValue("actual") as number;
+			const planned = row.getValue("planned_hours") as number;
+			const actual = row.getValue("actual_hours") as number;
 			const variance = actual - planned;
 
 			return (
@@ -171,6 +131,7 @@ const columns: ColumnDef<(typeof mockShifts)[0]>[] = [
 ];
 
 export function ShiftLogDetailsPage() {
+	const { organizationId } = useParams<{ organizationId: string }>();
 	const [searchQuery, setSearchQuery] = useState("");
 	const [dateRange, setDateRange] = useState<{
 		from: Date | undefined;
@@ -185,8 +146,68 @@ export function ShiftLogDetailsPage() {
 	const [currentPage, setCurrentPage] = useState(1);
 	const [pageSize, setPageSize] = useState(10);
 
+	// Add state for API data
+	const [shifts, setShifts] = useState<Shift[]>([]);
+	const [locationsList, setLocationsList] = useState<Location[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
+
+	// Fetch shifts and locations on component mount
+	useEffect(() => {
+		const fetchData = async () => {
+			if (!organizationId) return;
+
+			try {
+				setLoading(true);
+				const [schedules, locationsData] = await Promise.all([
+					ShiftsAPI.getAllSchedules(organizationId),
+					LocationsAPI.getAll(organizationId),
+				]);
+
+				// Get all shifts from all schedules
+				const allShifts = await Promise.all(
+					schedules.map((schedule) =>
+						ShiftsAPI.getShiftsForSchedule(schedule.id)
+					)
+				);
+
+				// Flatten the array of shift arrays
+				setShifts(allShifts.flat());
+				setLocationsList(locationsData);
+			} catch (err) {
+				setError(err instanceof Error ? err.message : "Failed to fetch data");
+			} finally {
+				setLoading(false);
+			}
+		};
+
+		fetchData();
+	}, [organizationId]);
+
+	// Transform shifts into ShiftLog format
+	const transformedShifts: ShiftLog[] = shifts.map((shift) => {
+		const location = locationsList.find((loc) => loc.id === shift.location_id);
+
+		// Calculate hours
+		const start = new Date(shift.start_time);
+		const end = new Date(shift.end_time);
+		const plannedHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+
+		return {
+			id: shift.id,
+			employee: shift.user_id || "Unassigned",
+			date: shift.start_time,
+			start_time: shift.start_time,
+			end_time: shift.end_time,
+			location: location?.name || "Unknown Location",
+			status: shift.status || "scheduled",
+			planned_hours: plannedHours,
+			actual_hours: plannedHours, // This should come from actual check-in/out times
+		};
+	});
+
 	// Filter shifts based on search, date range, location, and status
-	const filteredShifts = mockShifts.filter((shift) => {
+	const filteredShifts = transformedShifts.filter((shift) => {
 		// Filter by search query (employee name or location)
 		const matchesSearch =
 			searchQuery === "" ||
@@ -194,7 +215,7 @@ export function ShiftLogDetailsPage() {
 			shift.location.toLowerCase().includes(searchQuery.toLowerCase());
 
 		// Filter by date range
-		const shiftDate = new Date(shift.date);
+		const shiftDate = parseISO(shift.date);
 		const matchesDateRange =
 			(!dateRange.from || shiftDate >= dateRange.from) &&
 			(!dateRange.to || shiftDate <= dateRange.to);
@@ -207,17 +228,8 @@ export function ShiftLogDetailsPage() {
 		const matchesStatus =
 			statusFilter === "all" || shift.status === statusFilter;
 
-		// Filter by tab
-		const matchesTab =
-			currentTab === "all" ||
-			(currentTab === "variance" && shift.planned !== shift.actual);
-
 		return (
-			matchesSearch &&
-			matchesDateRange &&
-			matchesLocation &&
-			matchesStatus &&
-			matchesTab
+			matchesSearch && matchesDateRange && matchesLocation && matchesStatus
 		);
 	});
 
@@ -234,11 +246,16 @@ export function ShiftLogDetailsPage() {
 		setCurrentPage(1);
 	}, [searchQuery, dateRange, locationFilter, statusFilter, currentTab]);
 
-	const locations = [...new Set(mockShifts.map((shift) => shift.location))];
-	const statuses = [...new Set(mockShifts.map((shift) => shift.status))];
+	// Get unique location names and statuses for filters
+	const uniqueLocations = [
+		...new Set(transformedShifts.map((shift) => shift.location)),
+	];
+	const uniqueStatuses = [
+		...new Set(transformedShifts.map((shift) => shift.status)),
+	];
 
 	// Create location filter options in the format required by TableFilters
-	const locationFilterOptions = locations.map((location) => ({
+	const locationFilterOptions = uniqueLocations.map((location) => ({
 		label: location,
 		value: location,
 	}));
@@ -277,8 +294,8 @@ export function ShiftLogDetailsPage() {
 				"endTime",
 				"location",
 				"status",
-				"planned",
-				"actual",
+				"planned_hours",
+				"actual_hours",
 			]}
 		/>
 	);
@@ -376,7 +393,7 @@ export function ShiftLogDetailsPage() {
 									</SelectTrigger>
 									<SelectContent>
 										<SelectItem value="all">All Statuses</SelectItem>
-										{statuses.map((status) => (
+										{uniqueStatuses.map((status) => (
 											<SelectItem
 												key={status}
 												value={status}>
@@ -464,8 +481,8 @@ export function ShiftLogDetailsPage() {
 						<TabsContent
 							value="variance"
 							className="space-y-4">
-							{filteredShifts.filter((s) => s.planned !== s.actual).length ===
-							0 ? (
+							{filteredShifts.filter((s) => s.planned_hours !== s.actual_hours)
+								.length === 0 ? (
 								<EmptyState
 									icon={<SearchX className="h-10 w-10" />}
 									title="No shifts with variance found"
@@ -482,7 +499,9 @@ export function ShiftLogDetailsPage() {
 								<>
 									<DataTable
 										columns={columns}
-										data={paginatedShifts.filter((s) => s.planned !== s.actual)}
+										data={paginatedShifts.filter(
+											(s) => s.planned_hours !== s.actual_hours
+										)}
 									/>
 								</>
 							)}

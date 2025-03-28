@@ -46,7 +46,6 @@ interface ContentSectionProps {
 
 /**
  * ContentSection component for dividing content into logical sections
- * Uses standardized spacing variables from header-spacing.css
  */
 export function ContentSection({
 	title,
