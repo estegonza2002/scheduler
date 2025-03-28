@@ -48,6 +48,7 @@ import LocationInsightsPage from "./pages/LocationInsightsPage";
 import DesignSystemShowcasePage from "./pages/DesignSystemShowcasePage";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
+import ReportsPage from "./pages/ReportsPage";
 
 // Root redirect component that checks user role
 function RootRedirect() {
@@ -250,6 +251,30 @@ function App() {
 												element={<LocationEmployeesPage />}
 											/>
 											<Route
+												path="/employees/:employeeId"
+												element={<EmployeeDetailPage />}
+											/>
+											<Route
+												path="/employees/:employeeId/earnings"
+												element={<EmployeeEarningsPage />}
+											/>
+											<Route
+												path="/shifts/new"
+												element={<EditShiftPage />}
+											/>
+											<Route
+												path="/shifts/:shiftId"
+												element={<ShiftDetailsPage />}
+											/>
+											<Route
+												path="/shifts/:shiftId/edit"
+												element={<EditShiftPage />}
+											/>
+											<Route
+												path="/shift-logs/:logId"
+												element={<ShiftLogDetailsPage />}
+											/>
+											<Route
 												path="/notifications"
 												element={<NotificationsPage />}
 											/>
@@ -258,46 +283,45 @@ function App() {
 												element={<MessagesPage />}
 											/>
 											<Route
-												path="/shift-details/:shiftId"
-												element={<ShiftLogDetailsPage />}
-											/>
-											<Route
-												path="/shifts/:shiftId"
-												element={<ShiftDetailsPage />}
-											/>
-											<Route
-												path="/edit-shift/:shiftId"
-												element={<EditShiftPage />}
-											/>
-											<Route
-												path="/employee-detail/:employeeId"
-												element={<EmployeeDetailPage />}
-											/>
-											<Route
-												path="/employee-earnings/:employeeId"
-												element={<EmployeeEarningsPage />}
-											/>
-											<Route
 												path="/design-system"
 												element={<DesignSystemShowcasePage />}
 											/>
+
+											{/* Reports Routes */}
+											<Route
+												path="/reports"
+												element={<ReportsPage />}
+											/>
+											<Route
+												path="/reports/performance"
+												element={<ReportsPage />}
+											/>
+											<Route
+												path="/reports/attendance"
+												element={<ReportsPage />}
+											/>
+											<Route
+												path="/reports/payroll"
+												element={<ReportsPage />}
+											/>
+
+											{/* Root redirect */}
+											<Route
+												path="/"
+												element={<RootRedirect />}
+											/>
+											{/* Catch-all redirect */}
+											<Route
+												path="*"
+												element={
+													<Navigate
+														to="/"
+														replace
+													/>
+												}
+											/>
 										</Route>
 									</Route>
-
-									{/* Redirect to appropriate dashboard based on role */}
-									<Route
-										path="/"
-										element={<RootRedirect />}
-									/>
-									<Route
-										path="*"
-										element={
-											<Navigate
-												to="/login"
-												replace
-											/>
-										}
-									/>
 								</Routes>
 							</OnboardingProvider>
 						</NotificationProvider>

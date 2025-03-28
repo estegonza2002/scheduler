@@ -29,6 +29,7 @@ import {
 	Trash,
 	Briefcase,
 	Upload,
+	UserX,
 } from "lucide-react";
 import { toast } from "sonner";
 import { DeleteEmployeeDialog } from "@/components/DeleteEmployeeDialog";
@@ -78,6 +79,8 @@ import { PageHeader } from "@/components/ui/page-header";
 import { ContentSection } from "@/components/ui/content-section";
 import { DataCardGrid } from "@/components/ui/data-card-grid";
 import { getDefaultOrganizationId } from "@/lib/utils";
+import { getProfileCompletionStatus } from "@/utils/profile-completion";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function EmployeesPage() {
 	const [organization, setOrganization] = useState<Organization | null>(null);
@@ -99,6 +102,7 @@ export default function EmployeesPage() {
 		notificationsEnabled,
 	} = useEmployeePresence(organization?.id || "");
 	const navigate = useNavigate();
+	const [searchParams, setSearchParams] = useSearchParams();
 
 	// Listen for employee-added events from the system header
 	useEffect(() => {
@@ -108,15 +112,30 @@ export default function EmployeesPage() {
 			}
 		};
 
+		const handleEmployeeDeleted = (event: CustomEvent<string>) => {
+			if (event.detail) {
+				setEmployees((prev) => prev.filter((emp) => emp.id !== event.detail));
+			}
+		};
+
 		window.addEventListener(
 			"employee-added",
 			handleEmployeeAdded as EventListener
+		);
+
+		window.addEventListener(
+			"employee-deleted",
+			handleEmployeeDeleted as EventListener
 		);
 
 		return () => {
 			window.removeEventListener(
 				"employee-added",
 				handleEmployeeAdded as EventListener
+			);
+			window.removeEventListener(
+				"employee-deleted",
+				handleEmployeeDeleted as EventListener
 			);
 		};
 	}, []);
@@ -128,27 +147,57 @@ export default function EmployeesPage() {
 				header: ({ column }) => (
 					<Button
 						variant="ghost"
-						onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-						className="pl-0">
+						onClick={() =>
+							column.toggleSorting(column.getIsSorted() === "asc")
+						}>
 						Name
 						<ArrowUpDown className="ml-2 h-4 w-4" />
 					</Button>
 				),
-				cell: ({ row }) => (
-					<div className="flex items-center gap-3">
-						<AvatarWithStatus
-							fallback={row.original.name
-								.split(" ")
-								.map((n) => n[0])
-								.join("")
-								.toUpperCase()}
-							isOnline={row.original.isOnline}
-							status={row.original.status as any}
-							size="sm"
-						/>
-						<span className="font-medium">{row.original.name}</span>
-					</div>
-				),
+				cell: ({ row }) => {
+					const employee = row.original;
+					const profileStatus = getProfileCompletionStatus(employee);
+
+					return (
+						<div className="flex items-center gap-3">
+							<div className="relative">
+								<AvatarWithStatus
+									fallback={row.original.name
+										.split(" ")
+										.map((n) => n[0])
+										.join("")
+										.toUpperCase()}
+									isOnline={row.original.isOnline}
+									status={row.original.status as any}
+									size="sm"
+								/>
+								{!profileStatus.isComplete && (
+									<span
+										className={`h-2 w-2 rounded-full absolute -top-0.5 -right-0.5 border border-background ${
+											profileStatus.missingHighPriority
+												? "bg-red-500"
+												: "bg-amber-400"
+										}`}
+									/>
+								)}
+							</div>
+							<div className="flex flex-col">
+								<div className="flex items-center">
+									<span className="font-medium">{employee.name}</span>
+									{!profileStatus.isComplete &&
+										profileStatus.missingHighPriority && (
+											<span className="ml-2 inline-flex items-center">
+												<AlertCircle className="h-3 w-3 text-red-500" />
+											</span>
+										)}
+								</div>
+								<span className="text-xs text-muted-foreground">
+									{employee.position || employee.role || "Employee"}
+								</span>
+							</div>
+						</div>
+					);
+				},
 				filterFn: (row, id, filterValue) => {
 					return row.original.name
 						.toLowerCase()
@@ -158,15 +207,31 @@ export default function EmployeesPage() {
 			{
 				accessorKey: "status",
 				header: "Status",
-				cell: ({ row }) => (
-					<div className="flex items-center">
+				cell: ({ row }) => {
+					const employee = row.original;
+
+					// Add special treatment for invited status
+					if (employee.status === "invited") {
+						return (
+							<div className="flex items-center gap-1.5">
+								<Badge
+									variant="destructive"
+									className="bg-red-500 text-white font-medium text-xs whitespace-nowrap">
+									<UserX className="h-3 w-3 mr-1" />
+									Pending Signup
+								</Badge>
+							</div>
+						);
+					}
+
+					return (
 						<EmployeeStatusBadge
-							status={row.original.status as any}
-							isOnline={row.original.isOnline}
-							lastActive={row.original.lastActive}
+							status={employee.status as any}
+							isOnline={employee.isOnline}
+							compact
 						/>
-					</div>
-				),
+					);
+				},
 			},
 			{
 				accessorKey: "email",
@@ -206,26 +271,6 @@ export default function EmployeesPage() {
 				},
 			},
 			{
-				accessorKey: "position",
-				header: ({ column }) => (
-					<Button
-						variant="ghost"
-						onClick={() =>
-							column.toggleSorting(column.getIsSorted() === "asc")
-						}>
-						Position
-						<ArrowUpDown className="ml-2 h-4 w-4" />
-					</Button>
-				),
-				cell: ({ row }) => (
-					<span>{row.original.position || row.original.role}</span>
-				),
-				filterFn: (row, id, filterValue) => {
-					const position = row.original.position || row.original.role || "";
-					return position.toLowerCase().includes(filterValue.toLowerCase());
-				},
-			},
-			{
 				accessorKey: "hourlyRate",
 				header: ({ column }) => (
 					<Button
@@ -259,7 +304,7 @@ export default function EmployeesPage() {
 							className="h-8"
 							onClick={(e) => {
 								e.stopPropagation();
-								navigate(`/employee-detail/${employee.id}`);
+								navigate(`/employees/${employee.id}`);
 							}}>
 							<ChevronRight className="h-4 w-4" />
 							View
@@ -311,6 +356,21 @@ export default function EmployeesPage() {
 		setCurrentPage(1); // Reset to first page when changing page size
 	};
 
+	// Calculate how many employees have invited status
+	const pendingSignupCount = employees.filter(
+		(emp) => emp.status === "invited"
+	).length;
+
+	// Calculate how many employees have incomplete profiles
+	const incompleteProfileCount = employees.filter(
+		(emp) => !getProfileCompletionStatus(emp).isComplete
+	).length;
+	const highPriorityIncompleteCount = employees.filter(
+		(emp) =>
+			!getProfileCompletionStatus(emp).isComplete &&
+			getProfileCompletionStatus(emp).missingHighPriority
+	).length;
+
 	if (isLoading) {
 		return (
 			<ContentContainer>
@@ -329,9 +389,49 @@ export default function EmployeesPage() {
 		<>
 			<PageHeader
 				title="Employees"
-				description="Manage your team and employee information"
+				description={`Manage your ${
+					organization?.name || "organization's"
+				} employees`}
 				actions={
 					<div className="flex items-center gap-2">
+						{/* Pending signup indicator in header */}
+						{pendingSignupCount > 0 && (
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => {
+									// Filter to invited employees
+									const invitedParams = new URLSearchParams(searchParams);
+									invitedParams.set("status", "invited");
+									setSearchParams(invitedParams);
+								}}
+								className="bg-red-50 border-red-200 text-red-800 hover:bg-red-100 hover:text-red-900 gap-1.5">
+								<UserX className="h-3.5 w-3.5" />
+								<span>{pendingSignupCount} Pending Invites</span>
+							</Button>
+						)}
+
+						{/* Profile completion indicator */}
+						{incompleteProfileCount > 0 && (
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => {
+									// Reset any status filter to show all employees
+									const params = new URLSearchParams(searchParams);
+									params.delete("status");
+									setSearchParams(params);
+								}}
+								className={
+									highPriorityIncompleteCount > 0
+										? "bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100 hover:text-amber-900 gap-1.5"
+										: "bg-muted border-muted-foreground/20 text-muted-foreground hover:bg-muted/80 gap-1.5"
+								}>
+								<AlertCircle className="h-3.5 w-3.5" />
+								<span>{incompleteProfileCount} Incomplete</span>
+							</Button>
+						)}
+
 						<Tooltip>
 							<TooltipTrigger asChild>
 								<Button
@@ -359,7 +459,7 @@ export default function EmployeesPage() {
 
 						<EmployeeSheet
 							organizationId={organization?.id || getDefaultOrganizationId()}
-							onEmployeeUpdated={(newEmployee) => {
+							onEmployeeUpdated={(newEmployee: Employee) => {
 								setEmployees((prev) => [...prev, newEmployee]);
 							}}
 							trigger={
@@ -395,7 +495,7 @@ export default function EmployeesPage() {
 										organizationId={
 											organization?.id || getDefaultOrganizationId()
 										}
-										onEmployeeUpdated={(newEmployee) => {
+										onEmployeeUpdated={(newEmployee: Employee) => {
 											setEmployees((prev) => [...prev, newEmployee]);
 										}}
 										trigger={
@@ -415,9 +515,7 @@ export default function EmployeesPage() {
 								data={employees}
 								searchKey="name"
 								searchPlaceholder="Search employees..."
-								onRowClick={(employee) =>
-									navigate(`/employee-detail/${employee.id}`)
-								}
+								onRowClick={(employee) => navigate(`/employees/${employee.id}`)}
 								viewOptions={{
 									enableViewToggle: true,
 									defaultView: viewMode,
@@ -425,9 +523,7 @@ export default function EmployeesPage() {
 									renderCard: (employee: Employee) => (
 										<Card
 											className="cursor-pointer hover:shadow-sm transition-all border hover:border-primary"
-											onClick={() =>
-												navigate(`/employee-detail/${employee.id}`)
-											}>
+											onClick={() => navigate(`/employees/${employee.id}`)}>
 											<CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
 												<div className="flex flex-row items-center space-x-2">
 													<Avatar>
@@ -444,6 +540,14 @@ export default function EmployeesPage() {
 													</Avatar>
 													<CardTitle className="text-base font-medium">
 														{employee.name}
+														{employee.status === "invited" && (
+															<Badge
+																variant="destructive"
+																className="ml-2 bg-red-500 text-white font-normal text-xs">
+																<UserX className="h-3 w-3 mr-1" />
+																Pending Signup
+															</Badge>
+														)}
 													</CardTitle>
 												</div>
 												<div>
@@ -460,7 +564,7 @@ export default function EmployeesPage() {
 															<DropdownMenuItem
 																onClick={(e) => {
 																	e.stopPropagation();
-																	navigate(`/employee-detail/${employee.id}`);
+																	navigate(`/employees/${employee.id}`);
 																}}>
 																<Edit className="mr-2 h-4 w-4" />
 																View Profile
@@ -468,18 +572,31 @@ export default function EmployeesPage() {
 															<DropdownMenuItem
 																onClick={(e) => {
 																	e.stopPropagation();
-																	// Handle edit action
-																}}>
-																<Edit className="mr-2 h-4 w-4" />
-																Edit
-															</DropdownMenuItem>
-															<DropdownMenuItem
-																onClick={(e) => {
-																	e.stopPropagation();
-																	// Handle delete action
-																}}>
-																<Trash className="mr-2 h-4 w-4" />
-																Delete
+																}}
+																asChild>
+																<EmployeeSheet
+																	employee={employee}
+																	organizationId={
+																		employee.organizationId ||
+																		organization?.id ||
+																		""
+																	}
+																	onEmployeeUpdated={(updatedEmployee) => {
+																		setEmployees((prev) =>
+																			prev.map((emp) =>
+																				emp.id === updatedEmployee.id
+																					? updatedEmployee
+																					: emp
+																			)
+																		);
+																	}}
+																	trigger={
+																		<button className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full">
+																			<Edit className="mr-2 h-4 w-4" />
+																			Edit
+																		</button>
+																	}
+																/>
 															</DropdownMenuItem>
 														</DropdownMenuContent>
 													</DropdownMenu>

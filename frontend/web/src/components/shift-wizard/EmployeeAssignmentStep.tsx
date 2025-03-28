@@ -22,6 +22,8 @@ import {
 	UserCheck,
 	Users,
 	PlusCircle,
+	UserX,
+	AlertCircle,
 } from "lucide-react";
 import { Separator } from "../ui/separator";
 import { Avatar, AvatarFallback } from "../ui/avatar";
@@ -30,6 +32,13 @@ import { Badge } from "../ui/badge";
 import { ScrollArea } from "../ui/scroll-area";
 import { Checkbox } from "../ui/checkbox";
 import { Link } from "react-router-dom";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "../ui/tooltip";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 
 type EmployeeData = {
 	employeeId: string;
@@ -92,8 +101,22 @@ export function EmployeeAssignmentStep({
 	onSelectedEmployeesChange,
 	allEmployees,
 }: EmployeeAssignmentStepProps) {
+	// Filter out the invited employees to show them separately
+	const invitedEmployees = useMemo(() => {
+		return filteredEmployees.filter((emp) => emp.status === "invited");
+	}, [filteredEmployees]);
+
+	const eligibleEmployees = useMemo(() => {
+		return filteredEmployees.filter((emp) => emp.status !== "invited");
+	}, [filteredEmployees]);
+
 	// Handle employee selection/deselection
 	const toggleEmployeeSelection = (employee: Employee) => {
+		// Don't allow selection of invited employees
+		if (employee.status === "invited") {
+			return;
+		}
+
 		const isSelected = selectedEmployees.some((e) => e.id === employee.id);
 
 		if (isSelected) {
@@ -206,6 +229,23 @@ export function EmployeeAssignmentStep({
 						</div>
 					</div>
 
+					{/* Add alert for invited employees */}
+					{invitedEmployees.length > 0 && (
+						<Alert
+							variant="destructive"
+							className="mb-4 bg-red-50 border-red-200 mt-4">
+							<AlertCircle className="h-4 w-4 text-red-600" />
+							<AlertTitle className="text-red-800">
+								{invitedEmployees.length} employee
+								{invitedEmployees.length !== 1 ? "s" : ""} can't be scheduled
+							</AlertTitle>
+							<AlertDescription className="text-red-700">
+								Some employees have pending signups and cannot be scheduled
+								until they complete their account setup.
+							</AlertDescription>
+						</Alert>
+					)}
+
 					{/* Employee selection */}
 					<div className="space-y-4">
 						<div>
@@ -288,80 +328,154 @@ export function EmployeeAssignmentStep({
 								</Button>
 							</div>
 						) : (
-							<div className="flex-1 min-h-0">
-								<ScrollArea className="h-[300px] border rounded-md">
-									{loadingEmployees ? (
-										<div className="py-12 flex items-center justify-center">
-											<div className="animate-pulse text-muted-foreground">
+							<div className="space-y-2 mt-2">
+								{loadingEmployees ? (
+									<div className="flex-1 flex items-center justify-center py-8">
+										<div className="flex flex-col items-center space-y-2">
+											<span className="relative flex h-8 w-8 animate-spin rounded-full">
+												<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+												<span className="relative inline-flex rounded-full h-8 w-8 bg-primary/40"></span>
+											</span>
+											<p className="text-sm text-muted-foreground">
 												Loading employees...
-											</div>
-										</div>
-									) : filteredEmployees.length === 0 ? (
-										<div className="py-12 flex flex-col items-center justify-center text-center">
-											<div className="rounded-full bg-muted p-3 mb-2">
-												<X className="h-6 w-6 text-muted-foreground" />
-											</div>
-											<h4 className="font-medium">No employees found</h4>
-											<p className="text-sm text-muted-foreground mt-1">
-												Try adjusting your search or filter
 											</p>
 										</div>
-									) : (
-										<table className="w-full">
-											<thead className="bg-muted sticky top-0">
-												<tr>
-													<th className="w-10 p-2 text-left"></th>
-													<th className="p-2 text-left font-medium text-sm">
-														Name
-													</th>
-													<th className="p-2 text-left font-medium text-sm">
-														Role
-													</th>
-												</tr>
-											</thead>
-											<tbody>
-												{filteredEmployees.map((employee) => (
-													<tr
+									</div>
+								) : eligibleEmployees.length === 0 &&
+								  invitedEmployees.length === 0 ? (
+									<div className="flex flex-col items-center justify-center py-8 text-center border rounded-lg bg-muted/50">
+										<Users className="h-12 w-12 text-muted-foreground mb-4" />
+										<h3 className="font-medium text-lg">No employees found</h3>
+										<p className="text-muted-foreground max-w-md">
+											{searchTerm || searchFilter
+												? "Try a different search term or filter."
+												: "You don't have any employees yet."}
+										</p>
+										{!searchTerm && !searchFilter && (
+											<Button
+												variant="outline"
+												className="mt-4"
+												asChild>
+												<Link to="/employees/new">
+													<PlusCircle className="h-4 w-4 mr-2" />
+													Add Employee
+												</Link>
+											</Button>
+										)}
+									</div>
+								) : (
+									<ScrollArea className="h-[calc(100vh-28rem)] pr-4 -mr-4">
+										{/* Eligible employees first */}
+										{eligibleEmployees.length > 0 && (
+											<div className="space-y-2">
+												{eligibleEmployees.map((employee) => (
+													<Card
 														key={employee.id}
-														className={`hover:bg-accent/50 cursor-pointer ${
+														className={`cursor-pointer transition-all ${
 															isEmployeeSelected(employee.id)
-																? "bg-accent/50"
-																: ""
+																? "border-primary bg-primary/5"
+																: "hover:border-muted-foreground"
 														}`}
 														onClick={() => toggleEmployeeSelection(employee)}>
-														<td className="p-2">
-															<Checkbox
-																checked={isEmployeeSelected(employee.id)}
-																onCheckedChange={() =>
-																	toggleEmployeeSelection(employee)
-																}
-																onClick={(e) => e.stopPropagation()}
-															/>
-														</td>
-														<td className="p-2">
-															<div className="flex items-center gap-2">
-																<Avatar className="h-6 w-6">
-																	<AvatarFallback className="text-xs">
+														<CardContent className="p-3 flex justify-between items-center">
+															<div className="flex items-center gap-3">
+																<Checkbox
+																	checked={isEmployeeSelected(employee.id)}
+																	onCheckedChange={() =>
+																		toggleEmployeeSelection(employee)
+																	}
+																	className="h-5 w-5"
+																/>
+																<Avatar className="h-8 w-8">
+																	<AvatarFallback>
 																		{employee.name
 																			.split(" ")
 																			.map((n) => n[0])
 																			.join("")}
 																	</AvatarFallback>
 																</Avatar>
-																<span className="font-medium">
-																	{employee.name}
-																</span>
+																<div>
+																	<div className="font-medium">
+																		{employee.name}
+																	</div>
+																	<div className="text-sm text-muted-foreground">
+																		{employee.role || "Employee"}
+																	</div>
+																</div>
 															</div>
-														</td>
-														<td className="p-2 text-sm text-muted-foreground">
-															{employee.role || "-"}
-														</td>
-													</tr>
+															{isEmployeeSelected(employee.id) && (
+																<Check className="h-5 w-5 text-primary" />
+															)}
+														</CardContent>
+													</Card>
 												))}
-											</tbody>
-										</table>
-									)}
-								</ScrollArea>
+											</div>
+										)}
+
+										{/* Show invited employees with disabled state */}
+										{invitedEmployees.length > 0 && (
+											<div className="mt-4 mb-2">
+												<h4 className="text-sm font-medium flex items-center mb-2 text-red-800">
+													<UserX className="h-4 w-4 mr-1.5 text-red-600" />
+													Employees with pending signup
+												</h4>
+												<div className="space-y-2">
+													{invitedEmployees.map((employee) => (
+														<TooltipProvider key={employee.id}>
+															<Tooltip>
+																<TooltipTrigger asChild>
+																	<Card className="opacity-70 border-red-200">
+																		<CardContent className="p-3 flex justify-between items-center">
+																			<div className="flex items-center gap-3">
+																				<div className="h-5 w-5 flex items-center justify-center">
+																					<UserX className="h-4 w-4 text-red-500" />
+																				</div>
+																				<Avatar className="h-8 w-8">
+																					<AvatarFallback>
+																						{employee.name
+																							.split(" ")
+																							.map((n) => n[0])
+																							.join("")}
+																					</AvatarFallback>
+																				</Avatar>
+																				<div>
+																					<div className="font-medium flex items-center">
+																						{employee.name}
+																						<Badge
+																							variant="destructive"
+																							className="ml-2 text-xs bg-red-500">
+																							Pending Signup
+																						</Badge>
+																					</div>
+																					<div className="text-sm text-muted-foreground">
+																						Cannot be scheduled
+																					</div>
+																				</div>
+																			</div>
+																		</CardContent>
+																	</Card>
+																</TooltipTrigger>
+																<TooltipContent
+																	side="top"
+																	className="max-w-xs p-3">
+																	<p className="font-medium mb-1">
+																		Cannot schedule this employee
+																	</p>
+																	<p className="text-sm">
+																		This employee hasn't completed their account
+																		setup yet. They need to accept the
+																		invitation and create their account before
+																		they can be scheduled.
+																	</p>
+																</TooltipContent>
+															</Tooltip>
+														</TooltipProvider>
+													))}
+												</div>
+											</div>
+										)}
+									</ScrollArea>
+								)}
 							</div>
 						)}
 

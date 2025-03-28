@@ -56,6 +56,7 @@ const TOP_LEVEL_PAGES = [
 	"/branding",
 	"/notifications",
 	"/messages",
+	"/reports",
 ];
 
 /**

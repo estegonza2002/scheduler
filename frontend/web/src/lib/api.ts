@@ -71,6 +71,7 @@ export interface Location {
 	organization_id: string;
 	created_at: string;
 	updated_at: string;
+	imageUrl?: string;
 }
 
 // Error handling

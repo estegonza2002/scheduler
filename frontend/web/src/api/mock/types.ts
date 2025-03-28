@@ -133,6 +133,7 @@ export interface Location {
 	isActive?: boolean;
 	latitude?: number;
 	longitude?: number;
+	imageUrl?: string;
 }
 
 export interface Notification {

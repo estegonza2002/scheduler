@@ -30,6 +30,8 @@ import {
 	CalendarClock,
 	UserPlus,
 	Settings,
+	Bot,
+	Sparkles,
 } from "lucide-react";
 import {
 	Organization,
@@ -65,6 +67,7 @@ import { OnboardingReminder } from "@/components/onboarding/OnboardingReminder";
 import { PageHeader } from "@/components/ui/page-header";
 import { LoadingState } from "@/components/ui/loading-state";
 import { Card, CardContent } from "@/components/ui/card";
+import { SmarterAI } from "@/components/SmarterAI";
 
 // Extended organization type for UI display purposes
 interface ExtendedOrganization extends Organization {
@@ -93,6 +96,7 @@ export default function AdminDashboardPage() {
 	const [upcomingShifts, setUpcomingShifts] = useState(0);
 	const [totalLocations, setTotalLocations] = useState(0);
 	const [currentSchedule, setCurrentSchedule] = useState<string>(""); // For shift creation
+	const [showAI, setShowAI] = useState<boolean>(true);
 	const [weeklyStats, setWeeklyStats] = useState({
 		revenue: [
 			{ name: "Mon", value: 1200 },
@@ -315,6 +319,13 @@ export default function AdminDashboardPage() {
 			/>
 
 			<ContentContainer>
+				{/* Always show the AI interface at the top of the dashboard */}
+				<SmarterAI
+					onClose={() => {}} // Don't allow closing completely
+					onMinimize={() => {}} // Don't allow minimizing
+					isHero={true}
+				/>
+
 				<OnboardingReminder />
 				<Tabs defaultValue="overview">
 					<div className="flex justify-between items-center mb-4">
@@ -356,22 +367,6 @@ export default function AdminDashboardPage() {
 									/>
 								)}
 
-								{organization && currentSchedule && (
-									<ShiftCreationSheet
-										scheduleId={currentSchedule}
-										organizationId={organization.id}
-										initialDate={new Date()}
-										trigger={
-											<Button
-												variant="outline"
-												className="h-24 flex flex-col items-center justify-center w-full gap-2 text-sm hover:border-primary hover:text-primary">
-												<CalendarClock className="h-6 w-6" />
-												<span>Create Shift</span>
-											</Button>
-										}
-									/>
-								)}
-
 								{organization && (
 									<LocationCreationSheet
 										organizationId={organization.id}
@@ -386,174 +381,22 @@ export default function AdminDashboardPage() {
 										}
 									/>
 								)}
-							</div>
-						</ContentSection>
 
-						{/* Organization Key Metrics */}
-						<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-							{/* Employees Card */}
-							<ContentSection
-								flat
-								title="Employees"
-								className="relative overflow-hidden"
-								contentClassName="pt-0"
-								headerActions={
-									<TooltipProvider>{renderOnboardingStatus()}</TooltipProvider>
-								}>
-								<div className="flex items-end justify-between">
-									<div>
-										<div className="text-2xl font-bold">{employees.length}</div>
-										<p className="text-xs text-muted-foreground">
-											Active employees on your payroll
-										</p>
-									</div>
-									<div className="text-xs text-muted-foreground">
-										{organization?.subscription_plan === "free" && (
-											<div className="flex items-center">
-												<AlertCircle className="h-3 w-3 mr-1" />
-												<span>Free limit: 5</span>
-											</div>
-										)}
-									</div>
-								</div>
-							</ContentSection>
-
-							{/* Active Shifts Card */}
-							<ContentSection
-								flat
-								title="Active Shifts"
-								className="relative overflow-hidden"
-								contentClassName="pt-0">
-								<div className="flex items-end justify-between">
-									<div>
-										<div className="text-2xl font-bold">{activeShifts}</div>
-										<p className="text-xs text-muted-foreground">
-											Shifts currently in progress
-										</p>
-									</div>
-								</div>
-							</ContentSection>
-
-							{/* Upcoming Shifts Card */}
-							<ContentSection
-								flat
-								title="Upcoming Shifts"
-								className="relative overflow-hidden"
-								contentClassName="pt-0">
-								<div className="flex items-end justify-between">
-									<div>
-										<div className="text-2xl font-bold">{upcomingShifts}</div>
-										<p className="text-xs text-muted-foreground">
-											Shifts scheduled in the future
-										</p>
-									</div>
-								</div>
-							</ContentSection>
-
-							{/* Locations Card */}
-							<ContentSection
-								flat
-								title="Locations"
-								className="relative overflow-hidden"
-								contentClassName="pt-0">
-								<div className="flex items-end justify-between">
-									<div>
-										<div className="text-2xl font-bold">{totalLocations}</div>
-										<p className="text-xs text-muted-foreground">
-											Active location sites
-										</p>
-									</div>
-									<div className="text-xs text-muted-foreground">
-										{organization?.subscription_plan === "free" && (
-											<div className="flex items-center">
-												<AlertCircle className="h-3 w-3 mr-1" />
-												<span>Free limit: 2</span>
-											</div>
-										)}
-									</div>
-								</div>
-							</ContentSection>
-						</div>
-
-						{/* Business Performance Charts */}
-						<div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-							<ContentSection
-								title="Weekly Revenue"
-								description="Last 7 days performance"
-								contentClassName="px-4 py-3"
-								headerActions={
-									<FormulaExplainer
-										formula="Weekly Revenue = Σ(Hours Worked × Employee Billing Rate) for current week"
-										description="The total revenue generated from all shifts in the current week."
-										example="If Employee A (billed at $30/hr) worked 20 hours and Employee B (billed at $35/hr) worked 15 hours, Weekly Revenue = (20 × $30) + (15 × $35) = $600 + $525 = $1,125."
-										variantColor="blue"
+								{organization && currentSchedule && (
+									<ShiftCreationSheet
+										scheduleId={currentSchedule}
+										organizationId={organization.id}
+										initialDate={new Date()}
+										trigger={
+											<Button
+												variant="outline"
+												className="h-24 flex flex-col items-center justify-center w-full gap-2 text-sm hover:border-primary hover:text-primary">
+												<CalendarClock className="h-6 w-6" />
+												<span>Schedule Shift</span>
+											</Button>
+										}
 									/>
-								}>
-								<BarChart data={weeklyStats.revenue} />
-							</ContentSection>
-
-							<ContentSection
-								title="Staff Distribution"
-								description="By employment type"
-								contentClassName="px-4 py-3"
-								headerActions={
-									<FormulaExplainer
-										formula="Staff Distribution Percentage = (Count of Staff in Category / Total Staff) × 100%"
-										description="The breakdown of your workforce by employment type."
-										example="If you have 36 total employees with 12 full-time, 18 part-time, and 6 contract workers, the distribution would be: Full-time: (12/36) × 100% = 33.3%, Part-time: (18/36) × 100% = 50%, Contract: (6/36) × 100% = 16.7%."
-										variantColor="green"
-									/>
-								}>
-								<ChartPieChart data={weeklyStats.employeeTypes} />
-							</ContentSection>
-						</div>
-
-						{/* Alerts and Notifications */}
-						<ContentSection
-							title="Attention Required"
-							className="mb-6"
-							contentClassName="pt-2">
-							<div className="space-y-4">
-								<Card className="bg-white">
-									<CardContent className="p-3 flex items-start gap-3">
-										<AlertCircle className="h-5 w-5 text-red-500 mt-0.5" />
-										<div>
-											<p className="font-medium text-red-700">Staffing Alert</p>
-											<p className="text-sm text-red-600 mb-2">
-												Downtown location is understaffed for the evening shift
-												(6pm-10pm).
-											</p>
-											<div className="flex gap-2">
-												<Button
-													size="sm"
-													variant="destructive">
-													Assign Staff
-												</Button>
-											</div>
-										</div>
-									</CardContent>
-								</Card>
-
-								<Card className="bg-white">
-									<CardContent className="p-3 flex items-start gap-3">
-										<AlertCircle className="h-5 w-5 text-amber-500 mt-0.5" />
-										<div>
-											<p className="font-medium text-amber-700">
-												Schedule Update
-											</p>
-											<p className="text-sm text-amber-600 mb-2">
-												3 employees have requested time off for next week.
-											</p>
-											<div className="flex gap-2">
-												<Button
-													size="sm"
-													variant="outline">
-													View Requests
-												</Button>
-											</div>
-										</div>
-									</CardContent>
-								</Card>
+								)}
 							</div>
 						</ContentSection>
 					</TabsContent>

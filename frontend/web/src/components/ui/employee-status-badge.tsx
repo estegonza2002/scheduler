@@ -7,7 +7,7 @@ import {
 	TooltipTrigger,
 } from "./tooltip";
 import { cn } from "@/lib/utils";
-import { CheckCircle, Clock, AlertTriangle, User } from "lucide-react";
+import { CheckCircle, Clock, AlertTriangle, User, UserX } from "lucide-react";
 
 interface EmployeeStatusBadgeProps {
 	status?: "invited" | "active" | "disabled";
@@ -27,11 +27,13 @@ export function EmployeeStatusBadge({
 	// Define colors and icons based on status
 	const statusConfig = {
 		invited: {
-			icon: Clock,
-			label: "Invited",
-			variant: "outline",
-			tooltip: "User has been invited but hasn't set up their account",
-			color: "text-amber-500",
+			icon: UserX,
+			label: "Pending Signup",
+			variant: "destructive",
+			tooltip:
+				"Cannot schedule: Employee has been invited but hasn't set up their account",
+			color: "text-white",
+			bgColor: "bg-red-500 hover:bg-red-600 text-white border-red-500",
 		},
 		active: {
 			icon: CheckCircle,
@@ -39,6 +41,7 @@ export function EmployeeStatusBadge({
 			variant: "outline",
 			tooltip: "User has verified their email and set up their account",
 			color: "text-green-500",
+			bgColor: "",
 		},
 		disabled: {
 			icon: AlertTriangle,
@@ -46,6 +49,7 @@ export function EmployeeStatusBadge({
 			variant: "outline",
 			tooltip: "User account has been disabled",
 			color: "text-destructive",
+			bgColor: "",
 		},
 	};
 
@@ -90,7 +94,12 @@ export function EmployeeStatusBadge({
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<div className={cn("flex items-center gap-1", className)}>
-							<StatusIcon className={cn("h-3 w-3", config.color)} />
+							<StatusIcon
+								className={cn(
+									"h-3.5 w-3.5",
+									status === "invited" ? "text-red-500" : config.color
+								)}
+							/>
 							{isOnline && (
 								<div className="w-2 h-2 rounded-full bg-green-500" />
 							)}
@@ -102,7 +111,34 @@ export function EmployeeStatusBadge({
 		);
 	}
 
-	// Render full badge
+	// Render full badge with special handling for invited status
+	if (status === "invited") {
+		return (
+			<TooltipProvider>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Badge
+							variant="destructive"
+							className={cn(
+								"flex items-center gap-1 px-3 py-1 h-auto font-medium",
+								config.bgColor,
+								className
+							)}>
+							<StatusIcon className="h-3.5 w-3.5 mr-1.5" />
+							<span>{config.label}</span>
+						</Badge>
+					</TooltipTrigger>
+					<TooltipContent
+						side="top"
+						className="max-w-xs">
+						{tooltipContent}
+					</TooltipContent>
+				</Tooltip>
+			</TooltipProvider>
+		);
+	}
+
+	// Render regular badge for other statuses
 	return (
 		<TooltipProvider>
 			<Tooltip>

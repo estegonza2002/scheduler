@@ -16,6 +16,10 @@ import {
 	Sparkles,
 	ClipboardList,
 	Palette,
+	BarChart3,
+	TrendingUp,
+	FileText,
+	PieChart,
 } from "lucide-react";
 
 import {
@@ -251,6 +255,38 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 		signOut();
 	};
 
+	// Add new Reports navigation items
+	const reportsNavItems: NavItem[] = [
+		{
+			icon: <BarChart3 className="h-5 w-5" />,
+			label: "Dashboard",
+			href: "/reports",
+			isActive: isRouteActive("/reports"),
+			adminOnly: true,
+		},
+		{
+			icon: <TrendingUp className="h-5 w-5" />,
+			label: "Performance",
+			href: "/reports/performance",
+			isActive: isRouteActive("/reports/performance"),
+			adminOnly: true,
+		},
+		{
+			icon: <FileText className="h-5 w-5" />,
+			label: "Attendance",
+			href: "/reports/attendance",
+			isActive: isRouteActive("/reports/attendance"),
+			adminOnly: true,
+		},
+		{
+			icon: <PieChart className="h-5 w-5" />,
+			label: "Payroll",
+			href: "/reports/payroll",
+			isActive: isRouteActive("/reports/payroll"),
+			adminOnly: true,
+		},
+	];
+
 	return (
 		<Sidebar {...props}>
 			<SidebarHeader>
@@ -271,6 +307,13 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 				<SidebarGroup>
 					<SidebarGroupLabel>Main</SidebarGroupLabel>
 					<SidebarMenu>{renderMenuItems(mainNavItems)}</SidebarMenu>
+				</SidebarGroup>
+
+				<SidebarSeparator />
+
+				<SidebarGroup>
+					<SidebarGroupLabel>Reports</SidebarGroupLabel>
+					<SidebarMenu>{renderMenuItems(reportsNavItems)}</SidebarMenu>
 				</SidebarGroup>
 
 				<SidebarSeparator />

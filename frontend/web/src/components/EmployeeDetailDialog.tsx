@@ -34,6 +34,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { DialogHeader } from "@/components/ui/dialog-header";
+import { ProfileCompletionAlert } from "@/components/ProfileCompletionAlert";
 
 /**
  * Props for the EmployeeDetailDialog component
@@ -116,7 +117,23 @@ export function EmployeeDetailDialog({
 				/>
 
 				<ScrollArea className="flex-1 -mx-6 px-6">
-					<div className="space-y-6 py-2">
+					<div className="space-y-5 py-3">
+						{/* Profile Completion Alert */}
+						<ProfileCompletionAlert
+							employee={employee}
+							onEdit={() => {
+								// Close this dialog and open the edit dialog in parent component
+								onOpenChange?.(false);
+								// Allow time for dialog to close before triggering edit action
+								setTimeout(() => {
+									const event = new CustomEvent("edit-employee", {
+										detail: { employeeId: employee.id },
+									});
+									window.dispatchEvent(event);
+								}, 300);
+							}}
+						/>
+
 						{/* Profile Header */}
 						<div className="flex items-start gap-4 p-4 bg-muted/50 rounded-lg border">
 							<Avatar className="h-16 w-16">

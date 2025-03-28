@@ -31,6 +31,7 @@ import {
 	MapPin,
 	Plus,
 	ChevronDown,
+	Upload,
 } from "lucide-react";
 import {
 	GooglePlacesAutocomplete,
@@ -58,6 +59,7 @@ interface ExtendedLocation extends Location {
 	country?: string;
 	latitude?: number;
 	longitude?: number;
+	imageUrl?: string;
 }
 
 // The schema for the form validation
@@ -82,6 +84,7 @@ const LocationSchema = z.object({
 			"Please enter a valid phone number"
 		),
 	email: z.string().email().optional(),
+	imageUrl: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof LocationSchema>;
@@ -150,6 +153,7 @@ export function LocationCreationSheet({
 	const nameFieldRef = useRef<HTMLDivElement>(null);
 	const [locationSelected, setLocationSelected] = useState(false);
 	const [showNameField, setShowNameField] = useState(false);
+	const [uploadingImage, setUploadingImage] = useState(false);
 
 	const isControlled = controlledOpen !== undefined;
 	const isOpened = isControlled ? controlledOpen : open;
@@ -180,6 +184,7 @@ export function LocationCreationSheet({
 			isActive: true,
 			phone: "",
 			email: "",
+			imageUrl: "",
 		},
 	});
 
@@ -344,6 +349,7 @@ export function LocationCreationSheet({
 					isActive: true,
 					phone: "",
 					email: "",
+					imageUrl: "",
 				});
 			}, 300); // Wait for sheet close animation
 		}
@@ -356,6 +362,42 @@ export function LocationCreationSheet({
 		if (onLocationCreated && locations.length > 0) {
 			// Pass the first location to maintain backwards compatibility
 			onLocationCreated(locations[0] as ExtendedLocation);
+		}
+	};
+
+	// Handle image upload
+	const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+		const file = e.target.files?.[0];
+		if (!file) return;
+
+		// Check if file is an image
+		if (!file.type.startsWith("image/")) {
+			toast.error("Please upload an image file");
+			return;
+		}
+
+		// Check file size (limit to 5MB)
+		if (file.size > 5 * 1024 * 1024) {
+			toast.error("Image size should be less than 5MB");
+			return;
+		}
+
+		try {
+			setUploadingImage(true);
+
+			// In a real application, you would upload the image to a server
+			// For this demo, we'll create a local URL for the image
+			const imageUrl = URL.createObjectURL(file);
+
+			// Update the form with the new image URL
+			form.setValue("imageUrl", imageUrl);
+
+			toast.success("Image uploaded successfully");
+		} catch (error) {
+			console.error("Error uploading image:", error);
+			toast.error("Failed to upload image");
+		} finally {
+			setUploadingImage(false);
 		}
 	};
 
@@ -433,6 +475,7 @@ export function LocationCreationSheet({
 												isActive: true,
 												phone: "",
 												email: "",
+												imageUrl: "",
 											});
 										}}>
 										Create Another Location
@@ -584,6 +627,73 @@ export function LocationCreationSheet({
 																</div>
 															)}
 														</div>
+
+														{/* Insert the Image Upload section before the Map Preview section */}
+														<FormField
+															control={form.control}
+															name="imageUrl"
+															render={({ field }) => (
+																<FormItem>
+																	<FormLabel>Location Image</FormLabel>
+																	<FormControl>
+																		<div className="space-y-2">
+																			{field.value && (
+																				<div className="relative overflow-hidden rounded border h-40 w-full">
+																					<img
+																						src={field.value}
+																						alt="Location"
+																						className="h-full w-full object-cover"
+																					/>
+																				</div>
+																			)}
+																			<div className="flex items-center gap-2">
+																				<Input
+																					type="file"
+																					id="imageUpload"
+																					accept="image/*"
+																					className="hidden"
+																					onChange={handleImageUpload}
+																				/>
+																				<label
+																					htmlFor="imageUpload"
+																					className="flex h-10 items-center justify-center rounded-md border border-input bg-background px-3 py-2 text-sm font-medium ring-offset-background hover:bg-accent hover:text-accent-foreground cursor-pointer">
+																					{uploadingImage ? (
+																						<>
+																							<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+																							Uploading...
+																						</>
+																					) : (
+																						<>
+																							<Upload className="mr-2 h-4 w-4" />
+																							Upload Image
+																						</>
+																					)}
+																				</label>
+																				{field.value && (
+																					<Button
+																						type="button"
+																						variant="outline"
+																						size="sm"
+																						onClick={() =>
+																							form.setValue("imageUrl", "")
+																						}>
+																						Remove
+																					</Button>
+																				)}
+																			</div>
+																			{!field.value && (
+																				<p className="text-xs text-muted-foreground">
+																					Upload an image for this location. The
+																					image will be displayed on location
+																					cards.
+																				</p>
+																			)}
+																		</div>
+																	</FormControl>
+																	<FormMessage />
+																</FormItem>
+															)}
+														/>
 
 														{/* Map Preview */}
 														{form.watch("latitude") &&

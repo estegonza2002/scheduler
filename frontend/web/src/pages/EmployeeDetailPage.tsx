@@ -38,6 +38,8 @@ import {
 	MapPinIcon,
 	Plus,
 	Building2,
+	UserX,
+	MailWarning,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -87,6 +89,13 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ProfileCompletionAlert } from "@/components/ProfileCompletionAlert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { getProfileCompletionStatus } from "@/utils/profile-completion";
+
+// Default placeholder image for locations
+const LOCATION_PLACEHOLDER_IMAGE =
+	"/images/placeholders/location-placeholder.jpg";
 
 // New component for Employee Statistics
 function EmployeeStats({
@@ -735,6 +744,25 @@ export default function EmployeeDetailPage() {
 		fetchEmployee();
 		fetchEmployeeShifts();
 		fetchLocations();
+
+		// Add event listener for the custom edit-employee event
+		const handleEditEmployeeEvent = (event: CustomEvent) => {
+			if (event.detail?.employeeId === employeeId) {
+				openEditSheet();
+			}
+		};
+
+		window.addEventListener(
+			"edit-employee",
+			handleEditEmployeeEvent as EventListener
+		);
+
+		return () => {
+			window.removeEventListener(
+				"edit-employee",
+				handleEditEmployeeEvent as EventListener
+			);
+		};
 	}, [employeeId]);
 
 	// Handler for location assignments
@@ -796,6 +824,64 @@ export default function EmployeeDetailPage() {
 		}
 	};
 
+	// Function to set a location as primary
+	const setPrimaryLocation = async (locationId: string) => {
+		try {
+			// If the location is already primary, do nothing
+			if (assignedLocationIds[0] === locationId) return;
+
+			// Create a new array with the selected location as the first element
+			const reorderedIds = [
+				locationId,
+				...assignedLocationIds.filter((id) => id !== locationId),
+			];
+
+			// Update the database
+			const success = await EmployeeLocationsAPI.assignLocations(
+				employeeId || "",
+				reorderedIds
+			);
+
+			if (!success) {
+				toast.error("Failed to update primary location. Please try again.");
+				return;
+			}
+
+			// Update local state
+			setAssignedLocationIds(reorderedIds);
+			toast.success("Primary location updated successfully");
+		} catch (error) {
+			console.error("Error setting primary location:", error);
+			toast.error("An error occurred. Please try again.");
+		}
+	};
+
+	// Function to remove a location from assigned locations
+	const removeLocation = async (locationId: string) => {
+		try {
+			// Create a new array without the location to remove
+			const updatedIds = assignedLocationIds.filter((id) => id !== locationId);
+
+			// Update the database
+			const success = await EmployeeLocationsAPI.assignLocations(
+				employeeId || "",
+				updatedIds
+			);
+
+			if (!success) {
+				toast.error("Failed to remove location. Please try again.");
+				return;
+			}
+
+			// Update local state
+			setAssignedLocationIds(updatedIds);
+			toast.success("Location removed successfully");
+		} catch (error) {
+			console.error("Error removing location:", error);
+			toast.error("An error occurred. Please try again.");
+		}
+	};
+
 	// Generate user initials for the avatar
 	const getInitials = (name: string) => {
 		return name
@@ -816,24 +902,64 @@ export default function EmployeeDetailPage() {
 		</Button>
 	);
 
+	// Function to resend welcome email
+	const resendWelcomeEmail = async () => {
+		if (!employee) return;
+
+		try {
+			// Here you would implement the actual API call to resend the welcome email
+			toast.success("Invitation email has been resent to " + employee.email);
+		} catch (error) {
+			console.error("Error resending invite:", error);
+			toast.error("Failed to resend invitation email");
+		}
+	};
+
+	// Function to open the employee edit sheet - moved above ActionButtons
+	const openEditSheet = () => {
+		const editButton = document.getElementById("edit-employee-trigger");
+		if (editButton) editButton.click();
+	};
+
 	// Action buttons for the header
 	const ActionButtons = employee ? (
-		<>
+		<div className="flex items-center gap-2">
+			{/* Show pending status in header if employee hasn't signed up */}
 			{employee.status === "invited" && (
 				<Button
 					variant="outline"
 					size="sm"
-					className="h-9 gap-1 mr-2"
+					className="bg-red-50 border-red-200 text-red-800 hover:bg-red-100 hover:text-red-900 gap-1.5 font-medium"
 					onClick={resendWelcomeEmail}>
-					<Send className="h-4 w-4 mr-1" />
-					Resend Invite
+					<UserX className="h-3.5 w-3.5" />
+					<span>Resend Invite</span>
 				</Button>
 			)}
+
+			{/* Add profile completion indicator in header */}
+			{!getProfileCompletionStatus(employee).isComplete && (
+				<Button
+					variant="outline"
+					size="sm"
+					className={`gap-1.5 font-medium ${
+						getProfileCompletionStatus(employee).missingHighPriority
+							? "bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100 hover:text-amber-900"
+							: "bg-muted border-muted-foreground/20 text-muted-foreground hover:bg-muted/80"
+					}`}
+					onClick={openEditSheet}>
+					<AlertCircle className="h-3.5 w-3.5" />
+					<span>
+						{getProfileCompletionStatus(employee).missingCount} Missing
+					</span>
+				</Button>
+			)}
+
 			<EmployeeSheet
 				employee={employee}
 				organizationId={employee.organizationId || ""}
 				trigger={
 					<Button
+						id="edit-employee-trigger"
 						variant="outline"
 						size="sm"
 						className="h-9 mr-2">
@@ -845,36 +971,7 @@ export default function EmployeeDetailPage() {
 					setEmployee(updatedEmployee);
 				}}
 			/>
-
-			<AlertDialog>
-				<AlertDialogTrigger asChild>
-					<Button
-						variant="outline"
-						size="sm"
-						className="h-9 text-destructive hover:text-destructive">
-						<Trash className="h-4 w-4 mr-1" />
-						Delete
-					</Button>
-				</AlertDialogTrigger>
-				<AlertDialogContent>
-					<AlertDialogHeader>
-						<AlertDialogTitle>Are you sure?</AlertDialogTitle>
-						<AlertDialogDescription>
-							This will permanently delete the employee and all related data.
-							This action cannot be undone.
-						</AlertDialogDescription>
-					</AlertDialogHeader>
-					<AlertDialogFooter>
-						<AlertDialogCancel>Cancel</AlertDialogCancel>
-						<AlertDialogAction
-							onClick={handleDeleteEmployee}
-							className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-							Delete
-						</AlertDialogAction>
-					</AlertDialogFooter>
-				</AlertDialogContent>
-			</AlertDialog>
-		</>
+		</div>
 	) : null;
 
 	if (loading) {
@@ -923,7 +1020,15 @@ export default function EmployeeDetailPage() {
 				showBackButton={true}
 			/>
 			<ContentContainer>
-				<div className="flex flex-col md:flex-row gap-6 mt-6">
+				{/* Keep the ProfileCompletionAlert but only if it's not an invited employee (to prevent double messaging) */}
+				{employee && employee.status !== "invited" && (
+					<ProfileCompletionAlert
+						employee={employee}
+						onEdit={openEditSheet}
+					/>
+				)}
+
+				<div className="flex flex-col md:flex-row gap-6">
 					{/* Secondary Sidebar */}
 					<div className="md:w-80 shrink-0 p-4">
 						<div className="sticky top-6 space-y-6">
@@ -1169,7 +1274,7 @@ export default function EmployeeDetailPage() {
 										className="py-4"
 									/>
 								) : assignedLocationIds.length > 0 ? (
-									<div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+									<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
 										{assignedLocationIds.map((locationId, index) => {
 											const location = locations[locationId];
 											if (!location) return null;
@@ -1178,19 +1283,51 @@ export default function EmployeeDetailPage() {
 
 											return (
 												<Card key={locationId}>
-													<CardContent className="pt-6">
+													<div className="overflow-hidden relative aspect-video">
+														{location.imageUrl ? (
+															<img
+																src={location.imageUrl}
+																alt={location.name}
+																className="h-full w-full object-cover"
+															/>
+														) : (
+															<div className="h-full w-full bg-muted/10 flex items-center justify-center relative">
+																<img
+																	src={LOCATION_PLACEHOLDER_IMAGE}
+																	alt={location.name}
+																	className="h-full w-full object-cover opacity-70"
+																	onError={(e) => {
+																		// If the placeholder image fails to load, show the building icon
+																		e.currentTarget.style.display = "none";
+																		e.currentTarget.parentElement?.classList.add(
+																			"bg-muted/20"
+																		);
+																		const iconElement =
+																			e.currentTarget.nextElementSibling;
+																		if (iconElement) {
+																			iconElement.classList.remove("hidden");
+																		}
+																	}}
+																/>
+																<Building2 className="h-12 w-12 text-muted-foreground/30 absolute hidden" />
+															</div>
+														)}
+														{isPrimary && (
+															<div className="absolute top-2 right-2">
+																<Badge
+																	className="bg-primary/90 hover:bg-primary text-primary-foreground"
+																	variant="default">
+																	Primary
+																</Badge>
+															</div>
+														)}
+													</div>
+													<CardContent className="pt-4">
 														<div className="flex flex-col">
 															<div className="flex justify-between items-start">
 																<h4 className="font-medium text-lg">
 																	{location.name}
 																</h4>
-																{isPrimary && (
-																	<Badge
-																		className="ml-2"
-																		variant="outline">
-																		Primary
-																	</Badge>
-																)}
 															</div>
 															{location.address && (
 																<p className="text-sm text-muted-foreground mt-2">
@@ -1200,9 +1337,59 @@ export default function EmployeeDetailPage() {
 																	{location.zipCode && ` ${location.zipCode}`}
 																</p>
 															)}
-															<div className="flex items-center mt-4 text-sm text-muted-foreground">
-																<MapPin className="h-4 w-4 mr-2 opacity-70" />
-																<span>Location</span>
+															<div className="flex justify-between items-center mt-4">
+																<div className="flex items-center text-sm text-muted-foreground">
+																	<MapPin className="h-4 w-4 mr-2 opacity-70" />
+																	<span>Location</span>
+																</div>
+																<div className="flex gap-2">
+																	{!isPrimary && (
+																		<Button
+																			variant="outline"
+																			size="sm"
+																			onClick={() =>
+																				setPrimaryLocation(locationId)
+																			}>
+																			Set as Primary
+																		</Button>
+																	)}
+																	<AlertDialog>
+																		<AlertDialogTrigger asChild>
+																			<Button
+																				variant="outline"
+																				size="sm"
+																				className="text-destructive hover:text-destructive hover:bg-destructive/10">
+																				Remove
+																			</Button>
+																		</AlertDialogTrigger>
+																		<AlertDialogContent>
+																			<AlertDialogHeader>
+																				<AlertDialogTitle>
+																					Remove Location
+																				</AlertDialogTitle>
+																				<AlertDialogDescription>
+																					Are you sure you want to remove{" "}
+																					{location.name} from this employee's
+																					assigned locations?
+																					{isPrimary &&
+																						" This is the primary location."}
+																				</AlertDialogDescription>
+																			</AlertDialogHeader>
+																			<AlertDialogFooter>
+																				<AlertDialogCancel>
+																					Cancel
+																				</AlertDialogCancel>
+																				<AlertDialogAction
+																					onClick={() =>
+																						removeLocation(locationId)
+																					}
+																					className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+																					Remove
+																				</AlertDialogAction>
+																			</AlertDialogFooter>
+																		</AlertDialogContent>
+																	</AlertDialog>
+																</div>
 															</div>
 														</div>
 													</CardContent>

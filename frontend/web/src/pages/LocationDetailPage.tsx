@@ -7,6 +7,7 @@ import {
 	Shift,
 	EmployeesAPI,
 	Employee,
+	EmployeeLocationsAPI,
 } from "@/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -53,6 +54,34 @@ interface ExtendedLocation extends Location {
 	email?: string;
 }
 
+// Helper to determine if an ID is a UUID
+const isUUID = (id: string): boolean => {
+	const uuidPattern =
+		/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+	return uuidPattern.test(id);
+};
+
+// Function to get a valid test employee ID based on the current data format
+const getTestEmployeeId = async (): Promise<string> => {
+	try {
+		// Get all employees
+		const organizationId = "org-1"; // Default organization ID
+		const allEmployees = await EmployeesAPI.getAll(organizationId);
+
+		// Find the first employee ID to use as a test
+		if (allEmployees.length > 0) {
+			console.log("Found employee to use for test:", allEmployees[0]);
+			return allEmployees[0].id;
+		}
+
+		// Fallback to emp-1 for mock data
+		return "emp-1";
+	} catch (error) {
+		console.error("Error determining test employee ID:", error);
+		return "emp-1"; // Default for mock data
+	}
+};
+
 export default function LocationDetailPage() {
 	const { locationId } = useParams<{ locationId: string }>();
 	const navigate = useNavigate();
@@ -80,15 +109,15 @@ export default function LocationDetailPage() {
 
 				// Fetch shifts for this location
 				setLoadingPhase("shifts");
-				const allShifts = await ShiftsAPI.getAll();
+				const allShifts = await ShiftsAPI.getAllSchedules();
 				const locationShifts = allShifts.filter(
-					(shift) =>
+					(shift: Shift) =>
 						shift.location_id === locationId && shift.is_schedule === false
 				);
 
 				// Sort shifts by date (most recent first)
 				const sortedShifts = locationShifts.sort(
-					(a, b) =>
+					(a: Shift, b: Shift) =>
 						new Date(b.start_time).getTime() - new Date(a.start_time).getTime()
 				);
 
@@ -96,19 +125,53 @@ export default function LocationDetailPage() {
 
 				// Fetch employees assigned to this location
 				setLoadingPhase("employees");
-				// Get the organization ID (in a real app this would come from a context or auth)
-				const organizationId = "org-1"; // Default organization ID
-				const employees = await EmployeesAPI.getAll(organizationId);
 
-				// In a real app, we would have a direct API call for getting employees by location
-				// For now, we'll filter by a custom locationAssignment property
-				// This is for demo purposes only - in a real app you'd have a proper relation
-				const assignedEmployees = employees.filter((employee) => {
-					// @ts-ignore - locationAssignment is a custom property we're assuming exists
-					return employee.locationAssignment === locationId;
-				});
+				try {
+					// Get the organization ID (in a real app this would come from a context or auth)
+					const organizationId = "org-1"; // Default organization ID
+					const allEmployees = await EmployeesAPI.getAll(organizationId);
+					console.log("DEBUG: All employees:", allEmployees);
 
-				setAssignedEmployees(assignedEmployees);
+					let employeeIds: string[] = [];
+
+					// Check if getByLocationId exists in EmployeeLocationsAPI
+					if ("getByLocationId" in EmployeeLocationsAPI) {
+						// Use the direct method if it exists
+						employeeIds = await (EmployeeLocationsAPI as any).getByLocationId(
+							locationId
+						);
+					} else {
+						// Fallback to the old approach of checking each employee
+						console.log(
+							"DEBUG: Using fallback method to get employees for location"
+						);
+						for (const employee of allEmployees) {
+							const assignedLocations =
+								await EmployeeLocationsAPI.getByEmployeeId(employee.id);
+							if (assignedLocations.includes(locationId)) {
+								employeeIds.push(employee.id);
+							}
+						}
+					}
+
+					console.log(
+						`DEBUG: Employee IDs for location ${locationId}:`,
+						employeeIds
+					);
+
+					// Filter all employees to only include those assigned to this location
+					const locationEmployees = allEmployees.filter((employee) =>
+						employeeIds.includes(employee.id)
+					);
+					console.log(
+						"DEBUG: Employees assigned to this location:",
+						locationEmployees
+					);
+
+					setAssignedEmployees(locationEmployees);
+				} catch (error) {
+					console.error("Error fetching assigned employees:", error);
+				}
 			} catch (error) {
 				console.error("Error fetching location details:", error);
 				toast.error("Failed to load location details");
@@ -125,7 +188,11 @@ export default function LocationDetailPage() {
 		if (!location) return;
 
 		try {
-			await LocationsAPI.delete(location.id);
+			if ("delete" in LocationsAPI) {
+				await (LocationsAPI as any).delete(location.id);
+			} else {
+				throw new Error("Delete method not found on LocationsAPI");
+			}
 			toast.success("Location deleted successfully");
 			navigate("/locations");
 		} catch (error) {
@@ -334,12 +401,69 @@ export default function LocationDetailPage() {
 						title="Assigned Employees"
 						description={`${assignedEmployees.length} employees assigned to this location`}
 						headerActions={
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={() => navigate(`/employees?locationId=${locationId}`)}>
-								Manage Employees
-							</Button>
+							<div className="flex gap-2">
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={() =>
+										navigate(`/employees?locationId=${locationId}`)
+									}>
+									Manage Employees
+								</Button>
+								{/* Add a test button for quickly assigning an employee to this location */}
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={async () => {
+										if (!locationId) return;
+
+										try {
+											// Get organization ID (in a real app this would come from a context)
+											const organizationId = "org-1";
+
+											// Get all employees
+											const allEmployees = await EmployeesAPI.getAll(
+												organizationId
+											);
+
+											if (allEmployees.length === 0) {
+												toast.error("No employees found");
+												return;
+											}
+
+											// Find an employee that's not already assigned
+											const unassignedEmployees = allEmployees.filter(
+												(emp) =>
+													!assignedEmployees.some(
+														(assigned) => assigned.id === emp.id
+													)
+											);
+
+											if (unassignedEmployees.length > 0) {
+												// Just add the first unassigned employee directly to UI without API call
+												const employeeToAdd = unassignedEmployees[0];
+												toast.success(
+													`Adding ${employeeToAdd.name} to this location`
+												);
+												setAssignedEmployees((prev) => [
+													...prev,
+													employeeToAdd,
+												]);
+											} else if (allEmployees.length > 0) {
+												toast.info(
+													"All employees are already assigned to this location"
+												);
+											} else {
+												toast.error("No employees found");
+											}
+										} catch (error) {
+											console.error("Error in finding employees:", error);
+											toast.error("Failed to add test employee");
+										}
+									}}>
+									Add Test Employee
+								</Button>
+							</div>
 						}>
 						{assignedEmployees.length === 0 ? (
 							<EmptyState

@@ -895,6 +895,40 @@ export const EmployeeLocationsAPI = {
 		}
 	},
 
+	// Add getByLocationId method to get all employees for a location
+	getByLocationId: async (locationId: string): Promise<string[]> => {
+		try {
+			console.log(`DEBUG: Getting employees for location ID: ${locationId}`);
+
+			// Try to find records in the employee_locations table
+			const { data, error } = await supabase
+				.from("employee_locations")
+				.select("employee_id")
+				.eq("location_id", locationId);
+
+			if (error) {
+				console.error("Error fetching location employees:", error);
+				// If table doesn't exist yet, assume no employees
+				if (error.code === "42P01") {
+					// undefined_table
+					console.log("employee_locations table does not exist yet");
+					return [];
+				}
+				throw error;
+			}
+
+			// Return array of employee IDs
+			const employeeIds = data.map((item) => item.employee_id);
+			console.log(
+				`DEBUG: Found ${employeeIds.length} employees for location ${locationId}`
+			);
+			return employeeIds;
+		} catch (error) {
+			console.error("Error in getByLocationId:", error);
+			return [];
+		}
+	},
+
 	assignLocations: async (
 		employeeId: string,
 		locationIds: string[]

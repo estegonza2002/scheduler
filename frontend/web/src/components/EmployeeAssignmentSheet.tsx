@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Employee, EmployeesAPI } from "@/api";
+import { Employee, EmployeesAPI, EmployeeLocationsAPI } from "@/api";
 import { Button } from "@/components/ui/button";
 import {
 	Sheet,
@@ -113,21 +113,50 @@ export function EmployeeAssignmentSheet({
 
 		try {
 			setIsSubmitting(true);
-			// In a real app, you would have a bulk assignment API
-			// For this demo, we'll update each employee individually
+
+			console.log(
+				`DEBUG: Assigning ${selectedEmployees.length} employees to location ${locationId}`
+			);
+
+			// Create an array to track successfully assigned employees
 			const newlyAssignedEmployees: Employee[] = [];
 
 			for (const employeeId of selectedEmployees) {
 				// Get the full employee object
 				const employee = allEmployees.find((emp) => emp.id === employeeId);
 				if (employee) {
-					// Update the employee's location
-					await EmployeesAPI.update(employeeId, {
-						...employee,
-						// @ts-ignore - locationAssignment is a custom property for demo
-						locationAssignment: locationId,
-					});
-					newlyAssignedEmployees.push(employee);
+					// Use EmployeeLocationsAPI to assign the location to this employee
+					// Get current location assignments for this employee
+					const currentLocations = await EmployeeLocationsAPI.getByEmployeeId(
+						employeeId
+					);
+
+					// Add this location if not already assigned
+					if (!currentLocations.includes(locationId)) {
+						const updatedLocations = [...currentLocations, locationId];
+
+						// Update the employee's location assignments
+						const success = await EmployeeLocationsAPI.assignLocations(
+							employeeId,
+							updatedLocations
+						);
+
+						if (success) {
+							newlyAssignedEmployees.push(employee);
+							console.log(
+								`DEBUG: Successfully assigned employee ${employeeId} to location ${locationId}`
+							);
+						} else {
+							console.error(
+								`DEBUG: Failed to assign employee ${employeeId} to location ${locationId}`
+							);
+						}
+					} else {
+						console.log(
+							`DEBUG: Employee ${employeeId} already assigned to location ${locationId}`
+						);
+						newlyAssignedEmployees.push(employee);
+					}
 				}
 			}
 

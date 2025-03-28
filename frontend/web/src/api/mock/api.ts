@@ -740,9 +740,22 @@ export const NotificationsAPI = {
 export const EmployeeLocationsAPI = {
 	getByEmployeeId: async (employeeId: string): Promise<string[]> => {
 		await delay(300);
-		return mockEmployeeLocations
-			.filter((el) => el.employeeId === employeeId)
-			.map((el) => el.locationId);
+		try {
+			console.log(`DEBUG: Getting locations for employee ID: ${employeeId}`);
+
+			// Return the location IDs for this employee
+			const locationIds = mockEmployeeLocations
+				.filter((el) => el.employeeId === employeeId)
+				.map((el) => el.locationId);
+
+			console.log(
+				`DEBUG: Found ${locationIds.length} locations for employee ${employeeId}`
+			);
+			return locationIds;
+		} catch (error) {
+			console.error("Error in getByEmployeeId:", error);
+			return [];
+		}
 	},
 
 	assignLocations: async (
@@ -751,12 +764,28 @@ export const EmployeeLocationsAPI = {
 	): Promise<boolean> => {
 		await delay(500);
 		try {
-			// Remove existing assignments
-			const existingIndex = mockEmployeeLocations.findIndex(
-				(el) => el.employeeId === employeeId
+			console.log(
+				`DEBUG: Assigning locations ${locationIds.join(
+					", "
+				)} to employee ${employeeId}`
 			);
-			if (existingIndex !== -1) {
-				mockEmployeeLocations.splice(existingIndex, 1);
+			console.log(
+				`DEBUG: Current mockEmployeeLocations:`,
+				mockEmployeeLocations
+			);
+
+			// Remove all existing assignments for this employee
+			const existingIndices = mockEmployeeLocations
+				.map((el, index) => (el.employeeId === employeeId ? index : -1))
+				.filter((index) => index !== -1)
+				.sort((a, b) => b - a); // Sort in descending order to remove from end to beginning
+
+			console.log(
+				`DEBUG: Found ${existingIndices.length} existing assignments to remove`
+			);
+
+			for (const index of existingIndices) {
+				mockEmployeeLocations.splice(index, 1);
 			}
 
 			// Add new assignments
@@ -767,10 +796,35 @@ export const EmployeeLocationsAPI = {
 				});
 			}
 
+			console.log(
+				`DEBUG: Updated mockEmployeeLocations:`,
+				mockEmployeeLocations
+			);
 			return true;
 		} catch (error) {
 			console.error("Error assigning locations in mock API:", error);
 			return false;
+		}
+	},
+
+	// Add a new method to get all employees for a location
+	getByLocationId: async (locationId: string): Promise<string[]> => {
+		await delay(300);
+		try {
+			console.log(`DEBUG: Getting employees for location ID: ${locationId}`);
+
+			// Return the employee IDs for this location
+			const employeeIds = mockEmployeeLocations
+				.filter((el) => el.locationId === locationId)
+				.map((el) => el.employeeId);
+
+			console.log(
+				`DEBUG: Found ${employeeIds.length} employees for location ${locationId}`
+			);
+			return employeeIds;
+		} catch (error) {
+			console.error("Error in getByLocationId:", error);
+			return [];
 		}
 	},
 };
@@ -782,6 +836,23 @@ export const initMockData = () => {
 	// Generate large datasets if needed
 	if (mockShifts.length < 10) {
 		generateLargeMockData();
+	}
+
+	// Initialize some employee-location assignments if none exist
+	if (mockEmployeeLocations.length === 0) {
+		console.log("Initializing employee-location assignments...");
+
+		// Assign some employees to locations for initial data
+		mockEmployeeLocations.push(
+			{ employeeId: "emp-1", locationId: "loc-1" },
+			{ employeeId: "emp-2", locationId: "loc-2" },
+			{ employeeId: "emp-3", locationId: "loc-1" },
+			{ employeeId: "emp-3", locationId: "loc-3" }
+		);
+
+		console.log(
+			`Initialized ${mockEmployeeLocations.length} employee-location assignments`
+		);
 	}
 
 	console.log(
