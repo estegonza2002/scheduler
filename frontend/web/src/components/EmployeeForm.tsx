@@ -42,13 +42,25 @@ import {
 } from "lucide-react";
 import { FormPhoneInput } from "@/components/ui/form-phone-input";
 import { isValidPhoneNumber } from "react-phone-number-input";
+import { toast } from "sonner";
 
 // Define available positions
 const POSITIONS = ["Supervisor", "Runner"] as const;
 
 const employeeFormSchema = z.object({
-	name: z.string().min(2, "Name must be at least 2 characters"),
-	email: z.string().email("Please enter a valid email address"),
+	name: z
+		.string()
+		.min(2, "Name must be at least 2 characters")
+		.max(100, "Name must be less than 100 characters")
+		.refine((val) => /^[a-zA-Z\s\-'.]+$/.test(val), {
+			message:
+				"Name should only contain letters, spaces, hyphens, apostrophes and periods",
+		}),
+	email: z
+		.string()
+		.email("Please enter a valid email address")
+		.min(5, "Email address is too short")
+		.max(100, "Email address is too long"),
 	phone: z
 		.string()
 		.optional()
@@ -57,11 +69,47 @@ const employeeFormSchema = z.object({
 			"Please enter a valid phone number"
 		),
 	position: z.union([z.enum(POSITIONS), z.literal("")]).optional(),
-	hireDate: z.string().optional(),
-	address: z.string().optional(),
-	emergencyContact: z.string().optional(),
-	notes: z.string().optional(),
-	hourlyRate: z.string().optional(),
+	hireDate: z
+		.string()
+		.optional()
+		.refine(
+			(val) => {
+				if (!val) return true;
+				const date = new Date(val);
+				const now = new Date();
+				// Allow dates up to 5 years in the past or 1 year in the future
+				return (
+					date >= new Date(now.setFullYear(now.getFullYear() - 5)) &&
+					date <= new Date(new Date().setFullYear(new Date().getFullYear() + 1))
+				);
+			},
+			{
+				message:
+					"Hire date must be within the last 5 years or up to 1 year in the future",
+			}
+		),
+	address: z.string().max(200, "Address is too long").optional(),
+	emergencyContact: z
+		.string()
+		.max(200, "Emergency contact information is too long")
+		.optional(),
+	notes: z
+		.string()
+		.max(1000, "Notes must be less than 1000 characters")
+		.optional(),
+	hourlyRate: z
+		.string()
+		.optional()
+		.refine(
+			(val) => {
+				if (!val) return true;
+				const rate = parseFloat(val);
+				return !isNaN(rate) && rate >= 0 && rate <= 1000;
+			},
+			{
+				message: "Hourly rate must be between $0 and $1000",
+			}
+		),
 });
 
 type EmployeeFormValues = z.infer<typeof employeeFormSchema>;
@@ -110,26 +158,80 @@ export function EmployeeForm({
 				position: data.position === "" ? undefined : data.position,
 			};
 
+			// Prepare employee data for API
+			const employeeData = {
+				name: formattedData.name,
+				email: formattedData.email,
+				phone: formattedData.phone,
+				position: formattedData.position,
+				// Only include hire_date if it's a non-empty string
+				hireDate:
+					formattedData.hireDate && formattedData.hireDate.trim() !== ""
+						? formattedData.hireDate
+						: undefined,
+				address: formattedData.address,
+				emergencyContact: formattedData.emergencyContact,
+				notes: formattedData.notes,
+				hourlyRate: formattedData.hourlyRate,
+				organizationId,
+				role: "Employee", // Required field for the Employee type
+				status: "invited",
+				isOnline: false,
+				lastActive: new Date().toISOString(),
+			};
+
 			let employee: Employee;
 
 			if (isEditing && initialData) {
 				// Update existing employee
-				employee = await EmployeesAPI.update(initialData.id, {
-					...formattedData,
-				});
+				const result = await EmployeesAPI.update(initialData.id, employeeData);
+				if (!result) {
+					toast.error("Failed to update employee. Please try again.");
+					throw new Error("Failed to update employee");
+				}
+				employee = result;
+				toast.success(`Successfully updated ${employee.name}'s information`);
 			} else {
 				// Create new employee
-				employee = await EmployeesAPI.create({
-					...formattedData,
-					organizationId,
-					status: "invited",
-					isOnline: false,
-					lastActive: new Date().toISOString(),
-				});
+				try {
+					employee = await EmployeesAPI.create(
+						employeeData as Omit<Employee, "id">
+					);
+					toast.success(
+						`Successfully added ${employee.name} to your organization`
+					);
+				} catch (error) {
+					// Check for duplicate email error
+					if (
+						error instanceof Error &&
+						error.message?.includes("duplicate key")
+					) {
+						toast.error("An employee with this email already exists");
+						form.setError("email", {
+							type: "manual",
+							message: "An employee with this email already exists",
+						});
+						throw error;
+					}
+					toast.error("Failed to add employee. Please try again.");
+					throw error;
+				}
 			}
 
 			if (!isEditing) {
-				form.reset();
+				// Reset only some fields after successful creation
+				form.reset({
+					name: "",
+					email: "",
+					phone: "",
+					position: undefined,
+					hourlyRate: "",
+					// Preserve some fields that might be similar for batch adding
+					hireDate: form.getValues("hireDate"),
+					address: form.getValues("address"),
+					emergencyContact: "",
+					notes: "",
+				});
 			}
 
 			if (onSuccess) {
@@ -171,13 +273,18 @@ export function EmployeeForm({
 									name="name"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Full Name</FormLabel>
+											<FormLabel>
+												Full Name <span className="text-destructive">*</span>
+											</FormLabel>
 											<FormControl>
 												<div className="flex items-center">
 													<User className="w-4 h-4 mr-2 text-muted-foreground" />
 													<Input
 														placeholder="John Doe"
 														{...field}
+														aria-required="true"
+														aria-invalid={!!form.formState.errors.name}
+														required
 													/>
 												</div>
 											</FormControl>
@@ -191,7 +298,9 @@ export function EmployeeForm({
 									name="email"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel>Email</FormLabel>
+											<FormLabel>
+												Email <span className="text-destructive">*</span>
+											</FormLabel>
 											<FormControl>
 												<div className="flex items-center">
 													<Mail className="w-4 h-4 mr-2 text-muted-foreground" />
@@ -199,9 +308,16 @@ export function EmployeeForm({
 														placeholder="john@example.com"
 														type="email"
 														{...field}
+														aria-required="true"
+														aria-invalid={!!form.formState.errors.email}
+														required
 													/>
 												</div>
 											</FormControl>
+											<FormDescription className="text-xs">
+												The employee will use this email to log in and receive
+												notifications.
+											</FormDescription>
 											<FormMessage />
 										</FormItem>
 									)}
@@ -313,9 +429,35 @@ export function EmployeeForm({
 													<Input
 														type="date"
 														{...field}
+														value={field.value || ""}
+														onChange={(e) => {
+															// Ensure valid date format
+															if (e.target.value === "") {
+																field.onChange("");
+															} else {
+																try {
+																	// Validate that it's a proper date
+																	const date = new Date(e.target.value);
+																	if (!isNaN(date.getTime())) {
+																		// Format as YYYY-MM-DD for database compatibility
+																		const formattedDate = date
+																			.toISOString()
+																			.split("T")[0];
+																		field.onChange(formattedDate);
+																	} else {
+																		field.onChange("");
+																	}
+																} catch (error) {
+																	field.onChange("");
+																}
+															}
+														}}
 													/>
 												</div>
 											</FormControl>
+											<FormDescription className="text-xs">
+												Leave blank if not applicable.
+											</FormDescription>
 											<FormMessage />
 										</FormItem>
 									)}
@@ -387,6 +529,11 @@ export function EmployeeForm({
 									? "Update Employee"
 									: "Add Employee"}
 							</Button>
+							{Object.keys(form.formState.errors).length > 0 && (
+								<p className="mt-2 text-sm text-destructive text-center">
+									Please fix the validation errors before submitting.
+								</p>
+							)}
 						</div>
 					</form>
 				</Form>

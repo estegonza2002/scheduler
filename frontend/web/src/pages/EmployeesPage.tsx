@@ -425,7 +425,9 @@ export default function EmployeesPage() {
 									renderCard: (employee: Employee) => (
 										<Card
 											className="cursor-pointer hover:shadow-sm transition-all border hover:border-primary"
-											onClick={() => navigate(`/employees/${employee.id}`)}>
+											onClick={() =>
+												navigate(`/employee-detail/${employee.id}`)
+											}>
 											<CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
 												<div className="flex flex-row items-center space-x-2">
 													<Avatar>
@@ -458,7 +460,7 @@ export default function EmployeesPage() {
 															<DropdownMenuItem
 																onClick={(e) => {
 																	e.stopPropagation();
-																	navigate(`/employees/${employee.id}`);
+																	navigate(`/employee-detail/${employee.id}`);
 																}}>
 																<Edit className="mr-2 h-4 w-4" />
 																View Profile

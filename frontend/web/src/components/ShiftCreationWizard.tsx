@@ -171,9 +171,17 @@ export function ShiftCreationWizard({
 	useEffect(() => {
 		async function fetchLocations() {
 			try {
+				console.log("Fetching locations with organization ID:", organizationId);
+				if (!organizationId || organizationId === "org-1") {
+					setError("No valid organization ID. Unable to fetch locations.");
+					setLoadingLocations(false);
+					return;
+				}
+
 				setLoadingLocations(true);
 				setError(null);
 				const locationList = await LocationsAPI.getAll(organizationId);
+				console.log("Locations fetched:", locationList);
 				setLocations(locationList);
 				setFilteredLocations(locationList);
 			} catch (error) {
@@ -462,6 +470,7 @@ export function ShiftCreationWizard({
 							handleLocationChange={handleLocationChange}
 							clearLocationSearch={clearLocationSearch}
 							onCancel={onCancel}
+							organizationId={organizationId}
 						/>
 					)}
 

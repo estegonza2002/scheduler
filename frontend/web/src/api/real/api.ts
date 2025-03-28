@@ -299,19 +299,24 @@ export const ShiftsAPI = {
 // Locations API
 export const LocationsAPI = {
 	getAll: async (organizationId?: string): Promise<Location[]> => {
-		let query = supabase.from("locations").select("*");
-
-		if (organizationId) {
-			query = query.eq("organization_id", organizationId);
+		if (!organizationId) {
+			console.error("No organization ID provided to LocationsAPI.getAll");
+			return [];
 		}
 
-		const { data, error } = await query;
+		console.log("Filtering locations by organization_id:", organizationId);
+		const { data, error } = await supabase
+			.from("locations")
+			.select("*")
+			.eq("organization_id", organizationId);
 
 		if (error) {
 			// Log error but don't show toast - empty results are expected for new users
 			console.error("Error fetching locations:", error);
 			return [];
 		}
+
+		console.log("Raw location data from database:", data);
 
 		// Map from DB snake_case columns to app camelCase properties
 		return data.map((location) => {
@@ -545,7 +550,30 @@ export const EmployeesAPI = {
 			return [];
 		}
 
-		return data as Employee[];
+		// Convert snake_case to camelCase for frontend compatibility
+		return data.map((employee) => {
+			return {
+				id: employee.id,
+				organizationId: employee.organization_id,
+				name: employee.name,
+				email: employee.email,
+				role: employee.role,
+				phone: employee.phone,
+				position: employee.position,
+				hireDate: employee.hire_date,
+				address: employee.address,
+				emergencyContact: employee.emergency_contact,
+				notes: employee.notes,
+				avatar: employee.avatar,
+				hourlyRate:
+					employee.hourly_rate !== null
+						? parseFloat(employee.hourly_rate)
+						: undefined,
+				status: employee.status,
+				isOnline: employee.is_online,
+				lastActive: employee.last_active,
+			} as Employee;
+		});
 	},
 
 	getById: async (id: string): Promise<Employee | null> => {
@@ -561,13 +589,45 @@ export const EmployeesAPI = {
 			return null;
 		}
 
-		return data as Employee;
+		if (!data) return null;
+
+		// Convert snake_case to camelCase for frontend compatibility
+		return {
+			id: data.id,
+			organizationId: data.organization_id,
+			name: data.name,
+			email: data.email,
+			role: data.role,
+			phone: data.phone,
+			position: data.position,
+			hireDate: data.hire_date,
+			address: data.address,
+			emergencyContact: data.emergency_contact,
+			notes: data.notes,
+			avatar: data.avatar,
+			hourlyRate:
+				data.hourly_rate !== null ? parseFloat(data.hourly_rate) : undefined,
+			status: data.status,
+			isOnline: data.is_online,
+			lastActive: data.last_active,
+		} as Employee;
 	},
 
 	create: async (data: Omit<Employee, "id">): Promise<Employee> => {
+		// Convert camelCase properties to snake_case for the database
+		const snakeCaseData: Record<string, any> = {};
+		Object.entries(data).forEach(([key, value]) => {
+			// Convert camelCase to snake_case
+			const snakeKey = key.replace(
+				/[A-Z]/g,
+				(letter) => `_${letter.toLowerCase()}`
+			);
+			snakeCaseData[snakeKey] = value;
+		});
+
 		const { data: newEmployee, error } = await supabase
 			.from("employees")
-			.insert(data)
+			.insert(snakeCaseData)
 			.select()
 			.single();
 
@@ -582,12 +642,24 @@ export const EmployeesAPI = {
 	},
 
 	update: async (
-		employee: Partial<Employee> & { id: string }
+		id: string,
+		data: Partial<Employee>
 	): Promise<Employee | null> => {
-		const { data, error } = await supabase
+		// Convert camelCase properties to snake_case for the database
+		const snakeCaseData: Record<string, any> = {};
+		Object.entries(data).forEach(([key, value]) => {
+			// Convert camelCase to snake_case
+			const snakeKey = key.replace(
+				/[A-Z]/g,
+				(letter) => `_${letter.toLowerCase()}`
+			);
+			snakeCaseData[snakeKey] = value;
+		});
+
+		const { data: updated, error } = await supabase
 			.from("employees")
-			.update(employee)
-			.eq("id", employee.id)
+			.update(snakeCaseData)
+			.eq("id", id)
 			.select()
 			.single();
 
@@ -598,7 +670,7 @@ export const EmployeesAPI = {
 		}
 
 		toast.success("Employee updated successfully!");
-		return data as Employee;
+		return updated as Employee;
 	},
 
 	delete: async (id: string): Promise<void> => {

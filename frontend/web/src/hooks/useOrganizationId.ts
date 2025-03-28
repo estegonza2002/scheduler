@@ -6,5 +6,7 @@ import { useOrganization } from "@/lib/organization-context";
  */
 export function useOrganizationId(): string {
 	const { getCurrentOrganizationId } = useOrganization();
-	return getCurrentOrganizationId();
+	const organizationId = getCurrentOrganizationId();
+	console.log("useOrganizationId hook returning:", organizationId);
+	return organizationId;
 }

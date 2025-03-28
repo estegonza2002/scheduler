@@ -22,7 +22,7 @@ import { ScrollArea } from "../ui/scroll-area";
 import { cn } from "../../lib/utils";
 import { useOnboarding, OnboardingStep } from "../../lib/onboarding-context";
 import { useAuth } from "../../lib/auth";
-import { LocationCreationSheet } from "../LocationCreationSheet";
+import { LocationFormDialog } from "../LocationFormDialog";
 import { AddEmployeeDialog } from "../AddEmployeeDialog";
 import { ShiftCreationSheet } from "../ShiftCreationSheet";
 import { Badge } from "../ui/badge";
@@ -413,11 +413,12 @@ export function OnboardingModal() {
 			</Dialog>
 
 			{/* Additional UI components for each step, opened as needed */}
-			<LocationCreationSheet
+			<LocationFormDialog
+				mode="add"
 				organizationId={organizationId}
 				open={locationSheetOpen}
 				onOpenChange={setLocationSheetOpen}
-				onLocationCreated={handleLocationCreated}
+				onSuccess={handleLocationCreated}
 			/>
 
 			<AddEmployeeDialog

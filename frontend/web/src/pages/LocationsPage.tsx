@@ -25,6 +25,7 @@ import {
 	Edit,
 	Trash,
 	User,
+	PlusCircle,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -36,6 +37,7 @@ import {
 	CardContent,
 	CardFooter,
 } from "@/components/ui/card";
+import { Helmet } from "react-helmet";
 
 // Import our dialog components
 import { EditLocationDialog } from "@/components/EditLocationDialog";
@@ -56,6 +58,17 @@ import { ContentSection } from "@/components/ui/content-section";
 // Import the DataCardGrid component
 import { DataCardGrid } from "@/components/ui/data-card-grid";
 import { useOrganizationId } from "@/hooks/useOrganizationId";
+import { LocationFormDialog } from "@/components/LocationFormDialog";
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from "@/components/ui/table";
+import { SearchInput } from "@/components/ui/search-input";
+import { DataTableViewOptions } from "@/components/ui/data-table";
 
 export default function LocationsPage() {
 	const [searchParams] = useSearchParams();
@@ -64,6 +77,8 @@ export default function LocationsPage() {
 	const [locations, setLocations] = useState<Location[]>([]);
 	const [organization, setOrganization] = useState<Organization | null>(null);
 	const [viewMode, setViewMode] = useState<"table" | "cards">("table");
+	const [viewFilter, setViewFilter] = useState("all");
+	const [searchQuery, setSearchQuery] = useState("");
 	const organizationId = useOrganizationId();
 
 	// Add pagination state for card view
@@ -94,29 +109,29 @@ export default function LocationsPage() {
 	}, []);
 
 	// Fetch data
-	useEffect(() => {
-		const fetchData = async () => {
-			try {
-				setLoading(true);
-				setLoadingPhase("organization");
-				// In a real implementation, we would get the user's organization
-				// For now, we'll use the first organization from the mock data
-				const orgs = await OrganizationsAPI.getAll();
-				if (orgs.length > 0) {
-					setOrganization(orgs[0]);
-					setLoadingPhase("locations");
+	const fetchData = async () => {
+		try {
+			setLoading(true);
+			setLoadingPhase("organization");
+			// In a real implementation, we would get the user's organization
+			// For now, we'll use the first organization from the mock data
+			const orgs = await OrganizationsAPI.getAll();
+			if (orgs.length > 0) {
+				setOrganization(orgs[0]);
+				setLoadingPhase("locations");
 
-					// Now get the locations for this organization
-					const fetchedLocations = await LocationsAPI.getAll(organizationId);
-					setLocations(fetchedLocations);
-				}
-			} catch (error) {
-				console.error("Error fetching data:", error);
-			} finally {
-				setLoading(false);
+				// Now get the locations for this organization
+				const fetchedLocations = await LocationsAPI.getAll(organizationId);
+				setLocations(fetchedLocations);
 			}
-		};
+		} catch (error) {
+			console.error("Error fetching data:", error);
+		} finally {
+			setLoading(false);
+		}
+	};
 
+	useEffect(() => {
 		fetchData();
 	}, [organizationId]);
 
@@ -274,6 +289,11 @@ export default function LocationsPage() {
 			? (totalLocations / uniqueStateCoverage).toFixed(1)
 			: "0";
 
+	// Update to handle location added
+	const handleLocationAdded = (location: Location) => {
+		fetchData();
+	};
+
 	if (loading) {
 		return (
 			<ContentContainer>
@@ -290,27 +310,65 @@ export default function LocationsPage() {
 
 	return (
 		<>
+			<Helmet>
+				<title>Locations - Scheduler</title>
+			</Helmet>
+
 			<PageHeader
 				title="Locations"
-				description="Manage your organization's physical locations"
+				description="Manage your business locations"
 				actions={
-					<LocationCreationSheet
-						organizationId={organizationId}
-						onLocationCreated={(newLocation) =>
-							handleLocationsAdded([newLocation])
-						}
-						trigger={
-							<Button className="bg-primary text-primary-foreground">
-								<Plus className="h-4 w-4 mr-2" />
-								Add Location
-							</Button>
-						}
-					/>
+					<div className="flex items-center gap-2">
+						<LocationCreationSheet
+							organizationId={organizationId}
+							onLocationCreated={(newLocation) =>
+								handleLocationsAdded([newLocation])
+							}
+							trigger={
+								<Button>
+									<PlusCircle className="h-4 w-4 mr-2" />
+									Add Location
+								</Button>
+							}
+						/>
+					</div>
 				}
 			/>
 
 			<ContentContainer>
 				<ContentSection title="Locations">
+					<div className="flex items-center justify-between mb-4">
+						<div className="flex items-center gap-2">
+							<SearchInput
+								value={searchQuery}
+								onChange={setSearchQuery}
+								placeholder="Search locations..."
+							/>
+						</div>
+						<div className="flex items-center gap-2">
+							<select
+								value={viewFilter}
+								onChange={(e) => setViewFilter(e.target.value)}
+								className="p-2 rounded border">
+								<option value="all">All</option>
+								<option value="active">Active</option>
+								<option value="inactive">Inactive</option>
+							</select>
+							<LocationCreationSheet
+								organizationId={organizationId}
+								onLocationCreated={(newLocation) =>
+									handleLocationsAdded([newLocation])
+								}
+								trigger={
+									<Button className="md:hidden">
+										<PlusCircle className="h-4 w-4 mr-2" />
+										Add Location
+									</Button>
+								}
+							/>
+						</div>
+					</div>
+
 					{/* No locations */}
 					{locations.length === 0 ? (
 						<EmptyState
@@ -345,82 +403,14 @@ export default function LocationsPage() {
 								renderCard: (location: Location) => (
 									<Card
 										className="cursor-pointer hover:shadow-sm transition-all border hover:border-primary"
-										onClick={() => navigate(`/locations/${location.id}`)}>
-										<CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-											<CardTitle className="text-xl font-bold">
-												{location.name}
-											</CardTitle>
-											<div>
-												<DropdownMenu>
-													<DropdownMenuTrigger asChild>
-														<Button
-															variant="ghost"
-															className="h-8 w-8 p-0">
-															<span className="sr-only">Open menu</span>
-															<MoreHorizontal className="h-4 w-4" />
-														</Button>
-													</DropdownMenuTrigger>
-													<DropdownMenuContent align="end">
-														<DropdownMenuItem
-															onClick={(e) => {
-																e.stopPropagation();
-																navigate(`/locations/${location.id}`);
-															}}>
-															<Edit className="mr-2 h-4 w-4" />
-															Edit
-														</DropdownMenuItem>
-														<DropdownMenuItem
-															onClick={(e) => {
-																e.stopPropagation();
-																// Handle delete action
-															}}>
-															<Trash className="mr-2 h-4 w-4" />
-															Delete
-														</DropdownMenuItem>
-													</DropdownMenuContent>
-												</DropdownMenu>
-											</div>
-										</CardHeader>
-										<CardContent>
-											{location.address && (
-												<div className="flex items-center text-sm text-muted-foreground mb-2">
-													<MapPin className="h-3.5 w-3.5 mr-1 flex-shrink-0" />
-													<span className="truncate">{location.address}</span>
-												</div>
-											)}
-
-											<div className="flex items-center text-sm text-muted-foreground">
-												<User className="h-3.5 w-3.5 mr-1 flex-shrink-0" />
-												<span>{location.isActive ? "Active" : "Inactive"}</span>
-											</div>
-										</CardContent>
-									</Card>
+										onClick={() =>
+											navigate(`/locations/${location.id}`)
+										}></Card>
 								),
-								enableFullscreen: true,
 							}}
-							onRowClick={(location) => navigate(`/locations/${location.id}`)}
 						/>
 					)}
 				</ContentSection>
-
-				{/* Dialogs with controlled state */}
-				{selectedLocation && (
-					<>
-						<EditLocationDialog
-							location={selectedLocation}
-							onLocationUpdated={handleLocationUpdated}
-							open={editDialogOpen}
-							onOpenChange={setEditDialogOpen}
-						/>
-
-						<DeleteLocationDialog
-							location={selectedLocation}
-							onLocationDeleted={handleLocationDeleted}
-							open={deleteDialogOpen}
-							onOpenChange={setDeleteDialogOpen}
-						/>
-					</>
-				)}
 			</ContentContainer>
 		</>
 	);

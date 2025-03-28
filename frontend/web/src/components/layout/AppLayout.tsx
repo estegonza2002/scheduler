@@ -36,7 +36,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Calendar } from "../ui/calendar";
 import { ShiftCreationSheet } from "../ShiftCreationSheet";
 import { AddEmployeeDialog } from "../AddEmployeeDialog";
-import { AddLocationDialog } from "../AddLocationDialog";
+import { LocationFormDialog } from "../LocationFormDialog";
 import { OrganizationsAPI, Organization } from "../../api";
 import { useNotifications } from "../../lib/notification-context";
 import { useLayout } from "../../lib/layout-context";

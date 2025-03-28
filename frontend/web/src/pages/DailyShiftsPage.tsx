@@ -33,6 +33,7 @@ import {
 	SearchX,
 	List,
 	Clock,
+	CalendarX,
 } from "lucide-react";
 import { ShiftCreationSheet } from "@/components/ShiftCreationSheet";
 import {
@@ -70,6 +71,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { DataCardGrid } from "@/components/ui/data-card-grid";
 import { DatePicker } from "@/components/ui/date-picker";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { useOrganizationId } from "@/hooks/useOrganizationId";
 
 // Export the ShiftCreationSheet with its props for use in the AppLayout
 export function getHeaderActions() {
@@ -77,7 +79,10 @@ export function getHeaderActions() {
 	const [searchParams] = useSearchParams();
 	const dateParam = searchParams.get("date");
 	const currentDate = dateParam ? new Date(dateParam) : new Date();
-	const organizationId = searchParams.get("organizationId") || "org-1";
+
+	// Get organization ID from context instead of URL
+	const organizationId = useOrganizationId();
+	console.log("Using organization ID in ShiftCreationSheet:", organizationId);
 
 	// In a real app, you would fetch this or store it in context
 	const selectedSchedule = "sch-4"; // Spring 2025 schedule
@@ -111,7 +116,7 @@ export default function DailyShiftsPage() {
 	const [loading, setLoading] = useState(true);
 	const [loadingPhase, setLoadingPhase] = useState<string>("shifts");
 	const [selectedSchedule, setSelectedSchedule] = useState<string | null>(null);
-	const organizationId = searchParams.get("organizationId") || "org-1"; // Default to first org
+	const organizationId = useOrganizationId();
 	const [viewMode, setViewMode] = useState<"table" | "cards">("cards");
 	const [currentPage, setCurrentPage] = useState<number>(1);
 	const [itemsPerPage, setItemsPerPage] = useState<number>(25);

@@ -56,12 +56,7 @@ import { EmployeeSheet } from "@/components/EmployeeSheet";
 import { EmployeeStatusBadge } from "@/components/ui/employee-status-badge";
 import { useEmployeePresence } from "@/lib/presence";
 import { AvatarWithStatus } from "@/components/ui/avatar-with-status";
-import {
-	Card,
-	CardContent,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
 import {
@@ -89,6 +84,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { EmptyState } from "@/components/ui/empty-state";
 
 // New component for Employee Statistics
 function EmployeeStats({
@@ -172,73 +168,72 @@ function EmployeeStats({
 
 	return (
 		<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-			<ContentSection
-				title="Tenure"
-				flat>
-				<div className="flex items-center justify-between">
-					<div>
-						<p className="text-sm text-muted-foreground">Tenure</p>
-						<h3 className="text-2xl font-bold">
-							{stats.tenure} {stats.tenure === 1 ? "day" : "days"}
-						</h3>
-					</div>
-					<div className="h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
-						<CalendarIcon className="h-5 w-5 text-primary" />
-					</div>
-				</div>
-			</ContentSection>
-
-			<ContentSection
-				title="Total Hours"
-				flat>
-				<div className="flex items-center justify-between">
-					<div>
-						<p className="text-sm text-muted-foreground">Total Hours</p>
-						<h3 className="text-2xl font-bold">
-							{stats.totalHours.toFixed(1)}
-						</h3>
-					</div>
-					<div className="h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
-						<ClockIcon className="h-5 w-5 text-primary" />
-					</div>
-				</div>
-			</ContentSection>
-
-			<ContentSection
-				title="Attendance"
-				flat>
-				<div className="flex items-center justify-between">
-					<div>
-						<p className="text-sm text-muted-foreground">Attendance Rate</p>
-						<h3 className="text-2xl font-bold">
-							{stats.attendanceRate.toFixed(0)}%
-						</h3>
-					</div>
-					<div className="h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
-						<CheckCircle className="h-5 w-5 text-primary" />
-					</div>
-				</div>
-			</ContentSection>
-
-			{employee.hourlyRate && (
-				<ContentSection
-					title="Earnings"
-					flat
-					className="md:col-span-3">
+			<Card>
+				<CardContent className="pt-6">
 					<div className="flex items-center justify-between">
 						<div>
-							<p className="text-sm text-muted-foreground">
-								Estimated Earnings (All Time)
-							</p>
+							<p className="text-sm text-muted-foreground">Tenure</p>
 							<h3 className="text-2xl font-bold">
-								${stats.totalEarnings.toFixed(2)}
+								{stats.tenure} {stats.tenure === 1 ? "day" : "days"}
 							</h3>
 						</div>
 						<div className="h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
-							<DollarSign className="h-5 w-5 text-primary" />
+							<CalendarIcon className="h-5 w-5 text-primary" />
 						</div>
 					</div>
-				</ContentSection>
+				</CardContent>
+			</Card>
+
+			<Card>
+				<CardContent className="pt-6">
+					<div className="flex items-center justify-between">
+						<div>
+							<p className="text-sm text-muted-foreground">Total Hours</p>
+							<h3 className="text-2xl font-bold">
+								{stats.totalHours.toFixed(1)}
+							</h3>
+						</div>
+						<div className="h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
+							<ClockIcon className="h-5 w-5 text-primary" />
+						</div>
+					</div>
+				</CardContent>
+			</Card>
+
+			<Card>
+				<CardContent className="pt-6">
+					<div className="flex items-center justify-between">
+						<div>
+							<p className="text-sm text-muted-foreground">Attendance Rate</p>
+							<h3 className="text-2xl font-bold">
+								{stats.attendanceRate.toFixed(0)}%
+							</h3>
+						</div>
+						<div className="h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
+							<CheckCircle className="h-5 w-5 text-primary" />
+						</div>
+					</div>
+				</CardContent>
+			</Card>
+
+			{employee.hourlyRate && (
+				<Card className="md:col-span-3">
+					<CardContent className="pt-6">
+						<div className="flex items-center justify-between">
+							<div>
+								<p className="text-sm text-muted-foreground">
+									Estimated Earnings (All Time)
+								</p>
+								<h3 className="text-2xl font-bold">
+									${stats.totalEarnings.toFixed(2)}
+								</h3>
+							</div>
+							<div className="h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
+								<DollarSign className="h-5 w-5 text-primary" />
+							</div>
+						</div>
+					</CardContent>
+				</Card>
 			)}
 		</div>
 	);
@@ -246,160 +241,155 @@ function EmployeeStats({
 
 // Shifts section component for employee details
 function EmployeeShiftsSection({ employeeId }: { employeeId: string }) {
-	const [isLoading, setIsLoading] = useState(true);
 	const [shifts, setShifts] = useState<Shift[]>([]);
+	const [loading, setLoading] = useState(true);
 	const [locations, setLocations] = useState<Record<string, Location>>({});
 	const navigate = useNavigate();
-	const now = new Date();
 
 	useEffect(() => {
 		const fetchEmployeeShifts = async () => {
 			try {
-				setIsLoading(true);
+				setLoading(true);
+				// For now, get all shifts and filter by user_id
+				const allShifts = await ShiftsAPI.getAllSchedules();
+				const allIndividualShifts = [];
 
-				// Fetch shifts for the employee
-				const allShifts = await ShiftsAPI.getAll();
+				// For each schedule, get its individual shifts
+				for (const schedule of allShifts) {
+					const scheduleShifts = await ShiftsAPI.getShiftsForSchedule(
+						schedule.id
+					);
+					allIndividualShifts.push(...scheduleShifts);
+				}
+
 				// Filter for this specific employee's shifts
-				const employeeShifts = allShifts.filter(
-					(shift) => shift.user_id === employeeId
+				const employeeShifts = allIndividualShifts.filter(
+					(shift: Shift) => shift.user_id === employeeId
 				);
 				setShifts(employeeShifts);
 
-				// Collect locations from shifts for display
-				const locationIds = new Set<string>();
-
-				// Add locations from shifts
-				employeeShifts.forEach((shift) => {
-					if (shift.location_id) {
-						locationIds.add(shift.location_id);
-					}
-				});
-
-				// Fetch details for all needed locations
+				// Fetch locations for these shifts
+				const locationIds = new Set(
+					employeeShifts
+						.map((shift: Shift) => shift.location_id)
+						.filter(Boolean)
+				);
 				const locationsMap: Record<string, Location> = {};
+
 				for (const locationId of locationIds) {
-					const location = await LocationsAPI.getById(locationId);
-					if (location) {
-						locationsMap[locationId] = location;
+					if (locationId) {
+						const location = await LocationsAPI.getById(locationId);
+						if (location) {
+							locationsMap[locationId] = location;
+						}
 					}
 				}
+
 				setLocations(locationsMap);
 			} catch (error) {
 				console.error("Error fetching employee shifts:", error);
-				toast.error("Failed to load shifts information");
 			} finally {
-				setIsLoading(false);
+				setLoading(false);
 			}
 		};
 
 		fetchEmployeeShifts();
 	}, [employeeId]);
 
-	// Filter shifts into current, upcoming, and previous
+	// Group shifts by current, upcoming, and previous
+	const now = new Date();
 	const currentShifts = shifts.filter(
-		(shift) =>
-			isAfter(parseISO(shift.end_time), now) &&
-			isBefore(parseISO(shift.start_time), now)
+		(shift: Shift) =>
+			new Date(shift.start_time) <= now && new Date(shift.end_time) >= now
 	);
-
 	const upcomingShifts = shifts
-		.filter((shift) => isAfter(parseISO(shift.start_time), now))
+		.filter((shift: Shift) => new Date(shift.start_time) > now)
 		.sort(
 			(a, b) =>
-				parseISO(a.start_time).getTime() - parseISO(b.start_time).getTime()
-		)
-		.slice(0, 5); // Get next 5 upcoming shifts
-
+				new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
+		);
 	const previousShifts = shifts
-		.filter((shift) => isBefore(parseISO(shift.end_time), now))
+		.filter((shift: Shift) => new Date(shift.end_time) < now)
 		.sort(
 			(a, b) =>
-				parseISO(b.start_time).getTime() - parseISO(a.start_time).getTime()
+				new Date(b.start_time).getTime() - new Date(a.start_time).getTime()
 		)
-		.slice(0, 5); // Get last 5 previous shifts
+		.slice(0, 5); // Only show the 5 most recent
 
-	// Helper function to get location name
 	const getLocationName = (location_id?: string) => {
 		if (!location_id) return "Unassigned";
 		return locations[location_id]?.name || "Unknown Location";
 	};
 
-	// Helper function to render a shift card
 	const renderShiftCard = (shift: Shift) => {
-		// Map shift status to StatusBadge status type
-		const getStatusType = (status?: string) => {
+		const getStatusType = (
+			status?: string
+		): "success" | "warning" | "error" | "info" | "pending" => {
 			if (!status) return "pending";
 			switch (status.toLowerCase()) {
 				case "completed":
 					return "success";
 				case "canceled":
 					return "error";
+				case "pending":
+					return "warning";
 				case "in_progress":
 					return "info";
-				case "scheduled":
-					return "pending";
 				default:
 					return "pending";
 			}
 		};
 
-		// Format status text to be more user-friendly
-		const formatStatusText = (status?: string) => {
-			if (!status) return "Scheduled";
-
-			// Handle special case for in_progress
-			if (status.toLowerCase() === "in_progress") {
-				return "In Progress";
-			}
-
-			// Capitalize first letter for other statuses
+		const formatStatusText = (status?: string): string => {
+			if (!status) return "Unknown";
 			return status.charAt(0).toUpperCase() + status.slice(1);
 		};
 
 		return (
 			<Card
 				key={shift.id}
-				className="mb-3 hover:shadow-sm transition-all cursor-pointer"
+				className="mb-4 cursor-pointer hover:shadow-sm transition-all"
 				onClick={() => navigate(`/shifts/${shift.id}`)}>
 				<CardContent className="p-4">
 					<div className="flex justify-between items-start">
 						<div>
-							{shift.status && (
-								<StatusBadge
-									status={getStatusType(shift.status)}
-									text={formatStatusText(shift.status)}
-									className="mb-2"
-								/>
-							)}
 							<h4 className="font-medium">
-								{format(parseISO(shift.start_time), "EEE, MMM d")}
+								{getLocationName(shift.location_id)}
 							</h4>
-							<p className="text-sm text-muted-foreground">
-								{format(parseISO(shift.start_time), "h:mm a")} -{" "}
-								{format(parseISO(shift.end_time), "h:mm a")}
-								<span className="mx-1">•</span>
-								{calculateHours(shift.start_time, shift.end_time)} hours
-							</p>
+							<div className="text-sm text-muted-foreground mt-1 flex items-center">
+								<Calendar className="h-3.5 w-3.5 mr-1.5" />
+								{new Date(shift.start_time).toLocaleDateString()}
+							</div>
+							<div className="text-sm text-muted-foreground mt-1 flex items-center">
+								<Clock className="h-3.5 w-3.5 mr-1.5" />
+								{new Date(shift.start_time).toLocaleTimeString([], {
+									hour: "2-digit",
+									minute: "2-digit",
+								})}{" "}
+								-{" "}
+								{new Date(shift.end_time).toLocaleTimeString([], {
+									hour: "2-digit",
+									minute: "2-digit",
+								})}
+							</div>
 						</div>
+						<StatusBadge
+							status={getStatusType(shift.status)}
+							text={formatStatusText(shift.status)}
+						/>
 					</div>
-					{shift.location_id && (
-						<div className="mt-2 text-xs flex items-center text-muted-foreground">
-							<MapPin className="h-3 w-3 mr-1" />
-							<span>{getLocationName(shift.location_id)}</span>
-						</div>
-					)}
 				</CardContent>
 			</Card>
 		);
 	};
 
-	if (isLoading) {
+	if (loading) {
 		return (
-			<div className="space-y-4">
-				<div className="h-10 w-1/3 bg-gray-200 rounded animate-pulse"></div>
-				<div className="h-24 bg-gray-200 rounded animate-pulse"></div>
-				<div className="h-24 bg-gray-200 rounded animate-pulse"></div>
-			</div>
+			<LoadingState
+				type="spinner"
+				message="Loading shift information..."
+				className="py-4"
+			/>
 		);
 	}
 
@@ -425,11 +415,12 @@ function EmployeeShiftsSection({ employeeId }: { employeeId: string }) {
 				{upcomingShifts.length > 0 ? (
 					upcomingShifts.map(renderShiftCard)
 				) : (
-					<Card>
-						<CardContent className="p-4 text-muted-foreground">
-							No upcoming shifts scheduled
-						</CardContent>
-					</Card>
+					<EmptyState
+						title="No Upcoming Shifts"
+						description="There are no upcoming shifts scheduled for this employee."
+						icon={<Calendar className="h-6 w-6" />}
+						size="small"
+					/>
 				)}
 			</div>
 
@@ -442,12 +433,195 @@ function EmployeeShiftsSection({ employeeId }: { employeeId: string }) {
 				{previousShifts.length > 0 ? (
 					previousShifts.map(renderShiftCard)
 				) : (
-					<Card>
-						<CardContent className="p-4 text-muted-foreground">
-							No previous shifts found
-						</CardContent>
-					</Card>
+					<EmptyState
+						title="No Previous Shifts"
+						description="No shift history found for this employee."
+						icon={<Briefcase className="h-6 w-6" />}
+						size="small"
+					/>
 				)}
+			</div>
+		</div>
+	);
+}
+
+// Add a new Earnings component to display in the main content area
+function EmployeeEarningsSection({ employeeId }: { employeeId: string }) {
+	const [earnings, setEarnings] = useState<any[]>([]);
+	const [loading, setLoading] = useState(true);
+	const navigate = useNavigate();
+
+	useEffect(() => {
+		const fetchEarningsData = async () => {
+			try {
+				setLoading(true);
+				// For now, get all shifts and filter by user_id
+				const allShifts = await ShiftsAPI.getAllSchedules();
+				const allIndividualShifts = [];
+
+				// For each schedule, get its individual shifts
+				for (const schedule of allShifts) {
+					const scheduleShifts = await ShiftsAPI.getShiftsForSchedule(
+						schedule.id
+					);
+					allIndividualShifts.push(...scheduleShifts);
+				}
+
+				// Filter for this specific employee's shifts
+				const employeeShifts = allIndividualShifts.filter(
+					(shift: Shift) => shift.user_id === employeeId
+				);
+
+				// Get employee for hourly rate
+				const employee = await EmployeesAPI.getById(employeeId);
+				if (!employee || employee.hourlyRate === undefined) {
+					setEarnings([]);
+					return;
+				}
+
+				// Calculate earnings data for completed shifts
+				const now = new Date();
+				const completedShifts = employeeShifts.filter(
+					(shift: Shift) =>
+						new Date(shift.end_time) < now && shift.status !== "canceled"
+				);
+
+				// Group by month
+				const earningsByMonth: Record<string, number> = {};
+
+				completedShifts.forEach((shift: Shift) => {
+					const date = new Date(shift.end_time);
+					const monthKey = `${date.getFullYear()}-${date.getMonth() + 1}`;
+					const monthName = date.toLocaleString("default", {
+						month: "long",
+						year: "numeric",
+					});
+
+					const hours = parseFloat(
+						calculateHours(shift.start_time, shift.end_time)
+					);
+					const shiftEarnings = hours * employee.hourlyRate!;
+
+					if (!earningsByMonth[monthKey]) {
+						earningsByMonth[monthKey] = 0;
+					}
+
+					earningsByMonth[monthKey] += shiftEarnings;
+				});
+
+				// Convert to array for display
+				const earningsData = Object.entries(earningsByMonth)
+					.map(([key, value]) => {
+						const [year, month] = key.split("-");
+						const date = new Date(parseInt(year), parseInt(month) - 1, 1);
+						return {
+							month: date.toLocaleString("default", {
+								month: "long",
+								year: "numeric",
+							}),
+							amount: value,
+							hours: completedShifts
+								.filter((shift: Shift) => {
+									const shiftDate = new Date(shift.end_time);
+									return (
+										shiftDate.getFullYear() === parseInt(year) &&
+										shiftDate.getMonth() === parseInt(month) - 1
+									);
+								})
+								.reduce((total, shift: Shift) => {
+									return (
+										total +
+										parseFloat(calculateHours(shift.start_time, shift.end_time))
+									);
+								}, 0),
+						};
+					})
+					.sort((a, b) => {
+						// Sort by date descending (newest first)
+						return new Date(b.month).getTime() - new Date(a.month).getTime();
+					});
+
+				setEarnings(earningsData);
+			} catch (error) {
+				console.error("Error fetching earnings data:", error);
+			} finally {
+				setLoading(false);
+			}
+		};
+
+		fetchEarningsData();
+	}, [employeeId]);
+
+	if (loading) {
+		return (
+			<LoadingState
+				type="spinner"
+				message="Loading earnings information..."
+				className="py-4"
+			/>
+		);
+	}
+
+	if (earnings.length === 0) {
+		return (
+			<EmptyState
+				title="No Earnings Data"
+				description="There are no completed shifts with earnings data available."
+				icon={<DollarSign className="h-6 w-6" />}
+				size="default"
+			/>
+		);
+	}
+
+	// Calculate total earnings
+	const totalEarnings = earnings.reduce(
+		(total, item) => total + item.amount,
+		0
+	);
+
+	return (
+		<div className="space-y-6">
+			{/* Earnings Summary Card */}
+			<ContentSection
+				title="Total Earnings"
+				flat
+				className="bg-primary/5">
+				<div className="flex justify-between items-center">
+					<div>
+						<h3 className="text-3xl font-bold">${totalEarnings.toFixed(2)}</h3>
+						<p className="text-muted-foreground">All-time earnings</p>
+					</div>
+					<div className="h-12 w-12 bg-primary/10 rounded-full flex items-center justify-center">
+						<DollarSign className="h-6 w-6 text-primary" />
+					</div>
+				</div>
+			</ContentSection>
+
+			{/* Monthly Earnings Table */}
+			<div>
+				<h3 className="text-lg font-medium mb-4">Monthly Breakdown</h3>
+				<div className="border rounded-md overflow-hidden">
+					<Table>
+						<TableHeader>
+							<TableRow>
+								<TableHead>Month</TableHead>
+								<TableHead>Hours</TableHead>
+								<TableHead className="text-right">Earnings</TableHead>
+							</TableRow>
+						</TableHeader>
+						<TableBody>
+							{earnings.map((item, index) => (
+								<TableRow key={index}>
+									<TableCell className="font-medium">{item.month}</TableCell>
+									<TableCell>{item.hours.toFixed(1)} hrs</TableCell>
+									<TableCell className="text-right">
+										${item.amount.toFixed(2)}
+									</TableCell>
+								</TableRow>
+							))}
+						</TableBody>
+					</Table>
+				</div>
 			</div>
 		</div>
 	);
@@ -457,7 +631,7 @@ export default function EmployeeDetailPage() {
 	const { employeeId } = useParams();
 	const navigate = useNavigate();
 	const [employee, setEmployee] = useState<Employee | null>(null);
-	const [loading, setLoading] = useState(true);
+	const [loading, setIsLoading] = useState(true);
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 	const [shifts, setShifts] = useState<Shift[]>([]);
 	const [shiftsLoading, setShiftsLoading] = useState(true);
@@ -465,6 +639,9 @@ export default function EmployeeDetailPage() {
 	const [locationsLoading, setLocationsLoading] = useState(true);
 	const [allLocations, setAllLocations] = useState<Location[]>([]);
 	const [assignedLocationIds, setAssignedLocationIds] = useState<string[]>([]);
+	const [activeTab, setActiveTab] = useState<
+		"overview" | "shifts" | "locations" | "earnings"
+	>("overview");
 
 	// Initialize the presence service when we have an employee
 	const { employeePresence, initialized: presenceInitialized } =
@@ -487,7 +664,7 @@ export default function EmployeeDetailPage() {
 
 		const fetchEmployee = async () => {
 			try {
-				setLoading(true);
+				setIsLoading(true);
 				const employeeData = await EmployeesAPI.getById(employeeId);
 				if (employeeData) {
 					setEmployee(employeeData);
@@ -495,7 +672,7 @@ export default function EmployeeDetailPage() {
 			} catch (error) {
 				console.error("Error fetching employee:", error);
 			} finally {
-				setLoading(false);
+				setIsLoading(false);
 			}
 		};
 
@@ -503,10 +680,10 @@ export default function EmployeeDetailPage() {
 			try {
 				setShiftsLoading(true);
 				// Fetch shifts for the employee
-				const allShifts = await ShiftsAPI.getAll();
+				const allShifts = await ShiftsAPI.getAllSchedules();
 				// Filter for this specific employee's shifts
 				const employeeShifts = allShifts.filter(
-					(shift) => shift.user_id === employeeId
+					(shift: Shift) => shift.user_id === employeeId
 				);
 				setShifts(employeeShifts);
 			} catch (error) {
@@ -641,15 +818,7 @@ export default function EmployeeDetailPage() {
 					variant="outline"
 					size="sm"
 					className="h-9 gap-1 mr-2"
-					onClick={async () => {
-						try {
-							await EmployeesAPI.resendWelcomeEmail(employee.id);
-							// The API will show a toast message for success
-						} catch (error) {
-							console.error("Error resending welcome email:", error);
-							toast.error("Failed to resend welcome email");
-						}
-					}}>
+					onClick={resendWelcomeEmail}>
 					<Send className="h-4 w-4 mr-1" />
 					Resend Invite
 				</Button>
@@ -742,276 +911,665 @@ export default function EmployeeDetailPage() {
 	return (
 		<>
 			<PageHeader
-				title={employee.name}
+				title="Employee Details"
 				description={employee.position || employee.role || "Employee"}
 				actions={ActionButtons}
 				showBackButton={true}
 			/>
 			<ContentContainer>
-				<div className="space-y-6">
-					{/* Profile Header */}
-					<ContentSection
-						title="Overview"
-						flat>
-						<div className="flex items-center gap-4">
-							<AvatarWithStatus
-								src={employeeWithPresence?.avatar}
-								alt={employeeWithPresence?.name}
-								fallback={initials}
-								size="xl"
-								isOnline={employeeWithPresence?.isOnline}
-								status={employeeWithPresence?.status as any}
-							/>
-							<div>
-								<h2 className="text-2xl font-semibold">
-									{employeeWithPresence?.name}
-								</h2>
-								<p className="text-muted-foreground text-lg">
-									{employeeWithPresence?.position || employeeWithPresence?.role}
-								</p>
-								<div className="flex items-center gap-2 mt-2">
+				<div className="flex flex-col md:flex-row gap-6 mt-6">
+					{/* Secondary Sidebar */}
+					<div className="md:w-80 shrink-0 p-4">
+						<div className="sticky top-6 space-y-6">
+							{/* Employee Profile */}
+							<div className="space-y-2">
+								<AvatarWithStatus
+									src={employeeWithPresence?.avatar}
+									alt={employeeWithPresence?.name}
+									fallback={initials}
+									size="lg"
+									isOnline={employeeWithPresence?.isOnline}
+									status={employeeWithPresence?.status as any}
+								/>
+								<div>
+									<h3 className="font-semibold capitalize text-lg">
+										{employeeWithPresence?.name}
+									</h3>
+									<p className="text-muted-foreground">
+										{employee.position || employee.role || "Employee"}
+									</p>
+								</div>
+								<div className="mt-1">
 									<EmployeeStatusBadge
 										status={employeeWithPresence?.status as any}
 										isOnline={employeeWithPresence?.isOnline}
 										lastActive={employeeWithPresence?.lastActive}
 									/>
 								</div>
+
+								{/* Contact Information */}
+								<div className="pt-4 space-y-3 border-t mt-4">
+									<div className="flex items-center">
+										<Mail className="h-4 w-4 mr-2 text-muted-foreground" />
+										<span className="truncate">{employee.email}</span>
+									</div>
+
+									{employee.phone && (
+										<div className="flex items-center">
+											<Phone className="h-4 w-4 mr-2 text-muted-foreground" />
+											<span>{employee.phone}</span>
+										</div>
+									)}
+
+									{employee.address && (
+										<div className="flex items-center">
+											<MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
+											<span className="truncate">{employee.address}</span>
+										</div>
+									)}
+
+									{employee.hourlyRate !== undefined && (
+										<div className="flex items-center">
+											<DollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
+											<span>${employee.hourlyRate.toFixed(2)}/hr</span>
+										</div>
+									)}
+								</div>
+							</div>
+
+							{/* Quick Actions */}
+							<div className="mt-4">
+								<h3 className="text-sm font-medium mb-3 px-1">Quick Actions</h3>
+								<div className="space-y-2">
+									<button
+										className="flex items-center w-full text-left px-3 py-3 border rounded"
+										onClick={() =>
+											navigate("/schedule/create?employeeId=" + employee.id)
+										}>
+										<Plus className="h-4 w-4 mr-2" />
+										Assign to Shift
+									</button>
+
+									<button
+										className="flex items-center w-full text-left px-3 py-3 border rounded"
+										onClick={() => {
+											const sheet = document.getElementById(
+												"location-sheet-trigger"
+											);
+											if (sheet) sheet.click();
+										}}>
+										<MapPin className="h-4 w-4 mr-2" />
+										Assign to Location
+									</button>
+
+									<button className="flex items-center w-full text-left px-3 py-3 border rounded">
+										<Mail className="h-4 w-4 mr-2" />
+										Send Message
+									</button>
+
+									<button
+										className="flex items-center w-full text-left px-3 py-3 border rounded"
+										onClick={() => {
+											const editButton = document.getElementById(
+												"edit-employee-trigger"
+											);
+											if (editButton) editButton.click();
+										}}>
+										<Edit className="h-4 w-4 mr-2" />
+										Edit Employee
+									</button>
+								</div>
 							</div>
 						</div>
-					</ContentSection>
+					</div>
 
-					{/* Employee Statistics Section */}
-					<ContentSection
-						title="Employee Statistics"
-						description="Performance metrics and statistics based on employee data">
-						{shiftsLoading ? (
-							<div className="space-y-4">
-								<div className="h-24 bg-muted rounded animate-pulse"></div>
-								<div className="h-24 bg-muted rounded animate-pulse"></div>
-							</div>
-						) : (
-							employee && (
-								<EmployeeStats
-									employee={employee}
-									shifts={shifts}
-								/>
-							)
+					{/* Main Content Area */}
+					<div className="flex-1 space-y-6">
+						{/* Tabbed Navigation */}
+						<div className="flex border-b">
+							<button
+								className={`px-4 py-2 font-medium text-sm ${
+									activeTab === "overview"
+										? "text-primary border-b-2 border-primary"
+										: "text-muted-foreground hover:text-foreground"
+								}`}
+								onClick={() => setActiveTab("overview")}>
+								Overview
+							</button>
+							<button
+								className={`px-4 py-2 font-medium text-sm ${
+									activeTab === "shifts"
+										? "text-primary border-b-2 border-primary"
+										: "text-muted-foreground hover:text-foreground"
+								}`}
+								onClick={() => setActiveTab("shifts")}>
+								Past Shifts
+							</button>
+							<button
+								className={`px-4 py-2 font-medium text-sm ${
+									activeTab === "locations"
+										? "text-primary border-b-2 border-primary"
+										: "text-muted-foreground hover:text-foreground"
+								}`}
+								onClick={() => setActiveTab("locations")}>
+								Locations
+							</button>
+							<button
+								className={`px-4 py-2 font-medium text-sm ${
+									activeTab === "earnings"
+										? "text-primary border-b-2 border-primary"
+										: "text-muted-foreground hover:text-foreground"
+								}`}
+								onClick={() => setActiveTab("earnings")}>
+								Earnings
+							</button>
+						</div>
+
+						{activeTab === "overview" && (
+							<>
+								{/* Employee Statistics Section */}
+								<ContentSection
+									title="Employee Statistics"
+									description="Performance metrics and statistics based on employee data">
+									{shiftsLoading ? (
+										<LoadingState
+											type="spinner"
+											message="Loading statistics..."
+											className="py-4"
+										/>
+									) : (
+										employee && (
+											<EmployeeStats
+												employee={employee}
+												shifts={shifts}
+											/>
+										)
+									)}
+								</ContentSection>
+
+								{/* Upcoming Shifts Section - Added to Overview */}
+								<ContentSection
+									title="Upcoming Shifts"
+									description="Next shifts scheduled for this employee">
+									<EmployeeUpcomingShifts employeeId={employeeId || ""} />
+								</ContentSection>
+							</>
 						)}
-					</ContentSection>
 
-					{/* Assigned Locations Section */}
-					<ContentSection
-						title="Assigned Locations"
-						description="Locations this employee is assigned to work at"
-						headerActions={
-							employee && (
-								<LocationAssignmentSheet
-									employeeId={employeeId || ""}
-									employeeName={employee.name}
-									allLocations={allLocations}
-									assignedLocationIds={assignedLocationIds}
-									onLocationsAssigned={handleLocationsAssigned}
-									trigger={
-										<Button
-											size="sm"
-											variant="outline">
-											<Plus className="h-4 w-4 mr-2" />
-											Manage Locations
-										</Button>
-									}
-								/>
-							)
-						}>
-						{locationsLoading ? (
-							<div className="space-y-4">
-								<div className="h-10 w-1/3 bg-muted rounded animate-pulse"></div>
-								<div className="h-24 bg-muted rounded animate-pulse"></div>
-							</div>
-						) : assignedLocationIds.length > 0 ? (
-							<div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-								{assignedLocationIds.map((locationId, index) => {
-									const location = locations[locationId];
-									if (!location) return null;
-
-									const isPrimary = index === 0; // First location is primary
-
-									return (
-										<ContentSection
-											key={locationId}
-											title={location.name}
-											flat>
-											<div className="flex flex-col">
-												<div className="flex justify-between">
-													<h4 className="font-medium">{location.name}</h4>
-													{isPrimary && (
-														<Badge
-															className="ml-2"
-															variant="outline">
-															Primary
-														</Badge>
-													)}
-												</div>
-												{location.address && (
-													<p className="text-sm text-muted-foreground">
-														{location.address}
-														{location.city && `, ${location.city}`}
-														{location.state && `, ${location.state}`}
-														{location.zipCode && ` ${location.zipCode}`}
-													</p>
-												)}
-											</div>
-										</ContentSection>
-									);
-								})}
-							</div>
-						) : (
-							<div className="text-muted-foreground p-4 border rounded-lg">
-								No locations currently assigned to this employee
-							</div>
+						{activeTab === "shifts" && (
+							<ContentSection
+								title="Past Shifts"
+								description="View previous shifts for this employee">
+								<EmployeePastShiftsSection employeeId={employeeId || ""} />
+							</ContentSection>
 						)}
-					</ContentSection>
 
-					{/* Contact Information */}
-					<ContentSection title="Contact Information">
-						<div className="space-y-4">
-							<div className="flex items-center gap-3">
-								<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
-									<Mail className="h-5 w-5 text-primary" />
-								</div>
-								<div>
-									<div className="text-sm font-medium">Email</div>
-									<div className="text-sm">{employee.email}</div>
-								</div>
-							</div>
+						{activeTab === "locations" && (
+							<ContentSection
+								title="Assigned Locations"
+								description="Locations this employee is assigned to work at"
+								headerActions={
+									employee && (
+										<LocationAssignmentSheet
+											employeeId={employeeId || ""}
+											employeeName={employee.name}
+											allLocations={allLocations}
+											assignedLocationIds={assignedLocationIds}
+											onLocationsAssigned={handleLocationsAssigned}
+											trigger={
+												<Button
+													id="location-sheet-trigger"
+													size="sm"
+													variant="outline">
+													<Plus className="h-4 w-4 mr-2" />
+													Manage Locations
+												</Button>
+											}
+										/>
+									)
+								}>
+								{locationsLoading ? (
+									<LoadingState
+										type="spinner"
+										message="Loading location information..."
+										className="py-4"
+									/>
+								) : assignedLocationIds.length > 0 ? (
+									<div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+										{assignedLocationIds.map((locationId, index) => {
+											const location = locations[locationId];
+											if (!location) return null;
 
-							{employee.phone && (
-								<div className="flex items-center gap-3">
-									<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
-										<Phone className="h-5 w-5 text-primary" />
-									</div>
-									<div>
-										<div className="text-sm font-medium">Phone</div>
-										<div className="text-sm">{employee.phone}</div>
-									</div>
-								</div>
-							)}
+											const isPrimary = index === 0; // First location is primary
 
-							{employee.address && (
-								<div className="flex items-center gap-3">
-									<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
-										<MapPin className="h-5 w-5 text-primary" />
+											return (
+												<ContentSection
+													key={locationId}
+													title={location.name}
+													flat>
+													<div className="flex flex-col">
+														<div className="flex justify-between">
+															<h4 className="font-medium">{location.name}</h4>
+															{isPrimary && (
+																<Badge
+																	className="ml-2"
+																	variant="outline">
+																	Primary
+																</Badge>
+															)}
+														</div>
+														{location.address && (
+															<p className="text-sm text-muted-foreground">
+																{location.address}
+																{location.city && `, ${location.city}`}
+																{location.state && `, ${location.state}`}
+																{location.zipCode && ` ${location.zipCode}`}
+															</p>
+														)}
+													</div>
+												</ContentSection>
+											);
+										})}
 									</div>
-									<div>
-										<div className="text-sm font-medium">Address</div>
-										<div className="text-sm">{employee.address}</div>
-									</div>
-								</div>
-							)}
-						</div>
-					</ContentSection>
-
-					{/* Employment Details */}
-					<ContentSection title="Employment Details">
-						<div className="space-y-4">
-							<div className="flex items-center gap-3">
-								<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
-									<User className="h-5 w-5 text-primary" />
-								</div>
-								<div>
-									<div className="text-sm font-medium">Role</div>
-									<div className="text-sm">{employee.role}</div>
-								</div>
-							</div>
-
-							{employee.position && (
-								<div className="flex items-center gap-3">
-									<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
-										<Info className="h-5 w-5 text-primary" />
-									</div>
-									<div>
-										<div className="text-sm font-medium">Position</div>
-										<div className="text-sm">{employee.position}</div>
-									</div>
-								</div>
-							)}
-
-							{employee.hourlyRate !== undefined && (
-								<div className="flex items-center gap-3">
-									<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
-										<DollarSign className="h-5 w-5 text-primary" />
-									</div>
-									<div>
-										<div className="text-sm font-medium">Hourly Rate</div>
-										<div className="text-sm">
-											${employee.hourlyRate.toFixed(2)}
-										</div>
-									</div>
-								</div>
-							)}
-
-							{employee.hireDate && (
-								<div className="flex items-center gap-3">
-									<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
-										<Calendar className="h-5 w-5 text-primary" />
-									</div>
-									<div>
-										<div className="text-sm font-medium">Hire Date</div>
-										<div className="text-sm">
-											{new Date(employee.hireDate).toLocaleDateString()}
-										</div>
-									</div>
-								</div>
-							)}
-						</div>
-					</ContentSection>
-
-					{/* Additional Information */}
-					{(employee.emergencyContact || employee.notes) && (
-						<ContentSection title="Additional Information">
-							<div className="space-y-4">
-								{employee.emergencyContact && (
-									<div className="flex items-center gap-3">
-										<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
-											<AlertCircle className="h-5 w-5 text-primary" />
-										</div>
-										<div>
-											<div className="text-sm font-medium">
-												Emergency Contact
-											</div>
-											<div className="text-sm">{employee.emergencyContact}</div>
-										</div>
-									</div>
+								) : (
+									<EmptyState
+										title="No Assigned Locations"
+										description="This employee hasn't been assigned to any locations yet."
+										icon={<MapPin className="h-6 w-6" />}
+										action={
+											<LocationAssignmentSheet
+												employeeId={employeeId || ""}
+												employeeName={employee.name}
+												allLocations={allLocations}
+												assignedLocationIds={assignedLocationIds}
+												onLocationsAssigned={handleLocationsAssigned}
+												trigger={
+													<Button size="sm">
+														<Plus className="h-4 w-4 mr-2" />
+														Assign Location
+													</Button>
+												}
+											/>
+										}
+									/>
 								)}
-
-								{employee.notes && (
-									<div className="flex items-start gap-3">
-										<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center mt-1">
-											<ClipboardList className="h-5 w-5 text-primary" />
-										</div>
-										<div>
-											<div className="text-sm font-medium">Notes</div>
-											<div className="text-sm text-muted-foreground">
-												{employee.notes}
-											</div>
-										</div>
-									</div>
-								)}
-							</div>
-						</ContentSection>
-					)}
-
-					{/* Shifts & Scheduling Section */}
-					<ContentSection title="Shifts & Scheduling">
-						{employee && employeeId ? (
-							<EmployeeShiftsSection employeeId={employeeId} />
-						) : (
-							<div className="text-muted-foreground">
-								No shift information available
-							</div>
+							</ContentSection>
 						)}
-					</ContentSection>
+
+						{activeTab === "earnings" && (
+							<ContentSection
+								title="Earnings"
+								description="Track and review employee earnings based on completed shifts">
+								<EmployeeEarningsSection employeeId={employeeId || ""} />
+							</ContentSection>
+						)}
+					</div>
+
+					{/* Hidden components accessible by ID */}
+					<div className="hidden">
+						<EmployeeSheet
+							employee={employee}
+							organizationId={employee.organizationId || ""}
+							trigger={<Button id="edit-employee-trigger">Edit</Button>}
+							onEmployeeUpdated={(updatedEmployee) => {
+								setEmployee(updatedEmployee);
+							}}
+						/>
+					</div>
 				</div>
 			</ContentContainer>
 		</>
+	);
+}
+
+// Update resendWelcomeEmail implementation in EmployeeDetailPage
+function resendWelcomeEmail() {
+	// Create a simple implementation since this method doesn't exist
+	toast.info("Welcome email feature not yet implemented");
+}
+
+// Add new specialized components for the split shift views
+function EmployeeUpcomingShifts({ employeeId }: { employeeId: string }) {
+	const [shifts, setShifts] = useState<Shift[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [locations, setLocations] = useState<Record<string, Location>>({});
+	const navigate = useNavigate();
+
+	useEffect(() => {
+		const fetchEmployeeShifts = async () => {
+			try {
+				setLoading(true);
+				// For now, get all shifts and filter by user_id
+				const allShifts = await ShiftsAPI.getAllSchedules();
+				const allIndividualShifts = [];
+
+				// For each schedule, get its individual shifts
+				for (const schedule of allShifts) {
+					const scheduleShifts = await ShiftsAPI.getShiftsForSchedule(
+						schedule.id
+					);
+					allIndividualShifts.push(...scheduleShifts);
+				}
+
+				// Filter for this specific employee's shifts
+				const employeeShifts = allIndividualShifts.filter(
+					(shift: Shift) => shift.user_id === employeeId
+				);
+				setShifts(employeeShifts);
+
+				// Fetch locations for these shifts
+				const locationIds = new Set(
+					employeeShifts
+						.map((shift: Shift) => shift.location_id)
+						.filter(Boolean)
+				);
+				const locationsMap: Record<string, Location> = {};
+
+				for (const locationId of locationIds) {
+					if (locationId) {
+						const location = await LocationsAPI.getById(locationId);
+						if (location) {
+							locationsMap[locationId] = location;
+						}
+					}
+				}
+
+				setLocations(locationsMap);
+			} catch (error) {
+				console.error("Error fetching employee shifts:", error);
+			} finally {
+				setLoading(false);
+			}
+		};
+
+		fetchEmployeeShifts();
+	}, [employeeId]);
+
+	// Group shifts by current and upcoming
+	const now = new Date();
+	const currentShifts = shifts.filter(
+		(shift: Shift) =>
+			new Date(shift.start_time) <= now && new Date(shift.end_time) >= now
+	);
+	const upcomingShifts = shifts
+		.filter((shift: Shift) => new Date(shift.start_time) > now)
+		.sort(
+			(a, b) =>
+				new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
+		);
+
+	const getLocationName = (location_id?: string) => {
+		if (!location_id) return "Unassigned";
+		return locations[location_id]?.name || "Unknown Location";
+	};
+
+	const renderShiftCard = (shift: Shift) => {
+		const getStatusType = (
+			status?: string
+		): "success" | "warning" | "error" | "info" | "pending" => {
+			if (!status) return "pending";
+			switch (status.toLowerCase()) {
+				case "completed":
+					return "success";
+				case "canceled":
+					return "error";
+				case "pending":
+					return "warning";
+				case "in_progress":
+					return "info";
+				default:
+					return "pending";
+			}
+		};
+
+		const formatStatusText = (status?: string): string => {
+			if (!status) return "Unknown";
+			return status.charAt(0).toUpperCase() + status.slice(1);
+		};
+
+		return (
+			<Card
+				key={shift.id}
+				className="mb-4 cursor-pointer hover:shadow-sm transition-all"
+				onClick={() => navigate(`/shifts/${shift.id}`)}>
+				<CardContent className="p-4">
+					<div className="flex justify-between items-start">
+						<div>
+							<h4 className="font-medium">
+								{getLocationName(shift.location_id)}
+							</h4>
+							<div className="text-sm text-muted-foreground mt-1 flex items-center">
+								<Calendar className="h-3.5 w-3.5 mr-1.5" />
+								{new Date(shift.start_time).toLocaleDateString()}
+							</div>
+							<div className="text-sm text-muted-foreground mt-1 flex items-center">
+								<Clock className="h-3.5 w-3.5 mr-1.5" />
+								{new Date(shift.start_time).toLocaleTimeString([], {
+									hour: "2-digit",
+									minute: "2-digit",
+								})}{" "}
+								-{" "}
+								{new Date(shift.end_time).toLocaleTimeString([], {
+									hour: "2-digit",
+									minute: "2-digit",
+								})}
+							</div>
+						</div>
+						<StatusBadge
+							status={getStatusType(shift.status)}
+							text={formatStatusText(shift.status)}
+						/>
+					</div>
+				</CardContent>
+			</Card>
+		);
+	};
+
+	if (loading) {
+		return (
+			<LoadingState
+				type="spinner"
+				message="Loading shift information..."
+				className="py-4"
+			/>
+		);
+	}
+
+	return (
+		<div className="space-y-6">
+			{/* Current Shifts Section */}
+			{currentShifts.length > 0 && (
+				<div>
+					<h3 className="text-lg font-medium mb-4 flex items-center">
+						<Clock className="h-5 w-5 mr-2 text-muted-foreground" />
+						Current Shift
+					</h3>
+					{currentShifts.map(renderShiftCard)}
+				</div>
+			)}
+
+			{/* Upcoming Shifts Section */}
+			<div>
+				<h3 className="text-lg font-medium mb-4 flex items-center">
+					<Calendar className="h-5 w-5 mr-2 text-muted-foreground" />
+					Upcoming Shifts
+				</h3>
+				{upcomingShifts.length > 0 ? (
+					upcomingShifts.map(renderShiftCard)
+				) : (
+					<EmptyState
+						title="No Upcoming Shifts"
+						description="There are no upcoming shifts scheduled for this employee."
+						icon={<Calendar className="h-6 w-6" />}
+						size="small"
+					/>
+				)}
+			</div>
+		</div>
+	);
+}
+
+function EmployeePastShiftsSection({ employeeId }: { employeeId: string }) {
+	const [shifts, setShifts] = useState<Shift[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [locations, setLocations] = useState<Record<string, Location>>({});
+	const navigate = useNavigate();
+
+	useEffect(() => {
+		const fetchEmployeeShifts = async () => {
+			try {
+				setLoading(true);
+				// For now, get all shifts and filter by user_id
+				const allShifts = await ShiftsAPI.getAllSchedules();
+				const allIndividualShifts = [];
+
+				// For each schedule, get its individual shifts
+				for (const schedule of allShifts) {
+					const scheduleShifts = await ShiftsAPI.getShiftsForSchedule(
+						schedule.id
+					);
+					allIndividualShifts.push(...scheduleShifts);
+				}
+
+				// Filter for this specific employee's shifts
+				const employeeShifts = allIndividualShifts.filter(
+					(shift: Shift) => shift.user_id === employeeId
+				);
+				setShifts(employeeShifts);
+
+				// Fetch locations for these shifts
+				const locationIds = new Set(
+					employeeShifts
+						.map((shift: Shift) => shift.location_id)
+						.filter(Boolean)
+				);
+				const locationsMap: Record<string, Location> = {};
+
+				for (const locationId of locationIds) {
+					if (locationId) {
+						const location = await LocationsAPI.getById(locationId);
+						if (location) {
+							locationsMap[locationId] = location;
+						}
+					}
+				}
+
+				setLocations(locationsMap);
+			} catch (error) {
+				console.error("Error fetching employee shifts:", error);
+			} finally {
+				setLoading(false);
+			}
+		};
+
+		fetchEmployeeShifts();
+	}, [employeeId]);
+
+	// Get past shifts
+	const now = new Date();
+	const previousShifts = shifts
+		.filter((shift: Shift) => new Date(shift.end_time) < now)
+		.sort(
+			(a, b) =>
+				new Date(b.start_time).getTime() - new Date(a.start_time).getTime()
+		);
+
+	const getLocationName = (location_id?: string) => {
+		if (!location_id) return "Unassigned";
+		return locations[location_id]?.name || "Unknown Location";
+	};
+
+	const renderShiftCard = (shift: Shift) => {
+		const getStatusType = (
+			status?: string
+		): "success" | "warning" | "error" | "info" | "pending" => {
+			if (!status) return "pending";
+			switch (status.toLowerCase()) {
+				case "completed":
+					return "success";
+				case "canceled":
+					return "error";
+				case "pending":
+					return "warning";
+				case "in_progress":
+					return "info";
+				default:
+					return "pending";
+			}
+		};
+
+		const formatStatusText = (status?: string): string => {
+			if (!status) return "Unknown";
+			return status.charAt(0).toUpperCase() + status.slice(1);
+		};
+
+		return (
+			<Card
+				key={shift.id}
+				className="mb-4 cursor-pointer hover:shadow-sm transition-all"
+				onClick={() => navigate(`/shifts/${shift.id}`)}>
+				<CardContent className="p-4">
+					<div className="flex justify-between items-start">
+						<div>
+							<h4 className="font-medium">
+								{getLocationName(shift.location_id)}
+							</h4>
+							<div className="text-sm text-muted-foreground mt-1 flex items-center">
+								<Calendar className="h-3.5 w-3.5 mr-1.5" />
+								{new Date(shift.start_time).toLocaleDateString()}
+							</div>
+							<div className="text-sm text-muted-foreground mt-1 flex items-center">
+								<Clock className="h-3.5 w-3.5 mr-1.5" />
+								{new Date(shift.start_time).toLocaleTimeString([], {
+									hour: "2-digit",
+									minute: "2-digit",
+								})}{" "}
+								-{" "}
+								{new Date(shift.end_time).toLocaleTimeString([], {
+									hour: "2-digit",
+									minute: "2-digit",
+								})}
+							</div>
+						</div>
+						<StatusBadge
+							status={getStatusType(shift.status)}
+							text={formatStatusText(shift.status)}
+						/>
+					</div>
+				</CardContent>
+			</Card>
+		);
+	};
+
+	if (loading) {
+		return (
+			<LoadingState
+				type="spinner"
+				message="Loading shift information..."
+				className="py-4"
+			/>
+		);
+	}
+
+	return (
+		<div className="space-y-6">
+			{/* Previous Shifts Section */}
+			<div>
+				<h3 className="text-lg font-medium mb-4 flex items-center">
+					<Briefcase className="h-5 w-5 mr-2 text-muted-foreground" />
+					Previous Shifts
+				</h3>
+				{previousShifts.length > 0 ? (
+					previousShifts.map(renderShiftCard)
+				) : (
+					<EmptyState
+						title="No Previous Shifts"
+						description="No shift history found for this employee."
+						icon={<Briefcase className="h-6 w-6" />}
+						size="small"
+					/>
+				)}
+			</div>
+		</div>
 	);
 }

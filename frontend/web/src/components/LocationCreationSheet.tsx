@@ -63,7 +63,7 @@ interface ExtendedLocation extends Location {
 // The schema for the form validation
 const LocationSchema = z.object({
 	name: z.string().min(2, {
-		message: "Name must be at least 2 characters long",
+		message: "A descriptive location name is required (minimum 2 characters)",
 	}),
 	address: z.string().optional(),
 	city: z.string().optional(),
@@ -149,6 +149,7 @@ export function LocationCreationSheet({
 	>([]);
 	const nameFieldRef = useRef<HTMLDivElement>(null);
 	const [locationSelected, setLocationSelected] = useState(false);
+	const [showNameField, setShowNameField] = useState(false);
 
 	const isControlled = controlledOpen !== undefined;
 	const isOpened = isControlled ? controlledOpen : open;
@@ -184,6 +185,32 @@ export function LocationCreationSheet({
 
 	const onSubmit = async (data: FormValues) => {
 		try {
+			// Check if the name is empty when location data is present
+			if (
+				!data.name.trim() &&
+				(data.address || data.city || data.state || data.zipCode)
+			) {
+				// Show the name field if it's not already visible
+				setShowNameField(true);
+
+				form.setError("name", {
+					type: "manual",
+					message:
+						"Every location needs a descriptive name (not just an address)",
+				});
+				toast.error("Please provide a name for this location");
+
+				// Focus the name field
+				setTimeout(() => {
+					if (nameFieldRef.current) {
+						const input = nameFieldRef.current.querySelector("input");
+						if (input) input.focus();
+					}
+				}, 100);
+
+				return;
+			}
+
 			setIsSubmitting(true);
 
 			// Only include fields that are part of the Location interface
@@ -220,11 +247,10 @@ export function LocationCreationSheet({
 
 	const onPlaceSelect = (place: ExtendedGooglePlaceResult) => {
 		if (place?.fullAddress) {
-			// Set the name field to the first part of the address if it's empty
-			if (!form.getValues("name")) {
-				form.setValue("name", place.fullAddress.split(",")[0]);
-			}
+			// Clear any previous name errors
+			form.clearErrors("name");
 
+			// Set address fields
 			form.setValue("address", place.address);
 			form.setValue("city", place.city);
 			form.setValue("state", place.state);
@@ -242,6 +268,42 @@ export function LocationCreationSheet({
 				form.setValue("longitude", place.longitude);
 			}
 
+			// Handle name field
+			const currentName = form.getValues("name");
+			if (!currentName || currentName.trim() === "") {
+				// Try to extract business name if it doesn't look like a street address
+				const firstAddressPart = place.fullAddress.split(",")[0];
+				const looksLikeStreetAddress =
+					/^\d+\s+[A-Za-z\s]+(St|Ave|Rd|Blvd|Dr|Ln|Way|Pl|Ct|Street|Avenue|Road|Boulevard|Drive|Lane|Court|Place)\.?(\s|$)/i.test(
+						firstAddressPart
+					);
+
+				if (!looksLikeStreetAddress) {
+					// Likely a business name
+					form.setValue("name", firstAddressPart);
+					setShowNameField(false);
+				} else {
+					// Focus the name field to prompt for a business name
+					setShowNameField(true);
+					setTimeout(() => {
+						if (nameFieldRef.current) {
+							const input = nameFieldRef.current.querySelector("input");
+							if (input) {
+								input.focus();
+								form.setError("name", {
+									type: "manual",
+									message:
+										"Please provide a descriptive name for this location",
+								});
+							}
+						}
+					}, 100);
+				}
+			} else {
+				// User already entered a name
+				setShowNameField(true);
+			}
+
 			setLocationSelected(true);
 		} else {
 			form.setValue("address", "");
@@ -255,6 +317,7 @@ export function LocationCreationSheet({
 			setLocationSelected(
 				place?.locationSelected !== undefined ? place.locationSelected : false
 			);
+			setShowNameField(true); // Show name field by default when no location is selected
 		}
 	};
 
@@ -271,6 +334,7 @@ export function LocationCreationSheet({
 				setIsCreated(false);
 				setCreatedLocation(null);
 				setLocationSelected(false); // Reset locationSelected state
+				setShowNameField(true); // Reset to default state
 				form.reset({
 					name: "",
 					address: "",
@@ -422,34 +486,58 @@ export function LocationCreationSheet({
 										<form
 											onSubmit={form.handleSubmit(onSubmit)}
 											className="space-y-4">
-											{/* Name Field with Google Places Suggestions */}
-											<FormField
-												control={form.control}
-												name="name"
-												render={({ field }) => (
-													<FormItem>
-														<FormLabel className="text-base">
-															Enter Location Name or Address
-														</FormLabel>
-														<FormControl>
-															<div
-																className="relative"
-																ref={nameFieldRef}>
-																<GooglePlacesAutocomplete
-																	onPlaceSelect={onPlaceSelect}
-																	placeholder="Start typing a business name or address..."
-																	className="mb-0"
-																/>
-															</div>
-														</FormControl>
-														<FormDescription>
-															Type a business name or address to quickly create
-															a location
-														</FormDescription>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
+											{/* Google Places Address Search - Now first */}
+											<FormItem>
+												<FormLabel className="text-base">
+													Find Business or Address
+												</FormLabel>
+												<FormControl>
+													<div className="relative">
+														<GooglePlacesAutocomplete
+															onPlaceSelect={onPlaceSelect}
+															placeholder="Search for a business or address..."
+															className="mb-0"
+														/>
+													</div>
+												</FormControl>
+												<FormDescription>
+													Search for a business or address to create a location
+												</FormDescription>
+											</FormItem>
+
+											{/* Name Field - Only shown when needed */}
+											{showNameField && (
+												<FormField
+													control={form.control}
+													name="name"
+													render={({ field }) => (
+														<FormItem>
+															<FormLabel className="text-base flex items-center">
+																Location Name
+																<span className="text-destructive ml-1">*</span>
+															</FormLabel>
+															<FormControl>
+																<div
+																	className="relative"
+																	ref={nameFieldRef}>
+																	<Input
+																		{...field}
+																		placeholder="Enter a descriptive name for this location"
+																		className="pl-9"
+																	/>
+																	<Building className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+																</div>
+															</FormControl>
+															<FormDescription>
+																{locationSelected
+																	? "Use a descriptive name different from the address"
+																	: "Enter a name for your location"}
+															</FormDescription>
+															<FormMessage />
+														</FormItem>
+													)}
+												/>
+											)}
 
 											{/* Address Information in Accordion or Read-only Display */}
 											{locationSelected ? (

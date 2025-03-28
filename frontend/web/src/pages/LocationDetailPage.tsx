@@ -18,6 +18,10 @@ import {
 	ChevronLeft,
 	Edit,
 	Trash,
+	Calendar,
+	Plus,
+	Users,
+	UserPlus,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -41,6 +45,7 @@ import { LocationEditSheet } from "@/components/LocationEditSheet";
 import { LocationInsights } from "@/components/LocationInsights";
 import { LocationSubNav } from "@/components/LocationSubNav";
 import { PageHeader } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 
 // Update Location type to include optional fields
 interface ExtendedLocation extends Location {
@@ -218,7 +223,7 @@ export default function LocationDetailPage() {
 		<>
 			<PageHeader
 				title={location?.name || "Location Details"}
-				description={location?.address || ""}
+				description={""}
 				actions={ActionButtons}
 				showBackButton={true}
 			/>
@@ -230,64 +235,6 @@ export default function LocationDetailPage() {
 				/>
 
 				<div className="grid gap-6 mt-6">
-					{/* Basic Location Information */}
-					<ContentSection
-						title="Overview"
-						description="Basic information about this location">
-						<div className="flex flex-col md:flex-row gap-6">
-							<div className="flex items-center gap-4 flex-1">
-								<div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center">
-									<Building2 className="h-8 w-8 text-primary" />
-								</div>
-								<div>
-									<h2 className="text-2xl font-bold">{location.name}</h2>
-									<div className="flex items-center gap-2 mt-1">
-										<MapPin className="h-4 w-4 text-muted-foreground" />
-										<span className="text-muted-foreground">
-											{location.address}, {location.city}, {location.state}{" "}
-											{location.zipCode}
-										</span>
-									</div>
-								</div>
-							</div>
-						</div>
-					</ContentSection>
-
-					{/* Address Information */}
-					<ContentSection
-						title="Address Information"
-						description="Physical location details">
-						<div className="space-y-4">
-							{location.address && (
-								<div className="flex items-center gap-3">
-									<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
-										<Building2 className="h-5 w-5 text-primary" />
-									</div>
-									<div>
-										<div className="text-sm font-medium">Street Address</div>
-										<div className="text-sm">{location.address}</div>
-									</div>
-								</div>
-							)}
-
-							{(location.city || location.state || location.zipCode) && (
-								<div className="flex items-center gap-3">
-									<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
-										<MapPin className="h-5 w-5 text-primary" />
-									</div>
-									<div>
-										<div className="text-sm font-medium">City/State/Zip</div>
-										<div className="text-sm">
-											{location.city}
-											{location.city && location.state ? ", " : ""}
-											{location.state} {location.zipCode}
-										</div>
-									</div>
-								</div>
-							)}
-						</div>
-					</ContentSection>
-
 					{/* Contact Information */}
 					{(location.phone || location.email) && (
 						<ContentSection
@@ -334,9 +281,22 @@ export default function LocationDetailPage() {
 							</Button>
 						}>
 						{shifts.length === 0 ? (
-							<div className="py-4 text-center text-muted-foreground">
-								No shifts yet at this location.
-							</div>
+							<EmptyState
+								title="No shifts yet"
+								description="There are no shifts scheduled at this location yet."
+								icon={<Calendar className="h-6 w-6" />}
+								action={
+									<Button
+										variant="outline"
+										size="sm"
+										onClick={() =>
+											navigate(`/shifts/new?locationId=${locationId}`)
+										}>
+										<Plus className="h-4 w-4 mr-2" />
+										Create a Shift
+									</Button>
+								}
+							/>
 						) : (
 							<div className="space-y-3">
 								{shifts.slice(0, 3).map((shift) => (
@@ -382,9 +342,22 @@ export default function LocationDetailPage() {
 							</Button>
 						}>
 						{assignedEmployees.length === 0 ? (
-							<div className="py-4 text-center text-muted-foreground">
-								No employees assigned to this location.
-							</div>
+							<EmptyState
+								title="No assigned employees"
+								description="This location doesn't have any employees assigned to it."
+								icon={<Users className="h-6 w-6" />}
+								action={
+									<Button
+										variant="outline"
+										size="sm"
+										onClick={() =>
+											navigate(`/employees?locationId=${locationId}`)
+										}>
+										<UserPlus className="h-4 w-4 mr-2" />
+										Assign Employees
+									</Button>
+								}
+							/>
 						) : (
 							<div className="space-y-3">
 								{assignedEmployees.map((employee) => (

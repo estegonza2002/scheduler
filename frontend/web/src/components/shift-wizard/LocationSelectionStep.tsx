@@ -4,11 +4,19 @@ import { Card, CardContent } from "../ui/card";
 import { Input } from "../ui/input";
 import { UseFormReturn } from "react-hook-form";
 import { Location } from "../../api";
-import { Search, X, Building2, Check, PlusCircle } from "lucide-react";
+import {
+	Search,
+	X,
+	Building2,
+	Check,
+	PlusCircle,
+	AlertCircle,
+} from "lucide-react";
 import { ScrollArea } from "../ui/scroll-area";
 import { Badge } from "../ui/badge";
 import { cn } from "../../lib/utils";
 import { Link } from "react-router-dom";
+import { Alert, AlertDescription } from "../ui/alert";
 
 type LocationData = {
 	locationId: string;
@@ -25,6 +33,7 @@ interface LocationSelectionStepProps {
 	handleLocationChange: (locationId: string) => void;
 	clearLocationSearch: () => void;
 	onCancel?: () => void;
+	organizationId: string;
 }
 
 // Location card component
@@ -70,6 +79,7 @@ export function LocationSelectionStep({
 	handleLocationChange,
 	clearLocationSearch,
 	onCancel,
+	organizationId,
 }: LocationSelectionStepProps) {
 	return (
 		<div className="flex flex-col h-full relative">
@@ -86,6 +96,18 @@ export function LocationSelectionStep({
 							Choose the location where this shift will take place
 						</p>
 					</div>
+
+					{/* Organization ID error check - show error when no valid organization ID */}
+					{!organizationId && (
+						<Alert
+							variant="destructive"
+							className="mb-4">
+							<AlertCircle className="h-4 w-4" />
+							<AlertDescription>
+								No organization selected. Please select an organization first.
+							</AlertDescription>
+						</Alert>
+					)}
 
 					{/* Search box - Only show if there are locations */}
 					{locations.length > 0 && (

@@ -45,9 +45,6 @@ export function LocationSubNav({
 
 	return (
 		<div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pb-2 w-full">
-			{locationName && (
-				<h1 className="text-2xl font-bold mb-4 px-8">{locationName}</h1>
-			)}
 			<nav className="flex overflow-x-auto border-b">
 				{navItems.map((item) => {
 					const isActive = item.exact

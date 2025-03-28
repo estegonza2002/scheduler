@@ -2,22 +2,7 @@
 declare global {
 	interface Window {
 		initGoogleMaps?: () => void;
-		google?: {
-			maps: {
-				places: {
-					AutocompleteService: new () => any;
-					PlacesService: new (attrContainer: HTMLElement) => any;
-					PlacesServiceStatus: {
-						OK: string;
-						ZERO_RESULTS: string;
-						OVER_QUERY_LIMIT: string;
-						REQUEST_DENIED: string;
-						INVALID_REQUEST: string;
-						UNKNOWN_ERROR: string;
-					};
-				};
-			};
-		};
+		google?: any;
 	}
 }
 
@@ -61,6 +46,7 @@ interface PlaceDetails {
 		types: string[];
 	}>;
 	formatted_address: string;
+	place_id: string;
 	geometry?: {
 		location?: {
 			lat: () => number;
@@ -80,6 +66,7 @@ export interface GooglePlaceResult {
 	latitude?: number;
 	longitude?: number;
 	locationSelected?: boolean;
+	placeId?: string;
 }
 
 interface GooglePlacesAutocompleteProps {
@@ -87,6 +74,8 @@ interface GooglePlacesAutocompleteProps {
 	defaultValue?: string;
 	className?: string;
 	placeholder?: string;
+	showMap?: boolean;
+	mapHeight?: string;
 }
 
 // Add a custom hook to load the Google Maps script
@@ -154,6 +143,8 @@ export function GooglePlacesAutocomplete({
 	defaultValue = "",
 	className,
 	placeholder = "Search for an address...",
+	showMap = false,
+	mapHeight = "200px",
 }: GooglePlacesAutocompleteProps) {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [searchResults, setSearchResults] = useState<PlacePrediction[]>([]);
@@ -166,6 +157,13 @@ export function GooglePlacesAutocomplete({
 	const placesServiceRef = useRef<any>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
 	const suggestionsRef = useRef<HTMLDivElement>(null);
+	const mapRef = useRef<HTMLDivElement>(null);
+	const mapInstanceRef = useRef<any>(null);
+	const markerRef = useRef<any>(null);
+	const [selectedLocation, setSelectedLocation] = useState<{
+		lat?: number;
+		lng?: number;
+	}>({});
 
 	// Clear any errors on query change
 	useEffect(() => {
@@ -293,6 +291,12 @@ export function GooglePlacesAutocomplete({
 			latitude = placeDetails.geometry.location.lat();
 			longitude = placeDetails.geometry.location.lng();
 			console.log("Extracted coordinates:", latitude, longitude);
+
+			// Update selected location for map
+			setSelectedLocation({
+				lat: latitude,
+				lng: longitude,
+			});
 		}
 
 		// Extract street number and route for address
@@ -343,6 +347,7 @@ export function GooglePlacesAutocomplete({
 			longitude,
 			fullAddress: placeDetails.formatted_address,
 			locationSelected: true,
+			placeId: placeDetails.place_id,
 		};
 	};
 
@@ -355,7 +360,13 @@ export function GooglePlacesAutocomplete({
 		placesServiceRef.current.getDetails(
 			{
 				placeId: place.place_id,
-				fields: ["address_component", "formatted_address", "name", "geometry"],
+				fields: [
+					"address_component",
+					"formatted_address",
+					"name",
+					"geometry",
+					"place_id",
+				],
 			},
 			(placeDetails: any, status: PlacesServiceStatus) => {
 				setIsLoading(false);
@@ -376,6 +387,9 @@ export function GooglePlacesAutocomplete({
 				);
 				onPlaceSelect(addressComponents);
 				setShowSuggestions(false);
+
+				// Update map if available
+				updateMap(addressComponents.latitude, addressComponents.longitude);
 			}
 		);
 	};
@@ -383,6 +397,7 @@ export function GooglePlacesAutocomplete({
 	const handleClear = () => {
 		setSelectedPlace("");
 		setSearchQuery("");
+		setSelectedLocation({});
 
 		// Reset form fields and locationSelected state
 		onPlaceSelect?.({
@@ -394,15 +409,70 @@ export function GooglePlacesAutocomplete({
 			latitude: undefined,
 			longitude: undefined,
 			fullAddress: "",
-			locationSelected: false, // Add this flag to signal location is cleared
+			locationSelected: false,
+			placeId: undefined,
 		});
+
+		// Clear map marker if it exists
+		if (markerRef.current) {
+			markerRef.current.setMap(null);
+			markerRef.current = null;
+		}
 
 		// Auto-focus input after clearing
 		setTimeout(() => inputRef.current?.focus(), 0);
 	};
 
+	// Initialize map when loaded and coordinates are available
+	useEffect(() => {
+		if (!showMap || !loaded || !window.google?.maps || !mapRef.current) return;
+
+		if (!mapInstanceRef.current) {
+			// Create new map instance
+			const google = window.google;
+			mapInstanceRef.current = new google.maps.Map(mapRef.current, {
+				center: { lat: 37.7749, lng: -122.4194 }, // Default center (San Francisco)
+				zoom: 15,
+				disableDefaultUI: true,
+				zoomControl: true,
+				mapTypeControl: false,
+			});
+		}
+
+		// If we have lat/lng from selected location, update the map
+		if (selectedLocation.lat && selectedLocation.lng) {
+			updateMap(selectedLocation.lat, selectedLocation.lng);
+		}
+	}, [loaded, showMap, selectedLocation]);
+
+	// Function to update map position and marker
+	const updateMap = (lat?: number, lng?: number) => {
+		if (!showMap || !loaded || !window.google?.maps || !mapInstanceRef.current)
+			return;
+
+		if (!lat || !lng) return;
+
+		const position = { lat, lng };
+		const google = window.google;
+
+		// Update map center
+		mapInstanceRef.current.setCenter(position);
+
+		// Remove existing marker if there is one
+		if (markerRef.current) {
+			markerRef.current.setMap(null);
+		}
+
+		// Add a new marker
+		markerRef.current = new google.maps.Marker({
+			position,
+			map: mapInstanceRef.current,
+			animation: google.maps.Animation.DROP,
+		});
+	};
+
 	return (
-		<div className={cn("relative w-full", className)}>
+		<div className={cn("relative", className)}>
 			{error && (
 				<div className="mb-2 text-sm text-destructive">
 					Error loading Google Maps: {error}
@@ -555,6 +625,28 @@ export function GooglePlacesAutocomplete({
 							</div>
 						) : null}
 					</div>
+				</div>
+			)}
+
+			{/* Map display when enabled and location selected */}
+			{showMap && loaded && (
+				<div
+					className={cn("mt-2 rounded-md border-2 overflow-hidden", {
+						"border-primary": selectedLocation.lat && selectedLocation.lng,
+						"border-muted": !(selectedLocation.lat && selectedLocation.lng),
+					})}
+					style={{ height: mapHeight }}>
+					{!(selectedLocation.lat && selectedLocation.lng) && (
+						<div className="h-full flex items-center justify-center text-sm text-muted-foreground bg-muted/20">
+							Search for a location to see it on the map
+						</div>
+					)}
+					<div
+						ref={mapRef}
+						className={cn("h-full w-full", {
+							hidden: !(selectedLocation.lat && selectedLocation.lng),
+						})}
+					/>
 				</div>
 			)}
 		</div>

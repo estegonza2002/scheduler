@@ -130,6 +130,8 @@ export interface Location {
 	state?: string;
 	zipCode?: string;
 	isActive?: boolean;
+	latitude?: number;
+	longitude?: number;
 }
 
 export interface Notification {
