@@ -47,6 +47,7 @@ import { LocationInsights } from "@/components/LocationInsights";
 import { LocationSubNav } from "@/components/LocationSubNav";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
+import { EmployeeAssignmentSheet } from "@/components/EmployeeAssignmentSheet";
 
 // Update Location type to include optional fields
 interface ExtendedLocation extends Location {
@@ -88,6 +89,7 @@ export default function LocationDetailPage() {
 	const [location, setLocation] = useState<ExtendedLocation | null>(null);
 	const [shifts, setShifts] = useState<Shift[]>([]);
 	const [assignedEmployees, setAssignedEmployees] = useState<Employee[]>([]);
+	const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
 	const [loading, setLoading] = useState<boolean>(true);
 	const [loadingPhase, setLoadingPhase] = useState<string>("location");
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
@@ -123,55 +125,20 @@ export default function LocationDetailPage() {
 
 				setShifts(sortedShifts);
 
-				// Fetch employees assigned to this location
+				// Fetch all employees
 				setLoadingPhase("employees");
+				const organizationId = "org-1";
+				const employees = await EmployeesAPI.getAll(organizationId);
+				setAllEmployees(employees);
 
-				try {
-					// Get the organization ID (in a real app this would come from a context or auth)
-					const organizationId = "org-1"; // Default organization ID
-					const allEmployees = await EmployeesAPI.getAll(organizationId);
-					console.log("DEBUG: All employees:", allEmployees);
-
-					let employeeIds: string[] = [];
-
-					// Check if getByLocationId exists in EmployeeLocationsAPI
-					if ("getByLocationId" in EmployeeLocationsAPI) {
-						// Use the direct method if it exists
-						employeeIds = await (EmployeeLocationsAPI as any).getByLocationId(
-							locationId
-						);
-					} else {
-						// Fallback to the old approach of checking each employee
-						console.log(
-							"DEBUG: Using fallback method to get employees for location"
-						);
-						for (const employee of allEmployees) {
-							const assignedLocations =
-								await EmployeeLocationsAPI.getByEmployeeId(employee.id);
-							if (assignedLocations.includes(locationId)) {
-								employeeIds.push(employee.id);
-							}
-						}
-					}
-
-					console.log(
-						`DEBUG: Employee IDs for location ${locationId}:`,
-						employeeIds
-					);
-
-					// Filter all employees to only include those assigned to this location
-					const locationEmployees = allEmployees.filter((employee) =>
-						employeeIds.includes(employee.id)
-					);
-					console.log(
-						"DEBUG: Employees assigned to this location:",
-						locationEmployees
-					);
-
-					setAssignedEmployees(locationEmployees);
-				} catch (error) {
-					console.error("Error fetching assigned employees:", error);
-				}
+				// Get assigned employees
+				const assignedEmployeeIds = await EmployeeLocationsAPI.getByLocationId(
+					locationId
+				);
+				const assignedEmployeesList = employees.filter((employee) =>
+					assignedEmployeeIds.includes(employee.id)
+				);
+				setAssignedEmployees(assignedEmployeesList);
 			} catch (error) {
 				console.error("Error fetching location details:", error);
 				toast.error("Failed to load location details");
@@ -402,14 +369,26 @@ export default function LocationDetailPage() {
 						description={`${assignedEmployees.length} employees assigned to this location`}
 						headerActions={
 							<div className="flex gap-2">
-								<Button
-									variant="outline"
-									size="sm"
-									onClick={() =>
-										navigate(`/employees?locationId=${locationId}`)
-									}>
-									Manage Employees
-								</Button>
+								<EmployeeAssignmentSheet
+									locationId={locationId || ""}
+									locationName={location?.name || "Location"}
+									allEmployees={allEmployees}
+									assignedEmployees={assignedEmployees}
+									onEmployeesAssigned={(newlyAssignedEmployees) => {
+										setAssignedEmployees((prev) => [
+											...prev,
+											...newlyAssignedEmployees,
+										]);
+									}}
+									trigger={
+										<Button
+											variant="outline"
+											size="sm">
+											<UserPlus className="h-4 w-4 mr-2" />
+											Assign Employee
+										</Button>
+									}
+								/>
 								{/* Add a test button for quickly assigning an employee to this location */}
 								<Button
 									variant="outline"
@@ -425,9 +404,13 @@ export default function LocationDetailPage() {
 											const allEmployees = await EmployeesAPI.getAll(
 												organizationId
 											);
+											console.log(
+												"DEBUG: Test button - All employees:",
+												allEmployees
+											);
 
 											if (allEmployees.length === 0) {
-												toast.error("No employees found");
+												toast.error("No employees found in database");
 												return;
 											}
 
@@ -437,6 +420,11 @@ export default function LocationDetailPage() {
 													!assignedEmployees.some(
 														(assigned) => assigned.id === emp.id
 													)
+											);
+
+											console.log(
+												"DEBUG: Test button - Unassigned employees:",
+												unassignedEmployees
 											);
 
 											if (unassignedEmployees.length > 0) {
@@ -471,15 +459,26 @@ export default function LocationDetailPage() {
 								description="This location doesn't have any employees assigned to it."
 								icon={<Users className="h-6 w-6" />}
 								action={
-									<Button
-										variant="outline"
-										size="sm"
-										onClick={() =>
-											navigate(`/employees?locationId=${locationId}`)
-										}>
-										<UserPlus className="h-4 w-4 mr-2" />
-										Assign Employees
-									</Button>
+									<EmployeeAssignmentSheet
+										locationId={locationId || ""}
+										locationName={location?.name || "Location"}
+										allEmployees={allEmployees}
+										assignedEmployees={assignedEmployees}
+										onEmployeesAssigned={(newlyAssignedEmployees) => {
+											setAssignedEmployees((prev) => [
+												...prev,
+												...newlyAssignedEmployees,
+											]);
+										}}
+										trigger={
+											<Button
+												variant="outline"
+												size="sm">
+												<UserPlus className="h-4 w-4 mr-2" />
+												Assign Employee
+											</Button>
+										}
+									/>
 								}
 							/>
 						) : (

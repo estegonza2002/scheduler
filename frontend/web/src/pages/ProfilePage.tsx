@@ -207,9 +207,7 @@ function ShiftsSection({ userId }: ShiftsSectionProps) {
 		const fetchUserShifts = async () => {
 			try {
 				setIsLoading(true);
-				// Fetch shifts for the user - we're calling the mock API
-				// which accepts dateOrScheduleId and organizationId
-				// For user shifts, we'll filter client-side
+				// Fetch shifts for the user
 				const allShifts = await ShiftsAPI.getAll();
 				// Filter for this specific user's shifts
 				const userShifts = allShifts.filter(

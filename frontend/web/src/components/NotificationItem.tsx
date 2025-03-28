@@ -35,7 +35,6 @@ interface NotificationItemProps {
 	};
 	onMarkAsRead?: (id: string) => void;
 	onDismiss?: (id: string) => void;
-	useSampleData?: boolean;
 	showActions?: boolean;
 	compact?: boolean;
 }
@@ -44,7 +43,6 @@ export function NotificationItem({
 	notification,
 	onMarkAsRead,
 	onDismiss,
-	useSampleData = false,
 	showActions = true,
 	compact = false,
 }: NotificationItemProps) {
@@ -125,8 +123,7 @@ export function NotificationItem({
 											<DropdownMenuSeparator />
 											{!notification.isRead && onMarkAsRead && (
 												<DropdownMenuItem
-													onClick={() => onMarkAsRead(notification.id)}
-													disabled={useSampleData}>
+													onClick={() => onMarkAsRead(notification.id)}>
 													<Check className="h-4 w-4 mr-2" />
 													Mark as read
 												</DropdownMenuItem>
@@ -134,7 +131,6 @@ export function NotificationItem({
 											{onDismiss && (
 												<DropdownMenuItem
 													onClick={() => onDismiss(notification.id)}
-													disabled={useSampleData}
 													className="text-destructive">
 													<Trash2 className="h-4 w-4 mr-2" />
 													Delete

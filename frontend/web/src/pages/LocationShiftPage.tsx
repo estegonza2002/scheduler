@@ -7,6 +7,7 @@ import {
 	Shift,
 	EmployeesAPI,
 	Employee,
+	EmployeeLocationsAPI,
 } from "@/api";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, Calendar, Eye, Clock } from "lucide-react";
@@ -76,13 +77,17 @@ export default function LocationShiftPage() {
 				const organizationId = "org-1"; // Default organization ID
 				const employees = await EmployeesAPI.getAll(organizationId);
 
-				// Filter by location assignment (for demo purposes)
-				const assignedEmployees = employees.filter((employee) => {
-					// @ts-ignore - locationAssignment is a custom property we're assuming exists
-					return employee.locationAssignment === locationId;
-				});
+				// Get employee IDs assigned to this location using the proper API
+				const assignedEmployeeIds = await EmployeeLocationsAPI.getByLocationId(
+					locationId
+				);
 
-				setAssignedEmployees(assignedEmployees);
+				// Filter employees to those assigned to this location
+				const assignedEmployeesList = employees.filter((employee) =>
+					assignedEmployeeIds.includes(employee.id)
+				);
+
+				setAssignedEmployees(assignedEmployeesList);
 			} catch (error) {
 				console.error("Error fetching data:", error);
 				toast.error("Failed to load shift data");

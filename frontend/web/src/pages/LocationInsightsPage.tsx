@@ -7,6 +7,7 @@ import {
 	Shift,
 	EmployeesAPI,
 	Employee,
+	EmployeeLocationsAPI,
 } from "@/api";
 import { ContentContainer } from "@/components/ui/content-container";
 import { ContentSection } from "@/components/ui/content-section";
@@ -59,12 +60,17 @@ export default function LocationInsightsPage() {
 				const organizationId = "org-1"; // Default organization ID
 				const employees = await EmployeesAPI.getAll(organizationId);
 
-				// Filter by location assignment (for demo purposes)
-				const assignedEmployees = employees.filter((employee) => {
-					// @ts-ignore - locationAssignment is a custom property we're assuming exists
-					return employee.locationAssignment === locationId;
-				});
-				setAssignedEmployees(assignedEmployees);
+				// Get employee IDs assigned to this location using the proper API
+				const assignedEmployeeIds = await EmployeeLocationsAPI.getByLocationId(
+					locationId
+				);
+
+				// Filter employees to those assigned to this location
+				const assignedEmployeesList = employees.filter((employee) =>
+					assignedEmployeeIds.includes(employee.id)
+				);
+
+				setAssignedEmployees(assignedEmployeesList);
 			} catch (error) {
 				console.error("Error fetching data:", error);
 				toast.error("Failed to load location data");
@@ -86,15 +92,14 @@ export default function LocationInsightsPage() {
 					description="Retrieving location insights"
 					showBackButton={true}
 				/>
-				
-					<ContentContainer>
-						<LoadingState
-							type="spinner"
-							message={`Loading ${loadingPhase}...`}
-							className="py-12"
-						/>
-					</ContentContainer>
-				
+
+				<ContentContainer>
+					<LoadingState
+						type="spinner"
+						message={`Loading ${loadingPhase}...`}
+						className="py-12"
+					/>
+				</ContentContainer>
 			</>
 		);
 	}
@@ -107,26 +112,25 @@ export default function LocationInsightsPage() {
 					description="The requested location could not be found"
 					showBackButton={true}
 				/>
-				
-					<ContentContainer>
-						<ContentSection
-							title="Location not found"
-							description="The requested location could not be found."
-							footer={
-								<Button
-									variant="outline"
-									onClick={() => navigate("/locations")}
-									className="mt-2">
-									Back to Locations
-								</Button>
-							}>
-							<p>
-								The location you're looking for may have been removed or doesn't
-								exist.
-							</p>
-						</ContentSection>
-					</ContentContainer>
-				
+
+				<ContentContainer>
+					<ContentSection
+						title="Location not found"
+						description="The requested location could not be found."
+						footer={
+							<Button
+								variant="outline"
+								onClick={() => navigate("/locations")}
+								className="mt-2">
+								Back to Locations
+							</Button>
+						}>
+						<p>
+							The location you're looking for may have been removed or doesn't
+							exist.
+						</p>
+					</ContentSection>
+				</ContentContainer>
 			</>
 		);
 	}
@@ -138,97 +142,96 @@ export default function LocationInsightsPage() {
 				description="Detailed analytics and performance metrics for this location"
 				showBackButton={true}
 			/>
-			
-				<ContentContainer>
-					<LocationSubNav
-						locationId={locationId || ""}
-						locationName={location.name}
-					/>
 
-					<div className="grid gap-8 mt-6">
-						{/* General Location Insights */}
-						<ContentSection
-							title="Overview Metrics"
-							description="Key performance metrics for this location">
-							<div className="mb-4">
-								<p className="text-muted-foreground">
-									These high-level metrics provide a snapshot of your location's
-									overall performance. They help you quickly assess
-									productivity, employee utilization, and financial health at a
-									glance. Monitor these metrics regularly to track progress and
-									identify areas for improvement.
-								</p>
-							</div>
-							<LocationInsights
-								location={location}
-								shifts={shifts}
-								employees={assignedEmployees}
-							/>
-						</ContentSection>
+			<ContentContainer>
+				<LocationSubNav
+					locationId={locationId || ""}
+					locationName={location.name}
+				/>
 
-						{/* Employee Insights */}
-						<ContentSection
-							title="Employee Analytics"
-							description="Employee performance and scheduling insights">
-							<div className="mb-4">
-								<p className="text-muted-foreground">
-									Understanding your workforce is crucial for optimizing
-									scheduling and productivity. These metrics analyze employee
-									reliability, performance patterns, and workforce distribution.
-									Use these insights to identify top performers, address
-									attendance issues, and improve staff allocation.
-								</p>
-							</div>
-							<LocationEmployeeInsights
-								location={location}
-								shifts={shifts}
-								employees={assignedEmployees}
-							/>
-						</ContentSection>
+				<div className="grid gap-8 mt-6">
+					{/* General Location Insights */}
+					<ContentSection
+						title="Overview Metrics"
+						description="Key performance metrics for this location">
+						<div className="mb-4">
+							<p className="text-muted-foreground">
+								These high-level metrics provide a snapshot of your location's
+								overall performance. They help you quickly assess productivity,
+								employee utilization, and financial health at a glance. Monitor
+								these metrics regularly to track progress and identify areas for
+								improvement.
+							</p>
+						</div>
+						<LocationInsights
+							location={location}
+							shifts={shifts}
+							employees={assignedEmployees}
+						/>
+					</ContentSection>
 
-						{/* Shift Analytics */}
-						<ContentSection
-							title="Shift Analytics"
-							description="Shift patterns and scheduling efficiency">
-							<div className="mb-4">
-								<p className="text-muted-foreground">
-									Shift metrics reveal patterns in your scheduling and help
-									identify opportunities to improve coverage. By understanding
-									completion rates, no-shows, and peak times, you can optimize
-									staff allocation, reduce gaps in coverage, and ensure proper
-									staffing during your busiest periods.
-								</p>
-							</div>
-							<LocationShiftInsights
-								location={location}
-								shifts={shifts}
-								employees={assignedEmployees}
-							/>
-						</ContentSection>
+					{/* Employee Insights */}
+					<ContentSection
+						title="Employee Analytics"
+						description="Employee performance and scheduling insights">
+						<div className="mb-4">
+							<p className="text-muted-foreground">
+								Understanding your workforce is crucial for optimizing
+								scheduling and productivity. These metrics analyze employee
+								reliability, performance patterns, and workforce distribution.
+								Use these insights to identify top performers, address
+								attendance issues, and improve staff allocation.
+							</p>
+						</div>
+						<LocationEmployeeInsights
+							location={location}
+							shifts={shifts}
+							employees={assignedEmployees}
+						/>
+					</ContentSection>
 
-						{/* Financial Insights */}
-						<ContentSection
-							title="Financial Insights"
-							description="Revenue, costs, and profitability metrics">
-							<div className="mb-4">
-								<p className="text-muted-foreground">
-									Financial insights help you understand the economic health of
-									your location. These metrics track revenue generation, labor
-									costs, profitability, and projected earnings. Use this data to
-									make informed decisions about scheduling, staffing levels, and
-									cost control to maximize profitability while maintaining
-									service quality.
-								</p>
-							</div>
-							<LocationFinanceInsights
-								location={location}
-								shifts={shifts}
-								employees={assignedEmployees}
-							/>
-						</ContentSection>
-					</div>
-				</ContentContainer>
-			
+					{/* Shift Analytics */}
+					<ContentSection
+						title="Shift Analytics"
+						description="Shift patterns and scheduling efficiency">
+						<div className="mb-4">
+							<p className="text-muted-foreground">
+								Shift metrics reveal patterns in your scheduling and help
+								identify opportunities to improve coverage. By understanding
+								completion rates, no-shows, and peak times, you can optimize
+								staff allocation, reduce gaps in coverage, and ensure proper
+								staffing during your busiest periods.
+							</p>
+						</div>
+						<LocationShiftInsights
+							location={location}
+							shifts={shifts}
+							employees={assignedEmployees}
+						/>
+					</ContentSection>
+
+					{/* Financial Insights */}
+					<ContentSection
+						title="Financial Insights"
+						description="Revenue, costs, and profitability metrics">
+						<div className="mb-4">
+							<p className="text-muted-foreground">
+								Financial insights help you understand the economic health of
+								your location. These metrics track revenue generation, labor
+								costs, profitability, and projected earnings. Use this data to
+								make informed decisions about scheduling, staffing levels, and
+								cost control to maximize profitability while maintaining service
+								quality.
+							</p>
+						</div>
+						<LocationFinanceInsights
+							location={location}
+							shifts={shifts}
+							employees={assignedEmployees}
+						/>
+					</ContentSection>
+				</div>
+			</ContentContainer>
 		</>
 	);
 }

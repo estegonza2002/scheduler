@@ -5,7 +5,6 @@ import { ChatView } from "@/components/messages/ChatView";
 import { MessageSquare, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { NewConversationModal } from "@/components/messages/NewConversationModal";
-import { useNotifications } from "@/lib/notification-context";
 
 import { ContentContainer } from "@/components/ui/content-container";
 import { Button } from "@/components/ui/button";
@@ -21,7 +20,6 @@ export default function MessagesPage() {
 	const [selectedConversation, setSelectedConversation] = useState<
 		string | null
 	>(null);
-	const { useSampleData } = useNotifications();
 	const [isNewConversationModalOpen, setIsNewConversationModalOpen] =
 		useState(false);
 
@@ -34,7 +32,7 @@ export default function MessagesPage() {
 			setActiveTab(storedTab as MessageTab);
 		}
 
-		if (storedConversation && useSampleData) {
+		if (storedConversation) {
 			setSelectedConversation(storedConversation);
 		} else {
 			setSelectedConversation(null);
@@ -47,7 +45,7 @@ export default function MessagesPage() {
 			// Reset body overflow when component unmounts
 			document.body.style.overflow = "";
 		};
-	}, [useSampleData]);
+	}, []);
 
 	// Store the selected conversation and tab whenever they change
 	useEffect(() => {
@@ -92,17 +90,10 @@ export default function MessagesPage() {
 	};
 
 	const getEmptyStateMessage = () => {
-		if (!useSampleData) {
-			return {
-				title: "No messages yet",
-				description:
-					"Your messages will appear here once you start or receive conversations.",
-			};
-		}
 		return {
-			title: "No conversation selected",
+			title: "No messages yet",
 			description:
-				"Select a conversation from the list or start a new one to begin messaging",
+				"Your messages will appear here once you start or receive conversations.",
 		};
 	};
 
@@ -149,7 +140,6 @@ export default function MessagesPage() {
 						type="chats"
 						onSelectConversation={setSelectedConversation}
 						selectedId={selectedConversation}
-						useSampleData={useSampleData}
 					/>
 				)}
 				{activeTab === "groups" && (
@@ -157,7 +147,6 @@ export default function MessagesPage() {
 						type="groups"
 						onSelectConversation={setSelectedConversation}
 						selectedId={selectedConversation}
-						useSampleData={useSampleData}
 					/>
 				)}
 				{activeTab === "active-shifts" && (
@@ -165,7 +154,6 @@ export default function MessagesPage() {
 						type="active-shifts"
 						onSelectConversation={setSelectedConversation}
 						selectedId={selectedConversation}
-						useSampleData={useSampleData}
 					/>
 				)}
 				{activeTab === "one-to-one" && (
@@ -173,7 +161,6 @@ export default function MessagesPage() {
 						type="one-to-one"
 						onSelectConversation={setSelectedConversation}
 						selectedId={selectedConversation}
-						useSampleData={useSampleData}
 					/>
 				)}
 			</div>
@@ -189,11 +176,10 @@ export default function MessagesPage() {
 				className="h-[calc(100vh-8rem)] max-h-[calc(100vh-8rem)] overflow-hidden">
 				{/* Right column - Chat window */}
 				<div className="h-full flex flex-col overflow-hidden">
-					{selectedConversation && useSampleData ? (
+					{selectedConversation ? (
 						<ChatView
 							conversationId={selectedConversation}
 							conversationType={activeTab}
-							useSampleData={useSampleData}
 						/>
 					) : (
 						<ContentSection
@@ -212,13 +198,11 @@ export default function MessagesPage() {
 				</div>
 			</SecondaryLayout>
 
-			{useSampleData && (
-				<NewConversationModal
-					onStartConversation={handleStartConversation}
-					isOpen={isNewConversationModalOpen}
-					onClose={() => setIsNewConversationModalOpen(false)}
-				/>
-			)}
+			<NewConversationModal
+				onStartConversation={handleStartConversation}
+				isOpen={isNewConversationModalOpen}
+				onClose={() => setIsNewConversationModalOpen(false)}
+			/>
 		</>
 	);
 }

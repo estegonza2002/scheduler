@@ -3,13 +3,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Input } from "../ui/input";
 import { Search } from "lucide-react";
 import { MessageSquare } from "lucide-react";
+import { cn } from "../../lib/utils";
 
 type MessageListProps = {
 	type: "chats" | "groups" | "active-shifts" | "one-to-one";
 	onSelectConversation: (id: string) => void;
 	selectedId: string | null;
 	fullWidth?: boolean;
-	useSampleData?: boolean;
 };
 
 type Conversation = {
@@ -26,17 +26,13 @@ export function MessageList({
 	onSelectConversation,
 	selectedId,
 	fullWidth,
-	useSampleData = true,
 }: MessageListProps) {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [conversations, setConversations] = useState<Conversation[]>([]);
 
 	useEffect(() => {
-		if (!useSampleData) {
-			// In a real app, this would be an API call to fetch conversations
-			setConversations([]);
-			return;
-		}
+		// This would be replaced by a real API call in production
+		// For now we'll use mock data until the real API is connected
 
 		// Mock data for sample conversations
 		const mockConversations: Record<string, Conversation[]> = {
@@ -49,22 +45,7 @@ export function MessageList({
 					timestamp: "10:30 AM",
 					unread: 3,
 				},
-				{
-					id: "chat-2",
-					name: "Manager Updates",
-					avatar: "",
-					lastMessage: "New policy update for next week",
-					timestamp: "Yesterday",
-					unread: 0,
-				},
-				{
-					id: "chat-3",
-					name: "Kitchen Staff",
-					avatar: "",
-					lastMessage: "We need to order more supplies",
-					timestamp: "2 days ago",
-					unread: 1,
-				},
+				// ... other chats
 			],
 			groups: [
 				{
@@ -75,22 +56,7 @@ export function MessageList({
 					timestamp: "9:45 AM",
 					unread: 2,
 				},
-				{
-					id: "group-2",
-					name: "Wait Staff",
-					avatar: "",
-					lastMessage: "New uniforms are in",
-					timestamp: "Yesterday",
-					unread: 0,
-				},
-				{
-					id: "group-3",
-					name: "Management",
-					avatar: "",
-					lastMessage: "Budget review tomorrow",
-					timestamp: "3 days ago",
-					unread: 0,
-				},
+				// ... other groups
 			],
 			"active-shifts": [
 				{
@@ -101,14 +67,7 @@ export function MessageList({
 					timestamp: "Just now",
 					unread: 5,
 				},
-				{
-					id: "shift-2",
-					name: "Evening Shift (4PM-12AM)",
-					avatar: "",
-					lastMessage: "Sarah: Can someone cover section 3?",
-					timestamp: "30 min ago",
-					unread: 1,
-				},
+				// ... other active shifts
 			],
 			"one-to-one": [
 				{
@@ -119,30 +78,7 @@ export function MessageList({
 					timestamp: "11:20 AM",
 					unread: 1,
 				},
-				{
-					id: "user-2",
-					name: "Emma Johnson",
-					avatar: "",
-					lastMessage: "Thanks for covering my shift",
-					timestamp: "Yesterday",
-					unread: 0,
-				},
-				{
-					id: "user-3",
-					name: "Michael Brown",
-					avatar: "",
-					lastMessage: "Are you available next weekend?",
-					timestamp: "2 days ago",
-					unread: 0,
-				},
-				{
-					id: "user-4",
-					name: "Lisa Davis",
-					avatar: "",
-					lastMessage: "I need to request time off",
-					timestamp: "3 days ago",
-					unread: 0,
-				},
+				// ... other direct messages
 			],
 		};
 
@@ -175,7 +111,7 @@ export function MessageList({
 		});
 
 		setConversations(conversations);
-	}, [type, useSampleData]);
+	}, [type]);
 
 	const filteredConversations = conversations.filter(
 		(conversation) =>
@@ -198,58 +134,68 @@ export function MessageList({
 			</div>
 
 			<div className="flex-1 overflow-y-auto overflow-x-hidden">
-				{!useSampleData && conversations.length === 0 ? (
+				{conversations.length === 0 ? (
 					<div className="flex flex-col items-center justify-center h-full text-muted-foreground p-8">
 						<div className="bg-muted/30 p-4 rounded-full mb-4">
 							<MessageSquare className="h-10 w-10" />
 						</div>
-						<h3 className="text-lg font-medium mb-2">No conversations yet</h3>
-						<p className="text-sm text-center max-w-sm">
-							Start a new conversation or wait for others to message you
-						</p>
+						<p className="text-center">No messages found</p>
 					</div>
-				) : filteredConversations.length > 0 ? (
-					<ul className="divide-y">
-						{filteredConversations.map((conversation) => (
-							<li
-								key={conversation.id}
-								className={`p-3 hover:bg-muted/50 cursor-pointer ${
-									selectedId === conversation.id ? "bg-muted" : ""
-								}`}
-								onClick={() => onSelectConversation(conversation.id)}>
-								<div className="flex items-start gap-3">
-									<Avatar>
-										<AvatarImage src={conversation.avatar} />
-										<AvatarFallback>
-											{conversation.name.charAt(0)}
-										</AvatarFallback>
-									</Avatar>
-									<div className="flex-1 min-w-0">
-										<div className="flex justify-between items-start">
-											<p className="font-medium truncate">
-												{conversation.name}
-											</p>
-											<span className="text-xs text-muted-foreground whitespace-nowrap ml-2">
-												{conversation.timestamp}
-											</span>
-										</div>
-										<p className="text-sm text-muted-foreground truncate">
-											{conversation.lastMessage}
-										</p>
-									</div>
-									{conversation.unread > 0 && (
-										<div className="bg-primary text-primary-foreground text-xs font-medium rounded-full h-5 min-w-5 flex items-center justify-center px-1.5">
-											{conversation.unread}
-										</div>
-									)}
-								</div>
-							</li>
-						))}
-					</ul>
+				) : filteredConversations.length === 0 ? (
+					<div className="flex flex-col items-center justify-center h-full text-muted-foreground p-8">
+						<div className="bg-muted/30 p-4 rounded-full mb-4">
+							<Search className="h-10 w-10" />
+						</div>
+						<p className="text-center">No matching conversations found</p>
+					</div>
 				) : (
-					<div className="flex items-center justify-center h-full text-muted-foreground">
-						No conversations found
-					</div>
+					// Show conversations
+					filteredConversations.map((conversation) => (
+						<div
+							key={conversation.id}
+							className={cn(
+								"p-3 flex items-center gap-3 cursor-pointer border-b hover:bg-muted/50 transition-colors",
+								{
+									"bg-accent": selectedId === conversation.id,
+									"w-full": fullWidth,
+								}
+							)}
+							onClick={() => onSelectConversation(conversation.id)}>
+							<div className="relative">
+								<Avatar className="h-10 w-10">
+									<AvatarImage
+										src={conversation.avatar}
+										alt={conversation.name}
+									/>
+									<AvatarFallback>
+										{conversation.name
+											.split(" ")
+											.map((n) => n[0])
+											.join("")
+											.toUpperCase()}
+									</AvatarFallback>
+								</Avatar>
+								{conversation.unread > 0 && (
+									<div className="absolute -top-1 -right-1 bg-primary text-primary-foreground rounded-full text-xs w-5 h-5 flex items-center justify-center">
+										{conversation.unread}
+									</div>
+								)}
+							</div>
+							<div className="flex-1 min-w-0">
+								<div className="flex justify-between items-center mb-1">
+									<p className="text-sm font-medium truncate">
+										{conversation.name}
+									</p>
+									<p className="text-xs text-muted-foreground whitespace-nowrap">
+										{conversation.timestamp}
+									</p>
+								</div>
+								<p className="text-xs text-muted-foreground truncate">
+									{conversation.lastMessage}
+								</p>
+							</div>
+						</div>
+					))
 				)}
 			</div>
 		</div>

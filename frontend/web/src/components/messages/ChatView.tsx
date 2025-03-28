@@ -2,13 +2,12 @@ import { useState, useEffect, useRef } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
-import { Paperclip, Send, Smile, MessageSquare } from "lucide-react";
+import { Paperclip, Send, Smile, MessageSquare, Loader2 } from "lucide-react";
 import { useAuth } from "../../lib/auth";
 
 type ChatViewProps = {
 	conversationId: string;
 	conversationType: "chats" | "groups" | "active-shifts" | "one-to-one";
-	useSampleData?: boolean;
 };
 
 type Message = {
@@ -29,11 +28,7 @@ type Conversation = {
 	isActive?: boolean;
 };
 
-export function ChatView({
-	conversationId,
-	conversationType,
-	useSampleData = true,
-}: ChatViewProps) {
+export function ChatView({ conversationId, conversationType }: ChatViewProps) {
 	const { user } = useAuth();
 	const [message, setMessage] = useState("");
 	const [messages, setMessages] = useState<Message[]>([]);
@@ -41,15 +36,12 @@ export function ChatView({
 	const messagesEndRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
-		if (!useSampleData) {
-			// In a real app, this would fetch the conversation details from an API
-			setConversation(null);
-			setMessages([]);
-			return;
-		}
+		// Here you would fetch real conversation data and messages from your API
+		// For now, we'll continue with mock data until the real API is implemented
 
 		// Mock conversation data based on type and ID
 		const fetchConversationDetails = () => {
+			// This would be replaced with a real API call
 			const mockConversations: Record<string, Conversation> = {
 				"chat-1": {
 					id: "chat-1",
@@ -57,74 +49,7 @@ export function ChatView({
 					avatar: "",
 					participants: 15,
 				},
-				"chat-2": {
-					id: "chat-2",
-					name: "Manager Updates",
-					avatar: "",
-					participants: 8,
-				},
-				"chat-3": {
-					id: "chat-3",
-					name: "Kitchen Staff",
-					avatar: "",
-					participants: 6,
-				},
-				"group-1": {
-					id: "group-1",
-					name: "Front Desk Team",
-					avatar: "",
-					participants: 5,
-				},
-				"group-2": {
-					id: "group-2",
-					name: "Wait Staff",
-					avatar: "",
-					participants: 12,
-				},
-				"group-3": {
-					id: "group-3",
-					name: "Management",
-					avatar: "",
-					participants: 4,
-				},
-				"shift-1": {
-					id: "shift-1",
-					name: "Morning Shift (8AM-4PM)",
-					avatar: "",
-					participants: 7,
-					isActive: true,
-				},
-				"shift-2": {
-					id: "shift-2",
-					name: "Evening Shift (4PM-12AM)",
-					avatar: "",
-					participants: 8,
-					isActive: true,
-				},
-				"user-1": {
-					id: "user-1",
-					name: "John Smith",
-					avatar: "",
-					participants: 2,
-				},
-				"user-2": {
-					id: "user-2",
-					name: "Emma Johnson",
-					avatar: "",
-					participants: 2,
-				},
-				"user-3": {
-					id: "user-3",
-					name: "Michael Brown",
-					avatar: "",
-					participants: 2,
-				},
-				"user-4": {
-					id: "user-4",
-					name: "Lisa Davis",
-					avatar: "",
-					participants: 2,
-				},
+				// ... other mock conversations ...
 			};
 
 			setConversation(mockConversations[conversationId] || null);
@@ -132,6 +57,7 @@ export function ChatView({
 
 		// Mock messages based on conversation
 		const fetchMessages = () => {
+			// This would be replaced with a real API call
 			const mockMessages: Message[] = [
 				{
 					id: "msg-1",
@@ -142,47 +68,7 @@ export function ChatView({
 					timestamp: "8:30 AM",
 					isCurrentUser: false,
 				},
-				{
-					id: "msg-2",
-					senderId: "user-3",
-					senderName: "Michael Brown",
-					senderAvatar: "",
-					content: "Hi Emma, how are you today?",
-					timestamp: "8:32 AM",
-					isCurrentUser: false,
-				},
-				{
-					id: "msg-3",
-					senderId: "current-user",
-					senderName: user?.user_metadata?.firstName
-						? `${user.user_metadata.firstName} ${user.user_metadata.lastName}`
-						: "Current User",
-					senderAvatar: user?.user_metadata?.avatar || "",
-					content: "Morning all! Just checking in before the shift starts.",
-					timestamp: "8:45 AM",
-					isCurrentUser: true,
-				},
-				{
-					id: "msg-4",
-					senderId: "user-1",
-					senderName: "John Smith",
-					senderAvatar: "",
-					content: "Can someone help me with the new schedule system?",
-					timestamp: "9:15 AM",
-					isCurrentUser: false,
-				},
-				{
-					id: "msg-5",
-					senderId: "current-user",
-					senderName: user?.user_metadata?.firstName
-						? `${user.user_metadata.firstName} ${user.user_metadata.lastName}`
-						: "Current User",
-					senderAvatar: user?.user_metadata?.avatar || "",
-					content:
-						"Sure John, I can show you how it works. Let's meet at the front desk in 10 minutes.",
-					timestamp: "9:20 AM",
-					isCurrentUser: true,
-				},
+				// ... other mock messages ...
 			];
 
 			setMessages(mockMessages);
@@ -190,7 +76,7 @@ export function ChatView({
 
 		fetchConversationDetails();
 		fetchMessages();
-	}, [conversationId, conversationType, user, useSampleData]);
+	}, [conversationId, conversationType, user]);
 
 	useEffect(() => {
 		// Scroll to bottom whenever messages change
@@ -227,9 +113,7 @@ export function ChatView({
 				</div>
 				<h3 className="text-lg font-medium mb-2">Conversation not found</h3>
 				<p className="text-sm text-center max-w-sm">
-					{useSampleData
-						? "This conversation doesn't exist in the sample data"
-						: "This conversation doesn't exist or you don't have access to it"}
+					This conversation doesn't exist or you don't have access to it
 				</p>
 			</div>
 		);
@@ -237,21 +121,34 @@ export function ChatView({
 
 	return (
 		<div className="flex flex-col h-full overflow-hidden">
-			<div className="py-3 px-4 border-b flex items-center flex-shrink-0">
-				<div className="flex items-center gap-3">
-					<Avatar>
-						<AvatarImage src={conversation.avatar} />
-						<AvatarFallback>{conversation.name.charAt(0)}</AvatarFallback>
-					</Avatar>
-					<div>
-						<h3 className="font-medium">{conversation.name}</h3>
-						<p className="text-xs text-muted-foreground">
-							{conversation.participants} participant
-							{conversation.participants !== 1 ? "s" : ""}
-							{conversation.isActive ? " • Active now" : ""}
-						</p>
+			<div className="p-4 border-b flex items-center gap-3">
+				{conversation ? (
+					<>
+						<Avatar>
+							<AvatarImage src={conversation.avatar} />
+							<AvatarFallback>
+								{conversation.name
+									.split(" ")
+									.map((n) => n[0])
+									.join("")
+									.toUpperCase()}
+							</AvatarFallback>
+						</Avatar>
+						<div>
+							<h2 className="text-base font-medium">{conversation.name}</h2>
+							<p className="text-sm text-muted-foreground">
+								{conversation.participants > 2
+									? `${conversation.participants} participants`
+									: "Direct message"}
+							</p>
+						</div>
+					</>
+				) : (
+					<div className="flex items-center">
+						<Loader2 className="h-5 w-5 text-muted-foreground animate-spin mr-2" />
+						<p className="text-muted-foreground">Loading conversation...</p>
 					</div>
-				</div>
+				)}
 			</div>
 
 			<div className="flex-1 overflow-y-auto overflow-x-hidden p-4">

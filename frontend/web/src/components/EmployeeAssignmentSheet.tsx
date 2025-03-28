@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Employee, EmployeesAPI, EmployeeLocationsAPI } from "@/api";
 import { Button } from "@/components/ui/button";
 import {
@@ -64,8 +64,8 @@ interface EmployeeAssignmentSheetProps {
 export function EmployeeAssignmentSheet({
 	locationId,
 	locationName,
-	allEmployees,
-	assignedEmployees,
+	allEmployees: propAllEmployees,
+	assignedEmployees: propAssignedEmployees,
 	onEmployeesAssigned,
 	trigger,
 	open: controlledOpen,
@@ -78,28 +78,91 @@ export function EmployeeAssignmentSheet({
 	const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
 	const [searchTerm, setSearchTerm] = useState("");
 	const [assignedCount, setAssignedCount] = useState(0);
+	const [allEmployees, setAllEmployees] = useState<Employee[]>(
+		propAllEmployees || []
+	);
+	const [assignedEmployees, setAssignedEmployees] = useState<Employee[]>(
+		propAssignedEmployees || []
+	);
+	const [isLoading, setIsLoading] = useState(false);
 
 	const isControlled = controlledOpen !== undefined;
 	const isOpened = isControlled ? controlledOpen : open;
 	const setIsOpened = isControlled ? setControlledOpen! : setOpen;
 
+	// Fetch employees when the sheet is opened
+	useEffect(() => {
+		if (
+			isOpened &&
+			(allEmployees.length === 0 || assignedEmployees.length === 0)
+		) {
+			fetchEmployees();
+		}
+	}, [isOpened]);
+
+	// Load employees from the API
+	const fetchEmployees = async () => {
+		setIsLoading(true);
+		try {
+			// Fetch all employees for the organization
+			const organizationId = "org-1"; // Default organization ID
+			const employees = await EmployeesAPI.getAll(organizationId);
+			setAllEmployees(employees);
+			console.log("Fetched employees:", employees);
+
+			// Get employees assigned to this location
+			if (locationId) {
+				const assignedEmployeeIds = await EmployeeLocationsAPI.getByLocationId(
+					locationId
+				);
+				const assignedList = employees.filter((emp) =>
+					assignedEmployeeIds.includes(emp.id)
+				);
+				setAssignedEmployees(assignedList);
+				console.log("Assigned employees:", assignedList);
+			}
+		} catch (error) {
+			console.error("Error fetching employees:", error);
+			toast.error("Failed to load employees");
+		} finally {
+			setIsLoading(false);
+		}
+	};
+
 	// Filter the employees for assignment
 	const getFilteredEmployeesForAssignment = () => {
-		// Get employees not already assigned to this location
-		const unassignedEmployees = allEmployees.filter(
-			(emp) => !assignedEmployees.some((assigned) => assigned.id === emp.id)
-		);
+		// If still loading, return empty array
+		if (isLoading) return [];
 
-		if (!searchTerm) return unassignedEmployees;
+		// Log available data for debugging
+		console.log("DEBUG - All employees:", allEmployees);
+		console.log("DEBUG - Assigned employees:", assignedEmployees);
 
-		// Filter by name if search term is present
-		return unassignedEmployees.filter((emp) =>
-			emp.name.toLowerCase().includes(searchTerm.toLowerCase())
-		);
+		// Show all employees instead of just unassigned ones
+		let employeesToShow = allEmployees;
+
+		// If there's a search term, filter by name
+		if (searchTerm) {
+			employeesToShow = allEmployees.filter((emp) =>
+				emp.name.toLowerCase().includes(searchTerm.toLowerCase())
+			);
+		}
+
+		console.log("DEBUG - Employees to show:", employeesToShow);
+		return employeesToShow;
 	};
 
 	// Toggle employee selection
 	const toggleEmployeeSelection = (employeeId: string) => {
+		// Don't toggle if the employee is already assigned
+		const isAlreadyAssigned = assignedEmployees.some(
+			(assigned) => assigned.id === employeeId
+		);
+
+		if (isAlreadyAssigned) {
+			return; // Don't allow toggling already assigned employees
+		}
+
 		setSelectedEmployees((prev) =>
 			prev.includes(employeeId)
 				? prev.filter((id) => id !== employeeId)
@@ -253,46 +316,73 @@ export function EmployeeAssignmentSheet({
 									className="mb-4"
 								/>
 
-								<div className="space-y-1">
-									{getFilteredEmployeesForAssignment().length > 0 ? (
-										getFilteredEmployeesForAssignment().map((employee) => (
-											<div
-												key={employee.id}
-												className="flex items-center gap-3 p-3 hover:bg-accent/10 rounded-md">
-												<Checkbox
-													id={`employee-${employee.id}`}
-													checked={selectedEmployees.includes(employee.id)}
-													onCheckedChange={() =>
-														toggleEmployeeSelection(employee.id)
-													}
-												/>
-												<Avatar className="h-8 w-8">
-													<AvatarImage
-														src={employee.avatar}
-														alt={employee.name}
-													/>
-													<AvatarFallback>
-														{employee.name.charAt(0)}
-													</AvatarFallback>
-												</Avatar>
-												<label
-													htmlFor={`employee-${employee.id}`}
-													className="flex-1 font-medium cursor-pointer">
-													{employee.name}
-												</label>
-												<span className="text-sm text-muted-foreground">
-													{employee.position || "Staff"}
-												</span>
+								{isLoading ? (
+									<div className="py-8 text-center">
+										<Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+										<p className="text-muted-foreground">
+											Loading employees...
+										</p>
+									</div>
+								) : (
+									<div className="space-y-1">
+										{getFilteredEmployeesForAssignment().length > 0 ? (
+											getFilteredEmployeesForAssignment().map((employee) => {
+												// Check if this employee is already assigned
+												const isAlreadyAssigned = assignedEmployees.some(
+													(assigned) => assigned.id === employee.id
+												);
+
+												return (
+													<div
+														key={employee.id}
+														className={`flex items-center gap-3 p-3 hover:bg-accent/10 rounded-md ${
+															isAlreadyAssigned ? "bg-accent/5" : ""
+														}`}>
+														<Checkbox
+															id={`employee-${employee.id}`}
+															checked={
+																selectedEmployees.includes(employee.id) ||
+																isAlreadyAssigned
+															}
+															disabled={isAlreadyAssigned}
+															onCheckedChange={() =>
+																toggleEmployeeSelection(employee.id)
+															}
+														/>
+														<Avatar className="h-8 w-8">
+															<AvatarImage
+																src={employee.avatar}
+																alt={employee.name}
+															/>
+															<AvatarFallback>
+																{employee.name.charAt(0)}
+															</AvatarFallback>
+														</Avatar>
+														<label
+															htmlFor={`employee-${employee.id}`}
+															className="flex-1 font-medium cursor-pointer">
+															{employee.name}
+															{isAlreadyAssigned && (
+																<span className="ml-2 text-xs text-primary">
+																	(Already assigned)
+																</span>
+															)}
+														</label>
+														<span className="text-sm text-muted-foreground">
+															{employee.position || "Staff"}
+														</span>
+													</div>
+												);
+											})
+										) : (
+											<div className="py-8 text-center text-muted-foreground">
+												{searchTerm
+													? "No employees match your search"
+													: "No employees available"}
 											</div>
-										))
-									) : (
-										<div className="py-8 text-center text-muted-foreground">
-											{searchTerm
-												? "No employees match your search"
-												: "No employees available for assignment"}
-										</div>
-									)}
-								</div>
+										)}
+									</div>
+								)}
 
 								<div className="flex justify-end space-x-2 pt-8">
 									<Button
@@ -304,7 +394,10 @@ export function EmployeeAssignmentSheet({
 									</Button>
 									<Button
 										onClick={assignEmployeesToLocation}
-										disabled={selectedEmployees.length === 0 || isSubmitting}>
+										disabled={
+											(selectedEmployees.length === 0 && !isLoading) ||
+											isSubmitting
+										}>
 										{isSubmitting ? (
 											<>
 												<Loader2 className="mr-2 h-4 w-4 animate-spin" />

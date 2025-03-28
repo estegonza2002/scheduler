@@ -110,7 +110,6 @@ export default function AppLayout() {
 	const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 	const organizationId = searchParams.get("organizationId") || "org-1";
 	const [organization, setOrganization] = useState<Organization | null>(null);
-	const { useSampleData, toggleSampleData } = useNotifications();
 	const [showLogoutDialog, setShowLogoutDialog] = useState(false);
 
 	// Pages with different layouts and actions

@@ -217,39 +217,20 @@ export function NotificationSheet() {
 		markAllAsRead,
 		dismissNotification,
 		dismissAllNotifications,
-		useSampleData,
 	} = useNotifications();
 
 	const [open, setOpen] = useState(false);
 
-	const displayNotifications = useSampleData
-		? sampleNotifications
-		: notifications;
-
-	const displayUnreadCount = useSampleData
-		? sampleNotifications.filter((n) => !n.isRead).length
-		: unreadCount;
-
 	const handleMarkAllAsRead = () => {
-		if (useSampleData) {
-			// Just for demonstration - no actual action
-		} else {
-			markAllAsRead();
-		}
+		markAllAsRead();
 	};
 
 	const handleDismissAll = () => {
-		if (useSampleData) {
-			// Just for demonstration - no actual action
-		} else {
-			dismissAllNotifications();
-		}
+		dismissAllNotifications();
 	};
 
 	const handleNotificationClick = (id: string, url?: string) => {
-		if (!useSampleData) {
-			markAsRead(id);
-		}
+		markAsRead(id);
 		if (url) {
 			setOpen(false);
 		}
@@ -265,7 +246,7 @@ export function NotificationSheet() {
 					size="icon"
 					className="relative rounded-full">
 					<Bell className="h-5 w-5" />
-					{displayUnreadCount > 0 && (
+					{unreadCount > 0 && (
 						<div className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 bg-destructive rounded-full" />
 					)}
 				</Button>
@@ -290,8 +271,8 @@ export function NotificationSheet() {
 								onClick={handleMarkAllAsRead}
 								disabled={
 									loading ||
-									displayNotifications.length === 0 ||
-									displayNotifications.every((n) => n.isRead)
+									notifications.length === 0 ||
+									notifications.every((n) => n.isRead)
 								}>
 								Mark all read
 							</Button>
@@ -300,15 +281,15 @@ export function NotificationSheet() {
 								size="sm"
 								className="text-sm h-8 rounded-full"
 								onClick={handleDismissAll}
-								disabled={loading || displayNotifications.length === 0}>
+								disabled={loading || notifications.length === 0}>
 								Clear all
 							</Button>
 						</div>
-						{displayUnreadCount > 0 && (
+						{unreadCount > 0 && (
 							<Badge
 								variant="secondary"
 								className="px-2.5">
-								{displayUnreadCount} unread
+								{unreadCount} unread
 							</Badge>
 						)}
 					</div>
@@ -319,7 +300,7 @@ export function NotificationSheet() {
 								<div className="flex items-center justify-center p-6">
 									<div className="animate-spin rounded-full h-5 w-5 border-2 border-b-transparent border-primary"></div>
 								</div>
-							) : displayNotifications.length === 0 ? (
+							) : notifications.length === 0 ? (
 								<div className="flex flex-col items-center justify-center p-8 text-center">
 									<div className="bg-muted/30 p-3 rounded-full mb-3">
 										<Bell className="h-7 w-7 text-muted-foreground" />
@@ -331,13 +312,12 @@ export function NotificationSheet() {
 								</div>
 							) : (
 								<div>
-									{displayNotifications.map((notification) => (
+									{notifications.map((notification) => (
 										<NotificationItem
 											key={notification.id}
 											notification={notification}
 											onMarkAsRead={markAsRead}
 											onDismiss={dismissNotification}
-											useSampleData={useSampleData}
 											compact={true}
 										/>
 									))}

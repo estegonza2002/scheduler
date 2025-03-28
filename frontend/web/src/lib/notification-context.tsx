@@ -3,10 +3,6 @@ import { Notification, NotificationsAPI } from "@/api";
 import { useAuth } from "./auth";
 import { toast } from "sonner";
 
-// Import the USE_MOCK_API value from the constants file
-// This ensures the toggle is in one place only
-import { USE_MOCK_API } from "../constants";
-
 type NotificationContextType = {
 	notifications: Notification[];
 	unreadCount: number;
@@ -17,8 +13,6 @@ type NotificationContextType = {
 	dismissNotification: (id: string) => Promise<void>;
 	dismissAllNotifications: () => Promise<void>;
 	refreshNotifications: () => Promise<void>;
-	useSampleData: boolean;
-	toggleSampleData: () => void;
 };
 
 const NotificationContext = createContext<NotificationContextType | undefined>(
@@ -33,10 +27,6 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<Error | null>(null);
 
-	// Use the global mock API toggle instead of having a separate state
-	// This way we only have one place to toggle sample data
-	const [useSampleData, setUseSampleData] = useState(USE_MOCK_API);
-
 	const unreadCount = notifications.filter(
 		(n: Notification) => !n.isRead
 	).length;
@@ -49,7 +39,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
 			setNotifications([]);
 			setLoading(false);
 		}
-	}, [user, useSampleData]);
+	}, [user]);
 
 	// Set up a polling mechanism for real-time updates
 	useEffect(() => {
@@ -204,8 +194,6 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
 				dismissNotification,
 				dismissAllNotifications,
 				refreshNotifications,
-				useSampleData,
-				toggleSampleData: () => setUseSampleData((prev: boolean) => !prev),
 			}}>
 			{children}
 		</NotificationContext.Provider>

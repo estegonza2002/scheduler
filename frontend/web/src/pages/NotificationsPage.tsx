@@ -201,7 +201,6 @@ export default function NotificationsPage() {
 		dismissNotification,
 		dismissAllNotifications,
 		refreshNotifications,
-		useSampleData,
 	} = useNotifications();
 
 	// Table filters

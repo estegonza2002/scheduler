@@ -7,6 +7,7 @@ import {
 	Employee,
 	ShiftsAPI,
 	Shift,
+	EmployeeLocationsAPI,
 } from "@/api";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, UserPlus, X } from "lucide-react";
@@ -65,13 +66,17 @@ export default function LocationEmployeesPage() {
 				const organizationId = "org-1"; // Default organization ID
 				const employees = await EmployeesAPI.getAll(organizationId);
 
-				// Filter by location assignment (for demo purposes)
-				const assignedEmployees = employees.filter((employee) => {
-					// @ts-ignore - locationAssignment is a custom property we're assuming exists
-					return employee.locationAssignment === locationId;
-				});
+				// Get employee IDs assigned to this location using the proper API
+				const assignedEmployeeIds = await EmployeeLocationsAPI.getByLocationId(
+					locationId
+				);
 
-				setAssignedEmployees(assignedEmployees);
+				// Filter employees to those assigned to this location
+				const assignedEmployeesList = employees.filter((employee) =>
+					assignedEmployeeIds.includes(employee.id)
+				);
+
+				setAssignedEmployees(assignedEmployeesList);
 				setAllEmployees(employees);
 
 				// Fetch shifts for this location (for insights)
@@ -132,15 +137,14 @@ export default function LocationEmployeesPage() {
 					description="Retrieving employee information"
 					showBackButton={true}
 				/>
-				
-					<ContentContainer>
-						<LoadingState
-							type="spinner"
-							message={`Loading ${loadingPhase}...`}
-							className="py-12"
-						/>
-					</ContentContainer>
-				
+
+				<ContentContainer>
+					<LoadingState
+						type="spinner"
+						message={`Loading ${loadingPhase}...`}
+						className="py-12"
+					/>
+				</ContentContainer>
 			</>
 		);
 	}
@@ -153,26 +157,25 @@ export default function LocationEmployeesPage() {
 					description="The requested location could not be found"
 					showBackButton={true}
 				/>
-				
-					<ContentContainer>
-						<ContentSection
-							title="Location not found"
-							description="The requested location could not be found."
-							footer={
-								<Button
-									variant="outline"
-									onClick={() => navigate("/locations")}
-									className="mt-2">
-									Back to Locations
-								</Button>
-							}>
-							<p>
-								The location you're looking for may have been removed or doesn't
-								exist.
-							</p>
-						</ContentSection>
-					</ContentContainer>
-				
+
+				<ContentContainer>
+					<ContentSection
+						title="Location not found"
+						description="The requested location could not be found."
+						footer={
+							<Button
+								variant="outline"
+								onClick={() => navigate("/locations")}
+								className="mt-2">
+								Back to Locations
+							</Button>
+						}>
+						<p>
+							The location you're looking for may have been removed or doesn't
+							exist.
+						</p>
+					</ContentSection>
+				</ContentContainer>
 			</>
 		);
 	}
@@ -196,7 +199,7 @@ export default function LocationEmployeesPage() {
 						}}
 						trigger={
 							<Button size="sm">
-								<UserPlus className="h-4 w-4 mr-2" /> Assign Employees
+								<UserPlus className="h-4 w-4 mr-2" /> Assign Employee
 							</Button>
 						}
 					/>
@@ -204,70 +207,68 @@ export default function LocationEmployeesPage() {
 				showBackButton={true}
 			/>
 
-			
-				<ContentContainer>
-					<LocationSubNav
-						locationId={locationId || ""}
-						locationName={location.name}
-					/>
+			<ContentContainer>
+				<LocationSubNav
+					locationId={locationId || ""}
+					locationName={location.name}
+				/>
 
-					<div className="mt-6">
-						<div className="grid gap-6">
-							{/* Employees Section */}
-							<ContentSection
-								title="Assigned Employees"
-								description="Employees assigned to this location">
-								{assignedEmployees.length > 0 ? (
-									<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-										{assignedEmployees.map((employee) => (
-											<div
-												key={employee.id}
-												className="flex items-center gap-3 p-3 border rounded-lg hover:bg-accent/5">
-												<Avatar className="h-10 w-10">
-													<AvatarImage
-														src={employee.avatar}
-														alt={employee.name}
-													/>
-													<AvatarFallback>
-														{employee.name.charAt(0)}
-													</AvatarFallback>
-												</Avatar>
-												<div className="flex-1">
-													<div className="font-medium">{employee.name}</div>
-													<div className="text-sm text-muted-foreground">
-														{employee.position || "Staff"}
-													</div>
+				<div className="mt-6">
+					<div className="grid gap-6">
+						{/* Employees Section */}
+						<ContentSection
+							title="Assigned Employees"
+							description="Employees assigned to this location">
+							{assignedEmployees.length > 0 ? (
+								<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+									{assignedEmployees.map((employee) => (
+										<div
+											key={employee.id}
+											className="flex items-center gap-3 p-3 border rounded-lg hover:bg-accent/5">
+											<Avatar className="h-10 w-10">
+												<AvatarImage
+													src={employee.avatar}
+													alt={employee.name}
+												/>
+												<AvatarFallback>
+													{employee.name.charAt(0)}
+												</AvatarFallback>
+											</Avatar>
+											<div className="flex-1">
+												<div className="font-medium">{employee.name}</div>
+												<div className="text-sm text-muted-foreground">
+													{employee.position || "Staff"}
 												</div>
-												<Button
-													variant="ghost"
-													size="icon"
-													className="text-muted-foreground hover:text-destructive"
-													onClick={() => {
-														setRemoveEmployeeId(employee.id);
-														setRemoveEmployeeDialogOpen(true);
-													}}>
-													<X className="h-4 w-4" />
-												</Button>
 											</div>
-										))}
-									</div>
-								) : (
-									<div className="py-12 flex flex-col items-center justify-center text-center text-muted-foreground">
-										<Users className="h-12 w-12 mb-4 opacity-20" />
-										<h3 className="text-lg font-medium mb-1">
-											No employees assigned
-										</h3>
-										<p className="max-w-md">
-											No employees have been assigned to this location yet.
-											Click the "Assign Employees" button to add employees.
-										</p>
-									</div>
-								)}
-							</ContentSection>
-						</div>
+											<Button
+												variant="ghost"
+												size="icon"
+												className="text-muted-foreground hover:text-destructive"
+												onClick={() => {
+													setRemoveEmployeeId(employee.id);
+													setRemoveEmployeeDialogOpen(true);
+												}}>
+												<X className="h-4 w-4" />
+											</Button>
+										</div>
+									))}
+								</div>
+							) : (
+								<div className="py-12 flex flex-col items-center justify-center text-center text-muted-foreground">
+									<Users className="h-12 w-12 mb-4 opacity-20" />
+									<h3 className="text-lg font-medium mb-1">
+										No employees assigned
+									</h3>
+									<p className="max-w-md">
+										No employees have been assigned to this location yet. Click
+										the "Assign Employees" button to add employees.
+									</p>
+								</div>
+							)}
+						</ContentSection>
 					</div>
-				</ContentContainer>
-			
+				</div>
+			</ContentContainer>
 
 			{/* Confirmation Dialog */}
 			<AlertDialog
