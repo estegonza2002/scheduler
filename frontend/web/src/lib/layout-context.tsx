@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, ReactNode } from "react";
+import { useHeader } from "./header-context";
 
-// Note: This context is now deprecated as we've moved to page-specific headers
-// It's kept for backward compatibility with existing pages
+// DEPRECATED: This entire module is deprecated
+// Please use the new HeaderProvider and useHeader() from header-context.tsx instead
 
 interface PageHeaderInfo {
 	title: string;
@@ -24,7 +25,7 @@ export function LayoutProvider({ children }: { children: ReactNode }) {
 	const updatePageHeader = (headerInfo: PageHeaderInfo) => {
 		// Add a console warning to indicate deprecation
 		console.warn(
-			"LayoutContext.updatePageHeader is deprecated. Please use the PageHeader component directly in your page component instead."
+			"DEPRECATED: LayoutContext.updatePageHeader is deprecated. Please use the useHeader() hook from header-context.tsx instead."
 		);
 
 		// Only update if the values are actually different
@@ -45,15 +46,40 @@ export function LayoutProvider({ children }: { children: ReactNode }) {
 }
 
 export function useLayout() {
-	const context = useContext(LayoutContext);
-	if (context === undefined) {
-		throw new Error("useLayout must be used within a LayoutProvider");
+	// Try to use the new header context first if available
+	try {
+		const headerContext = useHeader();
+		console.warn(
+			"DEPRECATED: useLayout is deprecated. The call has been redirected to useHeader(), but you should update your code to use useHeader() directly."
+		);
+
+		// Create a compatibility layer that maps new to old
+		return {
+			pageHeader: {
+				title: headerContext.headerContent.title,
+				description: headerContext.headerContent.description,
+				actions: headerContext.headerContent.actions,
+			},
+			updatePageHeader: (headerInfo: PageHeaderInfo) => {
+				headerContext.updateHeader({
+					title: headerInfo.title,
+					description: headerInfo.description,
+					actions: headerInfo.actions,
+				});
+			},
+		};
+	} catch (e) {
+		// Fall back to legacy context if new context is not available
+		const context = useContext(LayoutContext);
+		if (context === undefined) {
+			throw new Error("useLayout must be used within a LayoutProvider");
+		}
+
+		// Add a console warning about deprecation
+		console.warn(
+			"DEPRECATED: useLayout is deprecated. Please use the useHeader() hook from header-context.tsx instead."
+		);
+
+		return context;
 	}
-
-	// Add a console warning about deprecation
-	console.warn(
-		"useLayout is deprecated. Please use the PageHeader component directly in your page component instead."
-	);
-
-	return context;
 }

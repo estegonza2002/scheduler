@@ -7,18 +7,27 @@ import { calculateHours } from "@/utils/time-calculations";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { PageHeader } from "@/components/ui/page-header";
 import { ContentContainer } from "@/components/ui/content-container";
 import { ContentSection } from "@/components/ui/content-section";
 import { LoadingState } from "@/components/ui/loading-state";
+import { useHeader } from "@/lib/header-context";
 
 export default function MyShiftsPage() {
+	const { updateHeader } = useHeader();
 	const { user } = useAuth();
 	const userId = user?.id;
 	const [isLoading, setIsLoading] = useState(true);
 	const [shifts, setShifts] = useState<Shift[]>([]);
 	const [locations, setLocations] = useState<Record<string, Location>>({});
 	const now = new Date();
+
+	// Set the page header
+	useEffect(() => {
+		updateHeader({
+			title: "My Shifts",
+			description: "View your current, upcoming, and previous shifts",
+		});
+	}, [updateHeader]);
 
 	useEffect(() => {
 		const fetchUserShifts = async () => {
@@ -137,12 +146,6 @@ export default function MyShiftsPage() {
 	if (isLoading) {
 		return (
 			<ContentContainer>
-				<div className="mb-6">
-					<h1 className="text-2xl font-bold tracking-tight">My Shifts</h1>
-					<p className="mt-2 text-muted-foreground">
-						View your current, upcoming, and previous shifts
-					</p>
-				</div>
 				<LoadingState
 					type="spinner"
 					message="Loading shift information..."
@@ -154,13 +157,6 @@ export default function MyShiftsPage() {
 
 	return (
 		<ContentContainer>
-			<div className="mb-6">
-				<h1 className="text-2xl font-bold tracking-tight">My Shifts</h1>
-				<p className="mt-2 text-muted-foreground">
-					View your current, upcoming, and previous shifts
-				</p>
-			</div>
-
 			<ContentSection title="My Shifts">
 				<div className="space-y-6">
 					{/* Current Shifts Section */}

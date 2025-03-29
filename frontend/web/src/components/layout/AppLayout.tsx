@@ -42,6 +42,10 @@ import {
 	CardDescription,
 	CardFooter,
 } from "../ui/card";
+import { Button } from "../ui/button";
+import { ChevronLeft } from "lucide-react";
+import { HeaderProvider, useHeader } from "../../lib/header-context";
+import { SidebarTrigger } from "../ui/sidebar";
 
 // Common props type for app layout components
 type CommonProps = {
@@ -49,13 +53,97 @@ type CommonProps = {
 	className?: string;
 };
 
+// Global header component that uses the HeaderContext
+function GlobalHeader() {
+	const { headerContent } = useHeader();
+	const { toggleSidebar: toggleSidebarInternal } = useSidebar();
+	const navigate = useNavigate();
+	const location = useLocation();
+
+	// List of top-level pages that shouldn't show a back button
+	const TOP_LEVEL_PAGES = [
+		"/dashboard",
+		"/admin-dashboard",
+		"/daily-shifts",
+		"/schedule",
+		"/employees",
+		"/locations",
+		"/shifts",
+		"/profile",
+		"/business-profile",
+		"/billing",
+		"/branding",
+		"/notifications",
+		"/messages",
+		"/reports",
+		"/my-shifts",
+	];
+
+	// Determine if current page should show back button
+	const isTopLevelPage = TOP_LEVEL_PAGES.some(
+		(path) =>
+			location.pathname === path || location.pathname.startsWith(`${path}/`)
+	);
+
+	// Use explicit showBackButton from header content if provided, otherwise determine based on page
+	const shouldShowBackButton =
+		headerContent.showBackButton === true ||
+		(headerContent.showBackButton !== false && !isTopLevelPage);
+
+	const handleGoBack = () => {
+		navigate(-1);
+	};
+
+	return (
+		<header className="sticky top-0 flex h-16 shrink-0 items-center border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 z-40">
+			<div className="flex flex-1 items-center">
+				<div className="flex items-center gap-2">
+					<SidebarTrigger
+						className="-ml-1"
+						onClick={(e) => {
+							e.stopPropagation();
+							toggleSidebarInternal();
+						}}
+					/>
+					{shouldShowBackButton && (
+						<Button
+							variant="ghost"
+							size="icon"
+							onClick={handleGoBack}
+							className="h-8 w-8"
+							title="Go back">
+							<ChevronLeft className="h-5 w-5" />
+						</Button>
+					)}
+				</div>
+				<div className="mx-4">
+					<h1 className="text-lg font-semibold">{headerContent.title}</h1>
+					{headerContent.description && (
+						<p className="text-xs text-muted-foreground">
+							{headerContent.description}
+						</p>
+					)}
+				</div>
+			</div>
+			{headerContent.actions && (
+				<div className="flex items-center justify-end gap-3">
+					{headerContent.actions}
+				</div>
+			)}
+		</header>
+	);
+}
+
 // Layout content component that can access the sidebar context
 function LayoutContent() {
 	return (
 		<SidebarInset>
-			<main className="flex-1 overflow-auto w-full transition-all duration-200">
-				<Outlet />
-			</main>
+			<div className="flex flex-col h-full">
+				<GlobalHeader />
+				<main className="flex-1 overflow-auto w-full transition-all duration-200">
+					<Outlet />
+				</main>
+			</div>
 		</SidebarInset>
 	);
 }
@@ -113,7 +201,6 @@ export default function AppLayout() {
 	const location = useLocation();
 	const navigate = useNavigate();
 	const [searchParams, setSearchParams] = useSearchParams();
-	const { pageHeader } = useLayout();
 	const { signOut } = useAuth();
 	const [currentDate, setCurrentDate] = useState<Date>(() => {
 		const dateParam = searchParams.get("date");
@@ -123,6 +210,14 @@ export default function AppLayout() {
 	const organizationId = searchParams.get("organizationId") || "org-1";
 	const [organization, setOrganization] = useState<Organization | null>(null);
 	const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+
+	// Read sidebar state from cookie or default to expanded
+	const [defaultSidebarOpen, setDefaultSidebarOpen] = useState(() => {
+		const sidebarCookie = document.cookie
+			.split("; ")
+			.find((row) => row.startsWith("sidebar_state="));
+		return sidebarCookie ? sidebarCookie.split("=")[1] === "true" : true;
+	});
 
 	// Pages with different layouts and actions
 	const isCheckoutPage = location.pathname === "/checkout";
@@ -137,8 +232,6 @@ export default function AppLayout() {
 
 	// Determines if the page should have a secondary sidebar
 	const hasSecondarySidebar = isMessagesPage || isShiftDetailsPage;
-
-	// Hide certain elements on auth pages
 
 	// Check if we're on specific pages
 	const isAdminDashboardPage = location.pathname === "/admin-dashboard";
@@ -186,13 +279,15 @@ export default function AppLayout() {
 	};
 
 	return (
-		<SidebarProvider>
-			<Sidebar className="w-64">
-				<AppSidebar />
-			</Sidebar>
-			<LayoutContent />
-			{/* Onboarding modal - shown globally for new users */}
-			<OnboardingModal />
-		</SidebarProvider>
+		<HeaderProvider>
+			<SidebarProvider defaultOpen={defaultSidebarOpen}>
+				<Sidebar className="w-64">
+					<AppSidebar />
+				</Sidebar>
+				<LayoutContent />
+				{/* Onboarding modal - shown globally for new users */}
+				<OnboardingModal />
+			</SidebarProvider>
+		</HeaderProvider>
 	);
 }

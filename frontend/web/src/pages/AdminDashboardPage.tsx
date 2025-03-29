@@ -35,11 +35,11 @@ import {
 	TooltipContent,
 } from "@/components/ui/tooltip";
 import { OnboardingReminder } from "@/components/onboarding/OnboardingReminder";
-import { PageHeader } from "@/components/ui/page-header";
 import { LoadingState } from "@/components/ui/loading-state";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { DollarSign, Users, Calendar } from "lucide-react";
+import { useHeader } from "@/lib/header-context";
 
 // Extended organization type for UI display purposes
 interface ExtendedOrganization extends Organization {
@@ -57,6 +57,7 @@ interface WeeklyStats {
 export default function AdminDashboardPage() {
 	const { user } = useAuth();
 	const {} = useLayout();
+	const { updateHeader } = useHeader();
 	const {
 		onboardingState,
 		startOnboarding,
@@ -83,6 +84,45 @@ export default function AdminDashboardPage() {
 		locationPerformance: [],
 	});
 	const navigate = useNavigate();
+
+	// Update header with title, description, and action buttons
+	useEffect(() => {
+		const headerActions = (
+			<>
+				<Button
+					variant="outline"
+					onClick={() => startOnboarding()}
+					className="mr-2">
+					<Settings className="h-4 w-4 mr-2" />
+					Setup Guide ({getCompletedStepsCount()}/{getTotalStepsCount()})
+				</Button>
+				<Button onClick={() => navigate("/schedule/create")}>
+					<Plus className="h-4 w-4 mr-2" />
+					Create Schedule
+				</Button>
+			</>
+		);
+
+		if (loading) {
+			updateHeader({
+				title: "Loading Dashboard",
+				description: "Retrieving your business data",
+			});
+		} else {
+			updateHeader({
+				title: "Business Dashboard",
+				description: "Manage your business operations and view key metrics",
+				actions: headerActions,
+			});
+		}
+	}, [
+		loading,
+		updateHeader,
+		startOnboarding,
+		getCompletedStepsCount,
+		getTotalStepsCount,
+		navigate,
+	]);
 
 	useEffect(() => {
 		const fetchData = async () => {
@@ -237,102 +277,64 @@ export default function AdminDashboardPage() {
 	};
 
 	if (loading) {
-		return (
-			<>
-				<div className="mb-6">
-					<h1 className="text-2xl font-bold tracking-tight">
-						Loading Dashboard
-					</h1>
-					<p className="mt-2 text-muted-foreground">
-						Retrieving your business data
-					</p>
-				</div>
-				<ContentContainer>{renderLoadingState()}</ContentContainer>
-			</>
-		);
+		return <ContentContainer>{renderLoadingState()}</ContentContainer>;
 	}
 
 	return (
-		<>
-			<div className="sticky top-0 flex h-16 shrink-0 items-center border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 z-40">
-				<div className="flex flex-1 items-center">
-					<div className="mx-4">
-						<h1 className="text-lg font-semibold">Business Dashboard</h1>
-						<p className="text-xs text-muted-foreground">
-							Manage your business operations and view key metrics
-						</p>
-					</div>
-				</div>
-				<div className="flex items-center justify-end gap-3">
-					<Button
-						variant="outline"
-						onClick={() => startOnboarding()}
-						className="mr-2">
-						<Settings className="h-4 w-4 mr-2" />
-						Setup Guide ({getCompletedStepsCount()}/{getTotalStepsCount()})
-					</Button>
-					<Button onClick={() => navigate("/schedule/create")}>
-						<Plus className="h-4 w-4 mr-2" />
-						Create Schedule
-					</Button>
-				</div>
-			</div>
+		<ContentContainer>
+			<OnboardingReminder />
 
-			<ContentContainer>
-				<OnboardingReminder />
-
-				{/* Quick Actions Section */}
-				<ContentSection
-					title="Quick Actions"
-					description="Common tasks you might want to perform"
-					className="mb-6 mt-6">
-					<div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-						{organization && (
-							<EmployeeSheet
-								organizationId={organization.id}
-								onEmployeeUpdated={handleEmployeeAdded}
-								trigger={
-									<Button
-										variant="outline"
-										className="h-24 flex flex-col items-center justify-center w-full gap-2 text-sm hover:border-primary hover:text-primary">
-										<UserPlus className="h-6 w-6" />
-										<span>Add Employee</span>
-									</Button>
-								}
-							/>
-						)}
-						{organization && (
-							<LocationCreationSheet
-								organizationId={organization.id}
-								onLocationCreated={handleLocationCreated}
-								trigger={
-									<Button
-										variant="outline"
-										className="h-24 flex flex-col items-center justify-center w-full gap-2 text-sm hover:border-primary hover:text-primary">
-										<MapPin className="h-6 w-6" />
-										<span>Create Location</span>
-									</Button>
-								}
-							/>
-						)}
-						{organization && (
-							<ShiftCreationSheet
-								scheduleId={currentSchedule || "sch-6"}
-								organizationId={organization.id}
-								initialDate={new Date()}
-								trigger={
-									<Button
-										variant="outline"
-										className="h-24 flex flex-col items-center justify-center w-full gap-2 text-sm hover:border-primary hover:text-primary">
-										<CalendarClock className="h-6 w-6" />
-										<span>Schedule Shift</span>
-									</Button>
-								}
-							/>
-						)}
-					</div>
-				</ContentSection>
-			</ContentContainer>
-		</>
+			{/* Quick Actions Section */}
+			<ContentSection
+				title="Quick Actions"
+				description="Common tasks you might want to perform"
+				className="mb-6 mt-6">
+				<div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+					{organization && (
+						<EmployeeSheet
+							organizationId={organization.id}
+							onEmployeeUpdated={handleEmployeeAdded}
+							trigger={
+								<Button
+									variant="outline"
+									className="h-24 flex flex-col items-center justify-center w-full gap-2 text-sm hover:border-primary hover:text-primary">
+									<UserPlus className="h-6 w-6" />
+									<span>Add Employee</span>
+								</Button>
+							}
+						/>
+					)}
+					{organization && (
+						<LocationCreationSheet
+							organizationId={organization.id}
+							onLocationCreated={handleLocationCreated}
+							trigger={
+								<Button
+									variant="outline"
+									className="h-24 flex flex-col items-center justify-center w-full gap-2 text-sm hover:border-primary hover:text-primary">
+									<MapPin className="h-6 w-6" />
+									<span>Create Location</span>
+								</Button>
+							}
+						/>
+					)}
+					{organization && (
+						<ShiftCreationSheet
+							scheduleId={currentSchedule || "sch-6"}
+							organizationId={organization.id}
+							initialDate={new Date()}
+							trigger={
+								<Button
+									variant="outline"
+									className="h-24 flex flex-col items-center justify-center w-full gap-2 text-sm hover:border-primary hover:text-primary">
+									<CalendarClock className="h-6 w-6" />
+									<span>Schedule Shift</span>
+								</Button>
+							}
+						/>
+					)}
+				</div>
+			</ContentSection>
+		</ContentContainer>
 	);
 }

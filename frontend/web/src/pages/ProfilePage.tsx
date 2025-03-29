@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -28,6 +28,7 @@ import { FormSection } from "@/components/ui/form-section";
 import { Switch } from "@/components/ui/switch";
 import { FormDescription } from "@/components/ui/form";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useHeader } from "@/lib/header-context";
 
 // Get the Supabase URL from environment or use a fallback
 const supabaseUrl =
@@ -949,17 +950,19 @@ function PreferencesTab() {
 }
 
 export default function ProfilePage() {
+	const { updateHeader } = useHeader();
+
+	// Set page header
+	useEffect(() => {
+		updateHeader({
+			title: "Profile Settings",
+			description: "Manage your account settings and preferences",
+		});
+	}, [updateHeader]);
+
 	return (
 		<AppContent>
 			<div className="w-full py-6">
-				<div className="mb-6">
-					<h1 className="text-3xl font-bold tracking-tight">
-						Profile Settings
-					</h1>
-					<p className="text-muted-foreground mt-1">
-						Manage your account settings and preferences.
-					</p>
-				</div>
 				<Tabs
 					defaultValue="profile"
 					className="w-full">

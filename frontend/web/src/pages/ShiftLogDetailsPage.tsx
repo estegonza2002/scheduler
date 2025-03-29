@@ -37,11 +37,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ColumnDef } from "@tanstack/react-table";
 import { ShiftsAPI, LocationsAPI, Employee, Location, Shift } from "@/api";
 import { useParams, useNavigate } from "react-router-dom";
-import {
-	AppHeader,
-	AppTitle,
-	AppDescription,
-} from "@/components/layout/AppLayout";
+import { useHeader } from "@/lib/header-context";
 
 // Define the ShiftLog type that combines Shift with employee and location info
 interface ShiftLog {
@@ -137,6 +133,7 @@ const columns: ColumnDef<ShiftLog>[] = [
 
 export function ShiftLogDetailsPage() {
 	const { organizationId } = useParams<{ organizationId: string }>();
+	const { updateHeader } = useHeader();
 	const [searchQuery, setSearchQuery] = useState("");
 	const [dateRange, setDateRange] = useState<{
 		from: Date | undefined;
@@ -287,250 +284,236 @@ export function ShiftLogDetailsPage() {
 			statusFilter !== "all"
 	);
 
-	// Action for the page header
-	const headerActions = (
-		<ExportDropdown
-			data={filteredShifts}
-			filename="shift-details-export"
-			headers={[
-				"employee",
-				"date",
-				"startTime",
-				"endTime",
-				"location",
-				"status",
-				"planned_hours",
-				"actual_hours",
-			]}
-		/>
-	);
+	// Update the header content
+	useEffect(() => {
+		// Action for the page header
+		const headerActions = (
+			<ExportDropdown
+				data={filteredShifts}
+				filename="shift-details-export"
+				headers={[
+					"employee",
+					"date",
+					"startTime",
+					"endTime",
+					"location",
+					"status",
+					"planned_hours",
+					"actual_hours",
+				]}
+			/>
+		);
+
+		updateHeader({
+			title: "Shift Log Details",
+			description: "View and analyze detailed shift history records",
+			actions: headerActions,
+			showBackButton: true,
+		});
+	}, [filteredShifts, updateHeader]);
 
 	const navigate = useNavigate();
 
 	return (
-		<>
-			<AppHeader>
-				<div className="flex justify-between w-full">
-					<div className="flex items-center">
-						<Button
-							variant="ghost"
-							size="icon"
-							onClick={() => navigate(-1)}
-							className="h-8 w-8 mr-2"
-							title="Go back">
-							<ChevronLeft className="h-5 w-5" />
-						</Button>
-						<div>
-							<AppTitle>Shift Log Details</AppTitle>
-							<AppDescription>
-								View and analyze detailed shift history records
-							</AppDescription>
-						</div>
+		<ContentContainer>
+			<ContentSection
+				title="Shift History Details"
+				description="View and analyze past shifts, including planned vs. actual hours worked.">
+				<Tabs
+					value={currentTab}
+					onValueChange={setCurrentTab}
+					className="space-y-4">
+					<div className="flex flex-col md:flex-row justify-between space-y-4 md:space-y-0 mb-4">
+						<TabsList>
+							<TabsTrigger value="all">All Shifts</TabsTrigger>
+							<TabsTrigger value="variance">Hours Variance</TabsTrigger>
+						</TabsList>
 					</div>
-					<div>{headerActions}</div>
-				</div>
-			</AppHeader>
 
-			<ContentContainer>
-				<ContentSection
-					title="Shift History Details"
-					description="View and analyze past shifts, including planned vs. actual hours worked.">
-					<Tabs
-						value={currentTab}
-						onValueChange={setCurrentTab}
-						className="space-y-4">
-						<div className="flex flex-col md:flex-row justify-between space-y-4 md:space-y-0 mb-4">
-							<TabsList>
-								<TabsTrigger value="all">All Shifts</TabsTrigger>
-								<TabsTrigger value="variance">Hours Variance</TabsTrigger>
-							</TabsList>
-						</div>
-
-						{/* Advanced FilterGroup for date range and status */}
-						<FilterGroup
-							filtersActive={Boolean(
-								dateRange.from || dateRange.to || statusFilter !== "all"
-							)}
-							onClearFilters={() => {
-								setDateRange({ from: undefined, to: undefined });
-								setStatusFilter("all");
-							}}
-							className="mt-4 mb-4">
-							<div className="flex flex-col sm:flex-row gap-3">
-								<Popover>
-									<PopoverTrigger asChild>
-										<Button
-											variant="outline"
-											className={cn(
-												"w-full sm:w-auto justify-start text-left font-normal",
-												!dateRange.from && "text-muted-foreground"
-											)}>
-											<CalendarIcon className="mr-2 h-4 w-4" />
-											{dateRange.from
-												? format(dateRange.from, "PPP")
-												: "Start Date"}
-										</Button>
-									</PopoverTrigger>
-									<PopoverContent className="w-auto p-0">
-										<Calendar
-											mode="single"
-											selected={dateRange.from}
-											onSelect={(date) =>
-												setDateRange((prev) => ({ ...prev, from: date }))
-											}
-											initialFocus
-										/>
-									</PopoverContent>
-								</Popover>
-
-								<Popover>
-									<PopoverTrigger asChild>
-										<Button
-											variant="outline"
-											className={cn(
-												"w-full sm:w-auto justify-start text-left font-normal",
-												!dateRange.to && "text-muted-foreground"
-											)}>
-											<CalendarIcon className="mr-2 h-4 w-4" />
-											{dateRange.to ? format(dateRange.to, "PPP") : "End Date"}
-										</Button>
-									</PopoverTrigger>
-									<PopoverContent className="w-auto p-0">
-										<Calendar
-											mode="single"
-											selected={dateRange.to}
-											onSelect={(date) =>
-												setDateRange((prev) => ({ ...prev, to: date }))
-											}
-											initialFocus
-										/>
-									</PopoverContent>
-								</Popover>
-
-								<Select
-									value={statusFilter}
-									onValueChange={setStatusFilter}>
-									<SelectTrigger className="w-full sm:w-[180px]">
-										<SelectValue placeholder="All Statuses" />
-									</SelectTrigger>
-									<SelectContent>
-										<SelectItem value="all">All Statuses</SelectItem>
-										{uniqueStatuses.map((status) => (
-											<SelectItem
-												key={status}
-												value={status}>
-												{status}
-											</SelectItem>
-										))}
-									</SelectContent>
-								</Select>
-							</div>
-						</FilterGroup>
-
-						{/* Filter badges display */}
-						{(dateRange.from || dateRange.to || statusFilter !== "all") && (
-							<div className="flex flex-wrap items-center gap-2 mb-4">
-								{dateRange.from && (
-									<Badge className="flex items-center gap-1.5 px-2.5 py-1 bg-muted hover:bg-muted border text-foreground">
-										<CalendarIcon className="h-3 w-3 text-muted-foreground" />
-										<span>From: {format(dateRange.from, "MMM d, yyyy")}</span>
-										<button
-											onClick={() =>
-												setDateRange((prev) => ({ ...prev, from: undefined }))
-											}
-											className="ml-1 rounded-full p-0.5 hover:bg-background/80 transition-colors"
-											aria-label="Remove start date filter">
-											<X className="h-3 w-3 text-muted-foreground" />
-										</button>
-									</Badge>
-								)}
-
-								{dateRange.to && (
-									<Badge className="flex items-center gap-1.5 px-2.5 py-1 bg-muted hover:bg-muted border text-foreground">
-										<CalendarIcon className="h-3 w-3 text-muted-foreground" />
-										<span>To: {format(dateRange.to, "MMM d, yyyy")}</span>
-										<button
-											onClick={() =>
-												setDateRange((prev) => ({ ...prev, to: undefined }))
-											}
-											className="ml-1 rounded-full p-0.5 hover:bg-background/80 transition-colors"
-											aria-label="Remove end date filter">
-											<X className="h-3 w-3 text-muted-foreground" />
-										</button>
-									</Badge>
-								)}
-
-								{statusFilter !== "all" && (
-									<Badge className="flex items-center gap-1.5 px-2.5 py-1 bg-muted hover:bg-muted border text-foreground">
-										<span>Status: {statusFilter}</span>
-										<button
-											onClick={() => setStatusFilter("all")}
-											className="ml-1 rounded-full p-0.5 hover:bg-background/80 transition-colors"
-											aria-label="Remove status filter">
-											<X className="h-3 w-3 text-muted-foreground" />
-										</button>
-									</Badge>
-								)}
-							</div>
+					{/* Advanced FilterGroup for date range and status */}
+					<FilterGroup
+						filtersActive={Boolean(
+							dateRange.from || dateRange.to || statusFilter !== "all"
 						)}
-
-						<TabsContent
-							value="all"
-							className="space-y-4">
-							{filteredShifts.length === 0 ? (
-								<EmptyState
-									icon={<SearchX className="h-10 w-10" />}
-									title="No shifts found"
-									description="No shifts match your current filters. Try adjusting your search criteria."
-									action={
-										<Button
-											variant="outline"
-											onClick={clearAllFilters}>
-											Clear filters
-										</Button>
-									}
-								/>
-							) : (
-								<>
-									<DataTable
-										columns={columns}
-										data={paginatedShifts}
+						onClearFilters={() => {
+							setDateRange({ from: undefined, to: undefined });
+							setStatusFilter("all");
+						}}
+						className="mt-4 mb-4">
+						<div className="flex flex-col sm:flex-row gap-3">
+							<Popover>
+								<PopoverTrigger asChild>
+									<Button
+										variant="outline"
+										className={cn(
+											"w-full sm:w-auto justify-start text-left font-normal",
+											!dateRange.from && "text-muted-foreground"
+										)}>
+										<CalendarIcon className="mr-2 h-4 w-4" />
+										{dateRange.from
+											? format(dateRange.from, "PPP")
+											: "Start Date"}
+									</Button>
+								</PopoverTrigger>
+								<PopoverContent className="w-auto p-0">
+									<Calendar
+										mode="single"
+										selected={dateRange.from}
+										onSelect={(date) =>
+											setDateRange((prev) => ({ ...prev, from: date }))
+										}
+										initialFocus
 									/>
-								</>
-							)}
-						</TabsContent>
+								</PopoverContent>
+							</Popover>
 
-						<TabsContent
-							value="variance"
-							className="space-y-4">
-							{filteredShifts.filter((s) => s.planned_hours !== s.actual_hours)
-								.length === 0 ? (
-								<EmptyState
-									icon={<SearchX className="h-10 w-10" />}
-									title="No shifts with variance found"
-									description="No shifts with hours variance match your current filters."
-									action={
-										<Button
-											variant="outline"
-											onClick={clearAllFilters}>
-											Clear filters
-										</Button>
-									}
-								/>
-							) : (
-								<>
-									<DataTable
-										columns={columns}
-										data={paginatedShifts.filter(
-											(s) => s.planned_hours !== s.actual_hours
-										)}
+							<Popover>
+								<PopoverTrigger asChild>
+									<Button
+										variant="outline"
+										className={cn(
+											"w-full sm:w-auto justify-start text-left font-normal",
+											!dateRange.to && "text-muted-foreground"
+										)}>
+										<CalendarIcon className="mr-2 h-4 w-4" />
+										{dateRange.to ? format(dateRange.to, "PPP") : "End Date"}
+									</Button>
+								</PopoverTrigger>
+								<PopoverContent className="w-auto p-0">
+									<Calendar
+										mode="single"
+										selected={dateRange.to}
+										onSelect={(date) =>
+											setDateRange((prev) => ({ ...prev, to: date }))
+										}
+										initialFocus
 									/>
-								</>
+								</PopoverContent>
+							</Popover>
+
+							<Select
+								value={statusFilter}
+								onValueChange={setStatusFilter}>
+								<SelectTrigger className="w-full sm:w-[180px]">
+									<SelectValue placeholder="All Statuses" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="all">All Statuses</SelectItem>
+									{uniqueStatuses.map((status) => (
+										<SelectItem
+											key={status}
+											value={status}>
+											{status}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+					</FilterGroup>
+
+					{/* Filter badges display */}
+					{(dateRange.from || dateRange.to || statusFilter !== "all") && (
+						<div className="flex flex-wrap items-center gap-2 mb-4">
+							{dateRange.from && (
+								<Badge className="flex items-center gap-1.5 px-2.5 py-1 bg-muted hover:bg-muted border text-foreground">
+									<CalendarIcon className="h-3 w-3 text-muted-foreground" />
+									<span>From: {format(dateRange.from, "MMM d, yyyy")}</span>
+									<button
+										onClick={() =>
+											setDateRange((prev) => ({ ...prev, from: undefined }))
+										}
+										className="ml-1 rounded-full p-0.5 hover:bg-background/80 transition-colors"
+										aria-label="Remove start date filter">
+										<X className="h-3 w-3 text-muted-foreground" />
+									</button>
+								</Badge>
 							)}
-						</TabsContent>
-					</Tabs>
-				</ContentSection>
-			</ContentContainer>
-		</>
+
+							{dateRange.to && (
+								<Badge className="flex items-center gap-1.5 px-2.5 py-1 bg-muted hover:bg-muted border text-foreground">
+									<CalendarIcon className="h-3 w-3 text-muted-foreground" />
+									<span>To: {format(dateRange.to, "MMM d, yyyy")}</span>
+									<button
+										onClick={() =>
+											setDateRange((prev) => ({ ...prev, to: undefined }))
+										}
+										className="ml-1 rounded-full p-0.5 hover:bg-background/80 transition-colors"
+										aria-label="Remove end date filter">
+										<X className="h-3 w-3 text-muted-foreground" />
+									</button>
+								</Badge>
+							)}
+
+							{statusFilter !== "all" && (
+								<Badge className="flex items-center gap-1.5 px-2.5 py-1 bg-muted hover:bg-muted border text-foreground">
+									<span>Status: {statusFilter}</span>
+									<button
+										onClick={() => setStatusFilter("all")}
+										className="ml-1 rounded-full p-0.5 hover:bg-background/80 transition-colors"
+										aria-label="Remove status filter">
+										<X className="h-3 w-3 text-muted-foreground" />
+									</button>
+								</Badge>
+							)}
+						</div>
+					)}
+
+					<TabsContent
+						value="all"
+						className="space-y-4">
+						{filteredShifts.length === 0 ? (
+							<EmptyState
+								icon={<SearchX className="h-10 w-10" />}
+								title="No shifts found"
+								description="No shifts match your current filters. Try adjusting your search criteria."
+								action={
+									<Button
+										variant="outline"
+										onClick={clearAllFilters}>
+										Clear filters
+									</Button>
+								}
+							/>
+						) : (
+							<>
+								<DataTable
+									columns={columns}
+									data={paginatedShifts}
+								/>
+							</>
+						)}
+					</TabsContent>
+
+					<TabsContent
+						value="variance"
+						className="space-y-4">
+						{filteredShifts.filter((s) => s.planned_hours !== s.actual_hours)
+							.length === 0 ? (
+							<EmptyState
+								icon={<SearchX className="h-10 w-10" />}
+								title="No shifts with variance found"
+								description="No shifts with hours variance match your current filters."
+								action={
+									<Button
+										variant="outline"
+										onClick={clearAllFilters}>
+										Clear filters
+									</Button>
+								}
+							/>
+						) : (
+							<>
+								<DataTable
+									columns={columns}
+									data={paginatedShifts.filter(
+										(s) => s.planned_hours !== s.actual_hours
+									)}
+								/>
+							</>
+						)}
+					</TabsContent>
+				</Tabs>
+			</ContentSection>
+		</ContentContainer>
 	);
 }

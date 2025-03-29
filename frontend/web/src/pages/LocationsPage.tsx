@@ -45,7 +45,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingState } from "@/components/ui/loading-state";
 import { LocationCreationSheet } from "@/components/LocationCreationSheet";
-import { PageHeader } from "@/components/ui/page-header";
+import { useHeader } from "@/lib/header-context";
 
 import { ContentContainer } from "@/components/ui/content-container";
 import { ContentSection } from "@/components/ui/content-section";
@@ -54,6 +54,7 @@ import { useOrganizationId } from "@/hooks/useOrganizationId";
 import { LocationFormDialog } from "@/components/LocationFormDialog";
 
 export default function LocationsPage() {
+	const { updateHeader } = useHeader();
 	const [searchParams] = useSearchParams();
 	const [loading, setLoading] = useState<boolean>(true);
 	const [loadingPhase, setLoadingPhase] = useState<string>("organization");
@@ -74,6 +75,14 @@ export default function LocationsPage() {
 	);
 	const [editDialogOpen, setEditDialogOpen] = useState(false);
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+	// Set the page header on component mount
+	useEffect(() => {
+		updateHeader({
+			title: "Locations",
+			description: "Manage your organization's locations",
+		});
+	}, [updateHeader]);
 
 	const handleLocationsAdded = useCallback((newLocations: Location[]) => {
 		setLocations((prev) => [...prev, ...newLocations]);

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import {
@@ -23,15 +23,21 @@ import {
 	DollarSign,
 	AlertCircle,
 } from "lucide-react";
-import {
-	AppHeader,
-	AppTitle,
-	AppDescription,
-} from "@/components/layout/AppLayout";
+import { useHeader } from "@/lib/header-context";
 
 export default function ReportsPage() {
 	const { user } = useAuth();
+	const { updateHeader } = useHeader();
 	const [activeTab, setActiveTab] = useState("overview");
+
+	// Update the header
+	useEffect(() => {
+		updateHeader({
+			title: "Reports",
+			description: "View and manage business performance reports",
+			actions: <Button variant="outline">Export Reports</Button>,
+		});
+	}, [updateHeader]);
 
 	// Check if user is admin
 	const isAdmin = user?.user_metadata?.role === "admin";
@@ -54,16 +60,6 @@ export default function ReportsPage() {
 
 	return (
 		<div className="container max-w-7xl mx-auto py-6 space-y-6">
-			<AppHeader>
-				<AppTitle>Reports</AppTitle>
-				<AppDescription>
-					View and manage business performance reports
-				</AppDescription>
-				<div className="flex items-center justify-end mt-4">
-					<Button variant="outline">Export Reports</Button>
-				</div>
-			</AppHeader>
-
 			<Tabs
 				defaultValue="overview"
 				className="space-y-4"

@@ -38,6 +38,7 @@ import {
 	type GooglePlaceResult,
 } from "@/components/GooglePlacesAutocomplete";
 import { AppContent } from "@/components/layout/AppLayout";
+import { useHeader } from "@/lib/header-context";
 
 // Define form schema for validation
 const businessProfileSchema = z.object({
@@ -75,6 +76,7 @@ interface DBOrganization extends Organization {
 }
 
 export default function BusinessProfilePage() {
+	const { updateHeader } = useHeader();
 	const navigate = useNavigate();
 	const location = useLocation();
 	const isInAccountPage = location.pathname.includes("/account/");
@@ -105,6 +107,14 @@ export default function BusinessProfilePage() {
 			businessHours: "",
 		},
 	});
+
+	// Set the page header
+	useEffect(() => {
+		updateHeader({
+			title: "Business Profile",
+			description: "Manage your business information and settings",
+		});
+	}, [updateHeader]);
 
 	useEffect(() => {
 		const fetchOrganization = async () => {

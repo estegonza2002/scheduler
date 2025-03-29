@@ -45,12 +45,12 @@ import { LoadingState } from "@/components/ui/loading-state";
 import { LocationEditSheet } from "@/components/LocationEditSheet";
 import { LocationInsights } from "@/components/LocationInsights";
 import { LocationSubNav } from "@/components/LocationSubNav";
-import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { EmployeeAssignmentSheet } from "@/components/EmployeeAssignmentSheet";
 import { useAuth } from "@/lib/auth";
 import { getDefaultOrganizationId } from "@/lib/utils";
 import { useOrganizationId } from "@/hooks/useOrganizationId";
+import { useHeader } from "@/lib/header-context";
 
 // Update Location type to include optional fields
 interface ExtendedLocation extends Location {
@@ -68,6 +68,7 @@ const isUUID = (id: string): boolean => {
 export default function LocationDetailPage() {
 	const { locationId } = useParams<{ locationId: string }>();
 	const navigate = useNavigate();
+	const { updateHeader } = useHeader();
 	const [location, setLocation] = useState<ExtendedLocation | null>(null);
 	const [shifts, setShifts] = useState<Shift[]>([]);
 	const [assignedEmployees, setAssignedEmployees] = useState<Employee[]>([]);
@@ -77,6 +78,85 @@ export default function LocationDetailPage() {
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
 	const { user } = useAuth();
 	const organizationId = useOrganizationId();
+
+	useEffect(() => {
+		// Create action buttons for the header
+		const createActionButtons = () => {
+			if (!location) return null;
+
+			return (
+				<>
+					<LocationEditSheet
+						location={location}
+						onLocationUpdated={(updatedLocation) => {
+							setLocation(updatedLocation as ExtendedLocation);
+						}}
+						organizationId={organizationId}
+						trigger={
+							<Button
+								variant="outline"
+								size="sm"
+								className="h-9 gap-1">
+								<Edit className="h-4 w-4" /> Edit
+							</Button>
+						}
+					/>
+
+					<AlertDialog
+						open={deleteDialogOpen}
+						onOpenChange={setDeleteDialogOpen}>
+						<AlertDialogTrigger asChild>
+							<Button
+								variant="outline"
+								size="sm"
+								className="h-9 gap-1">
+								<Trash className="h-4 w-4" /> Delete
+							</Button>
+						</AlertDialogTrigger>
+						<AlertDialogContent>
+							<AlertDialogHeader>
+								<AlertDialogTitle>Are you sure?</AlertDialogTitle>
+								<AlertDialogDescription>
+									This will permanently delete the location and remove all
+									associated data. This action cannot be undone.
+								</AlertDialogDescription>
+							</AlertDialogHeader>
+							<AlertDialogFooter>
+								<AlertDialogCancel>Cancel</AlertDialogCancel>
+								<AlertDialogAction
+									onClick={handleDeleteLocation}
+									className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+									Delete
+								</AlertDialogAction>
+							</AlertDialogFooter>
+						</AlertDialogContent>
+					</AlertDialog>
+				</>
+			);
+		};
+
+		// Update header based on loading state
+		if (loading) {
+			updateHeader({
+				title: "Loading Location...",
+				description: "Retrieving location information",
+				showBackButton: true,
+			});
+		} else if (!location) {
+			updateHeader({
+				title: "Location not found",
+				description: "The requested location could not be found",
+				showBackButton: true,
+			});
+		} else {
+			updateHeader({
+				title: location.name,
+				description: location.address || "No address provided",
+				actions: createActionButtons(),
+				showBackButton: true,
+			});
+		}
+	}, [loading, location, updateHeader, deleteDialogOpen, organizationId]);
 
 	useEffect(() => {
 		const fetchLocation = async () => {
@@ -173,56 +253,6 @@ export default function LocationDetailPage() {
 		}
 	};
 
-	// Action buttons for the header
-	const ActionButtons = location ? (
-		<>
-			<LocationEditSheet
-				location={location}
-				onLocationUpdated={(updatedLocation) => {
-					setLocation(updatedLocation);
-				}}
-				trigger={
-					<Button
-						variant="outline"
-						size="sm"
-						className="h-9 gap-1">
-						<Edit className="h-4 w-4" /> Edit
-					</Button>
-				}
-			/>
-
-			<AlertDialog
-				open={deleteDialogOpen}
-				onOpenChange={setDeleteDialogOpen}>
-				<AlertDialogTrigger asChild>
-					<Button
-						variant="outline"
-						size="sm"
-						className="h-9 text-destructive border-destructive/30">
-						<Trash className="h-4 w-4 mr-2" /> Delete
-					</Button>
-				</AlertDialogTrigger>
-				<AlertDialogContent>
-					<AlertDialogHeader>
-						<AlertDialogTitle>Are you sure?</AlertDialogTitle>
-						<AlertDialogDescription>
-							This will permanently delete this location. This action cannot be
-							undone.
-						</AlertDialogDescription>
-					</AlertDialogHeader>
-					<AlertDialogFooter>
-						<AlertDialogCancel>Cancel</AlertDialogCancel>
-						<AlertDialogAction
-							onClick={handleDeleteLocation}
-							className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-							Delete
-						</AlertDialogAction>
-					</AlertDialogFooter>
-				</AlertDialogContent>
-			</AlertDialog>
-		</>
-	) : null;
-
 	if (loading) {
 		return (
 			<ContentContainer>
@@ -260,27 +290,6 @@ export default function LocationDetailPage() {
 
 	return (
 		<>
-			<div className="sticky top-0 flex h-16 shrink-0 items-center border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 z-40">
-				<div className="flex flex-1 items-center">
-					<Button
-						variant="ghost"
-						size="icon"
-						onClick={() => navigate(-1)}
-						className="h-8 w-8 mr-2"
-						title="Go back">
-						<ChevronLeft className="h-5 w-5" />
-					</Button>
-					<div className="mx-2">
-						<h1 className="text-lg font-semibold">
-							{location?.name || "Location Details"}
-						</h1>
-					</div>
-				</div>
-				<div className="flex items-center justify-end gap-3">
-					{ActionButtons}
-				</div>
-			</div>
-
 			{/* Hero Section */}
 			<div className="w-full bg-muted/30 border-b">
 				<ContentContainer>

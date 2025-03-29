@@ -8,18 +8,23 @@ import { ContentContainer } from "@/components/ui/content-container";
 import { ContentSection } from "@/components/ui/content-section";
 import { LoadingState } from "@/components/ui/loading-state";
 import { Badge } from "@/components/ui/badge";
-import {
-	AppHeader,
-	AppTitle,
-	AppDescription,
-} from "@/components/layout/AppLayout";
+import { useHeader } from "@/lib/header-context";
 
 export default function MyLocationsPage() {
 	const { user } = useAuth();
 	const userId = user?.id;
+	const { updateHeader } = useHeader();
 	const [isLoading, setIsLoading] = useState(true);
 	const [locations, setLocations] = useState<Location[]>([]);
 	const [primaryLocation, setPrimaryLocation] = useState<Location | null>(null);
+
+	// Update the header
+	useEffect(() => {
+		updateHeader({
+			title: "My Locations",
+			description: "View your assigned work locations",
+		});
+	}, [updateHeader]);
 
 	useEffect(() => {
 		const fetchUserLocations = async () => {
@@ -147,10 +152,6 @@ export default function MyLocationsPage() {
 	if (isLoading) {
 		return (
 			<ContentContainer>
-				<AppHeader>
-					<AppTitle>My Locations</AppTitle>
-					<AppDescription>View your assigned work locations</AppDescription>
-				</AppHeader>
 				<LoadingState
 					type="spinner"
 					message="Loading location information..."
@@ -162,11 +163,6 @@ export default function MyLocationsPage() {
 
 	return (
 		<ContentContainer>
-			<AppHeader>
-				<AppTitle>My Locations</AppTitle>
-				<AppDescription>View your assigned work locations</AppDescription>
-			</AppHeader>
-
 			<ContentSection title="My Locations">
 				<div className="space-y-6">
 					{/* Primary Location Section */}

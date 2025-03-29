@@ -52,6 +52,7 @@ import {
 	CardFooter,
 } from "@/components/ui/card";
 import { useOrganizationId } from "@/hooks/useOrganizationId";
+import { useHeader } from "@/lib/header-context";
 
 // Define columns outside the component to prevent re-renders
 const columns: ColumnDef<Schedule>[] = [
@@ -187,6 +188,7 @@ const columns: ColumnDef<Schedule>[] = [
 ];
 
 export default function SchedulesPage() {
+	const { updateHeader } = useHeader();
 	const navigate = useNavigate();
 	const [searchParams] = useSearchParams();
 	const organizationId = useOrganizationId();
@@ -210,6 +212,22 @@ export default function SchedulesPage() {
 		{ value: "draft", label: "Draft" },
 		{ value: "canceled", label: "Canceled" },
 	];
+
+	// Set page header
+	useEffect(() => {
+		updateHeader({
+			title: "Schedules",
+			description: "Manage your organization's schedules",
+			actions: (
+				<Button
+					onClick={() => navigate("/schedule/create")}
+					className="bg-primary hover:bg-primary/90 text-white">
+					<Plus className="mr-2 h-4 w-4" />
+					Create Schedule
+				</Button>
+			),
+		});
+	}, [updateHeader, navigate]);
 
 	// Fetch schedules
 	useEffect(() => {

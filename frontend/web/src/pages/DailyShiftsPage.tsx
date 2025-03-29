@@ -62,7 +62,7 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { DataTable } from "@/components/ui/data-table";
-import { PageHeader } from "@/components/ui/page-header";
+import { useHeader } from "@/lib/header-context";
 import { ContentContainer } from "@/components/ui/content-container";
 import { ContentSection } from "@/components/ui/content-section";
 import { cn } from "@/lib/utils";
@@ -75,6 +75,7 @@ import { useOrganizationId } from "@/hooks/useOrganizationId";
 import { toast } from "sonner";
 
 export default function DailyShiftsPage() {
+	const { updateHeader } = useHeader();
 	const [searchParams, setSearchParams] = useSearchParams();
 	const navigate = useNavigate();
 	const [currentDate, setCurrentDate] = useState<Date>(() => {
@@ -93,6 +94,35 @@ export default function DailyShiftsPage() {
 	const [currentPage, setCurrentPage] = useState<number>(1);
 	const [itemsPerPage, setItemsPerPage] = useState<number>(25);
 	const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
+
+	// Export the ShiftCreationSheet with its props for use in the AppLayout
+	function getHeaderActions() {
+		return (
+			<ShiftCreationSheet
+				scheduleId={selectedSchedule}
+				organizationId={organizationId}
+				initialDate={currentDate}
+				trigger={
+					<Button className="bg-primary hover:bg-primary/90 text-white h-9">
+						<Plus className="h-5 w-5 mr-2" />
+						Create Shift
+					</Button>
+				}
+			/>
+		);
+	}
+
+	// Header update with date change
+	useEffect(() => {
+		// Format the date for display
+		const dateString = format(currentDate, "MMMM d, yyyy");
+
+		updateHeader({
+			title: "Daily Shifts",
+			description: dateString,
+			actions: getHeaderActions(),
+		});
+	}, [currentDate, updateHeader, selectedSchedule, organizationId]);
 
 	// Get date from URL param or use today's date
 	useEffect(() => {
@@ -341,23 +371,6 @@ export default function DailyShiftsPage() {
 			},
 		},
 	];
-
-	// Export the ShiftCreationSheet with its props for use in the AppLayout
-	function getHeaderActions() {
-		return (
-			<ShiftCreationSheet
-				scheduleId={selectedSchedule}
-				organizationId={organizationId}
-				initialDate={currentDate}
-				trigger={
-					<Button className="bg-primary hover:bg-primary/90 text-white h-9">
-						<Plus className="h-5 w-5 mr-2" />
-						Create Shift
-					</Button>
-				}
-			/>
-		);
-	}
 
 	return (
 		<>

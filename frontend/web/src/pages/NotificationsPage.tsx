@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNotifications } from "@/lib/notification-context";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -58,6 +58,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ColumnDef } from "@tanstack/react-table";
+import { useHeader } from "@/lib/header-context";
 
 // Define columns outside the component to prevent re-renders
 const columns: ColumnDef<Notification>[] = [
@@ -193,6 +194,7 @@ function getNotificationTypeLabel(type: string): string {
 }
 
 export default function NotificationsPage() {
+	const { updateHeader } = useHeader();
 	const {
 		notifications,
 		loading,
@@ -454,6 +456,23 @@ export default function NotificationsPage() {
 			</Button>
 		</div>
 	);
+
+	// Set page header
+	useEffect(() => {
+		updateHeader({
+			title: "Notifications",
+			description: "Manage and view your notifications",
+			actions: (
+				<Button
+					onClick={markAllAsRead}
+					variant="outline"
+					className="flex items-center">
+					<Check className="mr-2 h-4 w-4" />
+					Mark All as Read
+				</Button>
+			),
+		});
+	}, [updateHeader, markAllAsRead]);
 
 	return (
 		<>

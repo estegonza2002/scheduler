@@ -29,16 +29,12 @@ import {
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Users } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import {
-	AppHeader,
-	AppTitle,
-	AppDescription,
-} from "@/components/layout/AppLayout";
+import { useHeader } from "@/lib/header-context";
 
 export default function LocationEmployeesPage() {
 	const { locationId } = useParams<{ locationId: string }>();
 	const navigate = useNavigate();
+	const { updateHeader } = useHeader();
 	const [location, setLocation] = useState<Location | null>(null);
 	const [assignedEmployees, setAssignedEmployees] = useState<Employee[]>([]);
 	const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
@@ -48,6 +44,55 @@ export default function LocationEmployeesPage() {
 	const [removeEmployeeId, setRemoveEmployeeId] = useState<string>("");
 	const [removeEmployeeDialogOpen, setRemoveEmployeeDialogOpen] =
 		useState<boolean>(false);
+
+	// Update header based on loading and location state
+	useEffect(() => {
+		if (loading) {
+			updateHeader({
+				title: "Loading...",
+				description: "Retrieving employee information",
+				showBackButton: true,
+			});
+		} else if (!location) {
+			updateHeader({
+				title: "Location not found",
+				description: "The requested location could not be found",
+				showBackButton: true,
+			});
+		} else {
+			updateHeader({
+				title: `${location.name} Employees`,
+				description: `Manage employees at ${location.name}`,
+				showBackButton: true,
+				actions: (
+					<EmployeeAssignmentSheet
+						locationId={locationId || ""}
+						locationName={location.name}
+						allEmployees={allEmployees}
+						assignedEmployees={assignedEmployees}
+						onEmployeesAssigned={(newlyAssignedEmployees) => {
+							setAssignedEmployees((prev) => [
+								...prev,
+								...newlyAssignedEmployees,
+							]);
+						}}
+						trigger={
+							<Button size="sm">
+								<UserPlus className="h-4 w-4 mr-2" /> Assign Employee
+							</Button>
+						}
+					/>
+				),
+			});
+		}
+	}, [
+		loading,
+		location,
+		updateHeader,
+		locationId,
+		allEmployees,
+		assignedEmployees,
+	]);
 
 	useEffect(() => {
 		const fetchData = async () => {
@@ -136,183 +181,99 @@ export default function LocationEmployeesPage() {
 
 	if (loading) {
 		return (
-			<>
-				<AppHeader>
-					<div className="flex items-center">
-						<Button
-							variant="ghost"
-							size="icon"
-							onClick={() => navigate(-1)}
-							className="h-8 w-8 mr-2"
-							title="Go back">
-							<ChevronLeft className="h-5 w-5" />
-						</Button>
-						<div>
-							<AppTitle>Loading...</AppTitle>
-							<AppDescription>Retrieving employee information</AppDescription>
-						</div>
-					</div>
-				</AppHeader>
-
-				<ContentContainer>
-					<LoadingState
-						type="spinner"
-						message={`Loading ${loadingPhase}...`}
-						className="py-12"
-					/>
-				</ContentContainer>
-			</>
+			<ContentContainer>
+				<LoadingState
+					type="spinner"
+					message={`Loading ${loadingPhase}...`}
+					className="py-12"
+				/>
+			</ContentContainer>
 		);
 	}
 
 	if (!location) {
 		return (
-			<>
-				<AppHeader>
-					<div className="flex items-center">
+			<ContentContainer>
+				<ContentSection
+					title="Location not found"
+					description="The requested location could not be found."
+					footer={
 						<Button
-							variant="ghost"
-							size="icon"
-							onClick={() => navigate(-1)}
-							className="h-8 w-8 mr-2"
-							title="Go back">
-							<ChevronLeft className="h-5 w-5" />
+							variant="outline"
+							onClick={() => navigate("/locations")}
+							className="mt-2">
+							Back to Locations
 						</Button>
-						<div>
-							<AppTitle>Location not found</AppTitle>
-							<AppDescription>
-								The requested location could not be found
-							</AppDescription>
-						</div>
-					</div>
-				</AppHeader>
-
-				<ContentContainer>
-					<ContentSection
-						title="Location not found"
-						description="The requested location could not be found."
-						footer={
-							<Button
-								variant="outline"
-								onClick={() => navigate("/locations")}
-								className="mt-2">
-								Back to Locations
-							</Button>
-						}>
-						<p>
-							The location you're looking for may have been removed or doesn't
-							exist.
-						</p>
-					</ContentSection>
-				</ContentContainer>
-			</>
+					}>
+					<p>
+						The location you're looking for may have been removed or doesn't
+						exist.
+					</p>
+				</ContentSection>
+			</ContentContainer>
 		);
 	}
 
 	return (
-		<>
-			<AppHeader>
-				<div className="flex justify-between w-full">
-					<div className="flex items-center">
-						<Button
-							variant="ghost"
-							size="icon"
-							onClick={() => navigate(-1)}
-							className="h-8 w-8 mr-2"
-							title="Go back">
-							<ChevronLeft className="h-5 w-5" />
-						</Button>
-						<div>
-							<AppTitle>{`${location.name} Employees`}</AppTitle>
-							<AppDescription>
-								{`Manage employees at ${location.name}`}
-							</AppDescription>
-						</div>
-					</div>
-					<div className="flex items-center justify-end gap-3">
-						<EmployeeAssignmentSheet
-							locationId={locationId || ""}
-							locationName={location.name}
-							allEmployees={allEmployees}
-							assignedEmployees={assignedEmployees}
-							onEmployeesAssigned={(newlyAssignedEmployees) => {
-								setAssignedEmployees((prev) => [
-									...prev,
-									...newlyAssignedEmployees,
-								]);
-							}}
-							trigger={
-								<Button size="sm">
-									<UserPlus className="h-4 w-4 mr-2" /> Assign Employee
-								</Button>
-							}
-						/>
-					</div>
-				</div>
-			</AppHeader>
+		<ContentContainer>
+			<LocationSubNav
+				locationId={locationId || ""}
+				locationName={location.name}
+			/>
 
-			<ContentContainer>
-				<LocationSubNav
-					locationId={locationId || ""}
-					locationName={location.name}
-				/>
-
-				<div className="mt-6">
-					<div className="grid gap-6">
-						{/* Employees Section */}
-						<ContentSection
-							title="Assigned Employees"
-							description="Employees assigned to this location">
-							{assignedEmployees.length > 0 ? (
-								<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-									{assignedEmployees.map((employee) => (
-										<div
-											key={employee.id}
-											className="flex items-center gap-3 p-3 border rounded-lg hover:bg-accent/5">
-											<Avatar className="h-10 w-10">
-												<AvatarImage
-													src={employee.avatar}
-													alt={employee.name}
-												/>
-												<AvatarFallback>
-													{employee.name.charAt(0)}
-												</AvatarFallback>
-											</Avatar>
-											<div className="flex-1">
-												<div className="font-medium">{employee.name}</div>
-												<div className="text-sm text-muted-foreground">
-													{employee.position || "Staff"}
-												</div>
+			<div className="mt-6">
+				<div className="grid gap-6">
+					{/* Employees Section */}
+					<ContentSection
+						title="Assigned Employees"
+						description="Employees assigned to this location">
+						{assignedEmployees.length > 0 ? (
+							<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+								{assignedEmployees.map((employee) => (
+									<div
+										key={employee.id}
+										className="flex items-center gap-3 p-3 border rounded-lg hover:bg-accent/5">
+										<Avatar className="h-10 w-10">
+											<AvatarImage
+												src={employee.avatar}
+												alt={employee.name}
+											/>
+											<AvatarFallback>{employee.name.charAt(0)}</AvatarFallback>
+										</Avatar>
+										<div className="flex-1">
+											<div className="font-medium">{employee.name}</div>
+											<div className="text-sm text-muted-foreground">
+												{employee.position || "Staff"}
 											</div>
-											<Button
-												variant="ghost"
-												size="icon"
-												className="text-muted-foreground hover:text-destructive"
-												onClick={() => {
-													setRemoveEmployeeId(employee.id);
-													setRemoveEmployeeDialogOpen(true);
-												}}>
-												<X className="h-4 w-4" />
-											</Button>
 										</div>
-									))}
-								</div>
-							) : (
-								<div className="py-12 flex flex-col items-center justify-center text-center text-muted-foreground">
-									<Users className="h-12 w-12 mb-4 opacity-20" />
-									<h3 className="text-lg font-medium mb-1">
-										No employees assigned
-									</h3>
-									<p className="max-w-md">
-										No employees have been assigned to this location yet. Click
-										the "Assign Employees" button to add employees.
-									</p>
-								</div>
-							)}
-						</ContentSection>
-					</div>
+										<Button
+											variant="ghost"
+											size="icon"
+											className="text-muted-foreground hover:text-destructive"
+											onClick={() => {
+												setRemoveEmployeeId(employee.id);
+												setRemoveEmployeeDialogOpen(true);
+											}}>
+											<X className="h-4 w-4" />
+										</Button>
+									</div>
+								))}
+							</div>
+						) : (
+							<div className="py-12 flex flex-col items-center justify-center text-center text-muted-foreground">
+								<Users className="h-12 w-12 mb-4 opacity-20" />
+								<h3 className="text-lg font-medium mb-1">
+									No employees assigned
+								</h3>
+								<p className="max-w-md">
+									No employees have been assigned to this location yet. Click
+									the "Assign Employees" button to add employees.
+								</p>
+							</div>
+						)}
+					</ContentSection>
 				</div>
-			</ContentContainer>
+			</div>
 
 			{/* Confirmation Dialog */}
 			<AlertDialog
@@ -336,6 +297,6 @@ export default function LocationEmployeesPage() {
 					</AlertDialogFooter>
 				</AlertDialogContent>
 			</AlertDialog>
-		</>
+		</ContentContainer>
 	);
 }

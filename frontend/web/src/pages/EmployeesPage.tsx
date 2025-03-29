@@ -87,8 +87,10 @@ import {
 	AppDescription,
 } from "@/components/layout/AppLayout";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { useHeader } from "@/lib/header-context";
 
 export default function EmployeesPage() {
+	const { updateHeader } = useHeader();
 	const [organization, setOrganization] = useState<Organization | null>(null);
 	const [employees, setEmployees] = useState<Employee[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
@@ -145,6 +147,14 @@ export default function EmployeesPage() {
 			);
 		};
 	}, []);
+
+	// Set the page header on component mount
+	useEffect(() => {
+		updateHeader({
+			title: "Employees",
+			description: "View and manage employee information",
+		});
+	}, [updateHeader]);
 
 	const columns = useMemo<ColumnDef<Employee>[]>(
 		() => [

@@ -43,6 +43,7 @@ import {
 	useElements,
 } from "@stripe/react-stripe-js";
 import { AppContent } from "@/components/layout/AppLayout";
+import { useHeader } from "@/lib/header-context";
 
 // Define columns for invoices table
 const invoiceColumns: ColumnDef<InvoiceType>[] = [
@@ -118,6 +119,7 @@ const invoiceColumns: ColumnDef<InvoiceType>[] = [
 ];
 
 export default function BillingPage() {
+	const { updateHeader } = useHeader();
 	const navigate = useNavigate();
 	const location = useLocation();
 	const isInAccountPage = location.pathname.includes("/account/");
@@ -142,6 +144,14 @@ export default function BillingPage() {
 	// Check if the page was loaded after a successful checkout
 	const success = searchParams.get("success");
 	const sessionId = searchParams.get("session_id");
+
+	// Set the page header
+	useEffect(() => {
+		updateHeader({
+			title: "Billing & Subscription",
+			description: "Manage your subscription plan and payment methods",
+		});
+	}, [updateHeader]);
 
 	// Load invoices and payment methods
 	useEffect(() => {
