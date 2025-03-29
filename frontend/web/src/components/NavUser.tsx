@@ -55,11 +55,13 @@ export function NavUser({
 	};
 
 	return (
-		<SidebarMenu>
+		<SidebarMenu className="px-2 pt-2 pb-1">
 			<SidebarMenuItem>
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
-						<SidebarMenuButton size="lg">
+						<SidebarMenuButton
+							size="lg"
+							className="w-full rounded-md">
 							<AvatarWithStatus
 								isOnline={isOnline}
 								fallback={user.name.charAt(0)}

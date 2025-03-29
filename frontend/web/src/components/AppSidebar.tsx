@@ -289,13 +289,30 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 		},
 	];
 
+	// Replace accountNavItem with a single Account entry
+	const accountNavItem: NavItem = {
+		icon: <Settings className="h-5 w-5" />,
+		label: "Account",
+		href: "/account",
+		isActive: isRouteActive("/account"),
+		adminOnly: true,
+	};
+
+	// Sign out item for the footer
+	const signOutItem: NavItem = {
+		icon: <LogOut className="h-5 w-5" />,
+		label: "Sign Out",
+		href: "#",
+		isActive: false,
+	};
+
 	return (
 		<Sidebar {...props}>
 			<SidebarHeader>
 				<div className="w-full">
 					{isAdmin ? (
 						<Link
-							to="/business-profile"
+							to="/admin-dashboard"
 							className="flex items-center gap-3 px-4 py-2 rounded-md text-lg font-bold text-primary hover:bg-muted/50 transition-colors ">
 							Scheduler
 						</Link>
@@ -336,10 +353,20 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 
 				{/* Spacer to push content to bottom */}
 				<div className="flex-grow" />
+			</SidebarContent>
+
+			<SidebarFooter className="pb-4">
+				{/* User profile section using NavUser component */}
+				<NavUser
+					user={userDisplay}
+					isAdmin={isAdmin}
+					subscriptionPlan={subscriptionPlan}
+					isOnline={isOnline}
+				/>
 
 				{/* Upgrade Banner */}
 				{!isPaidUser && (
-					<div className="px-2 mt-auto">
+					<div className="px-2 pt-3 pb-2">
 						<Card>
 							<CardContent className="p-4">
 								<div className="flex items-center gap-2 mb-3">
@@ -358,16 +385,36 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 						</Card>
 					</div>
 				)}
-			</SidebarContent>
 
-			<SidebarFooter>
-				{/* User profile section using NavUser component */}
-				<NavUser
-					user={userDisplay}
-					isAdmin={isAdmin}
-					subscriptionPlan={subscriptionPlan}
-					isOnline={isOnline}
-				/>
+				<SidebarSeparator className="my-2" />
+
+				<SidebarMenu className="px-2">
+					{isAdmin && (
+						<SidebarMenuItem>
+							<SidebarMenuButton
+								asChild
+								className="w-full justify-start rounded-md text-sm py-2 hover:bg-muted">
+								<Link
+									to={accountNavItem.href}
+									className="flex items-center gap-3">
+									{accountNavItem.icon}
+									<span>{accountNavItem.label}</span>
+								</Link>
+							</SidebarMenuButton>
+						</SidebarMenuItem>
+					)}
+
+					<SidebarMenuItem>
+						<SidebarMenuButton
+							onClick={handleSignOut}
+							className="w-full justify-start rounded-md text-sm py-2 hover:bg-muted">
+							<div className="flex items-center gap-3">
+								<LogOut className="h-5 w-5" />
+								<span>Sign Out</span>
+							</div>
+						</SidebarMenuButton>
+					</SidebarMenuItem>
+				</SidebarMenu>
 			</SidebarFooter>
 		</Sidebar>
 	);

@@ -48,8 +48,8 @@ export function ProtectedRoute({
 	const adminRoutes = [
 		"/admin-dashboard",
 		"/employees",
-		"/business-profile",
 		"/locations",
+		"/account",
 	];
 
 	// Check if we're trying to access an admin route without admin privileges

@@ -54,6 +54,8 @@ import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import ReportsPage from "./pages/ReportsPage";
 import PricingPage from "./pages/PricingPage";
+import UsersManagementPage from "./pages/UsersManagementPage";
+import AccountPage from "./pages/AccountPage";
 
 // Root redirect component that checks user role
 function RootRedirect() {
@@ -224,17 +226,30 @@ function App() {
 																element={<ProfilePage />}
 															/>
 															<Route
-																path="/business-profile"
-																element={<BusinessProfilePage />}
-															/>
-															<Route
-																path="/billing"
-																element={<BillingPage />}
-															/>
-															<Route
-																path="/branding"
-																element={<BrandingPage />}
-															/>
+																path="/account"
+																element={<AccountPage />}>
+																<Route
+																	index
+																	element={
+																		<Navigate
+																			to="/account/business-profile"
+																			replace
+																		/>
+																	}
+																/>
+																<Route
+																	path="business-profile"
+																	element={<BusinessProfilePage />}
+																/>
+																<Route
+																	path="users"
+																	element={<UsersManagementPage />}
+																/>
+																<Route
+																	path="billing"
+																	element={<BillingPage />}
+																/>
+															</Route>
 															<Route
 																path="/employees"
 																element={<EmployeesPage />}
@@ -316,6 +331,39 @@ function App() {
 															<Route
 																path="/reports/payroll"
 																element={<ReportsPage />}
+															/>
+
+															{/* Legacy routes for backward compatibility */}
+															<Route
+																path="/business-profile"
+																element={
+																	<Navigate
+																		to="/account/business-profile"
+																		replace
+																	/>
+																}
+															/>
+															<Route
+																path="/billing"
+																element={
+																	<Navigate
+																		to="/account/billing"
+																		replace
+																	/>
+																}
+															/>
+															<Route
+																path="/users"
+																element={
+																	<Navigate
+																		to="/account/users"
+																		replace
+																	/>
+																}
+															/>
+															<Route
+																path="/branding"
+																element={<BrandingPage />}
 															/>
 														</Route>
 													</Route>

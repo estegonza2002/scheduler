@@ -481,59 +481,6 @@ export function ProfileSidebar({
 					className="w-full justify-start text-left font-normal">
 					Notifications
 				</Button>
-
-				{isAdmin && (
-					<>
-						<div className="mt-8 mb-3">
-							<h3 className="text-sm font-medium text-muted-foreground">
-								Business Settings
-							</h3>
-						</div>
-
-						<Button
-							variant={activeTab === "business-profile" ? "secondary" : "ghost"}
-							onClick={() => onTabChange("business-profile")}
-							className="w-full justify-start text-left font-normal">
-							Business Profile
-						</Button>
-
-						{/* Billing options */}
-						<div className="mt-8 mb-3">
-							<h3 className="text-sm font-medium text-muted-foreground">
-								Billing
-							</h3>
-						</div>
-
-						<Button
-							variant={activeTab === "subscription" ? "secondary" : "ghost"}
-							onClick={() => onTabChange("subscription")}
-							className="w-full justify-start text-left font-normal">
-							Subscription
-						</Button>
-
-						{hasPaidSubscription && (
-							<>
-								<Button
-									variant={
-										activeTab === "payment-methods" ? "secondary" : "ghost"
-									}
-									onClick={() => onTabChange("payment-methods")}
-									className="w-full justify-start text-left font-normal">
-									Payment Methods
-								</Button>
-
-								<Button
-									variant={
-										activeTab === "billing-history" ? "secondary" : "ghost"
-									}
-									onClick={() => onTabChange("billing-history")}
-									className="w-full justify-start text-left font-normal">
-									Billing History
-								</Button>
-							</>
-						)}
-					</>
-				)}
 			</div>
 		</SecondaryNavbar>
 	);
