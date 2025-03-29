@@ -27,6 +27,7 @@ import { isValidPhoneNumber } from "react-phone-number-input";
 import { FormSection } from "@/components/ui/form-section";
 import { Switch } from "@/components/ui/switch";
 import { FormDescription } from "@/components/ui/form";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 // Get the Supabase URL from environment or use a fallback
 const supabaseUrl =
@@ -190,94 +191,103 @@ function SecurityTab() {
 
 	return (
 		<TabsContent value="security">
-			<div>
-				<h3>Security</h3>
-				<p>Update your password and manage your account</p>
-			</div>
-			<Form {...passwordForm}>
-				<form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)}>
-					<FormField
-						control={passwordForm.control}
-						name="currentPassword"
-						render={({ field }) => (
-							<FormItem>
-								<FormLabel>Current Password</FormLabel>
-								<FormControl>
-									<Input
-										type="password"
-										placeholder="Enter your current password"
-										{...field}
-									/>
-								</FormControl>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
+			<div className="space-y-6">
+				<div className="mb-6">
+					<h3 className="text-lg font-medium">Security</h3>
+					<p className="text-sm text-muted-foreground">
+						Update your password and manage your account
+					</p>
+				</div>
+				<Form {...passwordForm}>
+					<form
+						onSubmit={passwordForm.handleSubmit(onPasswordSubmit)}
+						className="space-y-4">
+						<FormField
+							control={passwordForm.control}
+							name="currentPassword"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Current Password</FormLabel>
+									<FormControl>
+										<Input
+											type="password"
+											placeholder="Enter your current password"
+											{...field}
+										/>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 
-					<FormField
-						control={passwordForm.control}
-						name="newPassword"
-						render={({ field }) => (
-							<FormItem>
-								<FormLabel>New Password</FormLabel>
-								<FormControl>
-									<Input
-										type="password"
-										placeholder="Enter your new password"
-										{...field}
-									/>
-								</FormControl>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
+						<FormField
+							control={passwordForm.control}
+							name="newPassword"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>New Password</FormLabel>
+									<FormControl>
+										<Input
+											type="password"
+											placeholder="Enter your new password"
+											{...field}
+										/>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 
-					<FormField
-						control={passwordForm.control}
-						name="confirmPassword"
-						render={({ field }) => (
-							<FormItem>
-								<FormLabel>Confirm New Password</FormLabel>
-								<FormControl>
-									<Input
-										type="password"
-										placeholder="Confirm your new password"
-										{...field}
-									/>
-								</FormControl>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
+						<FormField
+							control={passwordForm.control}
+							name="confirmPassword"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Confirm New Password</FormLabel>
+									<FormControl>
+										<Input
+											type="password"
+											placeholder="Confirm your new password"
+											{...field}
+										/>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 
-					<Button
-						type="submit"
-						disabled={isLoading}>
-						{isLoading ? (
-							<>
-								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-								Updating...
-							</>
-						) : (
-							"Update Password"
-						)}
-					</Button>
-				</form>
-			</Form>
+						<Button
+							type="submit"
+							disabled={isLoading}>
+							{isLoading ? (
+								<>
+									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+									Updating...
+								</>
+							) : (
+								"Update Password"
+							)}
+						</Button>
+					</form>
+				</Form>
 
-			<Separator />
+				<Separator className="my-6" />
 
-			<div>
-				<h3>Danger Zone</h3>
-				<p>Permanent account actions</p>
+				<div className="space-y-2">
+					<h3 className="text-lg font-medium">Danger Zone</h3>
+					<p className="text-sm text-muted-foreground">
+						Permanent account actions
+					</p>
 
-				<div>
-					<Button
-						variant="destructive"
-						onClick={() => handleAccountAction("delete")}>
-						<Trash2 className="mr-2 h-4 w-4" />
-						Delete Account
-					</Button>
+					<div className="mt-4">
+						<Button
+							variant="destructive"
+							className="w-full justify-start"
+							onClick={() => handleAccountAction("delete")}>
+							<Trash2 className="mr-2 h-4 w-4" />
+							Delete Account
+						</Button>
+					</div>
 				</div>
 			</div>
 		</TabsContent>
@@ -492,154 +502,178 @@ function ProfileTab() {
 
 	return (
 		<TabsContent value="profile">
-			<Form {...profileForm}>
-				<form onSubmit={profileForm.handleSubmit(onProfileSubmit)}>
-					<FormSection title="Profile Picture">
-						<Card>
-							<CardContent className="flex items-start gap-6 pt-6">
-								<Avatar>
-									<AvatarImage
-										src={
-											profilePicturePreview || user?.user_metadata?.avatar_url
-										}
-										className={cn(isAvatarRemoved && "hidden")}
-									/>
-									<AvatarFallback>{getInitials()}</AvatarFallback>
-								</Avatar>
+			<div className="space-y-6">
+				<Form {...profileForm}>
+					<form
+						onSubmit={profileForm.handleSubmit(onProfileSubmit)}
+						className="space-y-8">
+						<FormSection title="Profile Picture">
+							<Card>
+								<CardContent className="flex flex-col items-center pt-6 pb-4">
+									<Avatar className="h-24 w-24 mb-4">
+										<AvatarImage
+											src={
+												profilePicturePreview || user?.user_metadata?.avatar_url
+											}
+											className={cn(isAvatarRemoved && "hidden")}
+										/>
+										<AvatarFallback className="text-xl">
+											{getInitials()}
+										</AvatarFallback>
+									</Avatar>
 
-								<div>
-									<label htmlFor="profile-picture-upload">
-										<Button asChild>
-											<span>
-												<Upload className="mr-2 h-4 w-4" />
-												Upload Picture
-												<input
-													id="profile-picture-upload"
-													type="file"
-													accept="image/*"
-													className="sr-only"
-													onChange={handleProfilePictureChange}
-												/>
-											</span>
-										</Button>
-									</label>
-
-									{(user?.user_metadata?.avatar_url || profilePicturePreview) &&
-										!isAvatarRemoved && (
+									<div className="flex gap-2 mb-2">
+										<label htmlFor="profile-picture-upload">
 											<Button
-												type="button"
-												variant="outline"
-												onClick={handleRemoveProfilePicture}>
-												<Trash2 className="mr-2 h-4 w-4" />
-												Remove Picture
+												variant="secondary"
+												size="sm"
+												asChild>
+												<span>
+													<Upload className="mr-2 h-4 w-4" />
+													Upload Picture
+													<input
+														id="profile-picture-upload"
+														type="file"
+														accept="image/*"
+														className="sr-only"
+														onChange={handleProfilePictureChange}
+													/>
+												</span>
 											</Button>
-										)}
+										</label>
 
-									<p className="text-muted-foreground text-sm mt-2">
+										{(user?.user_metadata?.avatar_url ||
+											profilePicturePreview) &&
+											!isAvatarRemoved && (
+												<Button
+													type="button"
+													variant="outline"
+													size="sm"
+													onClick={handleRemoveProfilePicture}>
+													<Trash2 className="mr-2 h-4 w-4" />
+													Remove Picture
+												</Button>
+											)}
+									</div>
+
+									<p className="text-muted-foreground text-xs">
 										Recommended: Square image, at least 200x200px.
 									</p>
-								</div>
-							</CardContent>
-						</Card>
-					</FormSection>
+								</CardContent>
+							</Card>
+						</FormSection>
 
-					<FormSection title="Personal Details">
-						<div>
-							<FormField
-								control={profileForm.control}
-								name="firstName"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>
-											First Name <span className="text-destructive">*</span>
-										</FormLabel>
-										<FormControl>
-											<Input
-												placeholder="Enter your first name"
-												{...field}
-											/>
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
+						<FormSection title="Personal Details">
+							<div className="grid gap-6 sm:grid-cols-2">
+								<FormField
+									control={profileForm.control}
+									name="firstName"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>
+												First Name <span className="text-destructive">*</span>
+											</FormLabel>
+											<FormControl>
+												<Input
+													placeholder="Enter your first name"
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={profileForm.control}
+									name="lastName"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>
+												Last Name <span className="text-destructive">*</span>
+											</FormLabel>
+											<FormControl>
+												<Input
+													placeholder="Enter your last name"
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</div>
+
+							<div className="mt-4">
+								<FormField
+									control={profileForm.control}
+									name="email"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>
+												Email <span className="text-destructive">*</span>
+											</FormLabel>
+											<FormControl>
+												<Input
+													type="email"
+													placeholder="Enter your email"
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</div>
+
+							<div className="mt-4">
+								<FormField
+									control={profileForm.control}
+									name="phone"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Phone Number</FormLabel>
+											<FormControl>
+												<FormPhoneInput
+													control={profileForm.control}
+													name="phone"
+													placeholder="Enter your phone number"
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+							</div>
+						</FormSection>
+
+						<div className="flex items-center justify-between">
+							<ConfirmDialog
+								title="Log Out"
+								description="Are you sure you want to log out? You'll need to sign in again to access your account."
+								confirmLabel="Log Out"
+								cancelLabel="Cancel"
+								destructive={true}
+								onConfirm={() => signOut()}
+								trigger={
+									<Button
+										type="button"
+										variant="destructive">
+										<LogOut className="mr-2 h-4 w-4" />
+										Log out
+									</Button>
+								}
 							/>
 
-							<FormField
-								control={profileForm.control}
-								name="lastName"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>
-											Last Name <span className="text-destructive">*</span>
-										</FormLabel>
-										<FormControl>
-											<Input
-												placeholder="Enter your last name"
-												{...field}
-											/>
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
+							<Button
+								type="submit"
+								disabled={isLoading}>
+								{isLoading ? "Saving..." : "Save Changes"}
+							</Button>
 						</div>
-
-						<FormField
-							control={profileForm.control}
-							name="email"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>
-										Email <span className="text-destructive">*</span>
-									</FormLabel>
-									<FormControl>
-										<Input
-											type="email"
-											placeholder="Enter your email"
-											{...field}
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-
-						<FormField
-							control={profileForm.control}
-							name="phone"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Phone Number</FormLabel>
-									<FormControl>
-										<FormPhoneInput
-											control={profileForm.control}
-											name="phone"
-											placeholder="Enter your phone number"
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-					</FormSection>
-
-					<div>
-						<Button
-							type="button"
-							variant="outline"
-							onClick={() => signOut()}>
-							<LogOut className="mr-2 h-4 w-4" />
-							Log out
-						</Button>
-
-						<Button
-							type="submit"
-							disabled={isLoading}>
-							{isLoading ? "Saving..." : "Save Changes"}
-						</Button>
-					</div>
-				</form>
-			</Form>
+					</form>
+				</Form>
+			</div>
 		</TabsContent>
 	);
 }
@@ -696,193 +730,220 @@ function PreferencesTab() {
 
 	return (
 		<TabsContent value="preferences">
-			<div>
-				<h3>Notification Preferences</h3>
-				<p>Manage how and when you receive notifications</p>
+			<div className="space-y-6">
+				<div className="mb-6">
+					<h3 className="text-lg font-medium">Notification Preferences</h3>
+					<p className="text-sm text-muted-foreground">
+						Manage how and when you receive notifications
+					</p>
+				</div>
+
+				<Form {...preferencesForm}>
+					<form
+						onSubmit={preferencesForm.handleSubmit(onPreferencesSubmit)}
+						className="space-y-8">
+						<FormSection title="Notification Channels">
+							<div className="space-y-4">
+								<FormField
+									control={preferencesForm.control}
+									name="emailNotifications"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+											<div className="space-y-0.5">
+												<FormLabel className="text-base">
+													Email Notifications
+												</FormLabel>
+												<FormDescription>
+													Receive notifications via email
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={preferencesForm.control}
+									name="smsNotifications"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+											<div className="space-y-0.5">
+												<FormLabel className="text-base">
+													SMS Notifications
+												</FormLabel>
+												<FormDescription>
+													Receive notifications via text message
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={preferencesForm.control}
+									name="pushNotifications"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+											<div className="space-y-0.5">
+												<FormLabel className="text-base">
+													Push Notifications
+												</FormLabel>
+												<FormDescription>
+													Receive push notifications in your browser
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+							</div>
+						</FormSection>
+
+						<FormSection title="Notification Types">
+							<div className="space-y-4">
+								<FormField
+									control={preferencesForm.control}
+									name="scheduleUpdates"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+											<div className="space-y-0.5">
+												<FormLabel className="text-base">
+													Schedule Updates
+												</FormLabel>
+												<FormDescription>
+													Notify me when my schedule is updated
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={preferencesForm.control}
+									name="shiftReminders"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+											<div className="space-y-0.5">
+												<FormLabel className="text-base">
+													Shift Reminders
+												</FormLabel>
+												<FormDescription>
+													Notify me before my scheduled shifts
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={preferencesForm.control}
+									name="systemAnnouncements"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+											<div className="space-y-0.5">
+												<FormLabel className="text-base">
+													System Announcements
+												</FormLabel>
+												<FormDescription>
+													Receive important system announcements
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={preferencesForm.control}
+									name="requestUpdates"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+											<div className="space-y-0.5">
+												<FormLabel className="text-base">
+													Request Updates
+												</FormLabel>
+												<FormDescription>
+													Notify me when my time-off requests are updated
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+								<FormField
+									control={preferencesForm.control}
+									name="newSchedulePublished"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+											<div className="space-y-0.5">
+												<FormLabel className="text-base">
+													New Schedule Published
+												</FormLabel>
+												<FormDescription>
+													Notify me when a new schedule is published
+												</FormDescription>
+											</div>
+											<FormControl>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+										</FormItem>
+									)}
+								/>
+							</div>
+						</FormSection>
+
+						<Button
+							type="submit"
+							disabled={isLoading}
+							className="ml-auto">
+							{isLoading ? (
+								<>
+									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+									Saving...
+								</>
+							) : (
+								"Save Preferences"
+							)}
+						</Button>
+					</form>
+				</Form>
 			</div>
-
-			<Form {...preferencesForm}>
-				<form onSubmit={preferencesForm.handleSubmit(onPreferencesSubmit)}>
-					<FormSection title="Notification Channels">
-						<FormField
-							control={preferencesForm.control}
-							name="emailNotifications"
-							render={({ field }) => (
-								<FormItem>
-									<div>
-										<FormLabel>Email Notifications</FormLabel>
-										<FormDescription>
-											Receive notifications via email
-										</FormDescription>
-									</div>
-									<FormControl>
-										<Switch
-											checked={field.value}
-											onCheckedChange={field.onChange}
-										/>
-									</FormControl>
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={preferencesForm.control}
-							name="smsNotifications"
-							render={({ field }) => (
-								<FormItem>
-									<div>
-										<FormLabel>SMS Notifications</FormLabel>
-										<FormDescription>
-											Receive notifications via text message
-										</FormDescription>
-									</div>
-									<FormControl>
-										<Switch
-											checked={field.value}
-											onCheckedChange={field.onChange}
-										/>
-									</FormControl>
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={preferencesForm.control}
-							name="pushNotifications"
-							render={({ field }) => (
-								<FormItem>
-									<div>
-										<FormLabel>Push Notifications</FormLabel>
-										<FormDescription>
-											Receive push notifications in your browser
-										</FormDescription>
-									</div>
-									<FormControl>
-										<Switch
-											checked={field.value}
-											onCheckedChange={field.onChange}
-										/>
-									</FormControl>
-								</FormItem>
-							)}
-						/>
-					</FormSection>
-
-					<FormSection title="Notification Types">
-						<FormField
-							control={preferencesForm.control}
-							name="scheduleUpdates"
-							render={({ field }) => (
-								<FormItem>
-									<div>
-										<FormLabel>Schedule Updates</FormLabel>
-										<FormDescription>
-											Notify me when my schedule is updated
-										</FormDescription>
-									</div>
-									<FormControl>
-										<Switch
-											checked={field.value}
-											onCheckedChange={field.onChange}
-										/>
-									</FormControl>
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={preferencesForm.control}
-							name="shiftReminders"
-							render={({ field }) => (
-								<FormItem>
-									<div>
-										<FormLabel>Shift Reminders</FormLabel>
-										<FormDescription>
-											Notify me before my scheduled shifts
-										</FormDescription>
-									</div>
-									<FormControl>
-										<Switch
-											checked={field.value}
-											onCheckedChange={field.onChange}
-										/>
-									</FormControl>
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={preferencesForm.control}
-							name="systemAnnouncements"
-							render={({ field }) => (
-								<FormItem>
-									<div>
-										<FormLabel>System Announcements</FormLabel>
-										<FormDescription>
-											Receive important system announcements
-										</FormDescription>
-									</div>
-									<FormControl>
-										<Switch
-											checked={field.value}
-											onCheckedChange={field.onChange}
-										/>
-									</FormControl>
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={preferencesForm.control}
-							name="requestUpdates"
-							render={({ field }) => (
-								<FormItem>
-									<div>
-										<FormLabel>Request Updates</FormLabel>
-										<FormDescription>
-											Notify me when my time-off requests are updated
-										</FormDescription>
-									</div>
-									<FormControl>
-										<Switch
-											checked={field.value}
-											onCheckedChange={field.onChange}
-										/>
-									</FormControl>
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={preferencesForm.control}
-							name="newSchedulePublished"
-							render={({ field }) => (
-								<FormItem>
-									<div>
-										<FormLabel>New Schedule Published</FormLabel>
-										<FormDescription>
-											Notify me when a new schedule is published
-										</FormDescription>
-									</div>
-									<FormControl>
-										<Switch
-											checked={field.value}
-											onCheckedChange={field.onChange}
-										/>
-									</FormControl>
-								</FormItem>
-							)}
-						/>
-					</FormSection>
-
-					<Button
-						type="submit"
-						disabled={isLoading}>
-						{isLoading ? (
-							<>
-								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-								Saving...
-							</>
-						) : (
-							"Save Preferences"
-						)}
-					</Button>
-				</form>
-			</Form>
 		</TabsContent>
 	);
 }
@@ -890,16 +951,40 @@ function PreferencesTab() {
 export default function ProfilePage() {
 	return (
 		<PageLayout>
-			<Tabs defaultValue="profile">
-				<TabsList>
-					<TabsTrigger value="profile">Profile</TabsTrigger>
-					<TabsTrigger value="preferences">Preferences</TabsTrigger>
-					<TabsTrigger value="security">Security</TabsTrigger>
-				</TabsList>
-				<ProfileTab />
-				<PreferencesTab />
-				<SecurityTab />
-			</Tabs>
+			<div className="w-full py-6">
+				<div className="mb-6">
+					<h1 className="text-3xl font-bold tracking-tight">
+						Profile Settings
+					</h1>
+					<p className="text-muted-foreground mt-1">
+						Manage your account settings and preferences.
+					</p>
+				</div>
+				<Tabs
+					defaultValue="profile"
+					className="w-full">
+					<TabsList className="w-full">
+						<TabsTrigger
+							value="profile"
+							className="flex-1">
+							Profile
+						</TabsTrigger>
+						<TabsTrigger
+							value="preferences"
+							className="flex-1">
+							Preferences
+						</TabsTrigger>
+						<TabsTrigger
+							value="security"
+							className="flex-1">
+							Security
+						</TabsTrigger>
+					</TabsList>
+					<ProfileTab />
+					<PreferencesTab />
+					<SecurityTab />
+				</Tabs>
+			</div>
 		</PageLayout>
 	);
 }
