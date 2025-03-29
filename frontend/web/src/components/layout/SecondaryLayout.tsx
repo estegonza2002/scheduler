@@ -31,14 +31,18 @@ export function SecondaryLayout({
 }: SecondaryLayoutProps) {
 	return (
 		<>
-			<PageHeader
-				title={title}
-				description={description}
-			/>
+			{title && (
+				<PageHeader
+					title={title}
+					description={description}
+				/>
+			)}
 
 			<div className="flex flex-col lg:flex-row">
-				{/* Sidebar container */}
-				<div className="w-full lg:w-64 flex-shrink-0">{sidebar}</div>
+				{/* Sidebar container - only render if sidebar is provided */}
+				{sidebar && (
+					<div className="w-full lg:w-64 flex-shrink-0">{sidebar}</div>
+				)}
 
 				{/* Main content container */}
 				<div className="flex-1">

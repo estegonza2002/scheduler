@@ -230,12 +230,7 @@ function App() {
 																element={<AccountPage />}>
 																<Route
 																	index
-																	element={
-																		<Navigate
-																			to="/account/business-profile"
-																			replace
-																		/>
-																	}
+																	element={<AccountPage />}
 																/>
 																<Route
 																	path="business-profile"

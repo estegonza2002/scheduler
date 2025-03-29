@@ -53,7 +53,6 @@ export interface Shift {
 	// Metadata
 	name?: string; // Mainly for schedules, can be used for shifts too
 	description?: string; // Notes or additional information
-	position?: string; // Job title or role for the shift
 	status?: string; // e.g., "scheduled", "completed", "canceled"
 	is_schedule: boolean; // Flag to distinguish schedule vs shift
 
@@ -112,7 +111,6 @@ export interface Employee {
 	email: string;
 	role: string;
 	phone?: string;
-	position?: string;
 	hireDate?: string;
 	address?: string;
 	emergencyContact?: string;

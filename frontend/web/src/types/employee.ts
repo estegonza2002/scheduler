@@ -5,7 +5,6 @@ export interface Employee {
 	email: string;
 	role: string;
 	phone?: string;
-	position?: string;
 	hireDate?: string;
 	address?: string;
 	emergencyContact?: string;

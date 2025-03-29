@@ -25,7 +25,7 @@ import {
 	SidebarMenuItem,
 	useSidebar,
 } from "@/components/ui/sidebar";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 
 export function NavUser({
@@ -45,6 +45,7 @@ export function NavUser({
 }) {
 	const { isMobile } = useSidebar();
 	const { signOut } = useAuth();
+	const navigate = useNavigate();
 	const isPaidUser = subscriptionPlan !== "free";
 
 	// Debug log for avatar URL
@@ -54,95 +55,31 @@ export function NavUser({
 		signOut();
 	};
 
+	const handleProfileClick = () => {
+		navigate("/profile");
+	};
+
 	return (
 		<SidebarMenu className="px-2 pt-2 pb-1">
 			<SidebarMenuItem>
-				<DropdownMenu>
-					<DropdownMenuTrigger asChild>
-						<SidebarMenuButton
-							size="lg"
-							className="w-full rounded-md">
-							<AvatarWithStatus
-								isOnline={isOnline}
-								fallback={user.name.charAt(0)}
-								src={user.avatar_url}
-								alt={user.name}
-								className="mr-2"
-							/>
-							<span className="flex-1 overflow-hidden text-left">
-								<span className="block truncate font-medium">{user.name}</span>
-								<span className="block truncate text-xs text-muted-foreground">
-									{user.email}
-								</span>
-							</span>
-							<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-						</SidebarMenuButton>
-					</DropdownMenuTrigger>
-					<DropdownMenuContent
-						side={isMobile ? "bottom" : "right"}
-						align="start"
-						sideOffset={4}>
-						<DropdownMenuLabel>
-							<div className="flex items-center gap-2">
-								<AvatarWithStatus
-									isOnline={isOnline}
-									fallback={user.name.charAt(0)}
-									src={user.avatar_url}
-									alt={user.name}
-								/>
-								<span>
-									<span className="block font-medium">{user.name}</span>
-									<span className="block text-xs text-muted-foreground">
-										{user.email}
-									</span>
-								</span>
-							</div>
-						</DropdownMenuLabel>
-						<DropdownMenuSeparator />
-						<DropdownMenuGroup>
-							<DropdownMenuItem asChild>
-								<Link to="/profile">
-									<User className="mr-2 h-4 w-4" />
-									Profile
-								</Link>
-							</DropdownMenuItem>
-							{isAdmin && (
-								<DropdownMenuItem asChild>
-									<Link to="/business-profile">
-										<Building2 className="mr-2 h-4 w-4" />
-										Business Profile
-									</Link>
-								</DropdownMenuItem>
-							)}
-							<DropdownMenuItem asChild>
-								<Link to="/pricing">
-									<Tags className="mr-2 h-4 w-4" />
-									Pricing Plans
-								</Link>
-							</DropdownMenuItem>
-							{!isPaidUser ? (
-								<DropdownMenuItem asChild>
-									<Link to="/billing">
-										<Sparkles className="mr-2 h-4 w-4" />
-										Upgrade to Pro
-									</Link>
-								</DropdownMenuItem>
-							) : (
-								<DropdownMenuItem asChild>
-									<Link to="/billing">
-										<CreditCard className="mr-2 h-4 w-4" />
-										Billing
-									</Link>
-								</DropdownMenuItem>
-							)}
-						</DropdownMenuGroup>
-						<DropdownMenuSeparator />
-						<DropdownMenuItem onClick={handleSignOut}>
-							<LogOut className="mr-2 h-4 w-4" />
-							Log out
-						</DropdownMenuItem>
-					</DropdownMenuContent>
-				</DropdownMenu>
+				<SidebarMenuButton
+					size="lg"
+					className="w-full rounded-md"
+					onClick={handleProfileClick}>
+					<AvatarWithStatus
+						isOnline={isOnline}
+						fallback={user.name.charAt(0)}
+						src={user.avatar_url}
+						alt={user.name}
+						className="mr-2"
+					/>
+					<span className="flex-1 overflow-hidden text-left">
+						<span className="block truncate font-medium">{user.name}</span>
+						<span className="block truncate text-xs text-muted-foreground">
+							{user.email}
+						</span>
+					</span>
+				</SidebarMenuButton>
 			</SidebarMenuItem>
 		</SidebarMenu>
 	);

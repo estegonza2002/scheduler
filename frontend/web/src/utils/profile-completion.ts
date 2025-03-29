@@ -24,7 +24,6 @@ export function getProfileCompletionStatus(employee: Employee): {
 		{ key: "hourlyRate", label: "Hourly Rate", priority: "high" },
 		{ key: "hireDate", label: "Hire Date", priority: "high" },
 		{ key: "phone", label: "Phone Number", priority: "medium" },
-		{ key: "position", label: "Position", priority: "medium" },
 		{ key: "address", label: "Address", priority: "low" },
 		{ key: "emergencyContact", label: "Emergency Contact", priority: "medium" },
 	];

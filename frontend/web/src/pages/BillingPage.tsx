@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -120,6 +120,8 @@ const invoiceColumns: ColumnDef<InvoiceType>[] = [
 
 export default function BillingPage() {
 	const navigate = useNavigate();
+	const location = useLocation();
+	const isInAccountPage = location.pathname.includes("/account/");
 	const [searchParams, setSearchParams] = useSearchParams();
 	const activeTab = searchParams.get("tab") || "subscription";
 	const { organization } = useOrganization();
@@ -308,16 +310,9 @@ export default function BillingPage() {
 		);
 	}
 
-	return (
-		<SecondaryLayout
-			title="Billing & Subscription"
-			description="Manage your billing information and subscription plan"
-			sidebar={
-				<ProfileSidebar
-					activeTab={activeTab}
-					onTabChange={handleTabChange}
-				/>
-			}>
+	// Create the content section that will be used in both contexts
+	const renderContent = () => (
+		<>
 			{/* Subscription Content */}
 			{activeTab === "subscription" && (
 				<>
@@ -773,6 +768,26 @@ export default function BillingPage() {
 					)}
 				</ContentSection>
 			)}
+		</>
+	);
+
+	// If we're in the account page, just return the content
+	if (isInAccountPage) {
+		return renderContent();
+	}
+
+	// Otherwise, use the SecondaryLayout for standalone page
+	return (
+		<SecondaryLayout
+			title="Billing & Subscription"
+			description="Manage your billing information and subscription plan"
+			sidebar={
+				<ProfileSidebar
+					activeTab={activeTab}
+					onTabChange={handleTabChange}
+				/>
+			}>
+			{renderContent()}
 		</SecondaryLayout>
 	);
 }

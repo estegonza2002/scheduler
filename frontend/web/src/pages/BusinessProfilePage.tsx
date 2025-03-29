@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -78,6 +78,8 @@ interface DBOrganization extends Organization {
 
 export default function BusinessProfilePage() {
 	const navigate = useNavigate();
+	const location = useLocation();
+	const isInAccountPage = location.pathname.includes("/account/");
 	const [isLoading, setIsLoading] = useState(false);
 	const [organization, setOrganization] = useState<Organization | null>(null);
 	const [subscriptionPlan, setSubscriptionPlan] = useState<
@@ -282,6 +284,9 @@ export default function BusinessProfilePage() {
 	// Add handleTabChange function
 	const handleTabChange = useCallback(
 		(tab: string) => {
+			// If we're in the account page context, don't handle navigation as AccountPage manages it
+			if (isInAccountPage) return;
+
 			if (
 				tab === "profile" ||
 				tab === "password" ||
@@ -292,7 +297,7 @@ export default function BusinessProfilePage() {
 				navigate(`/profile?tab=${tab}`);
 			}
 		},
-		[navigate]
+		[navigate, isInAccountPage]
 	);
 
 	// Convert onSubmit to useCallback
@@ -374,6 +379,467 @@ export default function BusinessProfilePage() {
 		);
 	}
 
+	// Render the main form content
+	const renderFormContent = () => (
+		<Form {...form}>
+			<form
+				onSubmit={form.handleSubmit(handleSubmit)}
+				className="space-y-6 pb-8">
+				<FormSection
+					title="Business Information"
+					description="Update your business details">
+					<div className="space-y-2">
+						<Label htmlFor="name">
+							Business Name <span className="text-red-500">*</span>
+						</Label>
+						<Input
+							id="name"
+							placeholder="Enter your business name"
+							{...form.register("name")}
+							className={form.formState.errors.name ? "border-red-500" : ""}
+							aria-required="true"
+							aria-invalid={!!form.formState.errors.name}
+						/>
+						{form.formState.errors.name && (
+							<p
+								className="text-sm text-red-500"
+								role="alert">
+								{form.formState.errors.name.message}
+							</p>
+						)}
+					</div>
+
+					<div className="space-y-2">
+						<Label htmlFor="description">Business Description</Label>
+						<Textarea
+							id="description"
+							placeholder="Enter a description of your business"
+							rows={4}
+							{...form.register("description")}
+							className={
+								form.formState.errors.description ? "border-red-500" : ""
+							}
+							aria-invalid={!!form.formState.errors.description}
+						/>
+						{form.formState.errors.description && (
+							<p
+								className="text-sm text-red-500"
+								role="alert">
+								{form.formState.errors.description.message}
+							</p>
+						)}
+					</div>
+				</FormSection>
+
+				<FormSection
+					title="Contact Information"
+					description="Update contact details for your business"
+					className="pt-2">
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+						<div className="space-y-2">
+							<Label htmlFor="contactEmail">Contact Email</Label>
+							<Input
+								id="contactEmail"
+								type="email"
+								placeholder="contact@yourbusiness.com"
+								{...form.register("contactEmail")}
+								className={
+									form.formState.errors.contactEmail ? "border-red-500" : ""
+								}
+								aria-invalid={!!form.formState.errors.contactEmail}
+							/>
+							{form.formState.errors.contactEmail && (
+								<p
+									className="text-sm text-red-500"
+									role="alert">
+									{form.formState.errors.contactEmail.message}
+								</p>
+							)}
+						</div>
+
+						<FormPhoneInput
+							control={form.control}
+							name="contactPhone"
+							label="Contact Phone"
+							placeholder="Enter phone number"
+							countryField="country"
+						/>
+						{form.formState.errors.contactPhone && (
+							<p
+								className="text-sm text-red-500"
+								role="alert">
+								{form.formState.errors.contactPhone.message}
+							</p>
+						)}
+					</div>
+				</FormSection>
+
+				<FormSection
+					title="Address"
+					description="Update the physical address of your business"
+					className="pt-2">
+					<div className="space-y-4">
+						<div className="space-y-2">
+							<div className="flex justify-between items-center">
+								<Label htmlFor="address">Business Address</Label>
+								<Button
+									type="button"
+									variant="ghost"
+									size="sm"
+									onClick={() => setIsManualEntry(!isManualEntry)}
+									className="text-xs">
+									{isManualEntry ? "Use Address Search" : "Manual Entry"}
+								</Button>
+							</div>
+							{!isManualEntry && (
+								<>
+									<GooglePlacesAutocomplete
+										defaultValue={
+											form.getValues("address") ? form.getValues("address") : ""
+										}
+										placeholder="Search for your business address"
+										className="w-full"
+										onPlaceSelect={(place: GooglePlaceResult) => {
+											// Update address-related fields
+											form.setValue("address", place.address);
+											form.setValue("country", place.country || "");
+										}}
+									/>
+									<p className="text-xs text-muted-foreground mt-1">
+										Start typing to search for your business address. Select a
+										location from the dropdown to automatically fill address
+										details.
+									</p>
+								</>
+							)}
+						</div>
+
+						{isManualEntry && (
+							<>
+								<div className="space-y-2">
+									<Label htmlFor="address">
+										Address (Street, Building, etc.)
+									</Label>
+									<Input
+										id="address"
+										placeholder="Enter address manually"
+										{...form.register("address")}
+									/>
+								</div>
+
+								<div className="space-y-2">
+									<Label htmlFor="country">Country</Label>
+									<Input
+										id="country"
+										placeholder="Country"
+										{...form.register("country")}
+									/>
+									<p className="text-xs text-muted-foreground">
+										You can now edit the address and country manually.
+									</p>
+								</div>
+							</>
+						)}
+					</div>
+				</FormSection>
+
+				<FormSection
+					title="Online Presence"
+					description="Add your website and online details"
+					className="pt-2">
+					<div className="space-y-2">
+						<Label htmlFor="website">Website</Label>
+						<Input
+							id="website"
+							placeholder="https://www.example.com"
+							{...form.register("website")}
+							className={form.formState.errors.website ? "border-red-500" : ""}
+							aria-invalid={!!form.formState.errors.website}
+						/>
+						{form.formState.errors.website && (
+							<p
+								className="text-sm text-red-500"
+								role="alert">
+								{form.formState.errors.website.message}
+							</p>
+						)}
+					</div>
+				</FormSection>
+
+				<FormSection
+					title="Business Hours"
+					description="Specify when your business is open"
+					className="pt-2">
+					<div className="space-y-2">
+						<Label htmlFor="businessHours">Hours of Operation</Label>
+						<Textarea
+							id="businessHours"
+							placeholder="Monday-Friday: 9am-5pm&#10;Saturday: 10am-3pm&#10;Sunday: Closed"
+							rows={3}
+							{...form.register("businessHours")}
+							aria-invalid={!!form.formState.errors.businessHours}
+						/>
+						{form.formState.errors.businessHours && (
+							<p
+								className="text-sm text-red-500"
+								role="alert">
+								{form.formState.errors.businessHours.message}
+							</p>
+						)}
+					</div>
+				</FormSection>
+
+				<div className="flex justify-end pt-4">
+					<Button
+						type="submit"
+						disabled={isLoading}>
+						{isLoading ? "Saving..." : "Save Changes"}
+					</Button>
+				</div>
+			</form>
+		</Form>
+	);
+
+	// Render the create organization section if no organization exists
+	const renderCreateOrganization = () => {
+		if (organization) return null;
+
+		return (
+			<div className="mt-8 p-6 border rounded-lg bg-muted/20">
+				<h3 className="text-lg font-medium mb-2">No Business Profile Found</h3>
+				<p className="text-muted-foreground mb-4">
+					You need to create a business profile to use this feature.
+				</p>
+				<div className="space-y-4">
+					<div className="grid grid-cols-1 gap-3">
+						<div className="space-y-2">
+							<Label htmlFor="new-business-name">
+								Business Name <span className="text-red-500">*</span>
+							</Label>
+							<Input
+								id="new-business-name"
+								placeholder="Enter your business name"
+								value={newBusinessName}
+								onChange={(e) => {
+									setNewBusinessName(e.target.value);
+									setCreateBusinessError("");
+								}}
+							/>
+							{createBusinessError && (
+								<p className="text-sm text-red-500">{createBusinessError}</p>
+							)}
+						</div>
+						<div className="space-y-2">
+							<Label htmlFor="new-business-description">
+								Business Description
+							</Label>
+							<Textarea
+								id="new-business-description"
+								placeholder="Briefly describe your business"
+								value={newBusinessDescription}
+								onChange={(e) => setNewBusinessDescription(e.target.value)}
+								rows={3}
+							/>
+						</div>
+					</div>
+					<Button
+						onClick={async () => {
+							try {
+								// Validate business name
+								if (!newBusinessName || newBusinessName.length < 2) {
+									setCreateBusinessError(
+										"Business name is required (min 2 characters)"
+									);
+									return;
+								}
+
+								setIsLoading(true);
+
+								// Get the current user
+								const { data: userData } = await supabase.auth.getUser();
+								const userId = userData.user?.id;
+
+								if (!userId) {
+									toast.error(
+										"You must be logged in to create a business profile"
+									);
+									return;
+								}
+
+								// Use direct Supabase query to create organization
+								const { data, error } = await supabase
+									.from("organizations")
+									.insert({
+										name: newBusinessName,
+										description: newBusinessDescription || "",
+										owner_id: userId,
+									})
+									.select()
+									.single();
+
+								if (error) {
+									console.error("Error creating organization:", error);
+									toast.error(
+										`Failed to create organization: ${error.message}`
+									);
+
+									if (
+										error.message.includes("column") &&
+										error.message.includes("does not exist")
+									) {
+										toast.error(
+											"Database schema needs to be updated. Please run the SQL script in update_organization_schema.sql"
+										);
+									}
+								} else if (data) {
+									toast.success("Business profile created successfully!");
+
+									try {
+										// Get the user's email
+										const userData = await supabase.auth.getUser();
+										const userEmail = userData.data.user?.email;
+
+										// First check if member already exists
+										const { data: existingMember, error: checkError } =
+											await supabase
+												.from("organization_members")
+												.select("*")
+												.eq("organization_id", data.id)
+												.eq("user_id", userId)
+												.single();
+
+										if (existingMember) {
+											// Set the organization in state
+											setOrganization(data);
+
+											// Update the form with the new organization data
+											form.reset({
+												name: data.name || "",
+												description: data.description || "",
+												contactEmail: data.contactemail || "",
+												contactPhone: data.contactphone || "",
+												address: data.address || "",
+												country: data.country || "",
+												website: data.website || "",
+												businessHours: data.businesshours || "",
+											});
+
+											toast.success("Business profile ready to use!");
+											return;
+										}
+
+										// Add user as organization member
+										const { error: memberError } = await supabase
+											.from("organization_members")
+											.insert({
+												organization_id: data.id,
+												user_id: userId,
+												role: "admin",
+											});
+
+										if (memberError) {
+											console.error("Error adding member:", memberError);
+
+											if (
+												memberError.message.includes(
+													"violates foreign key constraint"
+												)
+											) {
+												toast.error(
+													"Can't add you as a member because of a database constraint issue. Please run the updated SQL script that fixes the foreign key relationships."
+												);
+											} else {
+												toast.error(
+													`Failed to add member: ${memberError.message}`
+												);
+											}
+
+											// Even with member error, we can still show the organization
+											setOrganization(data);
+
+											// Update the form with the new organization data
+											form.reset({
+												name: data.name || "",
+												description: data.description || "",
+												contactEmail: data.contactemail || "",
+												contactPhone: data.contactphone || "",
+												address: data.address || "",
+												country: data.country || "",
+												website: data.website || "",
+												businessHours: data.businesshours || "",
+											});
+
+											toast.warning(
+												"Organization created, but you weren't added as a member due to a database constraint. Some features may be limited."
+											);
+										} else {
+											// Set the organization in state instead of reloading
+											setOrganization(data);
+
+											// Update the form with the new organization data
+											form.reset({
+												name: data.name || "",
+												description: data.description || "",
+												contactEmail: data.contactemail || "",
+												contactPhone: data.contactphone || "",
+												address: data.address || "",
+												country: data.country || "",
+												website: data.website || "",
+												businessHours: data.businesshours || "",
+											});
+
+											toast.success("Business profile ready to use!");
+										}
+									} catch (memberError) {
+										console.error("Exception adding member:", memberError);
+										toast.error(
+											"Failed to add you as a member, but organization was created"
+										);
+
+										// Still set the organization in state
+										setOrganization(data);
+										form.reset({
+											name: data.name || "",
+											description: data.description || "",
+											contactEmail: data.contactemail || "",
+											contactPhone: data.contactphone || "",
+											address: data.address || "",
+											country: data.country || "",
+											website: data.website || "",
+											businessHours: data.businesshours || "",
+										});
+									}
+								}
+							} catch (error) {
+								console.error("Exception creating organization:", error);
+								toast.error("Failed to create organization");
+							} finally {
+								setIsLoading(false);
+							}
+						}}
+						disabled={isLoading}
+						className="w-full">
+						{isLoading ? "Creating..." : "Create Business Profile"}
+					</Button>
+				</div>
+			</div>
+		);
+	};
+
+	// Create the main content that will be used in both contexts
+	const renderContent = () => (
+		<>
+			{renderFormContent()}
+			{renderCreateOrganization()}
+		</>
+	);
+
+	// If we're in the account context, just return the content
+	if (isInAccountPage) {
+		return renderContent();
+	}
+
+	// For standalone page (not inside account)
 	return (
 		<SecondaryLayout
 			title="Business Profile"
@@ -384,25 +850,6 @@ export default function BusinessProfilePage() {
 					onTabChange={handleTabChange}
 				/>
 			}>
-			{/* Debug panel - Remove for cleaner UI */}
-			{/* {process.env.NODE_ENV !== "production" && (
-				<div className="mb-6 p-4 border border-red-300 bg-red-50 rounded-md">
-					<h3 className="font-bold">Debug Panel</h3>
-					<pre className="text-xs overflow-auto max-h-[150px]">
-						{JSON.stringify(
-							{
-								organization,
-								isLoading,
-								formValues: form.getValues(),
-								formErrors: form.formState.errors,
-							},
-							null,
-							2
-						)}
-					</pre>
-				</div>
-			)} */}
-
 			<Tabs
 				defaultValue="profile"
 				className="w-full">
@@ -417,498 +864,8 @@ export default function BusinessProfilePage() {
 				<TabsContent
 					value="profile"
 					className="pt-4">
-					<Form {...form}>
-						<form
-							onSubmit={form.handleSubmit(handleSubmit)}
-							className="space-y-6 pb-8">
-							<FormSection
-								title="Business Information"
-								description="Update your business details">
-								<div className="space-y-2">
-									<Label htmlFor="name">
-										Business Name <span className="text-red-500">*</span>
-									</Label>
-									<Input
-										id="name"
-										placeholder="Enter your business name"
-										{...form.register("name")}
-										className={
-											form.formState.errors.name ? "border-red-500" : ""
-										}
-										aria-required="true"
-										aria-invalid={!!form.formState.errors.name}
-									/>
-									{form.formState.errors.name && (
-										<p
-											className="text-sm text-red-500"
-											role="alert">
-											{form.formState.errors.name.message}
-										</p>
-									)}
-								</div>
-
-								<div className="space-y-2">
-									<Label htmlFor="description">Business Description</Label>
-									<Textarea
-										id="description"
-										placeholder="Enter a description of your business"
-										rows={4}
-										{...form.register("description")}
-										className={
-											form.formState.errors.description ? "border-red-500" : ""
-										}
-										aria-invalid={!!form.formState.errors.description}
-									/>
-									{form.formState.errors.description && (
-										<p
-											className="text-sm text-red-500"
-											role="alert">
-											{form.formState.errors.description.message}
-										</p>
-									)}
-								</div>
-							</FormSection>
-
-							<FormSection
-								title="Contact Information"
-								description="Update contact details for your business"
-								className="pt-2">
-								<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-									<div className="space-y-2">
-										<Label htmlFor="contactEmail">Contact Email</Label>
-										<Input
-											id="contactEmail"
-											type="email"
-											placeholder="contact@yourbusiness.com"
-											{...form.register("contactEmail")}
-											className={
-												form.formState.errors.contactEmail
-													? "border-red-500"
-													: ""
-											}
-											aria-invalid={!!form.formState.errors.contactEmail}
-										/>
-										{form.formState.errors.contactEmail && (
-											<p
-												className="text-sm text-red-500"
-												role="alert">
-												{form.formState.errors.contactEmail.message}
-											</p>
-										)}
-									</div>
-
-									<FormPhoneInput
-										control={form.control}
-										name="contactPhone"
-										label="Contact Phone"
-										placeholder="Enter phone number"
-										countryField="country"
-									/>
-									{form.formState.errors.contactPhone && (
-										<p
-											className="text-sm text-red-500"
-											role="alert">
-											{form.formState.errors.contactPhone.message}
-										</p>
-									)}
-								</div>
-							</FormSection>
-
-							<FormSection
-								title="Address"
-								description="Update the physical address of your business"
-								className="pt-2">
-								<div className="space-y-4">
-									<div className="space-y-2">
-										<div className="flex justify-between items-center">
-											<Label htmlFor="address">Business Address</Label>
-											<Button
-												type="button"
-												variant="ghost"
-												size="sm"
-												onClick={() => setIsManualEntry(!isManualEntry)}
-												className="text-xs">
-												{isManualEntry ? "Use Address Search" : "Manual Entry"}
-											</Button>
-										</div>
-										{!isManualEntry && (
-											<>
-												<GooglePlacesAutocomplete
-													defaultValue={
-														form.getValues("address")
-															? form.getValues("address")
-															: ""
-													}
-													placeholder="Search for your business address"
-													className="w-full"
-													onPlaceSelect={(place: GooglePlaceResult) => {
-														// Update address-related fields
-														form.setValue("address", place.address);
-														form.setValue("country", place.country || "");
-													}}
-												/>
-												<p className="text-xs text-muted-foreground mt-1">
-													Start typing to search for your business address.
-													Select a location from the dropdown to automatically
-													fill address details.
-												</p>
-											</>
-										)}
-									</div>
-
-									{isManualEntry && (
-										<>
-											<div className="space-y-2">
-												<Label htmlFor="address">
-													Address (Street, Building, etc.)
-												</Label>
-												<Input
-													id="address"
-													placeholder="Enter address manually"
-													{...form.register("address")}
-												/>
-											</div>
-
-											<div className="space-y-2">
-												<Label htmlFor="country">Country</Label>
-												<Input
-													id="country"
-													placeholder="Country"
-													{...form.register("country")}
-												/>
-												<p className="text-xs text-muted-foreground">
-													You can now edit the address and country manually.
-												</p>
-											</div>
-										</>
-									)}
-								</div>
-							</FormSection>
-
-							<FormSection
-								title="Online Presence"
-								description="Add your website and online details"
-								className="pt-2">
-								<div className="space-y-2">
-									<Label htmlFor="website">Website</Label>
-									<Input
-										id="website"
-										placeholder="https://www.example.com"
-										{...form.register("website")}
-										className={
-											form.formState.errors.website ? "border-red-500" : ""
-										}
-										aria-invalid={!!form.formState.errors.website}
-									/>
-									{form.formState.errors.website && (
-										<p
-											className="text-sm text-red-500"
-											role="alert">
-											{form.formState.errors.website.message}
-										</p>
-									)}
-								</div>
-							</FormSection>
-
-							<FormSection
-								title="Business Hours"
-								description="Specify when your business is open"
-								className="pt-2">
-								<div className="space-y-2">
-									<Label htmlFor="businessHours">Hours of Operation</Label>
-									<Textarea
-										id="businessHours"
-										placeholder="Monday-Friday: 9am-5pm&#10;Saturday: 10am-3pm&#10;Sunday: Closed"
-										rows={3}
-										{...form.register("businessHours")}
-										aria-invalid={!!form.formState.errors.businessHours}
-									/>
-									{form.formState.errors.businessHours && (
-										<p
-											className="text-sm text-red-500"
-											role="alert">
-											{form.formState.errors.businessHours.message}
-										</p>
-									)}
-								</div>
-							</FormSection>
-
-							<div className="flex justify-end pt-4">
-								<Button
-									type="submit"
-									disabled={isLoading}>
-									{isLoading ? "Saving..." : "Save Changes"}
-								</Button>
-							</div>
-						</form>
-					</Form>
-
-					{/* Add a button to create an organization if none exists */}
-					{!organization && (
-						<div className="mt-8 p-6 border rounded-lg bg-muted/20">
-							<h3 className="text-lg font-medium mb-2">
-								No Business Profile Found
-							</h3>
-							<p className="text-muted-foreground mb-4">
-								You need to create a business profile to use this feature.
-							</p>
-							<div className="space-y-4">
-								<div className="grid grid-cols-1 gap-3">
-									<div className="space-y-2">
-										<Label htmlFor="new-business-name">
-											Business Name <span className="text-red-500">*</span>
-										</Label>
-										<Input
-											id="new-business-name"
-											placeholder="Enter your business name"
-											value={newBusinessName}
-											onChange={(e) => {
-												setNewBusinessName(e.target.value);
-												setCreateBusinessError("");
-											}}
-										/>
-										{createBusinessError && (
-											<p className="text-sm text-red-500">
-												{createBusinessError}
-											</p>
-										)}
-									</div>
-									<div className="space-y-2">
-										<Label htmlFor="new-business-description">
-											Business Description
-										</Label>
-										<Textarea
-											id="new-business-description"
-											placeholder="Briefly describe your business"
-											value={newBusinessDescription}
-											onChange={(e) =>
-												setNewBusinessDescription(e.target.value)
-											}
-											rows={3}
-										/>
-									</div>
-								</div>
-								<Button
-									onClick={async () => {
-										try {
-											// Validate business name
-											if (!newBusinessName || newBusinessName.length < 2) {
-												setCreateBusinessError(
-													"Business name is required (min 2 characters)"
-												);
-												return;
-											}
-
-											setIsLoading(true);
-
-											// Get the current user
-											const { data: userData } = await supabase.auth.getUser();
-											const userId = userData.user?.id;
-
-											if (!userId) {
-												toast.error(
-													"You must be logged in to create a business profile"
-												);
-												return;
-											}
-
-											// Use direct Supabase query to create organization
-											const { data, error } = await supabase
-												.from("organizations")
-												.insert({
-													name: newBusinessName,
-													description: newBusinessDescription || "",
-													owner_id: userId,
-												})
-												.select()
-												.single();
-
-											if (error) {
-												console.error("Error creating organization:", error);
-												toast.error(
-													`Failed to create organization: ${error.message}`
-												);
-
-												if (
-													error.message.includes("column") &&
-													error.message.includes("does not exist")
-												) {
-													toast.error(
-														"Database schema needs to be updated. Please run the SQL script in update_organization_schema.sql"
-													);
-												}
-											} else if (data) {
-												toast.success("Business profile created successfully!");
-
-												try {
-													// Get the user's email
-													const userData = await supabase.auth.getUser();
-													const userEmail = userData.data.user?.email;
-
-													// First check if member already exists
-													const { data: existingMember, error: checkError } =
-														await supabase
-															.from("organization_members")
-															.select("*")
-															.eq("organization_id", data.id)
-															.eq("user_id", userId)
-															.single();
-
-													if (existingMember) {
-														// Set the organization in state
-														setOrganization(data);
-
-														// Update the form with the new organization data
-														form.reset({
-															name: data.name || "",
-															description: data.description || "",
-															contactEmail: data.contactemail || "",
-															contactPhone: data.contactphone || "",
-															address: data.address || "",
-															country: data.country || "",
-															website: data.website || "",
-															businessHours: data.businesshours || "",
-														});
-
-														toast.success("Business profile ready to use!");
-														return;
-													}
-
-													// Add user as organization member
-													const { error: memberError } = await supabase
-														.from("organization_members")
-														.insert({
-															organization_id: data.id,
-															user_id: userId,
-															role: "admin",
-														});
-
-													if (memberError) {
-														console.error("Error adding member:", memberError);
-
-														if (
-															memberError.message.includes(
-																"violates foreign key constraint"
-															)
-														) {
-															toast.error(
-																"Can't add you as a member because of a database constraint issue. Please run the updated SQL script that fixes the foreign key relationships."
-															);
-														} else {
-															toast.error(
-																`Failed to add member: ${memberError.message}`
-															);
-														}
-
-														// Even with member error, we can still show the organization
-														setOrganization(data);
-
-														// Update the form with the new organization data
-														form.reset({
-															name: data.name || "",
-															description: data.description || "",
-															contactEmail: data.contactemail || "",
-															contactPhone: data.contactphone || "",
-															address: data.address || "",
-															country: data.country || "",
-															website: data.website || "",
-															businessHours: data.businesshours || "",
-														});
-
-														toast.warning(
-															"Organization created, but you weren't added as a member due to a database constraint. Some features may be limited."
-														);
-													} else {
-														// Set the organization in state instead of reloading
-														setOrganization(data);
-
-														// Update the form with the new organization data
-														form.reset({
-															name: data.name || "",
-															description: data.description || "",
-															contactEmail: data.contactemail || "",
-															contactPhone: data.contactphone || "",
-															address: data.address || "",
-															country: data.country || "",
-															website: data.website || "",
-															businessHours: data.businesshours || "",
-														});
-
-														toast.success("Business profile ready to use!");
-													}
-												} catch (memberError) {
-													console.error(
-														"Exception adding member:",
-														memberError
-													);
-													toast.error(
-														"Failed to add you as a member, but organization was created"
-													);
-
-													// Still set the organization in state
-													setOrganization(data);
-													form.reset({
-														name: data.name || "",
-														description: data.description || "",
-														contactEmail: data.contactemail || "",
-														contactPhone: data.contactphone || "",
-														address: data.address || "",
-														country: data.country || "",
-														website: data.website || "",
-														businessHours: data.businesshours || "",
-													});
-												}
-											}
-										} catch (error) {
-											console.error("Exception creating organization:", error);
-											toast.error("Failed to create organization");
-										} finally {
-											setIsLoading(false);
-										}
-									}}
-									disabled={isLoading}
-									className="w-full">
-									{isLoading ? "Creating..." : "Create Business Profile"}
-								</Button>
-							</div>
-						</div>
-					)}
+					{renderContent()}
 				</TabsContent>
-
-				{/* Branding tab content hidden temporarily 
-				<TabsContent value="branding">
-					<FormSection
-						title="Business Logo"
-						description="Upload your business logo. Recommended size: 400x400px.">
-						<div className="flex items-center gap-4">
-							<Button variant="outline">Upload Logo</Button>
-						</div>
-					</FormSection>
-
-					<FormSection
-						title="Company Colors"
-						description="Choose colors that represent your brand. These colors will be displayed throughout your account."
-						className="pt-2">
-						<div className="flex items-center gap-4">
-							<div className="space-y-2">
-								<Label htmlFor="primaryColor">Primary Color</Label>
-								<div className="flex items-center gap-2">
-									<div className="h-10 w-10 rounded-md bg-primary" />
-									<Input
-										id="primaryColor"
-										value="Primary Theme Color"
-										disabled
-									/>
-								</div>
-							</div>
-						</div>
-					</FormSection>
-
-					<p className="text-center text-muted-foreground pt-8">
-						Advanced branding options will be available in a future update.
-					</p>
-				</TabsContent>
-				*/}
 
 				<TabsContent value="billing">
 					<ContentSection
