@@ -1,6 +1,7 @@
 import * as React from "react";
 import { ChevronRight, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { FragmentFix } from "@/components/ui/fragment-fix";
 
 export interface BreadcrumbItem {
 	title: string;
@@ -53,7 +54,7 @@ const Breadcrumbs = React.forwardRef<HTMLElement, BreadcrumbsProps>(
 					const isLast = index === items.length - 1;
 
 					return (
-						<React.Fragment key={item.href}>
+						<FragmentFix key={item.href}>
 							<a
 								href={item.href}
 								className={cn(
@@ -69,7 +70,7 @@ const Breadcrumbs = React.forwardRef<HTMLElement, BreadcrumbsProps>(
 									{separator}
 								</span>
 							)}
-						</React.Fragment>
+						</FragmentFix>
 					);
 				})}
 			</nav>

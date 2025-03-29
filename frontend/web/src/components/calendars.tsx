@@ -15,6 +15,7 @@ import {
 	SidebarMenuItem,
 	SidebarSeparator,
 } from "@/components/ui/sidebar";
+import { FragmentFix } from "@/components/ui/fragment-fix";
 
 export function Calendars({
 	calendars,
@@ -27,7 +28,7 @@ export function Calendars({
 	return (
 		<>
 			{calendars.map((calendar, index) => (
-				<React.Fragment key={calendar.name}>
+				<FragmentFix key={calendar.name}>
 					<SidebarGroup>
 						<Collapsible defaultOpen={index === 0}>
 							<SidebarGroupLabel asChild>
@@ -57,7 +58,7 @@ export function Calendars({
 						</Collapsible>
 					</SidebarGroup>
 					<SidebarSeparator />
-				</React.Fragment>
+				</FragmentFix>
 			))}
 		</>
 	);
