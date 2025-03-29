@@ -374,37 +374,12 @@ export default function DailyShiftsPage() {
 
 	return (
 		<>
-			<div className="sticky top-0 flex h-16 shrink-0 items-center border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 z-40">
-				<div className="flex flex-1 items-center">
-					<div className="mx-4">
-						<h1 className="text-lg font-semibold">Daily Shifts</h1>
-						<p className="text-xs text-muted-foreground">
-							Shifts for {format(currentDate, "EEEE, MMMM d, yyyy")}
-						</p>
-					</div>
-				</div>
-				<div className="flex items-center justify-end gap-3">
-					<ShiftCreationSheet
-						scheduleId={selectedSchedule}
-						organizationId={organizationId}
-						initialDate={currentDate}
-						trigger={
-							<Button>
-								<Plus className="h-4 w-4 mr-2" />
-								Add Shift
-							</Button>
-						}
-					/>
-				</div>
-			</div>
-
 			<ContentContainer>
 				<ContentSection
-					title={`Shifts for ${format(currentDate, "MMMM d, yyyy")}`}
-					description={`${shifts.length} shift${
-						shifts.length !== 1 ? "s" : ""
-					} scheduled`}
-					headerActions={
+					title=""
+					description=""
+					headerActions={null}>
+					<div className="flex justify-between items-center mb-4">
 						<div className="flex items-center gap-2">
 							<Button
 								variant="outline"
@@ -445,26 +420,19 @@ export default function DailyShiftsPage() {
 								onClick={() => updateDate(new Date())}>
 								Today
 							</Button>
-							<Separator
-								orientation="vertical"
-								className="h-8"
-							/>
-							<Button
-								variant="outline"
-								className="flex items-center gap-2 h-8"
-								onClick={() =>
-									navigate(
-										`/schedule/monthly?date=${format(
-											currentDate,
-											"yyyy-MM-dd"
-										)}`
-									)
-								}>
-								<Maximize2 className="h-4 w-4" />
-								<span>Monthly View</span>
-							</Button>
 						</div>
-					}>
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={() =>
+								navigate(
+									`/schedule/monthly?date=${format(currentDate, "yyyy-MM-dd")}`
+								)
+							}>
+							<Maximize2 className="h-4 w-4" />
+							<span>Monthly View</span>
+						</Button>
+					</div>
 					{/* Shifts display with standardized patterns */}
 					{loading ? (
 						<div className="flex flex-col items-center justify-center p-8">

@@ -76,14 +76,6 @@ export default function LocationsPage() {
 	const [editDialogOpen, setEditDialogOpen] = useState(false);
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-	// Set the page header on component mount
-	useEffect(() => {
-		updateHeader({
-			title: "Locations",
-			description: "Manage your organization's locations",
-		});
-	}, [updateHeader]);
-
 	const handleLocationsAdded = useCallback((newLocations: Location[]) => {
 		setLocations((prev) => [...prev, ...newLocations]);
 	}, []);
@@ -97,6 +89,28 @@ export default function LocationsPage() {
 	const handleLocationDeleted = useCallback((locationId: string) => {
 		setLocations((prev) => prev.filter((loc) => loc.id !== locationId));
 	}, []);
+
+	// Set the page header on component mount
+	useEffect(() => {
+		updateHeader({
+			title: "Locations",
+			description: "Manage your organization's locations",
+			actions: (
+				<LocationCreationSheet
+					organizationId={organizationId}
+					onLocationCreated={(newLocation) =>
+						handleLocationsAdded([newLocation])
+					}
+					trigger={
+						<Button>
+							<PlusCircle className="h-4 w-4 mr-2" />
+							Add Location
+						</Button>
+					}
+				/>
+			),
+		});
+	}, [updateHeader, organizationId, handleLocationsAdded]);
 
 	// Fetch data
 	const fetchData = async () => {
@@ -301,31 +315,6 @@ export default function LocationsPage() {
 			<Helmet>
 				<title>Locations - Scheduler</title>
 			</Helmet>
-
-			<div className="sticky top-0 flex h-16 shrink-0 items-center border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 z-40">
-				<div className="flex flex-1 items-center">
-					<div className="mx-4">
-						<h1 className="text-lg font-semibold">Locations</h1>
-						<p className="text-xs text-muted-foreground">
-							Manage your business locations
-						</p>
-					</div>
-				</div>
-				<div className="flex items-center justify-end gap-3">
-					<LocationCreationSheet
-						organizationId={organizationId}
-						onLocationCreated={(newLocation) =>
-							handleLocationsAdded([newLocation])
-						}
-						trigger={
-							<Button>
-								<PlusCircle className="h-4 w-4 mr-2" />
-								Add Location
-							</Button>
-						}
-					/>
-				</div>
-			</div>
 
 			<ContentContainer>
 				<ContentSection title="Locations">

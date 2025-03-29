@@ -152,8 +152,112 @@ export default function EmployeesPage() {
 		updateHeader({
 			title: "Employees",
 			description: "View and manage employee information",
+			actions: (
+				<>
+					{/* Pending signup indicator in header */}
+					{employees.filter((emp) => emp.status === "invited").length > 0 && (
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={() => {
+								// Filter to invited employees
+								const invitedParams = new URLSearchParams(searchParams);
+								invitedParams.set("status", "invited");
+								setSearchParams(invitedParams);
+							}}
+							className="bg-red-50 border-red-200 text-red-800 hover:bg-red-100 hover:text-red-900 gap-1.5">
+							<UserX className="h-3.5 w-3.5" />
+							<span>
+								{employees.filter((emp) => emp.status === "invited").length}{" "}
+								Pending Invites
+							</span>
+						</Button>
+					)}
+
+					{/* Profile completion indicator */}
+					{employees.filter(
+						(emp) => !getProfileCompletionStatus(emp).isComplete
+					).length > 0 && (
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={() => {
+								// Reset any status filter to show all employees
+								const params = new URLSearchParams(searchParams);
+								params.delete("status");
+								setSearchParams(params);
+							}}
+							className={
+								employees.filter(
+									(emp) =>
+										!getProfileCompletionStatus(emp).isComplete &&
+										getProfileCompletionStatus(emp).missingHighPriority
+								).length > 0
+									? "bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100 hover:text-amber-900 gap-1.5"
+									: "bg-muted border-muted-foreground/20 text-muted-foreground hover:bg-muted/80 gap-1.5"
+							}>
+							<AlertCircle className="h-3.5 w-3.5" />
+							<span>
+								{
+									employees.filter(
+										(emp) => !getProfileCompletionStatus(emp).isComplete
+									).length
+								}{" "}
+								Incomplete
+							</span>
+						</Button>
+					)}
+
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Button
+								size="icon"
+								variant="ghost"
+								onClick={() => toggleNotifications()}
+								disabled={!presenceInitialized}
+								className={cn(
+									"relative",
+									notificationsEnabled && "text-primary"
+								)}>
+								{notificationsEnabled ? (
+									<BellRing className="h-4 w-4" />
+								) : (
+									<BellOff className="h-4 w-4" />
+								)}
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent>
+							{notificationsEnabled
+								? "Disable status notifications"
+								: "Enable status notifications"}
+						</TooltipContent>
+					</Tooltip>
+
+					<EmployeeSheet
+						organizationId={organization?.id || getDefaultOrganizationId()}
+						onEmployeeUpdated={(newEmployee: Employee) => {
+							setEmployees((prev) => [...prev, newEmployee]);
+						}}
+						trigger={
+							<Button className="bg-primary text-primary-foreground">
+								<Plus className="h-4 w-4 mr-2" />
+								Add Employee
+							</Button>
+						}
+					/>
+				</>
+			),
 		});
-	}, [updateHeader]);
+	}, [
+		updateHeader,
+		employees,
+		searchParams,
+		toggleNotifications,
+		presenceInitialized,
+		notificationsEnabled,
+		organization?.id,
+		organization?.name,
+	]);
 
 	const columns = useMemo<ColumnDef<Employee>[]>(
 		() => [
@@ -371,21 +475,6 @@ export default function EmployeesPage() {
 		setCurrentPage(1); // Reset to first page when changing page size
 	};
 
-	// Calculate how many employees have invited status
-	const pendingSignupCount = employees.filter(
-		(emp) => emp.status === "invited"
-	).length;
-
-	// Calculate how many employees have incomplete profiles
-	const incompleteProfileCount = employees.filter(
-		(emp) => !getProfileCompletionStatus(emp).isComplete
-	).length;
-	const highPriorityIncompleteCount = employees.filter(
-		(emp) =>
-			!getProfileCompletionStatus(emp).isComplete &&
-			getProfileCompletionStatus(emp).missingHighPriority
-	).length;
-
 	if (isLoading) {
 		return (
 			<ContentContainer>
@@ -402,97 +491,6 @@ export default function EmployeesPage() {
 
 	return (
 		<>
-			<div className="sticky top-0 flex h-16 shrink-0 items-center border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 z-40">
-				<div className="flex flex-1 items-center">
-					<div className="flex items-center gap-2">
-						<SidebarTrigger className="-ml-1" />
-						{/* Back button logic could be added here if needed */}
-					</div>
-					<div className="mx-4">
-						<h1 className="text-lg font-semibold">Employees</h1>
-						<p className="text-xs text-muted-foreground">
-							Manage your {organization?.name || "organization's"} employees
-						</p>
-					</div>
-				</div>
-				<div className="flex items-center justify-end gap-3">
-					{/* Pending signup indicator in header */}
-					{pendingSignupCount > 0 && (
-						<Button
-							variant="outline"
-							size="sm"
-							onClick={() => {
-								// Filter to invited employees
-								const invitedParams = new URLSearchParams(searchParams);
-								invitedParams.set("status", "invited");
-								setSearchParams(invitedParams);
-							}}
-							className="bg-red-50 border-red-200 text-red-800 hover:bg-red-100 hover:text-red-900 gap-1.5">
-							<UserX className="h-3.5 w-3.5" />
-							<span>{pendingSignupCount} Pending Invites</span>
-						</Button>
-					)}
-
-					{/* Profile completion indicator */}
-					{incompleteProfileCount > 0 && (
-						<Button
-							variant="outline"
-							size="sm"
-							onClick={() => {
-								// Reset any status filter to show all employees
-								const params = new URLSearchParams(searchParams);
-								params.delete("status");
-								setSearchParams(params);
-							}}
-							className={
-								highPriorityIncompleteCount > 0
-									? "bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100 hover:text-amber-900 gap-1.5"
-									: "bg-muted border-muted-foreground/20 text-muted-foreground hover:bg-muted/80 gap-1.5"
-							}>
-							<AlertCircle className="h-3.5 w-3.5" />
-							<span>{incompleteProfileCount} Incomplete</span>
-						</Button>
-					)}
-
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<Button
-								size="icon"
-								variant="ghost"
-								onClick={() => toggleNotifications()}
-								disabled={!presenceInitialized}
-								className={cn(
-									"relative",
-									notificationsEnabled && "text-primary"
-								)}>
-								{notificationsEnabled ? (
-									<BellRing className="h-4 w-4" />
-								) : (
-									<BellOff className="h-4 w-4" />
-								)}
-							</Button>
-						</TooltipTrigger>
-						<TooltipContent>
-							{notificationsEnabled
-								? "Disable status notifications"
-								: "Enable status notifications"}
-						</TooltipContent>
-					</Tooltip>
-
-					<EmployeeSheet
-						organizationId={organization?.id || getDefaultOrganizationId()}
-						onEmployeeUpdated={(newEmployee: Employee) => {
-							setEmployees((prev) => [...prev, newEmployee]);
-						}}
-						trigger={
-							<Button className="bg-primary text-primary-foreground">
-								<Plus className="h-4 w-4 mr-2" />
-								Add Employee
-							</Button>
-						}
-					/>
-				</div>
-			</div>
 			<ContentContainer>
 				{isLoading ? (
 					<LoadingState
