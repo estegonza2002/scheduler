@@ -152,7 +152,7 @@ export function LocationEditSheet({
 				</ScrollArea>
 
 				{isComplete ? (
-					<SheetFooter className="px-6 py-4 sticky bottom-0 bg-background border-t">
+					<SheetFooter className="px-6 py-4">
 						<Button
 							variant="outline"
 							onClick={() => handleOpenChange(false)}>
@@ -160,7 +160,7 @@ export function LocationEditSheet({
 						</Button>
 					</SheetFooter>
 				) : (
-					<SheetFooter className="px-6 py-4 sticky bottom-0 bg-background border-t">
+					<SheetFooter className="px-6 py-4">
 						<Button
 							variant="outline"
 							onClick={() => handleOpenChange(false)}

@@ -47,27 +47,6 @@ export function ShiftHeader({
 
 	return (
 		<>
-			{/* Breadcrumb Navigation */}
-			<div className="flex items-center text-sm text-muted-foreground mb-4">
-				<Link
-					to="/schedule"
-					className="hover:text-foreground">
-					Schedule
-				</Link>
-				<ChevronRight className="h-4 w-4 mx-1" />
-				<Link
-					to={`/daily-shifts?date=${formatDateParam(shift.start_time)}${
-						window.location.search.includes("organizationId")
-							? "&" + window.location.search.substring(1)
-							: ""
-					}`}
-					className="hover:text-foreground">
-					{format(parseISO(shift.start_time), "MMMM d, yyyy")}
-				</Link>
-				<ChevronRight className="h-4 w-4 mx-1" />
-				<span className="text-foreground font-medium">Shift Details</span>
-			</div>
-
 			{/* Header Section */}
 			<div className="bg-white rounded-lg shadow-sm border mb-6">
 				<div className="border-b p-4">

@@ -9,7 +9,6 @@ import {
 	SheetHeader,
 	SheetTitle,
 	SheetDescription,
-	SheetFooter,
 	SheetTrigger,
 } from "@/components/ui/sheet";
 
@@ -127,62 +126,6 @@ export function ShiftCreationSheet({
 		}
 	}, [open]);
 
-	// Trigger form submit for steps based on current step
-	const triggerContinue = () => {
-		if (currentStep === "select-location") {
-			// For the location selection, we would normally submit a form
-			// but our updated component doesn't have a form submission
-			// Instead, we'll manually continue to the next step in the wizard
-			const locationId = document.querySelector<HTMLInputElement>(
-				'input[name="locationId"]'
-			)?.value;
-			if (locationId) {
-				// We're good to go
-				handleWizardStateChange({
-					currentStep: "shift-details",
-					canContinue,
-					isLoading,
-					selectedEmployeesCount,
-				});
-			}
-		} else if (currentStep === "shift-details") {
-			// Click the submit button in the shift details form
-			document
-				.querySelector<HTMLButtonElement>(
-					'form#shift-details-form button[type="submit"]'
-				)
-				?.click();
-		} else if (currentStep === "assign-employee") {
-			// Find and click the create shift button directly
-			const createShiftButton = document.querySelector<HTMLButtonElement>(
-				"#create-shift-button"
-			);
-
-			console.log("Found create shift button:", createShiftButton);
-
-			if (createShiftButton) {
-				createShiftButton.click();
-			} else {
-				console.error("Create shift button not found");
-			}
-		}
-	};
-
-	// Trigger back button based on current step
-	const triggerBack = () => {
-		if (currentStep === "shift-details") {
-			// Click the back button to go from shift details to location selection
-			document
-				.querySelector<HTMLButtonElement>("#shift-details-back-button")
-				?.click();
-		} else if (currentStep === "assign-employee") {
-			// Click the back button to go from employee assignment to shift details
-			document
-				.querySelector<HTMLButtonElement>("#employee-assign-back-button")
-				?.click();
-		}
-	};
-
 	// Default trigger if none provided
 	const defaultTrigger = (
 		<Button>
@@ -199,83 +142,23 @@ export function ShiftCreationSheet({
 
 			<SheetContent
 				className={cn(
-					"w-full sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl p-6",
+					"w-full sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl p-6 flex flex-col",
 					className
 				)}>
-				<SheetHeader>
+				<SheetHeader className="mb-4">
 					<SheetTitle>Create New Shift</SheetTitle>
 				</SheetHeader>
 
-				<div className="flex flex-col h-[calc(100vh-12rem)] mt-4">
-					<ShiftCreationWizard
-						scheduleId={scheduleId}
-						organizationId={organizationId}
-						initialDate={initialDate}
-						initialLocationId={initialLocationId}
-						onComplete={handleComplete}
-						onCancel={handleCancel}
-						onStateChange={handleWizardStateChange}
-						className="flex-1 overflow-hidden"
-					/>
-				</div>
-
-				<SheetFooter className="flex justify-between border-t mt-4 pt-4">
-					{currentStep === "select-location" ? (
-						<>
-							<Button
-								variant="outline"
-								onClick={handleCancel}>
-								Cancel
-							</Button>
-							<Button
-								onClick={triggerContinue}
-								disabled={!canContinue}>
-								Continue
-								<ArrowRight className="ml-2 h-4 w-4" />
-							</Button>
-						</>
-					) : currentStep === "shift-details" ? (
-						<>
-							<Button
-								variant="outline"
-								onClick={triggerBack}>
-								<ArrowLeft className="mr-2 h-4 w-4" />
-								Back
-							</Button>
-							<Button
-								onClick={triggerContinue}
-								disabled={!canContinue}>
-								Continue
-								<ArrowRight className="ml-2 h-4 w-4" />
-							</Button>
-						</>
-					) : (
-						<>
-							<Button
-								variant="outline"
-								onClick={triggerBack}>
-								<ArrowLeft className="mr-2 h-4 w-4" />
-								Back
-							</Button>
-							<Button
-								onClick={triggerContinue}
-								disabled={isLoading}>
-								{isLoading ? (
-									<>
-										<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-										Creating Shift...
-									</>
-								) : selectedEmployeesCount > 0 ? (
-									`Create ${selectedEmployeesCount} ${
-										selectedEmployeesCount === 1 ? "Shift" : "Shifts"
-									}`
-								) : (
-									"Create Shift"
-								)}
-							</Button>
-						</>
-					)}
-				</SheetFooter>
+				<ShiftCreationWizard
+					scheduleId={scheduleId}
+					organizationId={organizationId}
+					initialDate={initialDate}
+					initialLocationId={initialLocationId}
+					onComplete={handleComplete}
+					onCancel={handleCancel}
+					onStateChange={handleWizardStateChange}
+					className="flex-1"
+				/>
 			</SheetContent>
 		</Sheet>
 	);

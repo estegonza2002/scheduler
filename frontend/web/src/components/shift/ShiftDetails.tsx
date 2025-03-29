@@ -34,6 +34,16 @@ import { Switch } from "../ui/switch";
 import { Label } from "../ui/label";
 import { useNotificationsContext } from "../../lib/notification-context";
 import { ShiftReport } from "./ShiftReport";
+import {
+	AlertDialog,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+	AlertDialogCancel,
+	AlertDialogAction,
+} from "../ui/alert-dialog";
 
 // Define API access functions
 const getShift = async (shiftId: string): Promise<Shift | null> => {
@@ -79,7 +89,7 @@ const deleteShift = async (shiftId: string): Promise<void> => {
 const createShiftAssignment = async (
 	assignmentData: Omit<ShiftAssignment, "id">
 ): Promise<ShiftAssignment> => {
-	console.log(`Creating assignment for shift: ${assignmentData.shiftId}`);
+	console.log(`Creating assignment for shift: ${assignmentData.shift_id}`);
 	return ShiftAssignmentsAPI.create(assignmentData);
 };
 
@@ -221,6 +231,11 @@ export function ShiftDetails() {
 	const [checkInTasksDialogOpen, setCheckInTasksDialogOpen] = useState(false);
 	const [checkOutTasksDialogOpen, setCheckOutTasksDialogOpen] = useState(false);
 	const [deleteAlertOpen, setDeleteAlertOpen] = useState(false);
+	const [removeEmployeeAlertOpen, setRemoveEmployeeAlertOpen] = useState(false);
+	const [employeeToRemove, setEmployeeToRemove] = useState<{
+		id: string;
+		assignmentId: string;
+	} | null>(null);
 
 	// Load initial data
 	useEffect(() => {
@@ -252,7 +267,7 @@ export function ShiftDetails() {
 				// For each assignment, fetch the employee details
 				const assignedEmployeePromises = assignmentsData.map(
 					async (assignment) => {
-						const employee = await getEmployee(assignment.employeeId);
+						const employee = await getEmployee(assignment.employee_id);
 						if (employee) {
 							return {
 								...employee,
@@ -359,8 +374,8 @@ export function ShiftDetails() {
 			// Create new assignments
 			const assignmentPromises = newAssignments.map((emp) =>
 				createShiftAssignment({
-					shiftId,
-					employeeId: emp.id,
+					shift_id: shiftId,
+					employee_id: emp.id,
 					role: emp.assignmentRole,
 					notes: emp.assignmentNotes,
 				})
@@ -384,28 +399,26 @@ export function ShiftDetails() {
 		}
 	};
 
-	// Handle employee removal
-	const handleRemoveEmployee = async (
-		employeeId: string,
-		assignmentId: string
-	) => {
-		if (hasShiftEnded()) {
-			toast.error("Cannot modify a completed shift");
-			return;
-		}
+	// Handle employee removal trigger
+	const handleRemoveEmployee = (employeeId: string, assignmentId: string) => {
+		setEmployeeToRemove({ id: employeeId, assignmentId });
+		setRemoveEmployeeAlertOpen(true);
+	};
 
-		if (!shift) return;
+	// Actually remove employee after confirmation
+	const confirmRemoveEmployee = async () => {
+		if (!shift || !employeeToRemove) return;
 
 		try {
 			setSaving(true);
-			await deleteShiftAssignment(assignmentId);
+			await deleteShiftAssignment(employeeToRemove.assignmentId);
 
 			// Update UI state
 			const removedEmployee = assignedEmployees.find(
-				(emp) => emp.id === employeeId
+				(emp) => emp.id === employeeToRemove.id
 			);
 			setAssignedEmployees((prev) =>
-				prev.filter((emp) => emp.id !== employeeId)
+				prev.filter((emp) => emp.id !== employeeToRemove.id)
 			);
 
 			if (removedEmployee) {
@@ -426,6 +439,8 @@ export function ShiftDetails() {
 			toast.error("Failed to remove employee");
 		} finally {
 			setSaving(false);
+			setRemoveEmployeeAlertOpen(false);
+			setEmployeeToRemove(null);
 		}
 	};
 
@@ -476,10 +491,6 @@ export function ShiftDetails() {
 
 	// Handle assign employees dialog open
 	const handleAssignEmployeeDialogOpen = () => {
-		if (hasShiftEnded()) {
-			toast.error("Cannot modify a completed shift");
-			return;
-		}
 		setAssignEmployeeDialogOpen(true);
 	};
 
@@ -645,7 +656,7 @@ export function ShiftDetails() {
 						}}
 						onRemoveEmployeeClick={handleRemoveEmployee}
 						onAssignClick={handleAssignEmployeeDialogOpen}
-						isCompleted={hasShiftEnded()}
+						isCompleted={false}
 					/>
 
 					<ShiftNotes
@@ -704,6 +715,35 @@ export function ShiftDetails() {
 				tasks={localCheckOutTasks}
 				onSave={handleSaveCheckOutTasks}
 			/>
+
+			{/* Employee Remove Confirmation */}
+			<AlertDialog
+				open={removeEmployeeAlertOpen}
+				onOpenChange={setRemoveEmployeeAlertOpen}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Remove Employee</AlertDialogTitle>
+						<AlertDialogDescription>
+							Are you sure you want to remove this employee from the shift? This
+							action cannot be undone.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel
+							onClick={() => {
+								setRemoveEmployeeAlertOpen(false);
+								setEmployeeToRemove(null);
+							}}>
+							Cancel
+						</AlertDialogCancel>
+						<AlertDialogAction
+							onClick={confirmRemoveEmployee}
+							className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+							Remove
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 		</div>
 	);
 }

@@ -6,7 +6,13 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { UserPlus, Loader2, CheckCircle, Users } from "lucide-react";
+import {
+	UserPlus,
+	Loader2,
+	CheckCircle,
+	Users,
+	CheckSquare,
+} from "lucide-react";
 import {
 	Sheet,
 	SheetContent,
@@ -411,20 +417,21 @@ export function EmployeeAssignmentSheet({
 				</div>
 
 				{!isAssigned && !isLoading && (
-					<SheetFooter className="px-6 py-4 sticky bottom-0 bg-background border-t">
+					<SheetFooter className="px-6 py-4">
 						<Button
 							onClick={assignEmployeesToLocation}
 							disabled={isSubmitting || selectedEmployees.length === 0}
 							className="w-full">
 							{isSubmitting ? (
 								<>
-									<Loader2 className="h-4 w-4 mr-2 animate-spin" />
-									Assigning...
+									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+									Assigning Employees...
 								</>
 							) : (
 								<>
-									Assign {selectedEmployees.length} Employee
-									{selectedEmployees.length !== 1 ? "s" : ""}
+									<CheckSquare className="mr-2 h-4 w-4" />
+									Assign {selectedEmployees.length}{" "}
+									{selectedEmployees.length === 1 ? "Employee" : "Employees"}
 								</>
 							)}
 						</Button>
@@ -432,7 +439,7 @@ export function EmployeeAssignmentSheet({
 				)}
 
 				{isAssigned && (
-					<SheetFooter className="px-6 py-4 sticky bottom-0 bg-background border-t">
+					<SheetFooter className="px-6 py-4">
 						<Button
 							variant="outline"
 							onClick={() => setIsAssigned(false)}

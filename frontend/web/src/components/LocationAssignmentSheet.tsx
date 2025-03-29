@@ -289,7 +289,7 @@ export function LocationAssignmentSheet({
 				</div>
 
 				{!isAssigned && (
-					<SheetFooter className="px-6 py-4 sticky bottom-0 bg-background border-t">
+					<SheetFooter className="px-6 py-4">
 						<Button
 							onClick={assignLocationsToEmployee}
 							disabled={isSubmitting || selectedLocationIds.length === 0}

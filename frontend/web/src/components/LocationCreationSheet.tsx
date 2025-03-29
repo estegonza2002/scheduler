@@ -308,7 +308,7 @@ export function LocationCreationSheet({
 				</div>
 
 				{isComplete && (
-					<SheetFooter className="px-6 py-4 sticky bottom-0 bg-background border-t">
+					<SheetFooter className="px-6 py-4">
 						<Button
 							variant="outline"
 							onClick={() => handleOpenChange(false)}>
@@ -318,7 +318,7 @@ export function LocationCreationSheet({
 				)}
 
 				{bulkImportComplete && (
-					<SheetFooter className="px-6 py-4 sticky bottom-0 bg-background border-t">
+					<SheetFooter className="px-6 py-4">
 						<Button
 							variant="outline"
 							onClick={() => handleOpenChange(false)}>
@@ -328,7 +328,7 @@ export function LocationCreationSheet({
 				)}
 
 				{!isComplete && !bulkImportComplete && activeTab === "single" && (
-					<SheetFooter className="px-6 py-4 sticky bottom-0 bg-background border-t">
+					<SheetFooter className="px-6 py-4">
 						<Button
 							variant="outline"
 							onClick={() => handleOpenChange(false)}

@@ -25,6 +25,9 @@ import {
 	LocationsAPI,
 	EmployeesAPI,
 	ShiftsAPI,
+	ScheduleCreateInput,
+	ShiftAssignmentsAPI,
+	ShiftAssignment,
 } from "@/api";
 import {
 	Calendar as CalendarIcon,
@@ -40,6 +43,7 @@ import {
 	Clock,
 	Search,
 	AlertCircle,
+	Loader2,
 } from "lucide-react";
 import { ShiftCreationSheet } from "@/components/ShiftCreationSheet";
 import { cn } from "@/lib/utils";
@@ -83,22 +87,108 @@ export default function SchedulePage() {
 	const [searchParams, setSearchParams] = useSearchParams();
 	const navigate = useNavigate();
 	const organizationId = searchParams.get("organizationId") || "org-1";
-	const scheduleId = searchParams.get("scheduleId") || "sch-4";
+	const scheduleIdParam = searchParams.get("scheduleId");
+	const [scheduleId, setScheduleId] = useState<string | null>(scheduleIdParam);
 	const { updateHeader } = useHeader();
 
 	const [shifts, setShifts] = useState<Shift[]>([]);
 	const [locations, setLocations] = useState<Location[]>([]);
 	const [employees, setEmployees] = useState<Employee[]>([]);
+	const [shiftAssignments, setShiftAssignments] = useState<ShiftAssignment[]>(
+		[]
+	);
 	const [loading, setLoading] = useState(true);
 	const [searchQuery, setSearchQuery] = useState("");
+	const [isScheduleLoading, setIsScheduleLoading] = useState(!scheduleIdParam);
+	const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+	// Function to fetch or create a valid schedule
+	const fetchOrCreateSchedule = async () => {
+		if (!organizationId) return;
+
+		try {
+			setIsScheduleLoading(true);
+			// First try to find existing schedules
+			const schedules = await ShiftsAPI.getAllSchedules(organizationId);
+
+			if (schedules && schedules.length > 0) {
+				// Use the first schedule found
+				const validScheduleId = schedules[0].id;
+				setScheduleId(validScheduleId);
+
+				// Update URL to include the valid schedule ID
+				setSearchParams((prev) => {
+					const newParams = new URLSearchParams(prev);
+					newParams.set("scheduleId", validScheduleId);
+					return newParams;
+				});
+
+				console.log("Using existing schedule:", validScheduleId);
+			} else {
+				// Create a default schedule if none exists
+				const newSchedule: ScheduleCreateInput = {
+					organization_id: organizationId,
+					name: "Default Schedule",
+					description: "Default schedule created automatically",
+					start_time: new Date().toISOString(),
+					end_time: new Date(
+						new Date().setMonth(new Date().getMonth() + 1)
+					).toISOString(),
+					is_schedule: true,
+				};
+
+				const createdSchedule = await ShiftsAPI.createSchedule(newSchedule);
+				const newScheduleId = createdSchedule.id;
+				setScheduleId(newScheduleId);
+
+				// Update URL to include the new schedule ID
+				setSearchParams((prev) => {
+					const newParams = new URLSearchParams(prev);
+					newParams.set("scheduleId", newScheduleId);
+					return newParams;
+				});
+
+				console.log("Created new schedule:", newScheduleId);
+			}
+		} catch (error) {
+			console.error("Error fetching/creating schedule:", error);
+		} finally {
+			setIsScheduleLoading(false);
+		}
+	};
+
+	// Call the function when component mounts if no valid schedule ID
+	useEffect(() => {
+		if (!scheduleIdParam || scheduleIdParam === "sch-4") {
+			fetchOrCreateSchedule();
+		}
+	}, [organizationId, scheduleIdParam]);
+
+	// Function to refresh shifts data
+	const refreshShifts = () => {
+		console.log("Refreshing shifts data...");
+		setRefreshTrigger((prev) => prev + 1);
+	};
 
 	// Define header actions with the Create Shift button as the main CTA
 	const getHeaderActions = () => {
+		if (isScheduleLoading || !scheduleId) {
+			return (
+				<Button
+					disabled
+					className="h-9">
+					<Loader2 className="h-4 w-4 mr-2 animate-spin" />
+					Loading...
+				</Button>
+			);
+		}
+
 		return (
 			<ShiftCreationSheet
 				scheduleId={scheduleId}
 				organizationId={organizationId}
 				initialDate={new Date()}
+				onComplete={refreshShifts}
 				trigger={
 					<Button className="bg-primary hover:bg-primary/90 text-white h-9">
 						<Plus className="h-5 w-5 mr-2" />
@@ -115,11 +205,13 @@ export default function SchedulePage() {
 			description: "Manage and view your team's schedule",
 			actions: getHeaderActions(),
 		});
-	}, [updateHeader, scheduleId, organizationId]);
+	}, [updateHeader, scheduleId, organizationId, isScheduleLoading]);
 
 	// Fetch shifts, locations, and employees
 	useEffect(() => {
 		const fetchData = async () => {
+			if (!scheduleId) return; // Don't fetch if no valid schedule ID
+
 			try {
 				setLoading(true);
 
@@ -135,6 +227,18 @@ export default function SchedulePage() {
 				// Fetch shifts for the schedule
 				const shiftsData = await ShiftsAPI.getShiftsForSchedule(scheduleId);
 				setShifts(shiftsData);
+
+				// Fetch all shift assignments
+				const assignments = await ShiftAssignmentsAPI.getAll();
+				setShiftAssignments(assignments);
+
+				console.log(
+					"Shifts data refreshed:",
+					shiftsData.length,
+					"shifts loaded",
+					"Assignments:",
+					assignments.length
+				);
 			} catch (error) {
 				console.error("Error fetching data:", error);
 			} finally {
@@ -143,7 +247,7 @@ export default function SchedulePage() {
 		};
 
 		fetchData();
-	}, [organizationId, scheduleId]);
+	}, [organizationId, scheduleId, refreshTrigger]);
 
 	// Helper functions
 	const formatTime = (dateString: string) => {
@@ -162,12 +266,89 @@ export default function SchedulePage() {
 		return employee ? employee.name : "Unknown Employee";
 	};
 
+	// Get all employees assigned to a shift
+	const getShiftEmployees = (shift: Shift) => {
+		// Get assignments from the shift_assignments table
+		const assignments = shiftAssignments.filter(
+			(assignment) => assignment.shift_id === shift.id
+		);
+
+		if (assignments.length > 0) {
+			return assignments
+				.map((assignment) => {
+					const employee = employees.find(
+						(emp) => emp.id === assignment.employee_id
+					);
+					return employee || null;
+				})
+				.filter(Boolean) as Employee[];
+		}
+
+		// Fallback to user_id if no assignments found
+		if (shift.user_id) {
+			const employee = employees.find((emp) => emp.id === shift.user_id);
+			return employee ? [employee] : [];
+		}
+
+		// Try to parse employees from description as a last resort
+		if (shift.description) {
+			// Look for "Assigned to: " pattern in the description
+			const assignedToMatch = shift.description.match(
+				/Assigned to: (.*?)(?:$|,|\))/
+			);
+			if (assignedToMatch && assignedToMatch[1]) {
+				const names = assignedToMatch[1].split(",").map((name) => name.trim());
+				return names.map((name) => {
+					const employee = employees.find((emp) => emp.name === name);
+					return (
+						employee ||
+						({
+							id: `parsed-${name}`,
+							name: name,
+							organizationId: organizationId,
+							role: "Employee",
+							email: "",
+							status: "active",
+							isOnline: false,
+							lastActive: new Date().toISOString(),
+						} as Employee)
+					);
+				});
+			}
+
+			// Look for description with employee names in parentheses
+			const parenthesesMatch = shift.description.match(/\((.*?)\)/);
+			if (parenthesesMatch && parenthesesMatch[1]) {
+				const names = parenthesesMatch[1].split(",").map((name) => name.trim());
+				return names.map((name) => {
+					const employee = employees.find((emp) => emp.name === name);
+					return (
+						employee ||
+						({
+							id: `parsed-${name}`,
+							name: name,
+							organizationId: organizationId,
+							role: "Employee",
+							email: "",
+							status: "active",
+							isOnline: false,
+							lastActive: new Date().toISOString(),
+						} as Employee)
+					);
+				});
+			}
+		}
+
+		return [];
+	};
+
 	// Filter shifts based on search query
 	const filteredShifts = shifts.filter((shift) => {
 		if (!searchQuery) return true;
 
 		const locationName = getLocationName(shift.location_id);
-		const employeeName = getEmployeeName(shift.user_id);
+		const assignedEmployees = getShiftEmployees(shift);
+		const employeeNames = assignedEmployees.map((emp) => emp.name).join(", ");
 		const shiftTime = `${formatTime(shift.start_time)} - ${formatTime(
 			shift.end_time
 		)}`;
@@ -175,7 +356,7 @@ export default function SchedulePage() {
 
 		return (
 			locationName.toLowerCase().includes(searchLower) ||
-			employeeName.toLowerCase().includes(searchLower) ||
+			employeeNames.toLowerCase().includes(searchLower) ||
 			shiftTime.toLowerCase().includes(searchLower)
 		);
 	});
@@ -195,34 +376,77 @@ export default function SchedulePage() {
 
 	// Handle opening shift details in a new page
 	const openShiftDetails = (shiftId: string) => {
-		window.open(`/shifts/${shiftId}`, "_blank");
+		navigate(`/shifts/${shiftId}`);
 	};
 
 	// Render a shift card
-	const ShiftCard = ({ shift }: { shift: Shift }) => (
-		<Card
-			key={shift.id}
-			className="cursor-pointer hover:shadow-md transition-all border hover:border-primary"
-			onClick={() => openShiftDetails(shift.id)}>
-			<CardContent className="p-4">
-				<div className="flex justify-between items-start">
-					<div>
-						<h3 className="font-medium flex items-center">
-							<Clock className="h-4 w-4 mr-2 text-primary" />
-							{formatTime(shift.start_time)} - {formatTime(shift.end_time)}
-						</h3>
-						<p className="text-sm text-muted-foreground mt-1 flex items-center">
-							<MapPin className="h-3.5 w-3.5 mr-1" />
-							{getLocationName(shift.location_id)}
-						</p>
+	const ShiftCard = ({ shift }: { shift: Shift }) => {
+		const assignedEmployees = getShiftEmployees(shift);
+		const hasAssignments = assignedEmployees.length > 0;
+
+		return (
+			<Card
+				key={shift.id}
+				className="cursor-pointer hover:shadow-md transition-all border hover:border-primary"
+				onClick={() => openShiftDetails(shift.id)}>
+				<CardContent className="p-4">
+					<div className="flex justify-between items-start">
+						<div>
+							<h3 className="font-medium flex items-center">
+								<Clock className="h-4 w-4 mr-2 text-primary" />
+								{formatTime(shift.start_time)} - {formatTime(shift.end_time)}
+							</h3>
+							<p className="text-sm text-muted-foreground mt-1 flex items-center">
+								<MapPin className="h-3.5 w-3.5 mr-1" />
+								{getLocationName(shift.location_id)}
+							</p>
+						</div>
+
+						<div className="flex items-center">
+							{hasAssignments ? (
+								<div className="flex items-center">
+									<div className="flex -space-x-2 mr-1">
+										{assignedEmployees.slice(0, 3).map((employee, i) => (
+											<div
+												key={employee.id}
+												className="h-8 w-8 rounded-full bg-primary/10 border-2 border-background flex items-center justify-center overflow-hidden"
+												title={employee.name}>
+												{employee.avatar ? (
+													<img
+														src={employee.avatar}
+														alt={employee.name}
+														className="h-full w-full object-cover"
+													/>
+												) : (
+													<span className="text-xs font-medium">
+														{employee.name.charAt(0)}
+													</span>
+												)}
+											</div>
+										))}
+									</div>
+									{assignedEmployees.length > 3 && (
+										<Badge variant="secondary">
+											+{assignedEmployees.length - 3}
+										</Badge>
+									)}
+								</div>
+							) : (
+								<Badge variant="destructive">Unassigned</Badge>
+							)}
+						</div>
 					</div>
-					<Badge variant={shift.user_id ? "secondary" : "destructive"}>
-						{shift.user_id ? getEmployeeName(shift.user_id) : "Unassigned"}
-					</Badge>
-				</div>
-			</CardContent>
-		</Card>
-	);
+					{shift.description &&
+						!shift.description.includes("Assigned to:") &&
+						!shift.description.includes("(") && (
+							<p className="text-sm mt-2 text-muted-foreground">
+								{shift.description}
+							</p>
+						)}
+				</CardContent>
+			</Card>
+		);
+	};
 
 	return (
 		<Card className="shadow-sm border-border/40 flex flex-col h-[calc(100vh-120px)]">

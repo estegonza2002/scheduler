@@ -240,7 +240,7 @@ export function EmployeeSheet({
 				</div>
 
 				{isComplete ? (
-					<SheetFooter className="px-6 py-4 sticky bottom-0 bg-background border-t">
+					<SheetFooter className="px-6 py-4">
 						<div className="flex items-center text-sm text-muted-foreground mr-auto">
 							<CheckCircle className="h-4 w-4 mr-2 text-green-500" />
 							<span>
@@ -254,11 +254,11 @@ export function EmployeeSheet({
 						</Button>
 					</SheetFooter>
 				) : (
-					<SheetFooter className="px-6 py-4 sticky bottom-0 bg-background border-t">
+					<SheetFooter className="px-6 py-4">
 						<Button
 							variant="outline"
-							onClick={() => handleOpenChange(false)}
-							disabled={getFormState()?.isSubmitting}>
+							disabled={getFormState()?.isSubmitting}
+							onClick={() => handleOpenChange(false)}>
 							Cancel
 						</Button>
 						<Button

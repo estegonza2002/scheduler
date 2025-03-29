@@ -72,8 +72,6 @@ interface EmployeeAssignmentStepProps {
 	shiftData: ShiftData;
 	searchTerm: string;
 	setSearchTerm: (value: string) => void;
-	searchFilter: string;
-	setSearchFilter: (value: string) => void;
 	filteredEmployees: Employee[];
 	loadingEmployees: boolean;
 	getLocationName: (locationId: string) => string;
@@ -162,8 +160,6 @@ export function EmployeeAssignmentStep({
 	shiftData,
 	searchTerm,
 	setSearchTerm,
-	searchFilter,
-	setSearchFilter,
 	filteredEmployees,
 	loadingEmployees,
 	getLocationName,
@@ -209,7 +205,6 @@ export function EmployeeAssignmentStep({
 		filteredEmployees,
 		loadingEmployees,
 		searchTerm,
-		searchFilter,
 		allEmployees,
 	});
 
@@ -364,35 +359,21 @@ export function EmployeeAssignmentStep({
 				}}
 				className="flex flex-col gap-4 h-full">
 				<div className="space-y-4">
-					{/* Search and filter controls */}
-					<div className="flex flex-col gap-2 sm:flex-row">
-						<div className="relative flex-1">
-							<Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-							<Input
-								type="search"
-								placeholder="Search employees..."
-								className="pl-8"
-								value={searchTerm}
-								onChange={(e) => setSearchTerm(e.target.value)}
-							/>
-						</div>
-						<Select
-							value={searchFilter}
-							onValueChange={setSearchFilter}>
-							<SelectTrigger className="w-full sm:w-[180px]">
-								<SelectValue placeholder="Filter by" />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value="all">All Employees</SelectItem>
-								<SelectItem value="available">Available</SelectItem>
-								<SelectItem value="unavailable">Unavailable</SelectItem>
-							</SelectContent>
-						</Select>
+					{/* Search without filter controls */}
+					<div className="relative w-full">
+						<Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+						<Input
+							type="search"
+							placeholder="Search employees..."
+							className="pl-8"
+							value={searchTerm}
+							onChange={(e) => setSearchTerm(e.target.value)}
+						/>
 					</div>
 
 					{/* Employee list */}
 					<div className="border rounded-md bg-background/50">
-						<ScrollArea className="h-[320px]">
+						<div className="max-h-[320px] overflow-auto">
 							<div className="p-4">
 								{filteredEmployees.length === 0 ? (
 									<div className="p-6 text-center text-muted-foreground">
@@ -490,8 +471,18 @@ export function EmployeeAssignmentStep({
 									</div>
 								)}
 							</div>
-						</ScrollArea>
+						</div>
 					</div>
+
+					{/* Message about adding more employees later */}
+					<Alert
+						variant="default"
+						className="text-center">
+						<AlertDescription>
+							Don't worry if you can't find all employees now. You can add more
+							employees to this shift later.
+						</AlertDescription>
+					</Alert>
 
 					{/* Selected employees display */}
 					<div className="mt-3">
@@ -540,28 +531,44 @@ export function EmployeeAssignmentStep({
 					</div>
 				</div>
 
-				{/* Submit button */}
-				<div className="mt-auto pt-4">
+				{/* Navigation Buttons */}
+				<div className="flex justify-between border-t pt-4 mt-4">
+					<Button
+						variant="outline"
+						onClick={onBack}
+						type="button">
+						<ArrowLeft className="mr-2 h-4 w-4" />
+						Back
+					</Button>
 					<Button
 						type="button"
-						className="w-full"
 						onClick={() => {
 							// Create a simple handler that just calls the submission function
 							// without any additional state updates
 							const formData = {
 								...shiftData,
 								employeeIds: selectedEmployees.map((emp) => emp.id),
+								selectedEmployees: selectedEmployees, // Explicitly pass the full objects
 							};
+							console.log(
+								"Submitting form with selected employees:",
+								selectedEmployees
+							);
 							onFormSubmit(formData);
 						}}
 						disabled={loading}>
-						{loading
-							? "Assigning..."
-							: `Assign ${
-									selectedEmployees.length > 0
-										? selectedEmployees.length + " "
-										: ""
-							  }Employee${selectedEmployees.length !== 1 ? "s" : ""}`}
+						{loading ? (
+							<>
+								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+								Creating Shift...
+							</>
+						) : selectedEmployees.length > 0 ? (
+							`Create ${selectedEmployees.length} ${
+								selectedEmployees.length === 1 ? "Shift" : "Shifts"
+							}`
+						) : (
+							"Create Shift"
+						)}
 					</Button>
 				</div>
 			</form>

@@ -34,7 +34,7 @@ export function EmployeesSection({
 				<Button
 					variant="default"
 					size="sm"
-					disabled={availableEmployees.length === 0 || isCompleted}
+					disabled={availableEmployees.length === 0}
 					onClick={onAssignClick}>
 					<Plus className="h-4 w-4 mr-1" /> Assign
 				</Button>
@@ -58,7 +58,9 @@ export function EmployeesSection({
 					<p className="text-sm text-muted-foreground mb-4">
 						Assign employees to this shift to manage staffing.
 					</p>
-					<Button disabled={availableEmployees.length === 0 || isCompleted}>
+					<Button
+						disabled={availableEmployees.length === 0}
+						onClick={onAssignClick}>
 						<Plus className="h-4 w-4 mr-2" /> Assign Employee
 					</Button>
 				</div>
@@ -162,8 +164,7 @@ export function EmployeesSection({
 													employee.id,
 													employee.assignmentId
 												)
-											}
-											disabled={isCompleted}>
+											}>
 											<Trash className="h-4 w-4" />
 										</Button>
 									</td>

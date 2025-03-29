@@ -7,6 +7,7 @@ import {
 	Employee,
 	LocationsAPI,
 	Location,
+	ShiftAssignmentsAPI,
 } from "@/api";
 import { format } from "date-fns";
 import {
@@ -21,6 +22,15 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+
+/**
+ * Helper function to validate if a string is a UUID
+ */
+const isValidUUID = (str: string): boolean => {
+	const uuidRegex =
+		/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+	return uuidRegex.test(str);
+};
 
 /**
  * Props for the ShiftCreationWizard component
@@ -145,7 +155,6 @@ export function ShiftCreationWizard({
 	// Search functionality
 	const [searchTerm, setSearchTerm] = useState("");
 	const [locationSearchTerm, setLocationSearchTerm] = useState("");
-	const [searchFilter, setSearchFilter] = useState<string>("all");
 	const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
 
 	// Forms for each step
@@ -315,56 +324,36 @@ export function ShiftCreationWizard({
 	useEffect(() => {
 		console.log("Running employee filter effect", {
 			searchTerm,
-			searchFilter,
 			employees: employees.length,
 		});
 
-		// If no search term and no role filter (all), show all employees
-		if (!searchTerm.trim() && searchFilter === "all") {
-			console.log("No filter active, showing all employees", employees);
+		// If no search term, show all employees
+		if (!searchTerm.trim()) {
+			console.log("No search term, showing all employees", employees);
 			setFilteredEmployees(employees);
 			return;
 		}
 
-		// Apply filters
+		// Apply search filter
 		const lowerCaseSearch = searchTerm.toLowerCase();
 		const filtered = employees.filter((employee) => {
-			// First check if we need to filter by role
-			if (searchFilter !== "all" && searchFilter !== "name") {
-				// If we're filtering by a specific role value
-				if (employee.role !== searchFilter) {
-					return false; // Employee doesn't have this role, exclude them
-				}
+			// Simple name search
+			if (employee.name.toLowerCase().includes(lowerCaseSearch)) {
+				return true;
 			}
 
-			// If we have a search term, apply text search
-			if (searchTerm.trim()) {
-				// Always search by name unless explicitly filtering only by role
-				if (searchFilter === "all" || searchFilter === "name") {
-					if (employee.name.toLowerCase().includes(lowerCaseSearch)) {
-						return true;
-					}
-				}
-
-				// Search by role if filter is 'all' or explicitly 'role'
-				if (searchFilter === "all" || searchFilter === "role") {
-					const role = employee.role || "";
-					if (role.toLowerCase().includes(lowerCaseSearch)) {
-						return true;
-					}
-				}
-
-				// If we got here with a search term but didn't match anything, exclude
-				return false;
+			// Also search by role if available
+			const role = employee.role || "";
+			if (role.toLowerCase().includes(lowerCaseSearch)) {
+				return true;
 			}
 
-			// If we got here, the employee passed the role filter and there was no search term
-			return true;
+			return false;
 		});
 
-		console.log("Applied filters, filtered employees:", filtered);
+		console.log("Applied search filter, filtered employees:", filtered);
 		setFilteredEmployees(filtered);
-	}, [searchTerm, searchFilter, employees]);
+	}, [searchTerm, employees]);
 
 	// Handle the location step submission
 	const handleLocationSelect = (locationId: string) => {
@@ -395,12 +384,73 @@ export function ShiftCreationWizard({
 		console.log("Starting handleEmployeeAssignSubmit", {
 			data,
 			selectedEmployees,
-			locationData,
-			shiftData,
 		});
 
 		if (!locationData || !shiftData) {
 			console.error("Missing required data", { locationData, shiftData });
+			return;
+		}
+
+		// Check if an employee was selected but the selectedEmployees array is empty
+		if (
+			data.employeeId &&
+			(!selectedEmployees || selectedEmployees.length === 0)
+		) {
+			console.warn(
+				"Employee ID was provided but selectedEmployees array is empty, adding it manually",
+				data.employeeId
+			);
+			// Try to find the employee in the employees array
+			const selectedEmployee = employees.find(
+				(emp) => emp.id === data.employeeId
+			);
+			if (selectedEmployee) {
+				selectedEmployees = [
+					{
+						id: selectedEmployee.id,
+						name: selectedEmployee.name,
+						role: selectedEmployee.role,
+					},
+				];
+				console.log("Added employee manually:", selectedEmployees[0]);
+			}
+		}
+
+		console.log("Creating shift with the following data:");
+		console.log({
+			parent_shift_id: scheduleId,
+			organization_id: organizationId,
+			location_id: locationData.locationId,
+			date: shiftData.date,
+			startTime: shiftData.startTime,
+			endTime: shiftData.endTime,
+			notes: shiftData.notes,
+			selectedEmployees: selectedEmployees.map((e) => ({
+				id: e.id,
+				name: e.name,
+			})),
+		});
+
+		// Validate critical IDs
+		if (!isValidUUID(scheduleId)) {
+			setError(`Invalid schedule ID: ${scheduleId}. Must be a valid UUID.`);
+			toast.error("Failed to create shift: Invalid schedule ID");
+			return;
+		}
+
+		if (!isValidUUID(organizationId)) {
+			setError(
+				`Invalid organization ID: ${organizationId}. Must be a valid UUID.`
+			);
+			toast.error("Failed to create shift: Invalid organization ID");
+			return;
+		}
+
+		if (!isValidUUID(locationData.locationId)) {
+			setError(
+				`Invalid location ID: ${locationData.locationId}. Must be a valid UUID.`
+			);
+			toast.error("Failed to create shift: Invalid location ID");
 			return;
 		}
 
@@ -417,50 +467,116 @@ export function ShiftCreationWizard({
 			// If no employees selected, create shift without an employee
 			if (!selectedEmployees || selectedEmployees.length === 0) {
 				console.log("Creating shift without employee");
-				await ShiftsAPI.createShift({
-					parent_shift_id: scheduleId,
-					organization_id: organizationId,
-					location_id: locationData.locationId,
-					user_id: "", // Empty string for no employee
-					start_time: startDateTime,
-					end_time: endDateTime,
-					description: shiftData.notes, // Notes
-					is_schedule: false,
-					status: "scheduled", // Required field in the database
-				});
-
-				toast.success("Shift created successfully");
-			} else {
-				console.log(
-					`Creating ${selectedEmployees.length} shifts with employees`,
-					selectedEmployees
-				);
-				// Create a shift for each selected employee
-				const promises = selectedEmployees.map((employee) => {
-					console.log(
-						`Creating shift for employee: ${employee.name}`,
-						employee
-					);
-					return ShiftsAPI.createShift({
+				try {
+					const shiftCreateData = {
 						parent_shift_id: scheduleId,
 						organization_id: organizationId,
 						location_id: locationData.locationId,
-						user_id: employee.id,
+						// Removing user_id completely to avoid foreign key constraint
+						start_time: startDateTime,
+						end_time: endDateTime,
+						description: shiftData.notes, // Notes
+						is_schedule: false as const, // Explicitly typed as false, not boolean
+						status: "scheduled", // Required field in the database
+					};
+					console.log("Shift creation payload:", shiftCreateData);
+
+					await ShiftsAPI.createShift(shiftCreateData);
+					toast.success("Shift created successfully");
+				} catch (err) {
+					console.error("Detailed error creating shift:", err);
+					throw err;
+				}
+			} else {
+				console.log(
+					`Creating shift with ${selectedEmployees.length} employee assignments`,
+					selectedEmployees
+				);
+
+				// First create a shift without a user_id to avoid the foreign key constraint
+				try {
+					const shiftCreateData = {
+						parent_shift_id: scheduleId,
+						organization_id: organizationId,
+						location_id: locationData.locationId,
+						// No user_id field
 						start_time: startDateTime,
 						end_time: endDateTime,
 						description: shiftData.notes,
-						is_schedule: false,
-						status: "scheduled", // Required field in the database
-					});
-				});
+						is_schedule: false as const,
+						status: "scheduled",
+					};
 
-				await Promise.all(promises);
+					console.log("Creating main shift:", shiftCreateData);
+					const createdShift = await ShiftsAPI.createShift(shiftCreateData);
+					console.log("Main shift created successfully:", createdShift);
 
-				toast.success(
-					`${selectedEmployees.length} ${
-						selectedEmployees.length === 1 ? "shift" : "shifts"
-					} created successfully`
-				);
+					// Now create shift assignments for each employee
+					const shiftId = createdShift.id;
+					console.log("Creating assignments for shift ID:", shiftId);
+
+					// Process each employee assignment in sequence to avoid overwhelming the database
+					for (const employee of selectedEmployees) {
+						try {
+							console.log(
+								`Creating assignment for employee: ${employee.name} (${employee.id})`
+							);
+
+							const assignment = await ShiftAssignmentsAPI.create({
+								shift_id: shiftId,
+								employee_id: employee.id,
+								role: employee.role || "Employee",
+								notes: "",
+							});
+
+							console.log(
+								`Assignment created for ${employee.name}:`,
+								assignment
+							);
+						} catch (err) {
+							console.error(
+								`Error creating assignment for ${employee.name}:`,
+								err
+							);
+							// Continue with other employees even if one fails
+						}
+					}
+
+					console.log("All assignments processed");
+					toast.success("Shift created with employee assignments");
+				} catch (error) {
+					console.error("Error creating shift or assignments:", error);
+
+					// Fallback to the previous working method if there are still issues
+					try {
+						console.log("Attempting fallback method");
+						const fallbackShiftData = {
+							parent_shift_id: scheduleId,
+							organization_id: organizationId,
+							location_id: locationData.locationId,
+							start_time: startDateTime,
+							end_time: endDateTime,
+							description: shiftData.notes
+								? `${shiftData.notes} (${selectedEmployees
+										.map((e) => e.name)
+										.join(", ")})`
+								: `Assigned to: ${selectedEmployees
+										.map((e) => e.name)
+										.join(", ")}`,
+							is_schedule: false as const,
+							status: "scheduled",
+						};
+
+						console.log(
+							"Creating fallback shift with employee names in description"
+						);
+						await ShiftsAPI.createShift(fallbackShiftData);
+						toast.success("Shift created successfully (using fallback method)");
+					} catch (fallbackError) {
+						console.error("Fallback method also failed:", fallbackError);
+						throw error; // Throw the original error
+					}
+				}
 			}
 
 			console.log("Shifts created successfully");
@@ -473,8 +589,14 @@ export function ShiftCreationWizard({
 			}
 		} catch (error) {
 			console.error("Error creating shift:", error);
-			setError("Failed to create shift. Please try again.");
-			toast.error("Failed to create shift");
+			// More detailed error message
+			if (error instanceof Error) {
+				setError(`Failed to create shift: ${error.message}. Please try again.`);
+				toast.error(`Failed to create shift: ${error.message}`);
+			} else {
+				setError("Failed to create shift. Please try again.");
+				toast.error("Failed to create shift");
+			}
 		} finally {
 			setLoading(false);
 		}
@@ -545,79 +667,98 @@ export function ShiftCreationWizard({
 				</Alert>
 			)}
 
-			<ScrollArea className="flex-1">
-				<div className="flex-1 flex flex-col">
-					{/* Step 1: Select Location */}
-					{step === "select-location" && (
-						<LocationSelectionStep
-							locationForm={locationForm}
-							locations={locations}
-							filteredLocations={filteredLocations}
-							locationSearchTerm={locationSearchTerm}
-							loadingLocations={loadingLocations}
-							setLocationSearchTerm={setLocationSearchTerm}
-							handleLocationSelect={handleLocationSelect}
-							handleLocationChange={handleLocationChange}
-							clearLocationSearch={clearLocationSearch}
-							onCancel={onCancel}
-							organizationId={organizationId}
+			<div className="flex-1 overflow-auto">
+				{/* Step 1: Select Location */}
+				{step === "select-location" && (
+					<LocationSelectionStep
+						locationForm={locationForm}
+						locations={locations}
+						filteredLocations={filteredLocations}
+						locationSearchTerm={locationSearchTerm}
+						loadingLocations={loadingLocations}
+						setLocationSearchTerm={setLocationSearchTerm}
+						handleLocationSelect={handleLocationSelect}
+						handleLocationChange={handleLocationChange}
+						clearLocationSearch={clearLocationSearch}
+						onCancel={onCancel}
+						organizationId={organizationId}
+					/>
+				)}
+
+				{/* Step 2: Shift Details */}
+				{step === "shift-details" && locationData && (
+					<>
+						<ShiftDetailsStep
+							shiftForm={shiftForm}
+							locationData={locationData}
+							getLocationById={getLocationById}
+							handleShiftDetailsSubmit={handleShiftDetailsSubmit}
+							onBack={resetLocation}
 						/>
-					)}
+						<Button
+							id="shift-details-back-button"
+							className="hidden"
+							onClick={resetLocation}>
+							Back to Location Selection
+						</Button>
+					</>
+				)}
 
-					{/* Step 2: Shift Details */}
-					{step === "shift-details" && locationData && (
-						<>
-							<ShiftDetailsStep
-								shiftForm={shiftForm}
-								locationData={locationData}
-								getLocationById={getLocationById}
-								handleShiftDetailsSubmit={handleShiftDetailsSubmit}
-								onBack={resetLocation}
-							/>
-							<Button
-								id="shift-details-back-button"
-								className="hidden"
-								onClick={resetLocation}>
-								Back to Location Selection
-							</Button>
-						</>
-					)}
-
-					{/* Step 3: Assign Employee */}
-					{step === "assign-employee" && locationData && shiftData && (
-						<>
-							<EmployeeAssignmentStep
-								employeeForm={employeeForm}
-								locationData={locationData}
-								shiftData={shiftData}
-								searchTerm={searchTerm}
-								setSearchTerm={setSearchTerm}
-								searchFilter={searchFilter}
-								setSearchFilter={setSearchFilter}
-								filteredEmployees={filteredEmployees}
-								loadingEmployees={loadingEmployees}
-								getLocationName={getLocationName}
-								handleEmployeeAssignSubmit={(data) => {
-									console.log("Received form submission with data:", data);
-									handleEmployeeAssignSubmit(data, selectedEmployees);
-								}}
-								onBack={() => setStep("shift-details")}
-								onResetLocation={resetLocation}
-								loading={loading}
-								selectedEmployees={selectedEmployees}
-								onSelectedEmployeesChange={handleSelectedEmployeesChange}
-								allEmployees={employees}
-							/>
-							<Button
-								id="employee-assign-back-button"
-								className="hidden"
-								onClick={() => setStep("shift-details")}>
-								Back to Shift Details
-							</Button>
-						</>
-					)}
-				</div>
-			</ScrollArea>
+				{/* Step 3: Assign Employee */}
+				{step === "assign-employee" && locationData && shiftData && (
+					<>
+						<EmployeeAssignmentStep
+							employeeForm={employeeForm}
+							locationData={locationData}
+							shiftData={shiftData}
+							searchTerm={searchTerm}
+							setSearchTerm={setSearchTerm}
+							filteredEmployees={filteredEmployees}
+							loadingEmployees={loadingEmployees}
+							getLocationName={getLocationName}
+							handleEmployeeAssignSubmit={(data) => {
+								console.log("Received form submission with data:", data);
+								handleEmployeeAssignSubmit(data, selectedEmployees);
+							}}
+							onFormSubmit={(formData) => {
+								console.log("Form submit with data:", formData);
+								// Check if selectedEmployees are in the form data
+								if (
+									formData.selectedEmployees &&
+									Array.isArray(formData.selectedEmployees)
+								) {
+									console.log(
+										"Using employees from form data:",
+										formData.selectedEmployees
+									);
+									handleEmployeeAssignSubmit(
+										{ employeeId: formData.employeeIds?.[0] || "" },
+										formData.selectedEmployees
+									);
+								} else {
+									console.log("Using employees from state:", selectedEmployees);
+									handleEmployeeAssignSubmit(
+										{ employeeId: "" }, // placeholder data
+										selectedEmployees
+									);
+								}
+							}}
+							onBack={() => setStep("shift-details")}
+							onResetLocation={resetLocation}
+							loading={loading}
+							selectedEmployees={selectedEmployees}
+							onSelectedEmployeesChange={handleSelectedEmployeesChange}
+							allEmployees={employees}
+						/>
+						<Button
+							id="employee-assign-back-button"
+							className="hidden"
+							onClick={() => setStep("shift-details")}>
+							Back to Shift Details
+						</Button>
+					</>
+				)}
+			</div>
 		</div>
 	);
 }

@@ -99,8 +99,8 @@ export type Schedule = Shift & { is_schedule: true };
 
 export interface ShiftAssignment {
 	id: string;
-	shiftId: string;
-	employeeId: string;
+	shift_id: string;
+	employee_id: string;
 	role?: string;
 	notes?: string;
 }

@@ -191,6 +191,24 @@ export function LocationSelectionStep({
 					</ScrollArea>
 				</div>
 			</form>
+
+			{/* Navigation Buttons */}
+			<div className="flex justify-between border-t pt-4 mt-2">
+				<Button
+					variant="outline"
+					onClick={onCancel}>
+					Cancel
+				</Button>
+				<Button
+					onClick={() => {
+						if (locationId) {
+							handleLocationSelect(locationId);
+						}
+					}}
+					disabled={!locationId}>
+					Continue
+				</Button>
+			</div>
 		</div>
 	);
 }

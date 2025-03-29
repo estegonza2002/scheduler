@@ -198,6 +198,21 @@ export function ShiftDetailsStep({
 					className="hidden"
 				/>
 			</form>
+
+			{/* Navigation Buttons */}
+			<div className="flex justify-between border-t pt-4 mt-4">
+				<Button
+					variant="outline"
+					onClick={onBack}>
+					<ArrowLeft className="mr-2 h-4 w-4" />
+					Back
+				</Button>
+				<Button
+					onClick={handleSubmit(handleShiftDetailsSubmit)}
+					disabled={!isValid}>
+					Continue
+				</Button>
+			</div>
 		</div>
 	);
 }
