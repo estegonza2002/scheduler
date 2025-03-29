@@ -137,10 +137,12 @@ export default function MyShiftsPage() {
 	if (isLoading) {
 		return (
 			<ContentContainer>
-				<PageHeader
-					title="My Shifts"
-					description="View your current, upcoming, and previous shifts"
-				/>
+				<div className="mb-6">
+					<h1 className="text-2xl font-bold tracking-tight">My Shifts</h1>
+					<p className="mt-2 text-muted-foreground">
+						View your current, upcoming, and previous shifts
+					</p>
+				</div>
 				<LoadingState
 					type="spinner"
 					message="Loading shift information..."
@@ -152,10 +154,12 @@ export default function MyShiftsPage() {
 
 	return (
 		<ContentContainer>
-			<PageHeader
-				title="My Shifts"
-				description="View your current, upcoming, and previous shifts"
-			/>
+			<div className="mb-6">
+				<h1 className="text-2xl font-bold tracking-tight">My Shifts</h1>
+				<p className="mt-2 text-muted-foreground">
+					View your current, upcoming, and previous shifts
+				</p>
+			</div>
 
 			<ContentSection title="My Shifts">
 				<div className="space-y-6">

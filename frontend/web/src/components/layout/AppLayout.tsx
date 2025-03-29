@@ -1,3 +1,18 @@
+/*
+ * AppLayout - Layout components for consistent page structure
+ *
+ * This file contains the new layout components that replace the older PageLayout components.
+ * See the migration guide in docs/migration-guide-applayout.md for details on how to
+ * migrate from PageLayout to these components.
+ *
+ * Components included:
+ * - AppHeader - Header section with consistent styling
+ * - AppTitle - Primary heading
+ * - AppDescription - Supplementary text
+ * - AppContent - Main content area
+ * - AppFooter - Footer section
+ */
+
 import {
 	Outlet,
 	useLocation,
@@ -16,39 +31,81 @@ import { format } from "date-fns";
 import { OrganizationsAPI, Organization } from "../../api";
 import { useLayout } from "../../lib/layout-context";
 import { useAuth } from "../../lib/auth";
-import { ScheduleSidebar } from "./SecondaryNavbar";
 import { OnboardingModal } from "../onboarding/OnboardingModal";
+import * as React from "react";
+import { cn } from "../../lib/utils";
+import {
+	Card,
+	CardContent,
+	CardHeader,
+	CardTitle,
+	CardDescription,
+	CardFooter,
+} from "../ui/card";
+
+// Common props type for app layout components
+type CommonProps = {
+	children: React.ReactNode;
+	className?: string;
+};
 
 // Layout content component that can access the sidebar context
-function LayoutContent({
-	hasSecondaryNavbar,
-	renderSecondaryNavbar,
-}: {
-	hasSecondaryNavbar: boolean;
-	renderSecondaryNavbar: (
-		sidebarState: "expanded" | "collapsed"
-	) => React.ReactNode;
-}) {
-	const { state } = useSidebar();
-
+function LayoutContent() {
 	return (
 		<SidebarInset>
-			{hasSecondaryNavbar && renderSecondaryNavbar(state)}
-			<main
-				className="flex-1 overflow-auto w-full transition-all duration-200"
-				style={
-					hasSecondaryNavbar
-						? {
-								marginLeft:
-									state === "collapsed"
-										? "calc(var(--sidebar-width-icon) + 16rem)"
-										: "calc(var(--sidebar-width) + 16rem)",
-						  }
-						: {}
-				}>
+			<main className="flex-1 overflow-auto w-full transition-all duration-200">
 				<Outlet />
 			</main>
 		</SidebarInset>
+	);
+}
+
+/**
+ * AppHeader - Header section with consistent styling
+ */
+export function AppHeader({ children, className }: CommonProps) {
+	return <CardHeader className={cn("mb-6", className)}>{children}</CardHeader>;
+}
+
+/**
+ * AppTitle - Primary heading
+ */
+export function AppTitle({ children, className }: CommonProps) {
+	return (
+		<CardTitle className={cn("text-2xl font-bold tracking-tight", className)}>
+			{children}
+		</CardTitle>
+	);
+}
+
+/**
+ * AppDescription - Supplementary text that appears below the title
+ */
+export function AppDescription({ children, className }: CommonProps) {
+	return (
+		<CardDescription className={cn("mt-2", className)}>
+			{children}
+		</CardDescription>
+	);
+}
+
+/**
+ * AppContent - Main content area
+ */
+export function AppContent({ children, className }: CommonProps) {
+	return (
+		<CardContent className={cn("w-full", className)}>{children}</CardContent>
+	);
+}
+
+/**
+ * AppFooter - Footer section with consistent styling
+ */
+export function AppFooter({ children, className }: CommonProps) {
+	return (
+		<CardFooter className={cn("mt-8 pt-4 border-t", className)}>
+			{children}
+		</CardFooter>
 	);
 }
 
@@ -89,9 +146,6 @@ export default function AppLayout() {
 	const isBillingPage = location.pathname === "/billing";
 	const isBrandingPage = location.pathname === "/branding";
 
-	// Check if we need secondary navbar
-	const hasSecondaryNavbar = isSchedulePage;
-
 	// Fetch organization
 	useEffect(() => {
 		const fetchOrganization = async () => {
@@ -131,42 +185,12 @@ export default function AppLayout() {
 		navigate("/");
 	};
 
-	// Render the appropriate secondary navbar based on the current route
-	const renderSecondaryNavbar = (sidebarState: "expanded" | "collapsed") => {
-		if (isSchedulePage) {
-			const viewMode =
-				(searchParams.get("view") as "calendar" | "daily") || "calendar";
-
-			return (
-				<ScheduleSidebar
-					viewMode={viewMode}
-					onViewModeChange={(mode) => {
-						const newParams = new URLSearchParams(searchParams);
-						newParams.set("view", mode);
-						setSearchParams(newParams);
-					}}
-					onViewToday={() => {
-						const today = new Date();
-						navigate(`/schedule?date=${format(today, "yyyy-MM-dd")}`);
-					}}
-					sidebarState={sidebarState}
-				/>
-			);
-		}
-
-		// Location sidebar removed - now returns null
-		return null;
-	};
-
 	return (
 		<SidebarProvider>
 			<Sidebar className="w-64">
 				<AppSidebar />
 			</Sidebar>
-			<LayoutContent
-				hasSecondaryNavbar={hasSecondaryNavbar}
-				renderSecondaryNavbar={renderSecondaryNavbar}
-			/>
+			<LayoutContent />
 			{/* Onboarding modal - shown globally for new users */}
 			<OnboardingModal />
 		</SidebarProvider>

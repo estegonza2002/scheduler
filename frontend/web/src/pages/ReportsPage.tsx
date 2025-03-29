@@ -23,7 +23,11 @@ import {
 	DollarSign,
 	AlertCircle,
 } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
+import {
+	AppHeader,
+	AppTitle,
+	AppDescription,
+} from "@/components/layout/AppLayout";
 
 export default function ReportsPage() {
 	const { user } = useAuth();
@@ -50,11 +54,15 @@ export default function ReportsPage() {
 
 	return (
 		<div className="container max-w-7xl mx-auto py-6 space-y-6">
-			<PageHeader
-				title="Reports"
-				description="View and manage business performance reports"
-				actions={<Button variant="outline">Export Reports</Button>}
-			/>
+			<AppHeader>
+				<AppTitle>Reports</AppTitle>
+				<AppDescription>
+					View and manage business performance reports
+				</AppDescription>
+				<div className="flex items-center justify-end mt-4">
+					<Button variant="outline">Export Reports</Button>
+				</div>
+			</AppHeader>
 
 			<Tabs
 				defaultValue="overview"

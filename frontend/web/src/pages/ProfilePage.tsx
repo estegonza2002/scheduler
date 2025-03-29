@@ -20,7 +20,7 @@ import {
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { PageLayout } from "@/components/layout/PageLayout";
+import { AppContent } from "@/components/layout/AppLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FormPhoneInput } from "@/components/ui/form-phone-input";
 import { isValidPhoneNumber } from "react-phone-number-input";
@@ -950,7 +950,7 @@ function PreferencesTab() {
 
 export default function ProfilePage() {
 	return (
-		<PageLayout>
+		<AppContent>
 			<div className="w-full py-6">
 				<div className="mb-6">
 					<h1 className="text-3xl font-bold tracking-tight">
@@ -985,6 +985,6 @@ export default function ProfilePage() {
 					<SecurityTab />
 				</Tabs>
 			</div>
-		</PageLayout>
+		</AppContent>
 	);
 }

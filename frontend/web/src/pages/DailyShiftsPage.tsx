@@ -361,10 +361,16 @@ export default function DailyShiftsPage() {
 
 	return (
 		<>
-			<PageHeader
-				title="Daily Shifts"
-				description={`Shifts for ${format(currentDate, "EEEE, MMMM d, yyyy")}`}
-				actions={
+			<div className="sticky top-0 flex h-16 shrink-0 items-center border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 z-40">
+				<div className="flex flex-1 items-center">
+					<div className="mx-4">
+						<h1 className="text-lg font-semibold">Daily Shifts</h1>
+						<p className="text-xs text-muted-foreground">
+							Shifts for {format(currentDate, "EEEE, MMMM d, yyyy")}
+						</p>
+					</div>
+				</div>
+				<div className="flex items-center justify-end gap-3">
 					<ShiftCreationSheet
 						scheduleId={selectedSchedule}
 						organizationId={organizationId}
@@ -376,8 +382,8 @@ export default function DailyShiftsPage() {
 							</Button>
 						}
 					/>
-				}
-			/>
+				</div>
+			</div>
 
 			<ContentContainer>
 				<ContentSection

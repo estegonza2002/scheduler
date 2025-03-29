@@ -4,11 +4,15 @@ import { ShiftsAPI, LocationsAPI, Shift, Location } from "@/api";
 import { MapPin, Building2, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
-import { PageHeader } from "@/components/ui/page-header";
 import { ContentContainer } from "@/components/ui/content-container";
 import { ContentSection } from "@/components/ui/content-section";
 import { LoadingState } from "@/components/ui/loading-state";
 import { Badge } from "@/components/ui/badge";
+import {
+	AppHeader,
+	AppTitle,
+	AppDescription,
+} from "@/components/layout/AppLayout";
 
 export default function MyLocationsPage() {
 	const { user } = useAuth();
@@ -143,10 +147,10 @@ export default function MyLocationsPage() {
 	if (isLoading) {
 		return (
 			<ContentContainer>
-				<PageHeader
-					title="My Locations"
-					description="View your assigned work locations"
-				/>
+				<AppHeader>
+					<AppTitle>My Locations</AppTitle>
+					<AppDescription>View your assigned work locations</AppDescription>
+				</AppHeader>
 				<LoadingState
 					type="spinner"
 					message="Loading location information..."
@@ -158,10 +162,10 @@ export default function MyLocationsPage() {
 
 	return (
 		<ContentContainer>
-			<PageHeader
-				title="My Locations"
-				description="View your assigned work locations"
-			/>
+			<AppHeader>
+				<AppTitle>My Locations</AppTitle>
+				<AppDescription>View your assigned work locations</AppDescription>
+			</AppHeader>
 
 			<ContentSection title="My Locations">
 				<div className="space-y-6">

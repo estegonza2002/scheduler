@@ -293,26 +293,30 @@ export default function LocationsPage() {
 				<title>Locations - Scheduler</title>
 			</Helmet>
 
-			<PageHeader
-				title="Locations"
-				description="Manage your business locations"
-				actions={
-					<div className="flex items-center gap-2">
-						<LocationCreationSheet
-							organizationId={organizationId}
-							onLocationCreated={(newLocation) =>
-								handleLocationsAdded([newLocation])
-							}
-							trigger={
-								<Button>
-									<PlusCircle className="h-4 w-4 mr-2" />
-									Add Location
-								</Button>
-							}
-						/>
+			<div className="sticky top-0 flex h-16 shrink-0 items-center border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 z-40">
+				<div className="flex flex-1 items-center">
+					<div className="mx-4">
+						<h1 className="text-lg font-semibold">Locations</h1>
+						<p className="text-xs text-muted-foreground">
+							Manage your business locations
+						</p>
 					</div>
-				}
-			/>
+				</div>
+				<div className="flex items-center justify-end gap-3">
+					<LocationCreationSheet
+						organizationId={organizationId}
+						onLocationCreated={(newLocation) =>
+							handleLocationsAdded([newLocation])
+						}
+						trigger={
+							<Button>
+								<PlusCircle className="h-4 w-4 mr-2" />
+								Add Location
+							</Button>
+						}
+					/>
+				</div>
+			</div>
 
 			<ContentContainer>
 				<ContentSection title="Locations">

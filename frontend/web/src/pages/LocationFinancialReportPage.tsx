@@ -26,7 +26,12 @@ import { ContentSection } from "@/components/ui/content-section";
 import { LocationFinancialReport } from "@/components/LocationFinancialReport";
 import { LocationSubNav } from "@/components/LocationSubNav";
 import { LoadingState } from "@/components/ui/loading-state";
-import { PageHeader } from "@/components/ui/page-header";
+import {
+	AppHeader,
+	AppTitle,
+	AppDescription,
+	AppContent,
+} from "@/components/layout/AppLayout";
 import {
 	Card,
 	CardContent,
@@ -63,7 +68,19 @@ export default function LocationFinancialReportPage() {
 
 				// Fetch shifts for this location
 				setLoadingPhase("shifts");
-				const allShifts = await ShiftsAPI.getAll();
+				const organizationId = "org-1"; // Default organization ID
+				const allSchedules = await ShiftsAPI.getAllSchedules(organizationId);
+				const allShifts: Shift[] = [];
+
+				// Get all shifts from all schedules
+				for (const schedule of allSchedules) {
+					const scheduleShifts = await ShiftsAPI.getShiftsForSchedule(
+						schedule.id
+					);
+					allShifts.push(...scheduleShifts);
+				}
+
+				// Filter for shifts at this location
 				const locationShifts = allShifts.filter(
 					(shift) => shift.location_id === locationId
 				);
@@ -71,7 +88,6 @@ export default function LocationFinancialReportPage() {
 
 				// Fetch employees assigned to this location
 				setLoadingPhase("employees");
-				const organizationId = "org-1"; // Default organization ID
 				const employees = await EmployeesAPI.getAll(organizationId);
 
 				// Get employee IDs assigned to this location using the proper API
@@ -110,19 +126,30 @@ export default function LocationFinancialReportPage() {
 	if (loading) {
 		return (
 			<>
-				<PageHeader
-					title="Loading..."
-					description="Retrieving financial report data"
-					showBackButton={true}
-				/>
+				<AppHeader>
+					<div className="flex items-center">
+						<Button
+							variant="ghost"
+							size="icon"
+							onClick={() => navigate(-1)}
+							className="h-8 w-8 mr-2"
+							title="Go back">
+							<ChevronLeft className="h-5 w-5" />
+						</Button>
+						<div>
+							<AppTitle>Loading...</AppTitle>
+							<AppDescription>Retrieving financial report data</AppDescription>
+						</div>
+					</div>
+				</AppHeader>
 
-				<ContentContainer>
+				<AppContent>
 					<LoadingState
 						type="spinner"
 						message={`Loading ${loadingPhase}...`}
 						className="py-12"
 					/>
-				</ContentContainer>
+				</AppContent>
 			</>
 		);
 	}
@@ -130,13 +157,26 @@ export default function LocationFinancialReportPage() {
 	if (!location) {
 		return (
 			<>
-				<PageHeader
-					title="Location not found"
-					description="The requested location could not be found"
-					showBackButton={true}
-				/>
+				<AppHeader>
+					<div className="flex items-center">
+						<Button
+							variant="ghost"
+							size="icon"
+							onClick={() => navigate(-1)}
+							className="h-8 w-8 mr-2"
+							title="Go back">
+							<ChevronLeft className="h-5 w-5" />
+						</Button>
+						<div>
+							<AppTitle>Location not found</AppTitle>
+							<AppDescription>
+								The requested location could not be found
+							</AppDescription>
+						</div>
+					</div>
+				</AppHeader>
 
-				<ContentContainer>
+				<AppContent>
 					<ContentSection
 						title="Location not found"
 						description="The requested location could not be found."
@@ -153,7 +193,7 @@ export default function LocationFinancialReportPage() {
 							exist.
 						</p>
 					</ContentSection>
-				</ContentContainer>
+				</AppContent>
 			</>
 		);
 	}
@@ -190,14 +230,29 @@ export default function LocationFinancialReportPage() {
 
 	return (
 		<>
-			<PageHeader
-				title={`${location.name} - Financial Report`}
-				description="Comprehensive financial analysis and reporting tools"
-				actions={headerActions}
-				showBackButton={true}
-			/>
+			<AppHeader>
+				<div className="flex justify-between w-full">
+					<div className="flex items-center">
+						<Button
+							variant="ghost"
+							size="icon"
+							onClick={() => navigate(-1)}
+							className="h-8 w-8 mr-2"
+							title="Go back">
+							<ChevronLeft className="h-5 w-5" />
+						</Button>
+						<div>
+							<AppTitle>{`${location.name} - Financial Report`}</AppTitle>
+							<AppDescription>
+								Comprehensive financial analysis and reporting tools
+							</AppDescription>
+						</div>
+					</div>
+					<div>{headerActions}</div>
+				</div>
+			</AppHeader>
 
-			<ContentContainer>
+			<AppContent>
 				<LocationSubNav
 					locationId={locationId || ""}
 					locationName={location.name}
@@ -280,7 +335,7 @@ export default function LocationFinancialReportPage() {
 						employees={assignedEmployees}
 					/>
 				</ContentSection>
-			</ContentContainer>
+			</AppContent>
 		</>
 	);
 }

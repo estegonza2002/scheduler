@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Outlet, useLocation } from "react-router-dom";
-import { PageHeader } from "@/components/ui/page-header";
 import { ContentContainer } from "@/components/ui/content-container";
 import { useAuth } from "@/lib/auth";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -19,6 +18,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LoadingState } from "@/components/ui/loading-state";
 import { Separator } from "@/components/ui/separator";
 import { useStripe } from "@/lib/stripe";
+import {
+	AppHeader,
+	AppTitle,
+	AppDescription,
+} from "@/components/layout/AppLayout";
 
 export default function AccountPage() {
 	const { user, isLoading: isLoadingAuth } = useAuth();
@@ -59,10 +63,12 @@ export default function AccountPage() {
 
 	return (
 		<>
-			<PageHeader
-				title="Account"
-				description="Manage your organization settings and user access"
-			/>
+			<AppHeader>
+				<AppTitle>Account</AppTitle>
+				<AppDescription>
+					Manage your organization settings and user access
+				</AppDescription>
+			</AppHeader>
 
 			<div className="w-full px-4 sm:px-6 lg:px-8 py-6">
 				<Tabs

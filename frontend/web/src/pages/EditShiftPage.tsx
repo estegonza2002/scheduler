@@ -24,7 +24,11 @@ import { toast } from "sonner";
 import { ContentContainer } from "@/components/ui/content-container";
 import { FormSection } from "@/components/ui/form-section";
 import { LoadingState } from "@/components/ui/loading-state";
-import { PageHeader } from "@/components/ui/page-header";
+import {
+	AppHeader,
+	AppTitle,
+	AppDescription,
+} from "@/components/layout/AppLayout";
 
 export default function EditShiftPage() {
 	const { shiftId } = useParams<{ shiftId: string }>();
@@ -147,11 +151,22 @@ export default function EditShiftPage() {
 	if (loading) {
 		return (
 			<>
-				<PageHeader
-					title="Edit Shift"
-					description="Loading shift information..."
-					showBackButton={true}
-				/>
+				<AppHeader>
+					<div className="flex items-center">
+						<Button
+							variant="ghost"
+							size="icon"
+							onClick={() => navigate(-1)}
+							className="h-8 w-8 mr-2"
+							title="Go back">
+							<ChevronLeft className="h-5 w-5" />
+						</Button>
+						<div>
+							<AppTitle>Edit Shift</AppTitle>
+							<AppDescription>Loading shift information...</AppDescription>
+						</div>
+					</div>
+				</AppHeader>
 				<ContentContainer>
 					<LoadingState
 						type="spinner"
@@ -165,12 +180,25 @@ export default function EditShiftPage() {
 
 	return (
 		<>
-			<PageHeader
-				title="Edit Shift"
-				description="Modify shift details and schedule"
-				actions={ActionButtons}
-				showBackButton={true}
-			/>
+			<AppHeader>
+				<div className="flex justify-between w-full">
+					<div className="flex items-center">
+						<Button
+							variant="ghost"
+							size="icon"
+							onClick={() => navigate(-1)}
+							className="h-8 w-8 mr-2"
+							title="Go back">
+							<ChevronLeft className="h-5 w-5" />
+						</Button>
+						<div>
+							<AppTitle>Edit Shift</AppTitle>
+							<AppDescription>Modify shift details and schedule</AppDescription>
+						</div>
+					</div>
+					<div>{ActionButtons}</div>
+				</div>
+			</AppHeader>
 			<ContentContainer>
 				<div className="max-w-3xl mx-auto">
 					<form

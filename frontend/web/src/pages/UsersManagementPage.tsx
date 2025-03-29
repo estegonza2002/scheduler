@@ -1,7 +1,11 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
-import { PageHeader } from "@/components/ui/page-header";
-import { ContentContainer } from "@/components/ui/content-container";
+import {
+	AppHeader,
+	AppTitle,
+	AppDescription,
+	AppContent,
+} from "@/components/layout/AppLayout";
 import { ContentSection } from "@/components/ui/content-section";
 import { Button } from "@/components/ui/button";
 import {
@@ -702,11 +706,34 @@ export default function UsersManagementPage() {
 
 	// Render the team members table
 	const renderUsersTable = () => {
-		if (users.length === 0) {
+		if (loading) {
+			return (
+				<LoadingState
+					type="spinner"
+					message="Loading team members..."
+					className="py-6"
+				/>
+			);
+		}
+
+		if (error) {
+			return (
+				<EmptyState
+					title="Error loading team members"
+					description={error}
+					icon={<AlertCircle className="h-6 w-6" />}
+					action={
+						<Button onClick={() => window.location.reload()}>Try Again</Button>
+					}
+				/>
+			);
+		}
+
+		if (!users.length) {
 			return (
 				<EmptyState
 					title="No team members"
-					description="Invite team members to collaborate with you"
+					description="You haven't added any team members yet."
 					icon={<Users className="h-6 w-6" />}
 					action={
 						<Button onClick={() => setIsInviteSheetOpen(true)}>
@@ -719,88 +746,80 @@ export default function UsersManagementPage() {
 		}
 
 		return (
-			<div className="border rounded-md">
+			<div className="rounded-md border">
 				<Table>
 					<TableHeader>
 						<TableRow>
-							<TableHead>Name</TableHead>
-							<TableHead>Email</TableHead>
+							<TableHead className="w-[250px]">User</TableHead>
 							<TableHead>Role</TableHead>
 							<TableHead>Status</TableHead>
 							<TableHead className="text-right">Actions</TableHead>
 						</TableRow>
 					</TableHeader>
 					<TableBody>
-						{users.map((teamUser) => {
-							const isCurrentUser = teamUser.id === user?.id;
-							return (
-								<TableRow
-									key={teamUser.id}
-									className={isCurrentUser ? "bg-muted/50" : ""}>
-									<TableCell>
-										<div className="flex items-center gap-3">
-											<Avatar>
-												<AvatarImage src={teamUser.avatarUrl} />
-												<AvatarFallback>
-													{getInitials(teamUser.name)}
-												</AvatarFallback>
-											</Avatar>
-											<div>
-												<span className="font-medium">{teamUser.name}</span>
-												{isCurrentUser && (
-													<span className="ml-2 text-xs text-muted-foreground">
-														(You)
-													</span>
-												)}
+						{users.map((user) => (
+							<TableRow key={user.id}>
+								<TableCell className="font-medium">
+									<div className="flex items-center gap-2">
+										<Avatar className="h-8 w-8">
+											<AvatarImage
+												src={user.avatarUrl}
+												alt={user.name}
+											/>
+											<AvatarFallback>{getInitials(user.name)}</AvatarFallback>
+										</Avatar>
+										<div>
+											<div className="font-medium">{user.name}</div>
+											<div className="text-sm text-muted-foreground">
+												{user.email}
 											</div>
 										</div>
-									</TableCell>
-									<TableCell>{teamUser.email}</TableCell>
-									<TableCell>{renderRoleBadge(teamUser.role)}</TableCell>
-									<TableCell>{renderStatusBadge(teamUser.status)}</TableCell>
-									<TableCell className="text-right">
-										{!isCurrentUser && teamUser.role !== "owner" && (
-											<DropdownMenu>
-												<DropdownMenuTrigger asChild>
-													<Button
-														variant="ghost"
-														size="sm">
-														Actions
-													</Button>
-												</DropdownMenuTrigger>
-												<DropdownMenuContent align="end">
-													{teamUser.status === "pending" && (
-														<DropdownMenuItem
-															onClick={() =>
-																handleResendInvite(teamUser.email)
-															}>
-															<Mail className="h-4 w-4 mr-2" />
-															Resend Invite
-														</DropdownMenuItem>
-													)}
+									</div>
+								</TableCell>
+								<TableCell>{renderRoleBadge(user.role)}</TableCell>
+								<TableCell>{renderStatusBadge(user.status)}</TableCell>
+								<TableCell className="text-right">
+									<DropdownMenu>
+										<DropdownMenuTrigger asChild>
+											<Button
+												variant="ghost"
+												className="h-8 w-8 p-0">
+												<span className="sr-only">Open menu</span>
+												<Users className="h-4 w-4" />
+											</Button>
+										</DropdownMenuTrigger>
+										<DropdownMenuContent align="end">
+											{user.status === "pending" ? (
+												<DropdownMenuItem
+													onClick={() => handleResendInvite(user.email)}>
+													Resend Invite
+												</DropdownMenuItem>
+											) : null}
 
-													{teamUser.role === "member" && (
-														<DropdownMenuItem
-															onClick={() => handlePromoteToAdmin(teamUser.id)}>
-															<UserCheck className="h-4 w-4 mr-2" />
-															Make Admin
-														</DropdownMenuItem>
-													)}
+											{user.status === "active" && user.role === "member" ? (
+												<DropdownMenuItem
+													onClick={() => handlePromoteToAdmin(user.id)}>
+													Promote to Admin
+												</DropdownMenuItem>
+											) : null}
 
-													{teamUser.role === "admin" && (
-														<DropdownMenuItem
-															onClick={() => handleDemoteToMember(teamUser.id)}>
-															<UserX className="h-4 w-4 mr-2" />
-															Remove Admin
-														</DropdownMenuItem>
-													)}
-												</DropdownMenuContent>
-											</DropdownMenu>
-										)}
-									</TableCell>
-								</TableRow>
-							);
-						})}
+											{user.status === "active" && user.role === "admin" ? (
+												<DropdownMenuItem
+													onClick={() => handleDemoteToMember(user.id)}>
+													Change to Member
+												</DropdownMenuItem>
+											) : null}
+
+											{user.role !== "owner" ? (
+												<DropdownMenuItem className="text-red-600 focus:text-red-600">
+													Remove User
+												</DropdownMenuItem>
+											) : null}
+										</DropdownMenuContent>
+									</DropdownMenu>
+								</TableCell>
+							</TableRow>
+						))}
 					</TableBody>
 				</Table>
 			</div>
@@ -809,11 +828,11 @@ export default function UsersManagementPage() {
 
 	// Render the content
 	const renderContent = () => (
-		<ContentContainer>
-			<ContentSection title="">
-				<div className="flex justify-between items-center mb-6">
-					<h2 className="text-xl font-semibold">Team Members</h2>
-
+		<AppContent>
+			<ContentSection
+				title="Users & Permissions"
+				description="Manage access to your organization"
+				headerActions={
 					<Sheet
 						open={isInviteSheetOpen}
 						onOpenChange={setIsInviteSheetOpen}>
@@ -823,49 +842,33 @@ export default function UsersManagementPage() {
 								Invite User
 							</Button>
 						</SheetTrigger>
-						<SheetContent className="sm:max-w-md">
+						<SheetContent>
 							<SheetHeader>
-								<SheetTitle>Invite New User</SheetTitle>
+								<SheetTitle>Invite a User</SheetTitle>
 								<SheetDescription>
-									Send an invitation to add a new admin or team member to your
-									organization.
+									Send an invitation to join your organization.
 								</SheetDescription>
 							</SheetHeader>
-
-							<div className="space-y-4 py-6">
+							<div className="space-y-4 py-4">
 								<div className="space-y-2">
 									<Label htmlFor="name">Name</Label>
 									<Input
 										id="name"
-										placeholder="John Doe"
+										placeholder="Full name"
 										value={inviteName}
 										onChange={(e) => setInviteName(e.target.value)}
 									/>
-									<p className="text-sm text-muted-foreground">
-										Optional: Enter the person's name or leave blank to use
-										their email
-									</p>
 								</div>
-
 								<div className="space-y-2">
-									<Label htmlFor="email">Email Address</Label>
+									<Label htmlFor="email">Email</Label>
 									<Input
 										id="email"
 										type="email"
-										placeholder="colleague@example.com"
+										placeholder="Email address"
 										value={inviteEmail}
 										onChange={(e) => setInviteEmail(e.target.value)}
-										className={
-											!inviteEmail ? "border-input focus:border-red-200" : ""
-										}
 									/>
-									{!inviteEmail && (
-										<p className="text-sm text-muted-foreground mt-1">
-											Please enter a valid email address
-										</p>
-									)}
 								</div>
-
 								<div className="space-y-2">
 									<Label htmlFor="role">Role</Label>
 									<Select
@@ -877,93 +880,32 @@ export default function UsersManagementPage() {
 											<SelectValue placeholder="Select a role" />
 										</SelectTrigger>
 										<SelectContent>
-											<SelectItem value="admin">Admin</SelectItem>
+											<SelectItem value="admin">Administrator</SelectItem>
 											<SelectItem value="member">Team Member</SelectItem>
 										</SelectContent>
 									</Select>
-									<div className="text-sm text-muted-foreground mt-1">
-										<p className="font-medium mb-1">Role permissions:</p>
-										<p className="mb-1">
-											<span className="font-medium">Admins:</span> Have access
-											to all management features, including billing, team
-											members, and business profile.
-										</p>
-										<p>
-											<span className="font-medium">Team Members:</span> Only
-											have access to scheduling and client-facing features.
-										</p>
-									</div>
 								</div>
 							</div>
-
-							<SheetFooter className="pt-2">
+							<SheetFooter>
 								<Button
 									variant="outline"
-									onClick={() => {
-										resetInviteForm();
-										setIsInviteSheetOpen(false);
-									}}>
+									onClick={() => setIsInviteSheetOpen(false)}>
 									Cancel
 								</Button>
 								<Button
+									type="submit"
 									onClick={() => {
-										console.log("Send Invite button clicked for:", inviteEmail);
-										// Debug whether this is called
-										toast.info("Processing invitation...");
-										try {
-											handleInviteUser().catch((err: Error) => {
-												console.error(
-													"Unhandled error in invitation process:",
-													err
-												);
-												toast.error(
-													"Error processing invitation: " +
-														(err.message || "Unknown error")
-												);
-											});
-										} catch (err: unknown) {
-											const error = err as Error;
-											console.error(
-												"Exception from button click handler:",
-												error
-											);
-											toast.error(
-												"Error starting invitation process: " +
-													(error.message || "Unknown error")
-											);
-										}
-									}}
-									disabled={!inviteEmail || !inviteEmail.includes("@")}>
-									<Mail className="h-4 w-4 mr-2" />
+										handleInviteUser();
+									}}>
 									Send Invite
 								</Button>
 							</SheetFooter>
 						</SheetContent>
 					</Sheet>
-				</div>
-
-				{loading ? (
-					<LoadingState
-						type="spinner"
-						message="Loading team members..."
-						className="py-6"
-					/>
-				) : error ? (
-					<EmptyState
-						title="Error loading team members"
-						description={error}
-						icon={<AlertCircle className="h-6 w-6" />}
-						action={
-							<Button onClick={() => window.location.reload()}>
-								Try Again
-							</Button>
-						}
-					/>
-				) : (
-					renderUsersTable()
-				)}
+				}>
+				{renderUsersTable()}
 			</ContentSection>
-		</ContentContainer>
+		</AppContent>
 	);
 
 	// If we're in the account section, just return the content
@@ -974,10 +916,14 @@ export default function UsersManagementPage() {
 	// Otherwise, render with the header for standalone page
 	return (
 		<>
-			<PageHeader
-				title="Users Management"
-				description="Manage users and admin access for your organization"
-			/>
+			<AppHeader>
+				<div>
+					<AppTitle>Users Management</AppTitle>
+					<AppDescription>
+						Manage users and admin access for your organization
+					</AppDescription>
+				</div>
+			</AppHeader>
 			{renderContent()}
 		</>
 	);

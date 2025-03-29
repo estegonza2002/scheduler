@@ -26,9 +26,6 @@ import { ContentContainer } from "@/components/ui/content-container";
 import { FormSection } from "@/components/ui/form-section";
 import { ContentSection } from "@/components/ui/content-section";
 import { PageHeader } from "@/components/ui/page-header";
-import { SecondaryLayout } from "@/components/layout/SecondaryLayout";
-
-import { ProfileSidebar } from "@/components/layout/SecondaryNavbar";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingState } from "@/components/ui/loading-state";
@@ -40,6 +37,7 @@ import {
 	GooglePlacesAutocomplete,
 	type GooglePlaceResult,
 } from "@/components/GooglePlacesAutocomplete";
+import { AppContent } from "@/components/layout/AppLayout";
 
 // Define form schema for validation
 const businessProfileSchema = z.object({
@@ -280,25 +278,6 @@ export default function BusinessProfilePage() {
 			setIsUpgrading(false);
 		}
 	}, []);
-
-	// Add handleTabChange function
-	const handleTabChange = useCallback(
-		(tab: string) => {
-			// If we're in the account page context, don't handle navigation as AccountPage manages it
-			if (isInAccountPage) return;
-
-			if (
-				tab === "profile" ||
-				tab === "password" ||
-				tab === "notifications" ||
-				tab === "branding" ||
-				tab === "billing"
-			) {
-				navigate(`/profile?tab=${tab}`);
-			}
-		},
-		[navigate, isInAccountPage]
-	);
 
 	// Convert onSubmit to useCallback
 	const handleSubmit = useCallback(
@@ -841,49 +820,50 @@ export default function BusinessProfilePage() {
 
 	// For standalone page (not inside account)
 	return (
-		<SecondaryLayout
-			title="Business Profile"
-			description="Manage your business information"
-			sidebar={
-				<ProfileSidebar
-					activeTab="business-profile"
-					onTabChange={handleTabChange}
-				/>
-			}>
-			<Tabs
-				defaultValue="profile"
-				className="w-full">
-				<TabsList className="mb-6 w-full sm:w-auto">
-					<TabsTrigger value="profile">Business Profile</TabsTrigger>
-					{/* Branding tab hidden temporarily 
-					<TabsTrigger value="branding">Branding</TabsTrigger>
-					*/}
-					<TabsTrigger value="billing">Billing</TabsTrigger>
-				</TabsList>
+		<>
+			<div className="mb-6">
+				<h1 className="text-2xl font-bold tracking-tight">Business Profile</h1>
+				<p className="mt-2 text-muted-foreground">
+					Manage your business information
+				</p>
+			</div>
+			<AppContent>
+				<Tabs
+					defaultValue="profile"
+					className="w-full">
+					<TabsList className="mb-6 w-full sm:w-auto">
+						<TabsTrigger value="profile">Business Profile</TabsTrigger>
+						{/* Branding tab hidden temporarily 
+						<TabsTrigger value="branding">Branding</TabsTrigger>
+						*/}
+						<TabsTrigger value="billing">Billing</TabsTrigger>
+					</TabsList>
 
-				<TabsContent
-					value="profile"
-					className="pt-4">
-					{renderContent()}
-				</TabsContent>
+					<TabsContent
+						value="profile"
+						className="pt-4">
+						{renderContent()}
+					</TabsContent>
 
-				<TabsContent value="billing">
-					<ContentSection
-						title="Billing Information"
-						description="View and manage your subscription and billing details">
-						<p>
-							To manage your subscription and billing details, please visit the{" "}
-							<Button
-								variant="link"
-								className="p-0 h-auto"
-								onClick={() => navigate("/billing")}>
-								Billing page
-							</Button>
-							.
-						</p>
-					</ContentSection>
-				</TabsContent>
-			</Tabs>
-		</SecondaryLayout>
+					<TabsContent value="billing">
+						<ContentSection
+							title="Billing Information"
+							description="View and manage your subscription and billing details">
+							<p>
+								To manage your subscription and billing details, please visit
+								the{" "}
+								<Button
+									variant="link"
+									className="p-0 h-auto"
+									onClick={() => navigate("/billing")}>
+									Billing page
+								</Button>
+								.
+							</p>
+						</ContentSection>
+					</TabsContent>
+				</Tabs>
+			</AppContent>
+		</>
 	);
 }

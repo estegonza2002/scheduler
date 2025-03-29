@@ -30,6 +30,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Users } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
+import {
+	AppHeader,
+	AppTitle,
+	AppDescription,
+} from "@/components/layout/AppLayout";
 
 export default function LocationEmployeesPage() {
 	const { locationId } = useParams<{ locationId: string }>();
@@ -132,11 +137,22 @@ export default function LocationEmployeesPage() {
 	if (loading) {
 		return (
 			<>
-				<PageHeader
-					title="Loading..."
-					description="Retrieving employee information"
-					showBackButton={true}
-				/>
+				<AppHeader>
+					<div className="flex items-center">
+						<Button
+							variant="ghost"
+							size="icon"
+							onClick={() => navigate(-1)}
+							className="h-8 w-8 mr-2"
+							title="Go back">
+							<ChevronLeft className="h-5 w-5" />
+						</Button>
+						<div>
+							<AppTitle>Loading...</AppTitle>
+							<AppDescription>Retrieving employee information</AppDescription>
+						</div>
+					</div>
+				</AppHeader>
 
 				<ContentContainer>
 					<LoadingState
@@ -152,11 +168,24 @@ export default function LocationEmployeesPage() {
 	if (!location) {
 		return (
 			<>
-				<PageHeader
-					title="Location not found"
-					description="The requested location could not be found"
-					showBackButton={true}
-				/>
+				<AppHeader>
+					<div className="flex items-center">
+						<Button
+							variant="ghost"
+							size="icon"
+							onClick={() => navigate(-1)}
+							className="h-8 w-8 mr-2"
+							title="Go back">
+							<ChevronLeft className="h-5 w-5" />
+						</Button>
+						<div>
+							<AppTitle>Location not found</AppTitle>
+							<AppDescription>
+								The requested location could not be found
+							</AppDescription>
+						</div>
+					</div>
+				</AppHeader>
 
 				<ContentContainer>
 					<ContentSection
@@ -182,30 +211,45 @@ export default function LocationEmployeesPage() {
 
 	return (
 		<>
-			<PageHeader
-				title={`${location.name} Employees`}
-				description={`Manage employees at ${location.name}`}
-				actions={
-					<EmployeeAssignmentSheet
-						locationId={locationId || ""}
-						locationName={location.name}
-						allEmployees={allEmployees}
-						assignedEmployees={assignedEmployees}
-						onEmployeesAssigned={(newlyAssignedEmployees) => {
-							setAssignedEmployees((prev) => [
-								...prev,
-								...newlyAssignedEmployees,
-							]);
-						}}
-						trigger={
-							<Button size="sm">
-								<UserPlus className="h-4 w-4 mr-2" /> Assign Employee
-							</Button>
-						}
-					/>
-				}
-				showBackButton={true}
-			/>
+			<AppHeader>
+				<div className="flex justify-between w-full">
+					<div className="flex items-center">
+						<Button
+							variant="ghost"
+							size="icon"
+							onClick={() => navigate(-1)}
+							className="h-8 w-8 mr-2"
+							title="Go back">
+							<ChevronLeft className="h-5 w-5" />
+						</Button>
+						<div>
+							<AppTitle>{`${location.name} Employees`}</AppTitle>
+							<AppDescription>
+								{`Manage employees at ${location.name}`}
+							</AppDescription>
+						</div>
+					</div>
+					<div className="flex items-center justify-end gap-3">
+						<EmployeeAssignmentSheet
+							locationId={locationId || ""}
+							locationName={location.name}
+							allEmployees={allEmployees}
+							assignedEmployees={assignedEmployees}
+							onEmployeesAssigned={(newlyAssignedEmployees) => {
+								setAssignedEmployees((prev) => [
+									...prev,
+									...newlyAssignedEmployees,
+								]);
+							}}
+							trigger={
+								<Button size="sm">
+									<UserPlus className="h-4 w-4 mr-2" /> Assign Employee
+								</Button>
+							}
+						/>
+					</div>
+				</div>
+			</AppHeader>
 
 			<ContentContainer>
 				<LocationSubNav

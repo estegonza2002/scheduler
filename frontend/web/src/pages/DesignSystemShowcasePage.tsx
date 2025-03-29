@@ -26,7 +26,6 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { PageHeader } from "@/components/ui/page-header";
 import { ContentContainer } from "@/components/ui/content-container";
 import { ContentSection } from "@/components/ui/content-section";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -47,12 +46,13 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-	Tabs,
-	TabsContent,
-	TabsList,
-	TabsTrigger,
-} from "@/components/ui/tabs";
+	AppHeader,
+	AppTitle,
+	AppDescription,
+	AppContent,
+} from "@/components/layout/AppLayout";
 
 export default function DesignSystemShowcasePage() {
 	// State for interactive examples
@@ -75,24 +75,30 @@ export default function DesignSystemShowcasePage() {
 
 	return (
 		<>
-			<PageHeader
-				title="Design System Showcase"
-				description="Visual reference of all UI components with usage examples"
-				actions={
-					<Button
-						size="sm"
-						onClick={() =>
-							window.open(
-								"/docs/design-system/component-inventory.md",
-								"_blank"
-							)
-						}>
-						View Documentation
-					</Button>
-				}
-			/>
+			<AppHeader>
+				<div className="flex justify-between w-full">
+					<div>
+						<AppTitle>Design System Showcase</AppTitle>
+						<AppDescription>
+							Visual reference of all UI components with usage examples
+						</AppDescription>
+					</div>
+					<div>
+						<Button
+							size="sm"
+							onClick={() =>
+								window.open(
+									"/docs/design-system/component-inventory.md",
+									"_blank"
+								)
+							}>
+							View Documentation
+						</Button>
+					</div>
+				</div>
+			</AppHeader>
 
-			<ContentContainer>
+			<AppContent>
 				<Tabs defaultValue="layout">
 					<TabsList className="mb-8">
 						<TabsTrigger value="layout">Layout Components</TabsTrigger>
@@ -742,7 +748,7 @@ export default function DesignSystemShowcasePage() {
 						</CardContent>
 					</Card>
 				</ContentSection>
-			</ContentContainer>
+			</AppContent>
 		</>
 	);
 }

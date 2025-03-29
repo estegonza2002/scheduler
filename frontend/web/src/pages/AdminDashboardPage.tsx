@@ -239,10 +239,14 @@ export default function AdminDashboardPage() {
 	if (loading) {
 		return (
 			<>
-				<PageHeader
-					title="Loading Dashboard"
-					description="Retrieving your business data"
-				/>
+				<div className="mb-6">
+					<h1 className="text-2xl font-bold tracking-tight">
+						Loading Dashboard
+					</h1>
+					<p className="mt-2 text-muted-foreground">
+						Retrieving your business data
+					</p>
+				</div>
 				<ContentContainer>{renderLoadingState()}</ContentContainer>
 			</>
 		);
@@ -250,25 +254,29 @@ export default function AdminDashboardPage() {
 
 	return (
 		<>
-			<PageHeader
-				title="Business Dashboard"
-				description="Manage your business operations and view key metrics"
-				actions={
-					<>
-						<Button
-							variant="outline"
-							onClick={() => startOnboarding()}
-							className="mr-2">
-							<Settings className="h-4 w-4 mr-2" />
-							Setup Guide ({getCompletedStepsCount()}/{getTotalStepsCount()})
-						</Button>
-						<Button onClick={() => navigate("/schedule/create")}>
-							<Plus className="h-4 w-4 mr-2" />
-							Create Schedule
-						</Button>
-					</>
-				}
-			/>
+			<div className="sticky top-0 flex h-16 shrink-0 items-center border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 z-40">
+				<div className="flex flex-1 items-center">
+					<div className="mx-4">
+						<h1 className="text-lg font-semibold">Business Dashboard</h1>
+						<p className="text-xs text-muted-foreground">
+							Manage your business operations and view key metrics
+						</p>
+					</div>
+				</div>
+				<div className="flex items-center justify-end gap-3">
+					<Button
+						variant="outline"
+						onClick={() => startOnboarding()}
+						className="mr-2">
+						<Settings className="h-4 w-4 mr-2" />
+						Setup Guide ({getCompletedStepsCount()}/{getTotalStepsCount()})
+					</Button>
+					<Button onClick={() => navigate("/schedule/create")}>
+						<Plus className="h-4 w-4 mr-2" />
+						Create Schedule
+					</Button>
+				</div>
+			</div>
 
 			<ContentContainer>
 				<OnboardingReminder />

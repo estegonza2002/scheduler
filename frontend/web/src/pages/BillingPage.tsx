@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -18,13 +18,11 @@ import {
 	type Invoice as InvoiceType,
 	type PaymentMethod,
 } from "@/api";
-import { ProfileSidebar } from "@/components/layout/SecondaryNavbar";
 import { Separator } from "@/components/ui/separator";
 import { PageHeader } from "@/components/ui/page-header";
 import { format } from "date-fns";
 import { ContentContainer } from "@/components/ui/content-container";
 import { ContentSection } from "@/components/ui/content-section";
-import { SecondaryLayout } from "@/components/layout/SecondaryLayout";
 import { LoadingState } from "@/components/ui/loading-state";
 import {
 	Card,
@@ -44,6 +42,7 @@ import {
 	useStripe as useStripeJs,
 	useElements,
 } from "@stripe/react-stripe-js";
+import { AppContent } from "@/components/layout/AppLayout";
 
 // Define columns for invoices table
 const invoiceColumns: ColumnDef<InvoiceType>[] = [
@@ -143,24 +142,6 @@ export default function BillingPage() {
 	// Check if the page was loaded after a successful checkout
 	const success = searchParams.get("success");
 	const sessionId = searchParams.get("session_id");
-
-	// Handle tab changes
-	const handleTabChange = (tab: string) => {
-		if (
-			tab === "profile" ||
-			tab === "password" ||
-			tab === "notifications" ||
-			tab === "business-profile" ||
-			tab === "branding"
-		) {
-			// Navigate back to profile with the chosen tab
-			navigate(`/profile?tab=${tab}`);
-			return;
-		}
-
-		// For billing tabs, update the URL
-		setSearchParams({ tab });
-	};
 
 	// Load invoices and payment methods
 	useEffect(() => {
@@ -776,18 +757,18 @@ export default function BillingPage() {
 		return renderContent();
 	}
 
-	// Otherwise, use the SecondaryLayout for standalone page
+	// Otherwise, use PageLayout for standalone page
 	return (
-		<SecondaryLayout
-			title="Billing & Subscription"
-			description="Manage your billing information and subscription plan"
-			sidebar={
-				<ProfileSidebar
-					activeTab={activeTab}
-					onTabChange={handleTabChange}
-				/>
-			}>
-			{renderContent()}
-		</SecondaryLayout>
+		<>
+			<div className="mb-6">
+				<h1 className="text-2xl font-bold tracking-tight">
+					Billing & Subscription
+				</h1>
+				<p className="mt-2 text-muted-foreground">
+					Manage your subscription plan and payment methods
+				</p>
+			</div>
+			<AppContent>{renderContent()}</AppContent>
+		</>
 	);
 }

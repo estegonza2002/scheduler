@@ -28,7 +28,11 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { format, parseISO } from "date-fns";
-import { PageHeader } from "@/components/ui/page-header";
+import {
+	AppHeader,
+	AppTitle,
+	AppDescription,
+} from "@/components/layout/AppLayout";
 import { Card, CardContent } from "@/components/ui/card";
 
 export default function LocationShiftPage() {
@@ -153,11 +157,24 @@ export default function LocationShiftPage() {
 	if (loading) {
 		return (
 			<>
-				<PageHeader
-					title="Loading..."
-					description="Retrieving location shift information"
-					showBackButton={true}
-				/>
+				<AppHeader>
+					<div className="flex items-center">
+						<Button
+							variant="ghost"
+							size="icon"
+							onClick={() => navigate(-1)}
+							className="h-8 w-8 mr-2"
+							title="Go back">
+							<ChevronLeft className="h-5 w-5" />
+						</Button>
+						<div>
+							<AppTitle>Loading...</AppTitle>
+							<AppDescription>
+								Retrieving location shift information
+							</AppDescription>
+						</div>
+					</div>
+				</AppHeader>
 				<ContentContainer>
 					<LoadingState
 						type="spinner"
@@ -172,11 +189,24 @@ export default function LocationShiftPage() {
 	if (!location) {
 		return (
 			<>
-				<PageHeader
-					title="Location not found"
-					description="The requested location could not be found"
-					showBackButton={true}
-				/>
+				<AppHeader>
+					<div className="flex items-center">
+						<Button
+							variant="ghost"
+							size="icon"
+							onClick={() => navigate(-1)}
+							className="h-8 w-8 mr-2"
+							title="Go back">
+							<ChevronLeft className="h-5 w-5" />
+						</Button>
+						<div>
+							<AppTitle>Location not found</AppTitle>
+							<AppDescription>
+								The requested location could not be found
+							</AppDescription>
+						</div>
+					</div>
+				</AppHeader>
 				<ContentContainer>
 					<ContentSection
 						title="Location not found"
@@ -214,12 +244,27 @@ export default function LocationShiftPage() {
 
 	return (
 		<>
-			<PageHeader
-				title={`${location.name} - Shift Schedule`}
-				description="View and manage shifts for this location"
-				actions={headerActions}
-				showBackButton={true}
-			/>
+			<AppHeader>
+				<div className="flex justify-between w-full">
+					<div className="flex items-center">
+						<Button
+							variant="ghost"
+							size="icon"
+							onClick={() => navigate(-1)}
+							className="h-8 w-8 mr-2"
+							title="Go back">
+							<ChevronLeft className="h-5 w-5" />
+						</Button>
+						<div>
+							<AppTitle>{`${location.name} - Shift Schedule`}</AppTitle>
+							<AppDescription>
+								View and manage shifts for this location
+							</AppDescription>
+						</div>
+					</div>
+					<div>{headerActions}</div>
+				</div>
+			</AppHeader>
 			<ContentContainer>
 				<LocationSubNav
 					locationId={locationId || ""}

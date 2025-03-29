@@ -9,9 +9,9 @@ import { NewConversationModal } from "@/components/messages/NewConversationModal
 import { ContentContainer } from "@/components/ui/content-container";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
-import { SecondaryLayout } from "@/components/layout/SecondaryLayout";
 import { ContentSection } from "@/components/ui/content-section";
 import { Card, CardContent } from "@/components/ui/card";
+import { AppContent } from "@/components/layout/AppLayout";
 
 type MessageTab = "chats" | "groups" | "active-shifts" | "one-to-one";
 
@@ -169,34 +169,42 @@ export default function MessagesPage() {
 
 	return (
 		<>
-			<SecondaryLayout
-				title="Messages"
-				description="Communicate with your team and manage conversations"
-				sidebar={messageSidebar}
-				className="h-[calc(100vh-8rem)] max-h-[calc(100vh-8rem)] overflow-hidden">
-				{/* Right column - Chat window */}
-				<div className="h-full flex flex-col overflow-hidden">
-					{selectedConversation ? (
-						<ChatView
-							conversationId={selectedConversation}
-							conversationType={activeTab}
-						/>
-					) : (
-						<ContentSection
-							title={emptyState.title}
-							description={emptyState.description}
-							flat={true}
-							className="h-full flex flex-col items-center justify-center p-8 border-0"
-							contentClassName="flex flex-col items-center">
-							<Card className="bg-muted/30 border-0 shadow-none">
-								<CardContent className="p-4 flex items-center justify-center">
-									<MessageSquare className="h-10 w-10" />
-								</CardContent>
-							</Card>
-						</ContentSection>
-					)}
-				</div>
-			</SecondaryLayout>
+			<div className="mb-6">
+				<h1 className="text-2xl font-bold tracking-tight">Messages</h1>
+				<p className="mt-2 text-muted-foreground">
+					Communicate with your team and manage conversations
+				</p>
+			</div>
+			<div className="flex">
+				{/* Sidebar */}
+				<div className="w-64 flex-shrink-0">{messageSidebar}</div>
+
+				{/* Content */}
+				<AppContent className="flex-1 h-[calc(100vh-8rem)] max-h-[calc(100vh-8rem)] overflow-hidden">
+					{/* Right column - Chat window */}
+					<div className="h-full flex flex-col overflow-hidden">
+						{selectedConversation ? (
+							<ChatView
+								conversationId={selectedConversation}
+								conversationType={activeTab}
+							/>
+						) : (
+							<ContentSection
+								title={emptyState.title}
+								description={emptyState.description}
+								flat={true}
+								className="h-full flex flex-col items-center justify-center p-8 border-0"
+								contentClassName="flex flex-col items-center">
+								<Card className="bg-muted/30 border-0 shadow-none">
+									<CardContent className="p-4 flex items-center justify-center">
+										<MessageSquare className="h-10 w-10" />
+									</CardContent>
+								</Card>
+							</ContentSection>
+						)}
+					</div>
+				</AppContent>
+			</div>
 
 			<NewConversationModal
 				onStartConversation={handleStartConversation}

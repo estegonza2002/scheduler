@@ -25,18 +25,23 @@ import {
 	X,
 	SearchX,
 	Loader2,
+	ChevronLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ExportDropdown } from "@/components/ExportDropdown";
 import { ContentContainer } from "@/components/ui/content-container";
-import { PageHeader } from "@/components/ui/page-header";
 import { ContentSection } from "@/components/ui/content-section";
 import { DataTable } from "@/components/ui/data-table";
 import { FilterGroup } from "@/components/ui/filter-group";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ColumnDef } from "@tanstack/react-table";
 import { ShiftsAPI, LocationsAPI, Employee, Location, Shift } from "@/api";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
+import {
+	AppHeader,
+	AppTitle,
+	AppDescription,
+} from "@/components/layout/AppLayout";
 
 // Define the ShiftLog type that combines Shift with employee and location info
 interface ShiftLog {
@@ -300,14 +305,31 @@ export function ShiftLogDetailsPage() {
 		/>
 	);
 
+	const navigate = useNavigate();
+
 	return (
 		<>
-			<PageHeader
-				title="Shift Log Details"
-				description="View and analyze detailed shift history records"
-				actions={headerActions}
-				showBackButton={true}
-			/>
+			<AppHeader>
+				<div className="flex justify-between w-full">
+					<div className="flex items-center">
+						<Button
+							variant="ghost"
+							size="icon"
+							onClick={() => navigate(-1)}
+							className="h-8 w-8 mr-2"
+							title="Go back">
+							<ChevronLeft className="h-5 w-5" />
+						</Button>
+						<div>
+							<AppTitle>Shift Log Details</AppTitle>
+							<AppDescription>
+								View and analyze detailed shift history records
+							</AppDescription>
+						</div>
+					</div>
+					<div>{headerActions}</div>
+				</div>
+			</AppHeader>
 
 			<ContentContainer>
 				<ContentSection

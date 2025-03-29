@@ -260,12 +260,26 @@ export default function LocationDetailPage() {
 
 	return (
 		<>
-			<PageHeader
-				title={location?.name || "Location Details"}
-				description={""}
-				actions={ActionButtons}
-				showBackButton={true}
-			/>
+			<div className="sticky top-0 flex h-16 shrink-0 items-center border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 z-40">
+				<div className="flex flex-1 items-center">
+					<Button
+						variant="ghost"
+						size="icon"
+						onClick={() => navigate(-1)}
+						className="h-8 w-8 mr-2"
+						title="Go back">
+						<ChevronLeft className="h-5 w-5" />
+					</Button>
+					<div className="mx-2">
+						<h1 className="text-lg font-semibold">
+							{location?.name || "Location Details"}
+						</h1>
+					</div>
+				</div>
+				<div className="flex items-center justify-end gap-3">
+					{ActionButtons}
+				</div>
+			</div>
 
 			{/* Hero Section */}
 			<div className="w-full bg-muted/30 border-b">

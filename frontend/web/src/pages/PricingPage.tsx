@@ -1,6 +1,6 @@
 import { Helmet } from "react-helmet";
 import PricingPlans from "@/components/PricingPlans";
-import { PageLayout } from "@/components/layout/PageLayout";
+import { AppContent } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -14,7 +14,7 @@ export default function PricingPage() {
 				<title>Pricing Plans | Scheduler</title>
 			</Helmet>
 
-			<PageLayout>
+			<AppContent>
 				<div className="container mx-auto px-4 py-8">
 					<Button
 						variant="ghost"
@@ -83,7 +83,7 @@ export default function PricingPage() {
 						</div>
 					</div>
 				</div>
-			</PageLayout>
+			</AppContent>
 		</>
 	);
 }

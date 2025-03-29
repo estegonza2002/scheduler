@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,12 +19,13 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { FormSection } from "@/components/ui/form-section";
-import { ProfileSidebar } from "@/components/layout/SecondaryNavbar";
 import { useAuth } from "@/lib/auth";
 import { PageHeader } from "@/components/ui/page-header";
 import { ContentContainer } from "@/components/ui/content-container";
-import { SecondaryLayout } from "@/components/layout/SecondaryLayout";
+import { AppContent } from "@/components/layout/AppLayout";
 import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
 
 // Define branding schema
 const brandingSchema = z.object({
@@ -118,254 +119,254 @@ export default function BrandingPage() {
 	}
 
 	return (
-		<SecondaryLayout
-			title="Brand Settings"
-			description="Customize your brand appearance and assets"
-			sidebar={
-				<ProfileSidebar
-					activeTab="branding"
-					onTabChange={handleTabChange}
-				/>
-			}>
-			<Form {...brandingForm}>
-				<form
-					onSubmit={brandingForm.handleSubmit(onBrandingSubmit)}
-					className="space-y-6">
-					<FormSection
-						title="Logo & Favicon"
-						description="Upload your organization's logo and favicon">
-						<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-							<div>
-								<Label htmlFor="logo-upload">Company Logo</Label>
-								<div className="mt-2 flex flex-col gap-4">
-									<Card className="border-2 border-dashed border-muted-foreground/25 bg-muted/10">
-										<CardContent className="flex items-center justify-center h-40 p-4">
-											{logoPreview ? (
-												<div className="relative w-full h-full flex items-center justify-center">
-													<img
-														src={logoPreview}
-														alt="Logo preview"
-														className="max-h-32 max-w-full object-contain"
-													/>
-													<Button
-														type="button"
-														variant="destructive"
-														size="icon"
-														className="absolute -top-2 -right-2 h-8 w-8"
-														onClick={handleRemoveLogo}>
-														<Trash2 className="h-4 w-4" />
-													</Button>
-												</div>
-											) : (
-												<div className="text-center">
-													<Image className="mx-auto h-12 w-12 text-muted-foreground" />
-													<p className="mt-2 text-sm text-muted-foreground">
-														Upload your company logo (PNG, JPG, SVG)
-													</p>
-													<div className="mt-4">
-														<label
-															htmlFor="logo-upload"
-															className="cursor-pointer inline-flex items-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm hover:bg-accent">
-															<Upload className="mr-2 h-4 w-4" />
-															Choose File
-															<input
-																id="logo-upload"
-																name="logo"
-																type="file"
-																className="sr-only"
-																accept="image/*"
-																onChange={handleLogoChange}
-															/>
-														</label>
+		<>
+			<div className="mb-6">
+				<h1 className="text-2xl font-bold tracking-tight">Brand Settings</h1>
+				<p className="mt-2 text-muted-foreground">
+					Customize your brand appearance and assets
+				</p>
+			</div>
+			<AppContent>
+				<Form {...brandingForm}>
+					<form
+						onSubmit={brandingForm.handleSubmit(onBrandingSubmit)}
+						className="space-y-6">
+						<FormSection
+							title="Logo & Favicon"
+							description="Upload your organization's logo and assets">
+							<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+								<div>
+									<Label htmlFor="logo-upload">Company Logo</Label>
+									<div className="mt-2 flex flex-col gap-4">
+										<Card className="border-2 border-dashed border-muted-foreground/25 bg-muted/10">
+											<CardContent className="flex items-center justify-center h-40 p-4">
+												{logoPreview ? (
+													<div className="relative w-full h-full flex items-center justify-center">
+														<img
+															src={logoPreview}
+															alt="Logo preview"
+															className="max-h-32 max-w-full object-contain"
+														/>
+														<Button
+															type="button"
+															variant="destructive"
+															size="icon"
+															className="absolute -top-2 -right-2 h-8 w-8"
+															onClick={handleRemoveLogo}>
+															<Trash2 className="h-4 w-4" />
+														</Button>
 													</div>
-												</div>
-											)}
-										</CardContent>
-									</Card>
-									<p className="text-xs text-muted-foreground">
-										Recommended size: 512x512px. Max file size: 2MB.
-									</p>
+												) : (
+													<div className="text-center">
+														<Image className="mx-auto h-12 w-12 text-muted-foreground" />
+														<p className="mt-2 text-sm text-muted-foreground">
+															Upload your company logo (PNG, JPG, SVG)
+														</p>
+														<div className="mt-4">
+															<label
+																htmlFor="logo-upload"
+																className="cursor-pointer inline-flex items-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm hover:bg-accent">
+																<Upload className="mr-2 h-4 w-4" />
+																Choose File
+																<input
+																	id="logo-upload"
+																	name="logo"
+																	type="file"
+																	className="sr-only"
+																	accept="image/*"
+																	onChange={handleLogoChange}
+																/>
+															</label>
+														</div>
+													</div>
+												)}
+											</CardContent>
+										</Card>
+										<p className="text-xs text-muted-foreground">
+											Recommended size: 512x512px. Max file size: 2MB.
+										</p>
+									</div>
+								</div>
+
+								<div>
+									<Label htmlFor="favicon-upload">Favicon</Label>
+									<div className="mt-2 flex flex-col gap-4">
+										<Card className="border-2 border-dashed border-muted-foreground/25 bg-muted/10">
+											<CardContent className="flex items-center justify-center h-40 p-4">
+												{faviconPreview ? (
+													<div className="relative w-full h-full flex items-center justify-center">
+														<img
+															src={faviconPreview}
+															alt="Favicon preview"
+															className="max-h-16 max-w-full object-contain"
+														/>
+														<Button
+															type="button"
+															variant="destructive"
+															size="icon"
+															className="absolute -top-2 -right-2 h-8 w-8"
+															onClick={handleRemoveFavicon}>
+															<Trash2 className="h-4 w-4" />
+														</Button>
+													</div>
+												) : (
+													<div className="text-center">
+														<Image className="mx-auto h-12 w-12 text-muted-foreground" />
+														<p className="mt-2 text-sm text-muted-foreground">
+															Upload your favicon (ICO, PNG)
+														</p>
+														<div className="mt-4">
+															<label
+																htmlFor="favicon-upload"
+																className="cursor-pointer inline-flex items-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm hover:bg-accent">
+																<Upload className="mr-2 h-4 w-4" />
+																Choose File
+																<input
+																	id="favicon-upload"
+																	name="favicon"
+																	type="file"
+																	className="sr-only"
+																	accept="image/x-icon,image/png"
+																	onChange={handleFaviconChange}
+																/>
+															</label>
+														</div>
+													</div>
+												)}
+											</CardContent>
+										</Card>
+										<p className="text-xs text-muted-foreground">
+											Recommended size: 32x32px. Max file size: 1MB.
+										</p>
+									</div>
 								</div>
 							</div>
+						</FormSection>
 
-							<div>
-								<Label htmlFor="favicon-upload">Favicon</Label>
-								<div className="mt-2 flex flex-col gap-4">
-									<Card className="border-2 border-dashed border-muted-foreground/25 bg-muted/10">
-										<CardContent className="flex items-center justify-center h-40 p-4">
-											{faviconPreview ? (
-												<div className="relative w-full h-full flex items-center justify-center">
-													<img
-														src={faviconPreview}
-														alt="Favicon preview"
-														className="max-h-16 max-w-full object-contain"
+						<FormSection
+							title="Brand Colors"
+							description="Define your brand's color palette">
+							<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+								<FormField
+									control={brandingForm.control}
+									name="primaryColor"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Primary Color</FormLabel>
+											<div className="flex gap-2 items-center">
+												<Card
+													className="w-10 h-10"
+													style={{ backgroundColor: field.value }}
+												/>
+												<FormControl>
+													<Input
+														{...field}
+														placeholder="#2563eb"
 													/>
-													<Button
-														type="button"
-														variant="destructive"
-														size="icon"
-														className="absolute -top-2 -right-2 h-8 w-8"
-														onClick={handleRemoveFavicon}>
-														<Trash2 className="h-4 w-4" />
-													</Button>
-												</div>
-											) : (
-												<div className="text-center">
-													<Image className="mx-auto h-12 w-12 text-muted-foreground" />
-													<p className="mt-2 text-sm text-muted-foreground">
-														Upload your favicon (ICO, PNG)
-													</p>
-													<div className="mt-4">
-														<label
-															htmlFor="favicon-upload"
-															className="cursor-pointer inline-flex items-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm hover:bg-accent">
-															<Upload className="mr-2 h-4 w-4" />
-															Choose File
-															<input
-																id="favicon-upload"
-																name="favicon"
-																type="file"
-																className="sr-only"
-																accept="image/x-icon,image/png"
-																onChange={handleFaviconChange}
-															/>
-														</label>
-													</div>
-												</div>
-											)}
-										</CardContent>
-									</Card>
-									<p className="text-xs text-muted-foreground">
-										Recommended size: 32x32px. Max file size: 1MB.
-									</p>
-								</div>
+												</FormControl>
+											</div>
+											<FormDescription>
+												Main color used for primary UI elements
+											</FormDescription>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={brandingForm.control}
+									name="secondaryColor"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Secondary Color</FormLabel>
+											<div className="flex gap-2 items-center">
+												<Card
+													className="w-10 h-10"
+													style={{ backgroundColor: field.value }}
+												/>
+												<FormControl>
+													<Input
+														{...field}
+														placeholder="#1e40af"
+													/>
+												</FormControl>
+											</div>
+											<FormDescription>
+												Used for secondary UI elements
+											</FormDescription>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={brandingForm.control}
+									name="accentColor"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Accent Color</FormLabel>
+											<div className="flex gap-2 items-center">
+												<Card
+													className="w-10 h-10"
+													style={{ backgroundColor: field.value }}
+												/>
+												<FormControl>
+													<Input
+														{...field}
+														placeholder="#ef4444"
+													/>
+												</FormControl>
+											</div>
+											<FormDescription>
+												Used for highlighting important elements
+											</FormDescription>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
 							</div>
+						</FormSection>
+
+						<FormSection
+							title="Typography"
+							description="Choose fonts for your application">
+							<FormField
+								control={brandingForm.control}
+								name="fontFamily"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Font Family</FormLabel>
+										<FormControl>
+											<select
+												{...field}
+												className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background">
+												<option value="Inter">Inter</option>
+												<option value="Roboto">Roboto</option>
+												<option value="Open Sans">Open Sans</option>
+												<option value="Lato">Lato</option>
+												<option value="Montserrat">Montserrat</option>
+												<option value="Source Sans Pro">Source Sans Pro</option>
+											</select>
+										</FormControl>
+										<FormDescription>
+											The main font used throughout your application
+										</FormDescription>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						</FormSection>
+
+						<div className="flex justify-end">
+							<Button
+								type="submit"
+								disabled={isLoading}>
+								{isLoading ? "Saving..." : "Save Brand Settings"}
+							</Button>
 						</div>
-					</FormSection>
-
-					<FormSection
-						title="Brand Colors"
-						description="Define your brand's color palette">
-						<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-							<FormField
-								control={brandingForm.control}
-								name="primaryColor"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Primary Color</FormLabel>
-										<div className="flex gap-2 items-center">
-											<Card
-												className="w-10 h-10"
-												style={{ backgroundColor: field.value }}
-											/>
-											<FormControl>
-												<Input
-													{...field}
-													placeholder="#2563eb"
-												/>
-											</FormControl>
-										</div>
-										<FormDescription>
-											Main color used for primary UI elements
-										</FormDescription>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-
-							<FormField
-								control={brandingForm.control}
-								name="secondaryColor"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Secondary Color</FormLabel>
-										<div className="flex gap-2 items-center">
-											<Card
-												className="w-10 h-10"
-												style={{ backgroundColor: field.value }}
-											/>
-											<FormControl>
-												<Input
-													{...field}
-													placeholder="#1e40af"
-												/>
-											</FormControl>
-										</div>
-										<FormDescription>
-											Used for secondary UI elements
-										</FormDescription>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-
-							<FormField
-								control={brandingForm.control}
-								name="accentColor"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Accent Color</FormLabel>
-										<div className="flex gap-2 items-center">
-											<Card
-												className="w-10 h-10"
-												style={{ backgroundColor: field.value }}
-											/>
-											<FormControl>
-												<Input
-													{...field}
-													placeholder="#ef4444"
-												/>
-											</FormControl>
-										</div>
-										<FormDescription>
-											Used for highlighting important elements
-										</FormDescription>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-						</div>
-					</FormSection>
-
-					<FormSection
-						title="Typography"
-						description="Choose fonts for your application">
-						<FormField
-							control={brandingForm.control}
-							name="fontFamily"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Font Family</FormLabel>
-									<FormControl>
-										<select
-											{...field}
-											className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background">
-											<option value="Inter">Inter</option>
-											<option value="Roboto">Roboto</option>
-											<option value="Open Sans">Open Sans</option>
-											<option value="Lato">Lato</option>
-											<option value="Montserrat">Montserrat</option>
-											<option value="Source Sans Pro">Source Sans Pro</option>
-										</select>
-									</FormControl>
-									<FormDescription>
-										The main font used throughout your application
-									</FormDescription>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-					</FormSection>
-
-					<div className="flex justify-end">
-						<Button
-							type="submit"
-							disabled={isLoading}>
-							{isLoading ? "Saving..." : "Save Brand Settings"}
-						</Button>
-					</div>
-				</form>
-			</Form>
-		</SecondaryLayout>
+					</form>
+				</Form>
+			</AppContent>
+		</>
 	);
 }

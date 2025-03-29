@@ -23,6 +23,7 @@ import {
 	MapPin,
 	Coffee,
 	ChevronsUp,
+	ChevronLeft,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ShiftsAPI, EmployeesAPI, LocationsAPI } from "@/api";
@@ -30,10 +31,14 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Shift, Employee, Location, Schedule } from "../api/types";
 import { format, addDays } from "date-fns";
 import { FormulaExplainer } from "@/components/ui/formula-explainer";
-import { PageHeader } from "@/components/ui/page-header";
 import { ContentContainer } from "@/components/ui/content-container";
 import { ContentSection } from "@/components/ui/content-section";
 import { getDefaultOrganizationId } from "@/lib/utils";
+import {
+	AppHeader,
+	AppTitle,
+	AppDescription,
+} from "@/components/layout/AppLayout";
 
 export default function DashboardPage() {
 	const { user } = useAuth();
@@ -239,10 +244,10 @@ export default function DashboardPage() {
 	if (isLoading) {
 		return (
 			<>
-				<PageHeader
-					title="Dashboard"
-					description="Loading your personal dashboard"
-				/>
+				<AppHeader>
+					<AppTitle>Dashboard</AppTitle>
+					<AppDescription>Loading your personal dashboard</AppDescription>
+				</AppHeader>
 				<ContentContainer>
 					<div className="flex items-center justify-center py-12">
 						<div className="flex flex-col items-center gap-2">
@@ -259,12 +264,12 @@ export default function DashboardPage() {
 
 	return (
 		<>
-			<PageHeader
-				title="Dashboard"
-				description={`Welcome back, ${
-					user?.user_metadata?.firstName || "Employee"
-				}`}
-			/>
+			<AppHeader>
+				<AppTitle>Dashboard</AppTitle>
+				<AppDescription>
+					{`Welcome back, ${user?.user_metadata?.firstName || "Employee"}`}
+				</AppDescription>
+			</AppHeader>
 
 			<ContentContainer>
 				{/* Personalized greeting */}
