@@ -20,6 +20,7 @@ import { Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 /**
  * Props for the ShiftCreationWizard component
@@ -49,6 +50,15 @@ interface ShiftCreationWizardProps {
 	 * Optional callback fired when wizard is cancelled
 	 */
 	onCancel?: () => void;
+	/**
+	 * Optional callback to notify parent component of state changes
+	 */
+	onStateChange?: (state: {
+		currentStep: string;
+		canContinue: boolean;
+		isLoading: boolean;
+		selectedEmployeesCount: number;
+	}) => void;
 	/**
 	 * Optional additional CSS class for the component
 	 */
@@ -98,6 +108,7 @@ export function ShiftCreationWizard({
 	initialLocationId,
 	onComplete,
 	onCancel,
+	onStateChange,
 	className,
 }: ShiftCreationWizardProps) {
 	// Current step in the wizard
@@ -158,6 +169,34 @@ export function ShiftCreationWizard({
 			employeeId: "",
 		},
 	});
+
+	// Notify parent of state changes
+	useEffect(() => {
+		if (onStateChange) {
+			onStateChange({
+				currentStep: step,
+				canContinue:
+					step === "select-location"
+						? !!locationForm.watch("locationId") &&
+						  !loadingLocations &&
+						  locations.length > 0
+						: step === "shift-details"
+						? shiftForm.formState.isValid
+						: true,
+				isLoading: loading || loadingLocations || loadingEmployees,
+				selectedEmployeesCount: selectedEmployees.length,
+			});
+		}
+	}, [
+		step,
+		locationForm.watch("locationId"),
+		shiftForm.formState.isValid,
+		loading,
+		loadingLocations,
+		loadingEmployees,
+		selectedEmployees.length,
+		locations.length,
+	]);
 
 	// Update date when initialDate changes
 	useEffect(() => {
@@ -476,38 +515,54 @@ export function ShiftCreationWizard({
 
 					{/* Step 2: Shift Details */}
 					{step === "shift-details" && locationData && (
-						<ShiftDetailsStep
-							shiftForm={shiftForm}
-							locationData={locationData}
-							getLocationById={getLocationById}
-							handleShiftDetailsSubmit={handleShiftDetailsSubmit}
-							onBack={resetLocation}
-						/>
+						<>
+							<ShiftDetailsStep
+								shiftForm={shiftForm}
+								locationData={locationData}
+								getLocationById={getLocationById}
+								handleShiftDetailsSubmit={handleShiftDetailsSubmit}
+								onBack={resetLocation}
+							/>
+							<Button
+								id="shift-details-back-button"
+								className="hidden"
+								onClick={resetLocation}>
+								Back to Location Selection
+							</Button>
+						</>
 					)}
 
 					{/* Step 3: Assign Employee */}
 					{step === "assign-employee" && locationData && shiftData && (
-						<EmployeeAssignmentStep
-							employeeForm={employeeForm}
-							locationData={locationData}
-							shiftData={shiftData}
-							searchTerm={searchTerm}
-							setSearchTerm={setSearchTerm}
-							searchFilter={searchFilter}
-							setSearchFilter={setSearchFilter}
-							filteredEmployees={filteredEmployees}
-							loadingEmployees={loadingEmployees}
-							getLocationName={getLocationName}
-							handleEmployeeAssignSubmit={(data) =>
-								handleEmployeeAssignSubmit(data, selectedEmployees)
-							}
-							onBack={() => setStep("shift-details")}
-							onResetLocation={resetLocation}
-							loading={loading}
-							selectedEmployees={selectedEmployees}
-							onSelectedEmployeesChange={handleSelectedEmployeesChange}
-							allEmployees={employees}
-						/>
+						<>
+							<EmployeeAssignmentStep
+								employeeForm={employeeForm}
+								locationData={locationData}
+								shiftData={shiftData}
+								searchTerm={searchTerm}
+								setSearchTerm={setSearchTerm}
+								searchFilter={searchFilter}
+								setSearchFilter={setSearchFilter}
+								filteredEmployees={filteredEmployees}
+								loadingEmployees={loadingEmployees}
+								getLocationName={getLocationName}
+								handleEmployeeAssignSubmit={(data) =>
+									handleEmployeeAssignSubmit(data, selectedEmployees)
+								}
+								onBack={() => setStep("shift-details")}
+								onResetLocation={resetLocation}
+								loading={loading}
+								selectedEmployees={selectedEmployees}
+								onSelectedEmployeesChange={handleSelectedEmployeesChange}
+								allEmployees={employees}
+							/>
+							<Button
+								id="employee-assign-back-button"
+								className="hidden"
+								onClick={() => setStep("shift-details")}>
+								Back to Shift Details
+							</Button>
+						</>
 					)}
 				</div>
 			</ScrollArea>

@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import {
 	BarChart3,
 	FileText,
@@ -20,6 +21,7 @@ import {
 	Calendar,
 	FileCheck,
 	DollarSign,
+	AlertCircle,
 } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 
@@ -60,6 +62,7 @@ export default function ReportsPage() {
 				onValueChange={setActiveTab}>
 				<TabsList>
 					<TabsTrigger value="overview">Overview</TabsTrigger>
+					<TabsTrigger value="analytics">Analytics</TabsTrigger>
 					<TabsTrigger value="performance">Performance</TabsTrigger>
 					<TabsTrigger value="attendance">Attendance</TabsTrigger>
 					<TabsTrigger value="payroll">Payroll</TabsTrigger>
@@ -189,6 +192,104 @@ export default function ReportsPage() {
 							</CardContent>
 						</Card>
 					</div>
+				</TabsContent>
+
+				<TabsContent value="analytics">
+					<Card>
+						<CardHeader>
+							<CardTitle>Analytics Dashboard</CardTitle>
+							<CardDescription>
+								Detailed business analytics and performance metrics
+							</CardDescription>
+						</CardHeader>
+						<CardContent>
+							<Alert className="mb-6">
+								<AlertCircle className="h-4 w-4" />
+								<AlertTitle>Mock Data</AlertTitle>
+								<AlertDescription>
+									Analytics features are currently using mock data. Real
+									analytics integration is planned - see
+									issues/analytics-integration.md
+								</AlertDescription>
+							</Alert>
+
+							<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+								{/* Revenue Card */}
+								<Card>
+									<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+										<CardTitle className="text-sm font-medium">
+											Total Revenue (Mock)
+										</CardTitle>
+										<DollarSign className="h-4 w-4 text-muted-foreground" />
+									</CardHeader>
+									<CardContent>
+										<div className="text-2xl font-bold">$11900</div>
+										<p className="text-xs text-muted-foreground">
+											+20% from last month (Mock)
+										</p>
+									</CardContent>
+								</Card>
+
+								{/* Active Employees Card */}
+								<Card>
+									<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+										<CardTitle className="text-sm font-medium">
+											Active Employees
+										</CardTitle>
+										<Users className="h-4 w-4 text-muted-foreground" />
+									</CardHeader>
+									<CardContent>
+										<div className="text-2xl font-bold">0</div>
+										<p className="text-xs text-muted-foreground">1 locations</p>
+									</CardContent>
+								</Card>
+
+								{/* Active Shifts Card */}
+								<Card>
+									<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+										<CardTitle className="text-sm font-medium">
+											Active Shifts
+										</CardTitle>
+										<Calendar className="h-4 w-4 text-muted-foreground" />
+									</CardHeader>
+									<CardContent>
+										<div className="text-2xl font-bold">0</div>
+										<p className="text-xs text-muted-foreground">0 upcoming</p>
+									</CardContent>
+								</Card>
+
+								{/* Employee Types Card */}
+								<Card>
+									<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+										<CardTitle className="text-sm font-medium">
+											Employee Types (Mock)
+										</CardTitle>
+										<Users className="h-4 w-4 text-muted-foreground" />
+									</CardHeader>
+									<CardContent>
+										<div className="text-2xl font-bold">36</div>
+										<p className="text-xs text-muted-foreground">
+											Across all types
+										</p>
+									</CardContent>
+								</Card>
+							</div>
+
+							<div className="h-[300px] w-full flex items-center justify-center bg-muted/20 rounded-md mt-6">
+								<div className="text-center">
+									<BarChart3 className="mx-auto h-10 w-10 text-muted-foreground/70" />
+									<p className="mt-2 text-sm text-muted-foreground">
+										Detailed analytics charts will be displayed here
+									</p>
+									<Button
+										variant="outline"
+										className="mt-4">
+										Generate Analytics Report
+									</Button>
+								</div>
+							</div>
+						</CardContent>
+					</Card>
 				</TabsContent>
 
 				<TabsContent value="performance">

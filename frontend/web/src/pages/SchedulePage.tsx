@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { ShiftCreationSheet } from "@/components/ShiftCreationSheet";
 
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 
@@ -105,39 +105,6 @@ export default function SchedulePage() {
 					)}`}</p>
 				</div>
 				<div className="flex items-center gap-2 mt-4 md:mt-0">
-					<Button
-						variant="outline"
-						size="icon"
-						onClick={handlePreviousMonth}>
-						<ChevronLeft className="h-4 w-4" />
-					</Button>
-
-					<Button
-						variant="outline"
-						onClick={handleSetToday}>
-						Today
-					</Button>
-
-					<Button
-						variant="outline"
-						size="icon"
-						onClick={handleNextMonth}>
-						<ChevronRight className="h-4 w-4" />
-					</Button>
-
-					<Separator
-						orientation="vertical"
-						className="h-8"
-					/>
-
-					<Button
-						variant="outline"
-						size="sm"
-						className="text-sm flex items-center"
-						onClick={handleViewDailyShifts}>
-						<List className="h-4 w-4 mr-2" /> View Daily
-					</Button>
-
 					<ShiftCreationSheet
 						organizationId={organizationId}
 						scheduleId={scheduleId}
@@ -153,7 +120,46 @@ export default function SchedulePage() {
 
 			<div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 				<Card>
-					<CardContent className="p-4">
+					<CardHeader className="flex flex-row items-center justify-between pb-2">
+						<CardTitle className="text-lg font-medium">
+							{format(currentMonth, "MMMM yyyy")}
+						</CardTitle>
+						<div className="flex items-center gap-2">
+							<Button
+								variant="outline"
+								size="icon"
+								onClick={handlePreviousMonth}>
+								<ChevronLeft className="h-4 w-4" />
+							</Button>
+
+							<Button
+								variant="outline"
+								onClick={handleSetToday}>
+								Today
+							</Button>
+
+							<Button
+								variant="outline"
+								size="icon"
+								onClick={handleNextMonth}>
+								<ChevronRight className="h-4 w-4" />
+							</Button>
+
+							<Separator
+								orientation="vertical"
+								className="h-8"
+							/>
+
+							<Button
+								variant="outline"
+								size="sm"
+								className="text-sm flex items-center"
+								onClick={handleViewDailyShifts}>
+								<List className="h-4 w-4 mr-2" /> View Daily
+							</Button>
+						</div>
+					</CardHeader>
+					<CardContent className="p-4 pt-2">
 						{loading ? (
 							<div className="flex items-center justify-center py-8">
 								<div className="flex flex-col items-center gap-2">
@@ -167,6 +173,7 @@ export default function SchedulePage() {
 							<ScheduleCalendar
 								currentMonth={currentMonth}
 								onDateSelect={handleDateSelect}
+								organizationId={organizationId}
 							/>
 						)}
 					</CardContent>

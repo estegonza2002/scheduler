@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -39,6 +39,7 @@ import {
 	DollarSign,
 	BadgeAlert,
 	StickyNote,
+	Loader2,
 } from "lucide-react";
 import { FormPhoneInput } from "@/components/ui/form-phone-input";
 import { isValidPhoneNumber } from "react-phone-number-input";
@@ -118,12 +119,23 @@ interface EmployeeFormProps {
 	organizationId: string;
 	initialData?: Employee;
 	onSuccess?: (employee: Employee) => void;
+	/**
+	 * Optional callback to expose form state and submit function to parent component
+	 */
+	onFormReady?: (formState: {
+		isDirty: boolean;
+		isValid: boolean;
+		isSubmitting: boolean;
+		isEditing: boolean;
+		submit: () => void;
+	}) => void;
 }
 
 export function EmployeeForm({
 	organizationId,
 	initialData,
 	onSuccess,
+	onFormReady,
 }: EmployeeFormProps) {
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const isEditing = !!initialData;
@@ -147,6 +159,11 @@ export function EmployeeForm({
 				: "",
 		},
 	});
+
+	// Memoize the submit function to avoid recreating it on every render
+	const handleSubmit = useCallback(() => {
+		return form.handleSubmit(onSubmit);
+	}, [form]);
 
 	const onSubmit = async (data: EmployeeFormValues) => {
 		try {
@@ -246,6 +263,30 @@ export function EmployeeForm({
 			setIsSubmitting(false);
 		}
 	};
+
+	// Expose form state and submit function to parent component with optimization
+	useEffect(() => {
+		if (!onFormReady) return;
+
+		// Only update when necessary values change
+		const isDirty = form.formState.isDirty;
+		const isValid = form.formState.isValid;
+
+		onFormReady({
+			isDirty,
+			isValid,
+			isSubmitting,
+			isEditing,
+			submit: handleSubmit(),
+		});
+	}, [
+		form.formState.isDirty,
+		form.formState.isValid,
+		isSubmitting,
+		isEditing,
+		onFormReady,
+		handleSubmit,
+	]);
 
 	return (
 		<Card>
@@ -515,26 +556,6 @@ export function EmployeeForm({
 								)}
 							/>
 						</FormSection>
-
-						<div className="pt-4">
-							<Button
-								type="submit"
-								className="w-full"
-								disabled={isSubmitting}>
-								{isSubmitting
-									? isEditing
-										? "Updating..."
-										: "Adding..."
-									: isEditing
-									? "Update Employee"
-									: "Add Employee"}
-							</Button>
-							{Object.keys(form.formState.errors).length > 0 && (
-								<p className="mt-2 text-sm text-destructive text-center">
-									Please fix the validation errors before submitting.
-								</p>
-							)}
-						</div>
 					</form>
 				</Form>
 			</CardContent>

@@ -53,6 +53,7 @@ import DesignSystemShowcasePage from "./pages/DesignSystemShowcasePage";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import ReportsPage from "./pages/ReportsPage";
+import PricingPage from "./pages/PricingPage";
 
 // Root redirect component that checks user role
 function RootRedirect() {
@@ -163,6 +164,10 @@ function App() {
 													<Route
 														path="/privacy"
 														element={<PrivacyPage />}
+													/>
+													<Route
+														path="/pricing"
+														element={<PricingPage />}
 													/>
 
 													{/* Protected routes */}

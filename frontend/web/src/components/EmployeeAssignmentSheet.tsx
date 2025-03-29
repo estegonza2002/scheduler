@@ -1,20 +1,22 @@
 import { useState, useEffect } from "react";
 import { Employee, EmployeesAPI, EmployeeLocationsAPI } from "@/api";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserPlus, Loader2, CheckCircle, Users } from "lucide-react";
 import {
 	Sheet,
 	SheetContent,
 	SheetHeader,
 	SheetTitle,
+	SheetDescription,
+	SheetFooter,
 	SheetTrigger,
 } from "@/components/ui/sheet";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/utils";
-import { toast } from "sonner";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { UserPlus, Loader2, CheckCircle, Users } from "lucide-react";
 
 /**
  * Props for the EmployeeAssignmentSheet component
@@ -86,19 +88,20 @@ export function EmployeeAssignmentSheet({
 	);
 	const [isLoading, setIsLoading] = useState(false);
 
-	const isControlled = controlledOpen !== undefined;
-	const isOpened = isControlled ? controlledOpen : open;
-	const setIsOpened = isControlled ? setControlledOpen! : setOpen;
+	// Determine if we're using controlled or uncontrolled open state
+	const isControlled =
+		controlledOpen !== undefined && setControlledOpen !== undefined;
+	const isOpen = isControlled ? controlledOpen : open;
 
 	// Fetch employees when the sheet is opened
 	useEffect(() => {
 		if (
-			isOpened &&
+			isOpen &&
 			(allEmployees.length === 0 || assignedEmployees.length === 0)
 		) {
 			fetchEmployees();
 		}
-	}, [isOpened]);
+	}, [isOpen]);
 
 	// Load employees from the API
 	const fetchEmployees = async () => {
@@ -239,183 +242,206 @@ export function EmployeeAssignmentSheet({
 	};
 
 	// Handle sheet open/close
-	const handleOpenChange = (newOpen: boolean) => {
+	const handleOpenChange = (newOpenState: boolean) => {
 		if (isSubmitting) return; // Prevent closing during submission
 
-		if (setIsOpened) {
-			setIsOpened(newOpen);
-		}
-
-		if (!newOpen) {
+		if (!newOpenState) {
 			// Reset state when sheet closes
 			setTimeout(() => {
 				setIsAssigned(false);
 				setSelectedEmployees([]);
 				setSearchTerm("");
-				setAssignedCount(0);
 			}, 300); // Wait for sheet close animation
+		}
+
+		if (isControlled && setControlledOpen) {
+			setControlledOpen(newOpenState);
+		} else {
+			setOpen(newOpenState);
 		}
 	};
 
+	// Render loading state
+	const renderLoading = () => (
+		<div className="flex flex-col items-center justify-center py-12">
+			<Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+			<p className="text-muted-foreground">Loading employees...</p>
+		</div>
+	);
+
+	// Render success state
+	const renderSuccessState = () => (
+		<div className="flex flex-col items-center py-8 text-center">
+			<div className="rounded-full bg-primary/10 p-3 mb-4">
+				<CheckCircle className="h-8 w-8 text-primary" />
+			</div>
+			<h3 className="text-xl font-semibold mb-2">
+				{assignedCount} Employee{assignedCount !== 1 ? "s" : ""} Assigned
+			</h3>
+			<p className="text-muted-foreground mb-6">
+				Employees successfully assigned to {locationName}.
+			</p>
+		</div>
+	);
+
+	// Render selection state
+	const renderSelectionState = () => (
+		<div className="space-y-4">
+			{/* Search input */}
+			<div className="relative">
+				<Input
+					placeholder="Search employees..."
+					value={searchTerm}
+					onChange={(e) => setSearchTerm(e.target.value)}
+					className="pl-9"
+				/>
+				<Users className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+			</div>
+
+			{/* Selection explanation */}
+			<p className="text-sm text-muted-foreground">
+				Select employees to assign to {locationName}.
+				{assignedEmployees.length > 0 &&
+					` Currently assigned employees are marked and cannot be unselected.`}
+			</p>
+
+			{/* Employees list */}
+			<div className="border rounded-md divide-y">
+				{isLoading ? (
+					renderLoading()
+				) : getFilteredEmployeesForAssignment().length > 0 ? (
+					getFilteredEmployeesForAssignment().map((employee) => {
+						const isSelected = selectedEmployees.includes(employee.id);
+						const isAlreadyAssigned = assignedEmployees.some(
+							(assigned) => assigned.id === employee.id
+						);
+
+						return (
+							<div
+								key={employee.id}
+								className={cn(
+									"flex items-center p-3 hover:bg-accent",
+									isSelected && "bg-primary/10 hover:bg-primary/15",
+									isAlreadyAssigned
+										? "opacity-70 cursor-default"
+										: "cursor-pointer"
+								)}
+								onClick={() =>
+									!isAlreadyAssigned && toggleEmployeeSelection(employee.id)
+								}>
+								<Checkbox
+									checked={isSelected || isAlreadyAssigned}
+									className={cn(
+										"mr-3",
+										isAlreadyAssigned && "opacity-50 cursor-not-allowed"
+									)}
+									disabled={isAlreadyAssigned}
+									onCheckedChange={() =>
+										!isAlreadyAssigned && toggleEmployeeSelection(employee.id)
+									}
+								/>
+								<div className="flex items-center flex-1 min-w-0 gap-3">
+									<Avatar className="h-8 w-8">
+										<AvatarImage
+											src={employee.avatar}
+											alt={employee.name}
+										/>
+										<AvatarFallback>
+											{employee.name
+												.split(" ")
+												.map((n) => n[0])
+												.join("")}
+										</AvatarFallback>
+									</Avatar>
+									<div>
+										<div className="font-medium truncate">{employee.name}</div>
+										<div className="text-xs text-muted-foreground truncate">
+											{employee.email}
+										</div>
+									</div>
+								</div>
+								{isAlreadyAssigned && (
+									<span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-md ml-2">
+										Current
+									</span>
+								)}
+							</div>
+						);
+					})
+				) : (
+					<div className="p-4 text-center text-muted-foreground">
+						{searchTerm
+							? "No employees found matching your search"
+							: "No employees available"}
+					</div>
+				)}
+			</div>
+		</div>
+	);
+
 	return (
 		<Sheet
-			open={isOpened}
+			open={isOpen}
 			onOpenChange={handleOpenChange}>
-			<SheetTrigger asChild>{trigger}</SheetTrigger>
-			<SheetContent
-				className={cn(
-					"sm:max-w-[550px] p-0 flex flex-col h-[100dvh]",
-					className
+			<SheetTrigger asChild>
+				{trigger || (
+					<Button>
+						<UserPlus className="h-4 w-4 mr-2" />
+						Assign Employees
+					</Button>
 				)}
-				side="right">
-				<SheetHeader className="px-6 py-4 border-b text-left flex-shrink-0">
-					<div className="flex items-center gap-2">
-						<Users className="h-5 w-5 text-primary" />
-						<SheetTitle>Assign Employees to {locationName}</SheetTitle>
-					</div>
-				</SheetHeader>
+			</SheetTrigger>
 
-				<ScrollArea className="flex-1 px-6 py-4">
-					<div className="space-y-4">
-						{isAssigned ? (
-							<div className="flex flex-col items-center justify-center py-8 text-center">
-								<div className="rounded-full bg-primary/10 p-3 mb-4">
-									<CheckCircle className="h-8 w-8 text-primary" />
-								</div>
-								<h3 className="text-xl font-semibold mb-2">
-									Employees Assigned!
-								</h3>
-								<p className="text-muted-foreground mb-2">
-									{assignedCount} employee{assignedCount !== 1 ? "s" : ""}{" "}
-									assigned to {locationName}
-								</p>
-								<div className="flex flex-col gap-3 mt-6 w-full max-w-xs">
-									<Button
-										onClick={() => {
-											handleOpenChange(false);
-										}}>
-										Close
-									</Button>
-									<Button
-										variant="outline"
-										onClick={() => {
-											setIsAssigned(false);
-											setSelectedEmployees([]);
-											setSearchTerm("");
-										}}>
-										Assign More Employees
-									</Button>
-								</div>
-							</div>
-						) : (
-							<div>
-								<Input
-									placeholder="Search employees..."
-									value={searchTerm}
-									onChange={(e) => setSearchTerm(e.target.value)}
-									className="mb-4"
-								/>
+			<SheetContent
+				className={cn("sm:max-w-md p-0 flex flex-col h-full", className)}>
+				<div className="p-6 pb-0">
+					<SheetHeader>
+						<div className="flex items-center gap-2">
+							<UserPlus className="h-5 w-5 text-primary" />
+							<SheetTitle>Assign Employees</SheetTitle>
+						</div>
+						<SheetDescription>
+							Assign employees to {locationName}
+						</SheetDescription>
+					</SheetHeader>
+				</div>
 
-								{isLoading ? (
-									<div className="py-8 text-center">
-										<Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
-										<p className="text-muted-foreground">
-											Loading employees...
-										</p>
-									</div>
-								) : (
-									<div className="space-y-1">
-										{getFilteredEmployeesForAssignment().length > 0 ? (
-											getFilteredEmployeesForAssignment().map((employee) => {
-												// Check if this employee is already assigned
-												const isAlreadyAssigned = assignedEmployees.some(
-													(assigned) => assigned.id === employee.id
-												);
+				<div className="flex-1 px-6 my-4 overflow-auto">
+					{isAssigned ? renderSuccessState() : renderSelectionState()}
+				</div>
 
-												return (
-													<div
-														key={employee.id}
-														className={`flex items-center gap-3 p-3 hover:bg-accent/10 rounded-md ${
-															isAlreadyAssigned ? "bg-accent/5" : ""
-														}`}>
-														<Checkbox
-															id={`employee-${employee.id}`}
-															checked={
-																selectedEmployees.includes(employee.id) ||
-																isAlreadyAssigned
-															}
-															disabled={isAlreadyAssigned}
-															onCheckedChange={() =>
-																toggleEmployeeSelection(employee.id)
-															}
-														/>
-														<Avatar className="h-8 w-8">
-															<AvatarImage
-																src={employee.avatar}
-																alt={employee.name}
-															/>
-															<AvatarFallback>
-																{employee.name.charAt(0)}
-															</AvatarFallback>
-														</Avatar>
-														<label
-															htmlFor={`employee-${employee.id}`}
-															className="flex-1 font-medium cursor-pointer">
-															{employee.name}
-															{isAlreadyAssigned && (
-																<span className="ml-2 text-xs text-primary">
-																	(Already assigned)
-																</span>
-															)}
-														</label>
-														<span className="text-sm text-muted-foreground">
-															{employee.position || "Staff"}
-														</span>
-													</div>
-												);
-											})
-										) : (
-											<div className="py-8 text-center text-muted-foreground">
-												{searchTerm
-													? "No employees match your search"
-													: "No employees available"}
-											</div>
-										)}
-									</div>
-								)}
+				{!isAssigned && !isLoading && (
+					<SheetFooter className="px-6 py-4 sticky bottom-0 bg-background border-t">
+						<Button
+							onClick={assignEmployeesToLocation}
+							disabled={isSubmitting || selectedEmployees.length === 0}
+							className="w-full">
+							{isSubmitting ? (
+								<>
+									<Loader2 className="h-4 w-4 mr-2 animate-spin" />
+									Assigning...
+								</>
+							) : (
+								<>
+									Assign {selectedEmployees.length} Employee
+									{selectedEmployees.length !== 1 ? "s" : ""}
+								</>
+							)}
+						</Button>
+					</SheetFooter>
+				)}
 
-								<div className="flex justify-end space-x-2 pt-8">
-									<Button
-										type="button"
-										variant="outline"
-										onClick={() => handleOpenChange(false)}
-										disabled={isSubmitting}>
-										Cancel
-									</Button>
-									<Button
-										onClick={assignEmployeesToLocation}
-										disabled={
-											(selectedEmployees.length === 0 && !isLoading) ||
-											isSubmitting
-										}>
-										{isSubmitting ? (
-											<>
-												<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-												Assigning...
-											</>
-										) : (
-											<>
-												<UserPlus className="mr-2 h-4 w-4" />
-												Assign {selectedEmployees.length} Employee
-												{selectedEmployees.length !== 1 ? "s" : ""}
-											</>
-										)}
-									</Button>
-								</div>
-							</div>
-						)}
-					</div>
-				</ScrollArea>
+				{isAssigned && (
+					<SheetFooter className="px-6 py-4 sticky bottom-0 bg-background border-t">
+						<Button
+							variant="outline"
+							onClick={() => setIsAssigned(false)}
+							className="mr-auto">
+							Assign More
+						</Button>
+						<Button onClick={() => handleOpenChange(false)}>Close</Button>
+					</SheetFooter>
+				)}
 			</SheetContent>
 		</Sheet>
 	);

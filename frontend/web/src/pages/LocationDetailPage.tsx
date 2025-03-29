@@ -267,6 +267,79 @@ export default function LocationDetailPage() {
 				showBackButton={true}
 			/>
 
+			{/* Hero Section */}
+			<div className="w-full bg-muted/30 border-b">
+				<ContentContainer>
+					<div className="flex flex-col md:flex-row gap-8 py-8">
+						{/* Location Image */}
+						<div className="w-full md:w-1/3 aspect-video rounded-lg overflow-hidden bg-muted/50 relative">
+							<div className="absolute inset-0 flex items-center justify-center">
+								<Building2 className="h-16 w-16 text-muted" />
+							</div>
+							{location.imageUrl && (
+								<img
+									src={location.imageUrl}
+									alt={location.name}
+									className="w-full h-full object-cover"
+								/>
+							)}
+						</div>
+
+						{/* Location Details */}
+						<div className="flex-1 space-y-4">
+							<div>
+								<h1 className="text-3xl font-bold">{location.name}</h1>
+								{location.isActive !== false ? (
+									<Badge
+										colorScheme="green"
+										className="mt-2">
+										Active
+									</Badge>
+								) : (
+									<Badge
+										variant="destructive"
+										className="mt-2">
+										Inactive
+									</Badge>
+								)}
+							</div>
+
+							{/* Address */}
+							{(location.address || location.city || location.state) && (
+								<div className="flex items-start gap-3 text-muted-foreground">
+									<MapPin className="h-5 w-5 flex-shrink-0 mt-0.5" />
+									<div>
+										{location.address && <div>{location.address}</div>}
+										<div>
+											{location.city && `${location.city}, `}
+											{location.state} {location.zipCode}
+										</div>
+									</div>
+								</div>
+							)}
+
+							{/* Quick Actions */}
+							<div className="flex flex-wrap gap-3 pt-4">
+								<Button
+									variant="outline"
+									onClick={() =>
+										navigate(`/shifts/new?locationId=${locationId}`)
+									}>
+									<Plus className="h-4 w-4 mr-2" />
+									Create Shift
+								</Button>
+								<Button
+									variant="outline"
+									onClick={() => navigate(`/locations/${locationId}/shifts`)}>
+									<Calendar className="h-4 w-4 mr-2" />
+									View Shifts
+								</Button>
+							</div>
+						</div>
+					</div>
+				</ContentContainer>
+			</div>
+
 			<ContentContainer>
 				<LocationSubNav
 					locationId={locationId || ""}

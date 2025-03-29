@@ -37,7 +37,6 @@ import {
 import { OnboardingReminder } from "@/components/onboarding/OnboardingReminder";
 import { PageHeader } from "@/components/ui/page-header";
 import { LoadingState } from "@/components/ui/loading-state";
-import { SmarterAI } from "@/components/SmarterAI";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { DollarSign, Users, Calendar } from "lucide-react";
@@ -77,37 +76,11 @@ export default function AdminDashboardPage() {
 	const [upcomingShifts, setUpcomingShifts] = useState(0);
 	const [totalLocations, setTotalLocations] = useState(0);
 	const [currentSchedule, setCurrentSchedule] = useState<string>(""); // For shift creation
-	const [showAI, setShowAI] = useState<boolean>(true);
 	const [weeklyStats, setWeeklyStats] = useState<WeeklyStats>({
-		revenue: [
-			{ name: "Mon", value: 1200 }, // Mock data
-			{ name: "Tue", value: 1800 }, // Mock data
-			{ name: "Wed", value: 1400 }, // Mock data
-			{ name: "Thu", value: 2100 }, // Mock data
-			{ name: "Fri", value: 2400 }, // Mock data
-			{ name: "Sat", value: 1900 }, // Mock data
-			{ name: "Sun", value: 1100 }, // Mock data
-		],
-		staffing: [
-			{ name: "Mon", value: 12 }, // Mock data
-			{ name: "Tue", value: 14 }, // Mock data
-			{ name: "Wed", value: 10 }, // Mock data
-			{ name: "Thu", value: 15 }, // Mock data
-			{ name: "Fri", value: 18 }, // Mock data
-			{ name: "Sat", value: 20 }, // Mock data
-			{ name: "Sun", value: 8 }, // Mock data
-		],
-		employeeTypes: [
-			{ name: "Full-time", value: 12 }, // Mock data
-			{ name: "Part-time", value: 18 }, // Mock data
-			{ name: "Contract", value: 6 }, // Mock data
-		],
-		locationPerformance: [
-			{ name: "Downtown", value: 4200 }, // Mock data
-			{ name: "Uptown", value: 3100 }, // Mock data
-			{ name: "West End", value: 2800 }, // Mock data
-			{ name: "East Side", value: 3600 }, // Mock data
-		],
+		revenue: [],
+		staffing: [],
+		employeeTypes: [],
+		locationPerformance: [],
 	});
 	const navigate = useNavigate();
 
@@ -116,8 +89,6 @@ export default function AdminDashboardPage() {
 			try {
 				setLoading(true);
 				setLoadingPhase("organization");
-				// In a real implementation, we would get the user's organization
-				// For now, we'll use the first organization from the mock data
 				const orgs = await OrganizationsAPI.getAll();
 				if (orgs.length > 0) {
 					// Add subscription_plan for display purposes
@@ -300,197 +271,59 @@ export default function AdminDashboardPage() {
 			/>
 
 			<ContentContainer>
-				{/* Always show the AI interface at the top of the dashboard */}
-				<SmarterAI
-					onClose={() => setShowAI(false)}
-					onMinimize={() => setShowAI(false)}
-					isHero={true}
-				/>
-
 				<OnboardingReminder />
 
-				<Tabs defaultValue="overview">
-					<TabsList>
-						<TabsTrigger value="overview">Overview</TabsTrigger>
-						<TabsTrigger value="analytics">Analytics</TabsTrigger>
-						<TabsTrigger value="reports">Reports</TabsTrigger>
-					</TabsList>
-
-					<TabsContent value="overview">
-						<Alert className="mb-6">
-							<AlertCircle className="h-4 w-4" />
-							<AlertTitle>Mock Data</AlertTitle>
-							<AlertDescription>
-								This dashboard is currently using mock data. Analytics
-								integration is planned - see issues/analytics-integration.md
-							</AlertDescription>
-						</Alert>
-
-						{/* Overview content */}
-						<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-							{/* Revenue Card */}
-							<Card>
-								<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-									<CardTitle className="text-sm font-medium">
-										Total Revenue (Mock)
-									</CardTitle>
-									<DollarSign className="h-4 w-4 text-muted-foreground" />
-								</CardHeader>
-								<CardContent>
-									<div className="text-2xl font-bold">
-										$
-										{weeklyStats.revenue.reduce(
-											(sum, day) => sum + day.value,
-											0
-										)}
-									</div>
-									<p className="text-xs text-muted-foreground">
-										+20% from last month (Mock)
-									</p>
-								</CardContent>
-							</Card>
-
-							{/* Active Employees Card */}
-							<Card>
-								<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-									<CardTitle className="text-sm font-medium">
-										Active Employees
-									</CardTitle>
-									<Users className="h-4 w-4 text-muted-foreground" />
-								</CardHeader>
-								<CardContent>
-									<div className="text-2xl font-bold">{employees.length}</div>
-									<p className="text-xs text-muted-foreground">
-										{totalLocations} locations
-									</p>
-								</CardContent>
-							</Card>
-
-							{/* Active Shifts Card */}
-							<Card>
-								<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-									<CardTitle className="text-sm font-medium">
-										Active Shifts
-									</CardTitle>
-									<Calendar className="h-4 w-4 text-muted-foreground" />
-								</CardHeader>
-								<CardContent>
-									<div className="text-2xl font-bold">{activeShifts}</div>
-									<p className="text-xs text-muted-foreground">
-										{upcomingShifts} upcoming
-									</p>
-								</CardContent>
-							</Card>
-
-							{/* Employee Types Card */}
-							<Card>
-								<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-									<CardTitle className="text-sm font-medium">
-										Employee Types (Mock)
-									</CardTitle>
-									<Users className="h-4 w-4 text-muted-foreground" />
-								</CardHeader>
-								<CardContent>
-									<div className="text-2xl font-bold">
-										{weeklyStats.employeeTypes.reduce(
-											(sum, type) => sum + type.value,
-											0
-										)}
-									</div>
-									<p className="text-xs text-muted-foreground">
-										Across all types
-									</p>
-								</CardContent>
-							</Card>
-						</div>
-
-						{/* Quick Actions Section */}
-						<ContentSection
-							title="Quick Actions"
-							description="Common tasks you might want to perform"
-							className="mb-6">
-							<div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-								{organization && (
-									<EmployeeSheet
-										organizationId={organization.id}
-										onEmployeeUpdated={handleEmployeeAdded}
-										trigger={
-											<Button
-												variant="outline"
-												className="h-24 flex flex-col items-center justify-center w-full gap-2 text-sm hover:border-primary hover:text-primary">
-												<UserPlus className="h-6 w-6" />
-												<span>Add Employee</span>
-											</Button>
-										}
-									/>
-								)}
-								{organization && (
-									<LocationCreationSheet
-										organizationId={organization.id}
-										onLocationCreated={handleLocationCreated}
-										trigger={
-											<Button
-												variant="outline"
-												className="h-24 flex flex-col items-center justify-center w-full gap-2 text-sm hover:border-primary hover:text-primary">
-												<MapPin className="h-6 w-6" />
-												<span>Create Location</span>
-											</Button>
-										}
-									/>
-								)}
-								{organization && (
-									<ShiftCreationSheet
-										scheduleId={currentSchedule || "sch-6"}
-										organizationId={organization.id}
-										initialDate={new Date()}
-										trigger={
-											<Button
-												variant="outline"
-												className="h-24 flex flex-col items-center justify-center w-full gap-2 text-sm hover:border-primary hover:text-primary">
-												<CalendarClock className="h-6 w-6" />
-												<span>Schedule Shift</span>
-											</Button>
-										}
-									/>
-								)}
-							</div>
-						</ContentSection>
-					</TabsContent>
-
-					<TabsContent value="analytics">
-						<Alert className="mb-6">
-							<AlertCircle className="h-4 w-4" />
-							<AlertTitle>Mock Data</AlertTitle>
-							<AlertDescription>
-								Analytics features are currently using mock data. Real analytics
-								integration is planned - see issues/analytics-integration.md
-							</AlertDescription>
-						</Alert>
-
-						{/* ... rest of the existing analytics content ... */}
-					</TabsContent>
-
-					<TabsContent value="reports">
-						<Alert className="mb-6">
-							<AlertCircle className="h-4 w-4" />
-							<AlertTitle>Mock Data</AlertTitle>
-							<AlertDescription>
-								Reports are currently using mock data. Real reporting system
-								integration is planned - see issues/analytics-integration.md
-							</AlertDescription>
-						</Alert>
-
-						{/* Reports content */}
-						<ContentSection
-							title="Weekly Reports"
-							description="These reports show key metrics from the past week to help you understand your business performance."
-							flat>
-							<div className="text-muted-foreground text-sm">
-								No reports available for the current period.
-							</div>
-						</ContentSection>
-					</TabsContent>
-				</Tabs>
+				{/* Quick Actions Section */}
+				<ContentSection
+					title="Quick Actions"
+					description="Common tasks you might want to perform"
+					className="mb-6 mt-6">
+					<div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+						{organization && (
+							<EmployeeSheet
+								organizationId={organization.id}
+								onEmployeeUpdated={handleEmployeeAdded}
+								trigger={
+									<Button
+										variant="outline"
+										className="h-24 flex flex-col items-center justify-center w-full gap-2 text-sm hover:border-primary hover:text-primary">
+										<UserPlus className="h-6 w-6" />
+										<span>Add Employee</span>
+									</Button>
+								}
+							/>
+						)}
+						{organization && (
+							<LocationCreationSheet
+								organizationId={organization.id}
+								onLocationCreated={handleLocationCreated}
+								trigger={
+									<Button
+										variant="outline"
+										className="h-24 flex flex-col items-center justify-center w-full gap-2 text-sm hover:border-primary hover:text-primary">
+										<MapPin className="h-6 w-6" />
+										<span>Create Location</span>
+									</Button>
+								}
+							/>
+						)}
+						{organization && (
+							<ShiftCreationSheet
+								scheduleId={currentSchedule || "sch-6"}
+								organizationId={organization.id}
+								initialDate={new Date()}
+								trigger={
+									<Button
+										variant="outline"
+										className="h-24 flex flex-col items-center justify-center w-full gap-2 text-sm hover:border-primary hover:text-primary">
+										<CalendarClock className="h-6 w-6" />
+										<span>Schedule Shift</span>
+									</Button>
+								}
+							/>
+						)}
+					</div>
+				</ContentSection>
 			</ContentContainer>
 		</>
 	);

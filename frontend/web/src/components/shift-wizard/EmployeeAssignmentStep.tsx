@@ -24,10 +24,12 @@ import {
 	PlusCircle,
 	UserX,
 	AlertCircle,
+	Loader2,
+	UserRoundPlus,
 } from "lucide-react";
 import { Separator } from "../ui/separator";
 import { Avatar, AvatarFallback } from "../ui/avatar";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Badge } from "../ui/badge";
 import { ScrollArea } from "../ui/scroll-area";
 import { Checkbox } from "../ui/checkbox";
@@ -82,6 +84,44 @@ interface EmployeeAssignmentStepProps {
 	allEmployees: Employee[];
 }
 
+interface EmployeeItemProps {
+	employee: Employee;
+	selected: boolean;
+	onToggle: () => void;
+}
+
+function EmployeeItem({ employee, selected, onToggle }: EmployeeItemProps) {
+	return (
+		<div
+			className={`flex items-center gap-2 p-2 rounded-md cursor-pointer ${
+				selected ? "bg-primary/10 border-primary" : "hover:bg-accent"
+			}`}
+			onClick={onToggle}>
+			<Checkbox
+				checked={selected}
+				onCheckedChange={onToggle}
+				className="h-4 w-4"
+			/>
+			<Avatar className="h-8 w-8">
+				<AvatarFallback>
+					{employee.name
+						.split(" ")
+						.map((n) => n[0])
+						.join("")
+						.toUpperCase()}
+				</AvatarFallback>
+			</Avatar>
+			<div className="flex-1 min-w-0">
+				<div className="font-medium text-sm">{employee.name}</div>
+				{employee.role && (
+					<div className="text-xs text-muted-foreground">{employee.role}</div>
+				)}
+			</div>
+			{selected && <Check className="h-4 w-4 text-primary" />}
+		</div>
+	);
+}
+
 export function EmployeeAssignmentStep({
 	employeeForm,
 	locationData,
@@ -101,6 +141,19 @@ export function EmployeeAssignmentStep({
 	onSelectedEmployeesChange,
 	allEmployees,
 }: EmployeeAssignmentStepProps) {
+	// State & derived values
+	const locationName = getLocationName(locationData.locationId);
+	const formattedDate = shiftData.date
+		? format(new Date(shiftData.date), "EEE, MMM d")
+		: "Unknown Date";
+	const shiftTimeDisplay = `${format(
+		new Date(`2000-01-01T${shiftData.startTime}`),
+		"h:mm a"
+	)} - ${format(new Date(`2000-01-01T${shiftData.endTime}`), "h:mm a")}`;
+
+	// Ref for the form to submit programmatically
+	const formRef = useRef<HTMLFormElement>(null);
+
 	// Filter out the invited employees to show them separately
 	const invitedEmployees = useMemo(() => {
 		return filteredEmployees.filter((emp) => emp.status === "invited");
@@ -158,352 +211,158 @@ export function EmployeeAssignmentStep({
 		return roles;
 	}, [allEmployees]);
 
+	if (loadingEmployees) {
+		return (
+			<div className="p-6 flex flex-col items-center justify-center min-h-[400px]">
+				<Loader2 className="h-8 w-8 animate-spin opacity-30 mb-4" />
+				<p className="text-sm text-muted-foreground">Loading employees...</p>
+			</div>
+		);
+	}
+
+	if (filteredEmployees.length === 0 && !searchTerm) {
+		return (
+			<div className="p-6 flex flex-col">
+				<div className="mb-6">
+					<Badge
+						variant="outline"
+						className="mb-2">
+						Shift
+					</Badge>
+					<h3 className="text-lg font-medium">
+						{locationName} • {formattedDate}
+					</h3>
+					<p className="text-sm text-muted-foreground">{shiftTimeDisplay}</p>
+				</div>
+
+				<div className="flex flex-col items-center text-center py-6">
+					<UserRoundPlus className="h-10 w-10 text-muted-foreground mb-4" />
+					<h3 className="text-lg font-medium">No Employees Found</h3>
+					<p className="text-sm text-muted-foreground max-w-md mb-6">
+						There are no employees available for this shift. You need to add
+						employees to your organization before you can assign them to shifts.
+					</p>
+					<Button
+						variant="outline"
+						onClick={onBack}>
+						Back to Shift Details
+					</Button>
+				</div>
+			</div>
+		);
+	}
+
 	return (
-		<div className="flex-1 flex flex-col relative h-full">
+		<div className="p-6 flex flex-col gap-4">
+			<div className="mb-2">
+				<Badge
+					variant="outline"
+					className="mb-2">
+					Shift
+				</Badge>
+				<h3 className="text-lg font-medium">
+					{locationName} • {formattedDate}
+				</h3>
+				<p className="text-sm text-muted-foreground">{shiftTimeDisplay}</p>
+			</div>
+
 			<form
+				ref={formRef}
+				id="employee-assignment-form"
 				onSubmit={(e) => {
 					e.preventDefault();
 					handleSubmit();
 				}}
-				className="flex flex-col h-full">
-				<div className="space-y-6 flex-1 overflow-y-auto pb-24">
-					{/* Location and shift summary */}
-					<div className="flex flex-col space-y-2">
-						{/* Location info */}
-						<div className="flex items-center gap-2 bg-muted/50 rounded-lg p-3 border">
-							<div className="bg-primary/10 rounded-full p-2 flex-shrink-0">
-								<MapPin className="h-5 w-5 text-primary" />
-							</div>
-							<div className="flex-1 min-w-0">
-								<h3 className="font-medium truncate">
-									{getLocationName(locationData.locationId)}
-								</h3>
-							</div>
-							<Button
-								variant="ghost"
-								size="icon"
-								title="Change location"
-								className="h-8 w-8 rounded-full hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
-								onClick={onResetLocation}>
-								<X className="h-4 w-4" />
-								<span className="sr-only">Change location</span>
-							</Button>
+				className="space-y-4">
+				<div className="space-y-4">
+					{/* Search and filter controls */}
+					<div className="flex flex-col gap-2 sm:flex-row">
+						<div className="relative flex-1">
+							<Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+							<Input
+								type="search"
+								placeholder="Search employees..."
+								className="pl-8"
+								value={searchTerm}
+								onChange={(e) => setSearchTerm(e.target.value)}
+							/>
 						</div>
-
-						{/* Shift date and time info */}
-						<div className="flex gap-2">
-							<div className="flex-1 flex items-center gap-2 bg-muted/50 rounded-lg p-3 border">
-								<div className="bg-primary/10 rounded-full p-2 flex-shrink-0">
-									<Calendar className="h-5 w-5 text-primary" />
-								</div>
-								<div>
-									<p className="font-medium">
-										{format(new Date(shiftData.date), "EEE, MMM d, yyyy")}
-									</p>
-								</div>
-							</div>
-
-							<div className="flex-1 flex items-center gap-2 bg-muted/50 rounded-lg p-3 border">
-								<div className="bg-primary/10 rounded-full p-2 flex-shrink-0">
-									<Clock className="h-5 w-5 text-primary" />
-								</div>
-								<div>
-									<p className="font-medium">
-										{format(
-											new Date(`2000-01-01T${shiftData.startTime}`),
-											"h:mm a"
-										)}{" "}
-										-{" "}
-										{format(
-											new Date(`2000-01-01T${shiftData.endTime}`),
-											"h:mm a"
-										)}
-									</p>
-								</div>
-							</div>
-						</div>
+						<Select
+							value={searchFilter}
+							onValueChange={setSearchFilter}>
+							<SelectTrigger className="w-full sm:w-[180px]">
+								<SelectValue placeholder="Filter by" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="all">All Employees</SelectItem>
+								<SelectItem value="available">Available</SelectItem>
+								<SelectItem value="unavailable">Unavailable</SelectItem>
+							</SelectContent>
+						</Select>
 					</div>
 
-					{/* Add alert for invited employees */}
-					{invitedEmployees.length > 0 && (
-						<Alert className="mb-4 bg-blue-50 border-blue-200 mt-4">
-							<AlertCircle className="h-4 w-4 text-blue-600" />
-							<AlertTitle className="text-blue-800">
-								{invitedEmployees.length} employee
-								{invitedEmployees.length !== 1 ? "s" : ""} with pending signup
-							</AlertTitle>
-							<AlertDescription className="text-blue-700">
-								Some employees have pending signups and cannot be scheduled
-								until they complete their account setup.
-							</AlertDescription>
-						</Alert>
-					)}
-
-					{/* Employee selection */}
-					<div className="space-y-4">
-						<div>
-							<h3 className="text-lg font-medium">Assign Employees</h3>
-							<p className="text-muted-foreground">
-								{allEmployees.length > 0
-									? "Select one or more employees for this shift"
-									: "You don't have any employees yet"}
-							</p>
-						</div>
-
-						{/* Search and filters - Only show if there are employees */}
-						{allEmployees.length > 0 && (
-							<div className="flex gap-2">
-								<div className="flex-1 relative">
-									<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-									<Input
-										type="text"
-										placeholder="Search employees..."
-										value={searchTerm}
-										onChange={(e) => setSearchTerm(e.target.value)}
-										className="w-full pl-9 pr-8"
-									/>
-									{searchTerm && (
-										<button
-											type="button"
-											className="absolute right-2 top-1/2 -translate-y-1/2"
-											onClick={() => setSearchTerm("")}>
-											<X className="h-4 w-4 text-muted-foreground" />
-										</button>
-									)}
-								</div>
-								<Select
-									value={searchFilter}
-									onValueChange={setSearchFilter}>
-									<SelectTrigger className="w-[150px]">
-										<div className="flex items-center gap-1.5">
-											<UserCheck className="h-4 w-4 text-muted-foreground" />
-											<SelectValue placeholder="Filter by role" />
-										</div>
-									</SelectTrigger>
-									<SelectContent>
-										<SelectItem value="all">All Roles</SelectItem>
-										{uniqueRoles.length > 0 ? (
-											uniqueRoles.map((role) => (
-												<SelectItem
-													key={role}
-													value={role}>
-													{role}
-												</SelectItem>
-											))
-										) : (
-											<SelectItem
-												value="none"
-												disabled>
-												No roles found
-											</SelectItem>
-										)}
-									</SelectContent>
-								</Select>
-							</div>
-						)}
-
-						{/* Employee list - Compact format with checkboxes or empty state */}
-						{allEmployees.length === 0 ? (
-							<div className="py-16 flex flex-col items-center justify-center text-center border rounded-md">
-								<Users className="h-12 w-12 text-muted-foreground mb-4" />
-								<h4 className="text-xl font-medium">No Employees Added Yet</h4>
-								<p className="text-muted-foreground mt-2 mb-6 max-w-md">
-									You can create a shift without assigning an employee, or add
-									employees first and then assign them.
-								</p>
-								<Button
-									asChild
-									className="mt-2">
-									<Link to="/employees">
-										<PlusCircle className="h-4 w-4 mr-2" />
-										Add Your First Employee
-									</Link>
-								</Button>
-							</div>
-						) : (
-							<div className="space-y-2 mt-2">
-								{loadingEmployees ? (
-									<div className="flex-1 flex items-center justify-center py-8">
-										<div className="flex flex-col items-center space-y-2">
-											<span className="relative flex h-8 w-8 animate-spin rounded-full">
-												<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-												<span className="relative inline-flex rounded-full h-8 w-8 bg-primary/40"></span>
-											</span>
-											<p className="text-sm text-muted-foreground">
-												Loading employees...
-											</p>
-										</div>
-									</div>
-								) : eligibleEmployees.length === 0 &&
-								  invitedEmployees.length === 0 ? (
-									<div className="flex flex-col items-center justify-center py-8 text-center border rounded-lg bg-muted/50">
-										<Users className="h-12 w-12 text-muted-foreground mb-4" />
-										<h3 className="font-medium text-lg">No employees found</h3>
-										<p className="text-muted-foreground max-w-md">
-											{searchTerm || searchFilter
-												? "Try a different search term or filter."
-												: "You don't have any employees yet."}
-										</p>
-										{!searchTerm && !searchFilter && (
-											<Button
-												variant="outline"
-												className="mt-4"
-												asChild>
-												<Link to="/employees/new">
-													<PlusCircle className="h-4 w-4 mr-2" />
-													Add Employee
-												</Link>
-											</Button>
-										)}
+					{/* Employee list */}
+					<div className="border rounded-md">
+						<ScrollArea className="h-[320px]">
+							<div className="p-2">
+								{filteredEmployees.length === 0 ? (
+									<div className="p-6 text-center text-muted-foreground">
+										No employees found matching "{searchTerm}"
 									</div>
 								) : (
-									<ScrollArea className="h-[calc(100vh-28rem)] pr-4 -mr-4">
-										{/* Eligible employees first */}
-										{eligibleEmployees.length > 0 && (
-											<div className="space-y-2">
-												{eligibleEmployees.map((employee) => (
-													<Card
-														key={employee.id}
-														className={`cursor-pointer transition-all ${
-															isEmployeeSelected(employee.id)
-																? "border-primary bg-primary/5"
-																: "hover:border-muted-foreground"
-														}`}
-														onClick={() => toggleEmployeeSelection(employee)}>
-														<CardContent className="p-3 flex justify-between items-center">
-															<div className="flex items-center gap-3">
-																<Checkbox
-																	checked={isEmployeeSelected(employee.id)}
-																	onCheckedChange={() =>
-																		toggleEmployeeSelection(employee)
-																	}
-																	className="h-5 w-5"
-																/>
-																<Avatar className="h-8 w-8">
-																	<AvatarFallback>
-																		{employee.name
-																			.split(" ")
-																			.map((n) => n[0])
-																			.join("")}
-																	</AvatarFallback>
-																</Avatar>
-																<div>
-																	<div className="font-medium">
-																		{employee.name}
-																	</div>
-																	<div className="text-sm text-muted-foreground">
-																		{employee.role || "Employee"}
-																	</div>
-																</div>
-															</div>
-															{isEmployeeSelected(employee.id) && (
-																<Check className="h-5 w-5 text-primary" />
-															)}
-														</CardContent>
-													</Card>
-												))}
-											</div>
-										)}
-
-										{/* Show invited employees with disabled state */}
-										{invitedEmployees.length > 0 && (
-											<div className="mt-4 mb-2">
-												<h4 className="text-sm font-medium flex items-center mb-2 text-blue-800">
-													<UserX className="h-4 w-4 mr-1.5 text-blue-600" />
-													Employees with pending signup
-												</h4>
-												<div className="space-y-2">
-													{invitedEmployees.map((employee) => (
-														<Card
-															key={employee.id}
-															className={`cursor-pointer transition-all ${
-																isEmployeeSelected(employee.id)
-																	? "border-primary bg-primary/5"
-																	: "hover:border-muted-foreground"
-															}`}
-															onClick={() => toggleEmployeeSelection(employee)}>
-															<Card className="opacity-70 border-red-200">
-																<CardContent className="p-3 flex justify-between items-center">
-																	<div className="flex items-center gap-3">
-																		<Checkbox
-																			checked={isEmployeeSelected(employee.id)}
-																			onCheckedChange={() =>
-																				toggleEmployeeSelection(employee)
-																			}
-																			className="h-5 w-5"
-																		/>
-																		<Avatar className="h-8 w-8">
-																			<AvatarFallback>
-																				{employee.name
-																					.split(" ")
-																					.map((n) => n[0])
-																					.join("")}
-																			</AvatarFallback>
-																		</Avatar>
-																		<div>
-																			<div className="font-medium flex items-center">
-																				{employee.name}
-																				<Badge className="ml-2 text-xs bg-red-500">
-																					Pending Signup
-																				</Badge>
-																			</div>
-																			<div className="text-sm text-muted-foreground">
-																				Can now be scheduled
-																			</div>
-																		</div>
-																	</div>
-																</CardContent>
-															</Card>
-														</Card>
-													))}
-												</div>
-											</div>
-										)}
-									</ScrollArea>
+									<div className="space-y-1">
+										{filteredEmployees.map((employee) => (
+											<EmployeeItem
+												key={employee.id}
+												employee={employee}
+												selected={selectedEmployees.some(
+													(e) => e.id === employee.id
+												)}
+												onToggle={() => {
+													const newSelectedEmployees = selectedEmployees.some(
+														(e) => e.id === employee.id
+													)
+														? selectedEmployees.filter(
+																(e) => e.id !== employee.id
+														  )
+														: [
+																...selectedEmployees,
+																{
+																	id: employee.id,
+																	name: employee.name,
+																},
+														  ];
+													onSelectedEmployeesChange(newSelectedEmployees);
+												}}
+											/>
+										))}
+									</div>
 								)}
 							</div>
-						)}
+						</ScrollArea>
+					</div>
 
-						{/* Selected employees count */}
-						{selectedEmployees.length > 0 && (
-							<div className="flex items-center justify-between border rounded-md p-2 bg-accent/20">
-								<div className="flex items-center gap-2">
-									<span className="font-medium">Selected: </span>
-									<Badge>{selectedEmployees.length}</Badge>
-								</div>
-								<Button
-									type="button"
-									variant="ghost"
-									size="sm"
-									onClick={() => onSelectedEmployeesChange([])}>
-									Clear
-								</Button>
-							</div>
+					{/* Selected count */}
+					<div className="text-sm text-center">
+						{selectedEmployees.length === 0 ? (
+							<span className="text-muted-foreground">
+								No employees selected
+							</span>
+						) : (
+							<span>
+								<span className="font-medium">{selectedEmployees.length}</span>{" "}
+								{selectedEmployees.length === 1 ? "employee" : "employees"}{" "}
+								selected
+							</span>
 						)}
 					</div>
 				</div>
 
-				{/* Navigation buttons - Absolutely positioned footer */}
-				<div className="absolute bottom-0 left-0 right-0 flex justify-between p-4 border-t bg-background">
-					<Button
-						type="button"
-						variant="outline"
-						onClick={onBack}>
-						<ArrowLeft className="h-4 w-4 mr-2" />
-						Back
-					</Button>
-					<Button
-						type="submit"
-						disabled={loading}>
-						{loading
-							? "Creating Shift..."
-							: selectedEmployees.length > 0
-							? `Create ${selectedEmployees.length} ${
-									selectedEmployees.length === 1 ? "Shift" : "Shifts"
-							  }`
-							: "Create Shift"}
-					</Button>
-				</div>
+				{/* Hidden submit button for form validity */}
+				<button
+					type="submit"
+					className="hidden"
+				/>
 			</form>
 		</div>
 	);

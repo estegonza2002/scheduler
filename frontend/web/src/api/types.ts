@@ -167,38 +167,35 @@ export interface Notification {
 // Billing and Subscription types
 export interface Subscription {
 	id: string;
-	status: "active" | "canceled" | "incomplete" | "past_due" | "trialing";
+	status:
+		| "active"
+		| "canceled"
+		| "incomplete"
+		| "incomplete_expired"
+		| "past_due"
+		| "trialing"
+		| "unpaid";
 	plan: SubscriptionPlan;
 	current_period_start: string;
 	current_period_end: string;
 	cancel_at_period_end: boolean;
-	trial_end?: string;
 }
 
 export type SubscriptionPlan = "free" | "pro" | "business";
 
 export interface PaymentMethod {
 	id: string;
-	type: string;
-	card?: {
+	card: {
 		brand: string;
 		last4: string;
 		exp_month: number;
 		exp_year: number;
 	};
-	billing_details?: {
-		address: {
-			city: string | null;
-			country: string | null;
-			line1: string | null;
-			line2: string | null;
-			postal_code: string | null;
-			state: string | null;
-		};
-		email: string | null;
-		name: string | null;
-		phone: string | null;
+	billing_details: {
+		name: string;
+		email: string;
 	};
+	is_default: boolean;
 }
 
 export interface Invoice {
@@ -207,7 +204,7 @@ export interface Invoice {
 	created: number;
 	amount_paid: number;
 	currency: string;
-	status: "paid" | "open" | "uncollectible" | "void" | "draft";
+	status: "paid" | "open" | "void" | "draft";
 	hosted_invoice_url: string;
 	pdf: string;
 }

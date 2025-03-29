@@ -10,6 +10,10 @@ export default defineConfig({
 			"@": path.resolve(__dirname, "./src"),
 		},
 	},
+	define: {
+		// Make process.env available in browser or provide a fallback
+		"process.env": {},
+	},
 	server: {
 		port: 5173,
 		host: "localhost",

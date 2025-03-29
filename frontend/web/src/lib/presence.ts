@@ -4,7 +4,7 @@ import { supabase } from "./supabase";
 import { toast } from "sonner";
 import { useAuth } from "./auth";
 
-// Mock data for presence (in a real app, this would come from a real-time service)
+// Real-time presence service configuration
 const PRESENCE_UPDATE_INTERVAL = 30000; // 30 seconds
 
 interface PresenceState {
@@ -19,59 +19,6 @@ let presenceSubscribers: ((state: Record<string, PresenceState>) => void)[] =
 let presenceState: Record<string, PresenceState> = {};
 let notifyStatusChange = true; // Flag to control status change notifications
 let presenceChannel: any = null;
-
-// Simulated presence service
-const simulateUserActivity = () => {
-	const simulateInterval = setInterval(() => {
-		// In a real app, this would be a real-time service like Supabase Presence
-		// For now, we'll just randomly change some employees' statuses
-		const allEmployeeIds = Object.keys(presenceState);
-
-		if (allEmployeeIds.length === 0) return;
-
-		// Randomly select employees to change status
-		const employeesToUpdate = Math.floor(Math.random() * 3) + 1; // 1-3 employees
-
-		for (let i = 0; i < employeesToUpdate; i++) {
-			const randomIndex = Math.floor(Math.random() * allEmployeeIds.length);
-			const employeeId = allEmployeeIds[randomIndex];
-
-			// 30% chance of changing status
-			if (Math.random() < 0.3) {
-				const wasOnline = presenceState[employeeId].isOnline;
-				const newStatus = !wasOnline;
-				const employeeName =
-					presenceState[employeeId].name || "Unknown employee";
-
-				presenceState[employeeId] = {
-					...presenceState[employeeId],
-					isOnline: newStatus,
-					lastActive: new Date().toISOString(),
-				};
-
-				// Show a notification if the status changed (if enabled)
-				if (notifyStatusChange) {
-					if (newStatus) {
-						toast.success(`${employeeName} is now online`, {
-							id: `login-${employeeId}`,
-							duration: 3000,
-						});
-					} else {
-						toast.info(`${employeeName} went offline`, {
-							id: `logout-${employeeId}`,
-							duration: 3000,
-						});
-					}
-				}
-			}
-		}
-
-		// Notify subscribers
-		presenceSubscribers.forEach((callback) => callback({ ...presenceState }));
-	}, PRESENCE_UPDATE_INTERVAL);
-
-	return () => clearInterval(simulateInterval);
-};
 
 // Initialize the real-time presence service
 export const initializePresence = async (
@@ -248,89 +195,58 @@ export const useEmployeePresence = (organizationId: string) => {
 	const [employeePresence, setEmployeePresence] = useState<
 		Record<string, PresenceState>
 	>({});
-	const [initialized, setInitialized] = useState(false);
-	const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+	const [isLoading, setIsLoading] = useState(true);
 	const { user } = useAuth();
-	const [error, setError] = useState<Error | null>(null);
 
 	useEffect(() => {
-		if (!organizationId) return;
-
-		let cleanup: (() => void) | undefined;
+		let cleanupFn: () => void = () => {};
 
 		const initPresence = async () => {
 			try {
-				setInitialized(false);
+				setIsLoading(true);
 
-				// Fetch employees for the organization
+				// Get all employees for the organization
 				const employees = await EmployeesAPI.getAll(organizationId);
 
-				// Find the current user's employee record if possible
-				const currentEmployeeId = user?.id; // Try to match by auth user ID
+				// Initialize real-time presence system
+				cleanupFn = await initializePresence(employees, user?.id);
 
-				// Initialize presence with these employees
-				cleanup = await initializePresence(employees, currentEmployeeId);
-
-				// Set notification preference
-				setStatusChangeNotifications(notificationsEnabled);
-
-				// Subscribe to presence changes
+				// Subscribe to presence updates
 				const unsubscribe = subscribeToPresence((state) => {
 					setEmployeePresence(state);
 				});
 
-				setInitialized(true);
-				setError(null);
-
-				return () => {
-					if (cleanup) cleanup();
+				// Combine cleanup functions
+				const originalCleanup = cleanupFn;
+				cleanupFn = () => {
 					unsubscribe();
+					originalCleanup();
 				};
 			} catch (error) {
 				console.error("Error initializing presence:", error);
-				setError(
-					error instanceof Error
-						? error
-						: new Error("Failed to initialize presence")
-				);
-				// Still mark as initialized so UI doesn't get stuck
-				setInitialized(true);
+				toast.error("Failed to initialize presence service");
+			} finally {
+				setIsLoading(false);
 			}
 		};
 
-		initPresence();
+		if (organizationId) {
+			initPresence();
+		}
 
 		return () => {
-			if (cleanup) cleanup();
+			cleanupFn();
 		};
-	}, [organizationId, notificationsEnabled, user]);
+	}, [organizationId, user?.id]);
 
 	return {
-		employeePresence,
-		initialized,
-		error,
-
-		// Get presence for a specific employee
-		getEmployeePresence: (employeeId: string) =>
-			employeePresence[employeeId] || {
-				employeeId,
-				isOnline: false,
-				lastActive: undefined,
-			},
-
-		// Get all online employees
-		getOnlineEmployees: () =>
-			Object.values(employeePresence).filter((p) => p.isOnline),
-
-		// Toggle notifications
-		toggleNotifications: () => {
-			const newValue = !notificationsEnabled;
-			setNotificationsEnabled(newValue);
-			setStatusChangeNotifications(newValue);
-			return newValue;
-		},
-
-		// Get notification status
-		notificationsEnabled,
+		presenceState: employeePresence,
+		isLoading,
+		getEmployeePresence: (employeeId: string): PresenceState | undefined =>
+			employeePresence[employeeId],
+		isEmployeeOnline: (employeeId: string): boolean =>
+			employeePresence[employeeId]?.isOnline || false,
+		getLastActive: (employeeId: string): string | undefined =>
+			employeePresence[employeeId]?.lastActive,
 	};
 };

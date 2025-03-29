@@ -59,7 +59,7 @@ export default function LocationsPage() {
 	const [loadingPhase, setLoadingPhase] = useState<string>("organization");
 	const [locations, setLocations] = useState<Location[]>([]);
 	const [organization, setOrganization] = useState<Organization | null>(null);
-	const [viewMode, setViewMode] = useState<"table" | "cards">("table");
+	const [viewMode, setViewMode] = useState<"table" | "cards">("cards");
 	const organizationId = useOrganizationId();
 
 	// Add pagination state for card view
@@ -94,8 +94,6 @@ export default function LocationsPage() {
 		try {
 			setLoading(true);
 			setLoadingPhase("organization");
-			// In a real implementation, we would get the user's organization
-			// For now, we'll use the first organization from the mock data
 			const orgs = await OrganizationsAPI.getAll();
 			if (orgs.length > 0) {
 				setOrganization(orgs[0]);
@@ -352,15 +350,107 @@ export default function LocationsPage() {
 								renderCard: (location: Location) => (
 									<Card
 										className="cursor-pointer hover:shadow-sm transition-all border hover:border-primary"
-										onClick={() =>
-											navigate(`/locations/${location.id}`)
-										}></Card>
+										onClick={() => navigate(`/locations/${location.id}`)}>
+										<div className="aspect-video w-full bg-muted/30 relative overflow-hidden">
+											<div className="absolute inset-0 flex items-center justify-center">
+												<Building2 className="h-12 w-12 text-muted" />
+											</div>
+											{location.imageUrl && (
+												<img
+													src={location.imageUrl}
+													alt={location.name}
+													className="w-full h-full object-cover"
+												/>
+											)}
+										</div>
+										<CardHeader>
+											<div className="flex items-center justify-between">
+												<div className="flex items-center gap-3">
+													<div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+														<MapPin className="h-4 w-4 text-primary" />
+													</div>
+													<CardTitle>{location.name}</CardTitle>
+												</div>
+												<DropdownMenu>
+													<DropdownMenuTrigger asChild>
+														<Button
+															variant="ghost"
+															size="sm"
+															className="h-8 w-8 p-0">
+															<MoreHorizontal className="h-4 w-4" />
+														</Button>
+													</DropdownMenuTrigger>
+													<DropdownMenuContent align="end">
+														<DropdownMenuItem
+															onClick={(e) => {
+																e.stopPropagation();
+																handleOpenEditDialog(location);
+															}}>
+															<Edit className="h-4 w-4 mr-2" />
+															Edit
+														</DropdownMenuItem>
+														<DropdownMenuItem
+															onClick={(e) => {
+																e.stopPropagation();
+																handleOpenDeleteDialog(location);
+															}}>
+															<Trash className="h-4 w-4 mr-2" />
+															Delete
+														</DropdownMenuItem>
+													</DropdownMenuContent>
+												</DropdownMenu>
+											</div>
+										</CardHeader>
+										<CardContent>
+											<div className="space-y-2">
+												{location.address && (
+													<div className="text-sm">
+														{location.address}, {location.city},{" "}
+														{location.state} {location.zipCode}
+													</div>
+												)}
+												{!location.address && (
+													<div className="text-sm text-muted-foreground">
+														No address information
+													</div>
+												)}
+											</div>
+										</CardContent>
+										<CardFooter className="border-t pt-4">
+											<Button
+												variant="outline"
+												size="sm"
+												className="ml-auto">
+												<Eye className="h-4 w-4 mr-2" />
+												View Details
+											</Button>
+										</CardFooter>
+									</Card>
 								),
 							}}
 						/>
 					)}
 				</ContentSection>
 			</ContentContainer>
+
+			{/* Edit Location Dialog */}
+			{selectedLocation && (
+				<>
+					<LocationFormDialog
+						mode="edit"
+						location={selectedLocation}
+						onSuccess={handleLocationUpdated}
+						open={editDialogOpen}
+						onOpenChange={setEditDialogOpen}
+					/>
+					<DeleteLocationDialog
+						location={selectedLocation}
+						onLocationDeleted={handleLocationDeleted}
+						open={deleteDialogOpen}
+						onOpenChange={setDeleteDialogOpen}
+					/>
+				</>
+			)}
 		</>
 	);
 }

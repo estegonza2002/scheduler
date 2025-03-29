@@ -1239,7 +1239,9 @@ export const BillingAPI = {
 
 			// Call the Stripe endpoint to get subscription details
 			const response = await fetch(
-				`/api/stripe/subscriptions/${org.subscription_id}`,
+				`${import.meta.env.VITE_API_URL}/api/stripe/subscriptions/${
+					org.subscription_id
+				}`,
 				{
 					method: "GET",
 					headers: {
@@ -1294,7 +1296,9 @@ export const BillingAPI = {
 
 			// Call the Stripe endpoint to update subscription
 			const response = await fetch(
-				`/api/stripe/subscriptions/${org.subscription_id}`,
+				`${import.meta.env.VITE_API_URL}/api/stripe/subscriptions/${
+					org.subscription_id
+				}`,
 				{
 					method: "PATCH",
 					headers: {
@@ -1341,7 +1345,9 @@ export const BillingAPI = {
 
 			// Call the Stripe endpoint to cancel subscription
 			const response = await fetch(
-				`/api/stripe/subscriptions/${org.subscription_id}/cancel`,
+				`${import.meta.env.VITE_API_URL}/api/stripe/subscriptions/${
+					org.subscription_id
+				}/cancel`,
 				{
 					method: "POST",
 					headers: {
@@ -1384,7 +1390,9 @@ export const BillingAPI = {
 
 			// Call the Stripe endpoint to get payment methods
 			const response = await fetch(
-				`/api/stripe/payment-methods?customerId=${org.stripe_customer_id}`,
+				`${
+					import.meta.env.VITE_API_URL
+				}/api/stripe/payment-methods?customerId=${org.stripe_customer_id}`,
 				{
 					method: "GET",
 					headers: {
@@ -1433,17 +1441,20 @@ export const BillingAPI = {
 				const user = userResponse.data.user;
 
 				// Create customer in Stripe
-				const customerResponse = await fetch(`/api/stripe/customers`, {
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify({
-						email: user?.email,
-						name: user?.user_metadata?.full_name || user?.email,
-						organizationId: organizationId,
-					}),
-				});
+				const customerResponse = await fetch(
+					`${import.meta.env.VITE_API_URL}/api/stripe/customers`,
+					{
+						method: "POST",
+						headers: {
+							"Content-Type": "application/json",
+						},
+						body: JSON.stringify({
+							email: user?.email,
+							name: user?.user_metadata?.full_name || user?.email,
+							organizationId: organizationId,
+						}),
+					}
+				);
 
 				if (!customerResponse.ok) {
 					throw new Error(
@@ -1462,16 +1473,19 @@ export const BillingAPI = {
 			}
 
 			// Call the Stripe endpoint to attach payment method
-			const response = await fetch(`/api/stripe/payment-methods/attach`, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({
-					customerId,
-					paymentMethodId,
-				}),
-			});
+			const response = await fetch(
+				`${import.meta.env.VITE_API_URL}/api/stripe/payment-methods/attach`,
+				{
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({
+						customerId,
+						paymentMethodId,
+					}),
+				}
+			);
 
 			if (!response.ok) {
 				throw new Error(`Failed to add payment method: ${response.statusText}`);
@@ -1494,7 +1508,9 @@ export const BillingAPI = {
 		try {
 			// Call the Stripe endpoint to detach payment method
 			const response = await fetch(
-				`/api/stripe/payment-methods/${paymentMethodId}/detach`,
+				`${
+					import.meta.env.VITE_API_URL
+				}/api/stripe/payment-methods/${paymentMethodId}/detach`,
 				{
 					method: "POST",
 					headers: {
@@ -1535,7 +1551,9 @@ export const BillingAPI = {
 
 			// Call the Stripe endpoint to get invoices
 			const response = await fetch(
-				`/api/stripe/invoices?customerId=${org.stripe_customer_id}`,
+				`${import.meta.env.VITE_API_URL}/api/stripe/invoices?customerId=${
+					org.stripe_customer_id
+				}`,
 				{
 					method: "GET",
 					headers: {
@@ -1580,21 +1598,24 @@ export const BillingAPI = {
 			const user = userResponse.data.user;
 
 			// Create checkout session
-			const response = await fetch(`/api/stripe/checkout-sessions`, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({
-					customerId: org.stripe_customer_id,
-					organizationId,
-					plan,
-					email: user?.email,
-					name: org.name,
-					successUrl: `${window.location.origin}/billing?success=true`,
-					cancelUrl: `${window.location.origin}/billing`,
-				}),
-			});
+			const response = await fetch(
+				`${import.meta.env.VITE_API_URL}/api/stripe/checkout-sessions`,
+				{
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({
+						customerId: org.stripe_customer_id,
+						organizationId,
+						plan,
+						email: user?.email,
+						name: org.name,
+						successUrl: `${window.location.origin}/billing?success=true`,
+						cancelUrl: `${window.location.origin}/billing`,
+					}),
+				}
+			);
 
 			if (!response.ok) {
 				throw new Error(

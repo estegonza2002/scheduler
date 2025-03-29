@@ -1,21 +1,21 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Employee, EmployeesAPI } from "@/api";
+import { Button } from "@/components/ui/button";
+import { Plus, User, Pencil, CheckCircle, Trash, Loader2 } from "lucide-react";
+import { EmployeeForm } from "./EmployeeForm";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 import {
 	Sheet,
 	SheetContent,
 	SheetHeader,
 	SheetTitle,
 	SheetDescription,
-	SheetTrigger,
 	SheetFooter,
+	SheetTrigger,
 } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { Plus, User, Pencil, CheckCircle, Trash } from "lucide-react";
-import { EmployeeForm } from "./EmployeeForm";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/utils";
-import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -64,6 +64,18 @@ export function EmployeeSheet({
 	onEmployeeUpdated,
 	className,
 }: EmployeeSheetProps) {
+	// Use a ref to track if the component is mounted to prevent state updates after unmount
+	const isMounted = useRef(true);
+
+	// Use a ref to store formState to avoid unnecessary re-renders
+	const formStateRef = useRef<{
+		isDirty: boolean;
+		isValid: boolean;
+		isSubmitting: boolean;
+		isEditing: boolean;
+		submit: () => void;
+	} | null>(null);
+
 	const [open, setOpen] = useState(false);
 	const [isComplete, setIsComplete] = useState(false);
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -71,7 +83,16 @@ export function EmployeeSheet({
 
 	const isEditing = !!employee;
 
+	// Cleanup on unmount
+	useEffect(() => {
+		return () => {
+			isMounted.current = false;
+		};
+	}, []);
+
 	const handleEmployeeAction = (updatedEmployee: Employee) => {
+		if (!isMounted.current) return;
+
 		setIsComplete(true);
 		if (onEmployeeUpdated) {
 			onEmployeeUpdated(updatedEmployee);
@@ -79,16 +100,33 @@ export function EmployeeSheet({
 	};
 
 	const handleOpenChange = (newOpenState: boolean) => {
+		if (!isMounted.current) return;
+
 		if (!newOpenState) {
 			// Reset state when sheet closes
 			setTimeout(() => {
-				if (!open) {
+				if (isMounted.current && !open) {
 					setIsComplete(false);
 					setShowDeleteDialog(false);
+					formStateRef.current = null;
 				}
 			}, 300); // Wait for sheet close animation
 		}
+
 		setOpen(newOpenState);
+	};
+
+	const handleFormReady = (state: {
+		isDirty: boolean;
+		isValid: boolean;
+		isSubmitting: boolean;
+		isEditing: boolean;
+		submit: () => void;
+	}) => {
+		if (!isMounted.current) return;
+
+		// Update the ref instead of the state to avoid re-renders
+		formStateRef.current = state;
 	};
 
 	const handleDeleteEmployee = async () => {
@@ -114,6 +152,9 @@ export function EmployeeSheet({
 		}
 	};
 
+	// Function to safely access form state
+	const getFormState = () => formStateRef.current;
+
 	return (
 		<Sheet
 			open={open}
@@ -135,73 +176,71 @@ export function EmployeeSheet({
 					</Button>
 				)}
 			</SheetTrigger>
+
 			<SheetContent
-				className={cn(
-					"sm:max-w-[550px] p-0 flex flex-col h-[100dvh]",
-					className
-				)}
-				side="right">
-				<SheetHeader className="px-6 py-4 border-b text-left flex-shrink-0">
-					<div className="flex items-center gap-2">
-						<User className="h-5 w-5 text-primary" />
-						<SheetTitle>
-							{isEditing ? `Edit Employee` : `Add New Employee`}
-						</SheetTitle>
-					</div>
-					<SheetDescription className="mt-1.5">
-						{isEditing
-							? `Update information for ${employee.name}`
-							: `Enter employee details to add them to your organization`}
-					</SheetDescription>
-				</SheetHeader>
+				className={cn("sm:max-w-md p-0 flex flex-col h-full", className)}>
+				<div className="p-6 pb-0">
+					<SheetHeader>
+						<div className="flex items-center gap-2">
+							<User className="h-5 w-5 text-primary" />
+							<SheetTitle>
+								{isEditing ? "Edit Employee" : "Add New Employee"}
+							</SheetTitle>
+						</div>
+						<SheetDescription>
+							{isEditing
+								? `Update information for ${employee.name}`
+								: "Enter employee details to add them to your organization"}
+						</SheetDescription>
+					</SheetHeader>
+				</div>
 
-				<ScrollArea className="flex-1 overflow-auto">
-					<div className="p-6">
-						<EmployeeForm
-							organizationId={organizationId}
-							initialData={employee}
-							onSuccess={handleEmployeeAction}
-						/>
+				<div className="flex-1 px-6 my-4 overflow-auto">
+					<EmployeeForm
+						organizationId={organizationId}
+						initialData={employee}
+						onSuccess={handleEmployeeAction}
+						onFormReady={handleFormReady}
+					/>
 
-						{/* Add delete option below form when editing */}
-						{isEditing && !isComplete && (
-							<div className="mt-8 pt-6 border-t">
-								<AlertDialog
-									open={showDeleteDialog}
-									onOpenChange={setShowDeleteDialog}>
-									<AlertDialogTrigger asChild>
-										<Button
-											variant="outline"
-											className="w-full text-destructive hover:text-destructive border-destructive/30 hover:border-destructive/60">
-											<Trash className="h-4 w-4 mr-2" />
-											Delete Employee
-										</Button>
-									</AlertDialogTrigger>
-									<AlertDialogContent>
-										<AlertDialogHeader>
-											<AlertDialogTitle>Are you sure?</AlertDialogTitle>
-											<AlertDialogDescription>
-												This will permanently delete {employee?.name} and all
-												related data. This action cannot be undone.
-											</AlertDialogDescription>
-										</AlertDialogHeader>
-										<AlertDialogFooter>
-											<AlertDialogCancel>Cancel</AlertDialogCancel>
-											<AlertDialogAction
-												onClick={handleDeleteEmployee}
-												className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-												Delete
-											</AlertDialogAction>
-										</AlertDialogFooter>
-									</AlertDialogContent>
-								</AlertDialog>
-							</div>
-						)}
-					</div>
-				</ScrollArea>
+					{/* Add delete option below form when editing */}
+					{isEditing && !isComplete && (
+						<div className="mt-8 pt-6 border-t">
+							<AlertDialog
+								open={showDeleteDialog}
+								onOpenChange={setShowDeleteDialog}>
+								<AlertDialogTrigger asChild>
+									<Button
+										variant="outline"
+										className="w-full text-destructive hover:text-destructive border-destructive/30 hover:border-destructive/60">
+										<Trash className="h-4 w-4 mr-2" />
+										Delete Employee
+									</Button>
+								</AlertDialogTrigger>
+								<AlertDialogContent>
+									<AlertDialogHeader>
+										<AlertDialogTitle>Are you sure?</AlertDialogTitle>
+										<AlertDialogDescription>
+											This will permanently delete {employee?.name} and all
+											related data. This action cannot be undone.
+										</AlertDialogDescription>
+									</AlertDialogHeader>
+									<AlertDialogFooter>
+										<AlertDialogCancel>Cancel</AlertDialogCancel>
+										<AlertDialogAction
+											onClick={handleDeleteEmployee}
+											className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+											Delete
+										</AlertDialogAction>
+									</AlertDialogFooter>
+								</AlertDialogContent>
+							</AlertDialog>
+						</div>
+					)}
+				</div>
 
-				{isComplete && (
-					<SheetFooter className="flex px-6 py-4 border-t">
+				{isComplete ? (
+					<SheetFooter className="px-6 py-4 sticky bottom-0 bg-background border-t">
 						<div className="flex items-center text-sm text-muted-foreground mr-auto">
 							<CheckCircle className="h-4 w-4 mr-2 text-green-500" />
 							<span>
@@ -212,6 +251,48 @@ export function EmployeeSheet({
 							variant="outline"
 							onClick={() => handleOpenChange(false)}>
 							Close
+						</Button>
+					</SheetFooter>
+				) : (
+					<SheetFooter className="px-6 py-4 sticky bottom-0 bg-background border-t">
+						<Button
+							variant="outline"
+							onClick={() => handleOpenChange(false)}
+							disabled={getFormState()?.isSubmitting}>
+							Cancel
+						</Button>
+						<Button
+							onClick={() => {
+								const formState = getFormState();
+								if (formState?.submit) {
+									formState.submit();
+								}
+							}}
+							disabled={
+								!getFormState()?.isDirty ||
+								!getFormState()?.isValid ||
+								getFormState()?.isSubmitting
+							}>
+							{getFormState()?.isSubmitting ? (
+								<>
+									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+									{isEditing ? "Updating..." : "Creating..."}
+								</>
+							) : (
+								<>
+									{isEditing ? (
+										<>
+											<Pencil className="mr-2 h-4 w-4" />
+											Update Employee
+										</>
+									) : (
+										<>
+											<Plus className="mr-2 h-4 w-4" />
+											Create Employee
+										</>
+									)}
+								</>
+							)}
 						</Button>
 					</SheetFooter>
 				)}

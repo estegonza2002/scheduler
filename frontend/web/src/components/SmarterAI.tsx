@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -21,6 +21,7 @@ type Message = {
 	content: string;
 	timestamp: string;
 	isUser: boolean;
+	isLoading?: boolean;
 };
 
 type SmarterAIProps = {
@@ -51,6 +52,127 @@ export function SmarterAI({
 	const [autoScrolling, setAutoScrolling] = useState(false);
 	const [isAnimating, setIsAnimating] = useState(false);
 
+	// Store callback references in useRef so they don't trigger effects when they change
+	const onCloseRef = useRef(onClose);
+	const onMinimizeRef = useRef(onMinimize);
+
+	// Use a ref to prevent infinite loops related to visibility states
+	const inViewRef = useRef(inView);
+	const scrollDirectionRef = useRef(scrollDirection);
+	const autoScrollingRef = useRef(autoScrolling);
+
+	// Update refs when dependencies change
+	useEffect(() => {
+		onCloseRef.current = onClose;
+		onMinimizeRef.current = onMinimize;
+	}, [onClose, onMinimize]);
+
+	useEffect(() => {
+		inViewRef.current = inView;
+	}, [inView]);
+
+	useEffect(() => {
+		scrollDirectionRef.current = scrollDirection;
+	}, [scrollDirection]);
+
+	useEffect(() => {
+		autoScrollingRef.current = autoScrolling;
+	}, [autoScrolling]);
+
+	// Memoize handlers to prevent recreation on renders
+	const handleSendMessage = useCallback(() => {
+		if (!message.trim()) return;
+
+		if (!conversationStarted) {
+			setConversationStarted(true);
+		}
+
+		const newUserMessage: Message = {
+			id: `msg-${Date.now()}`,
+			content: message,
+			timestamp: new Date().toLocaleTimeString([], {
+				hour: "2-digit",
+				minute: "2-digit",
+			}),
+			isUser: true,
+		};
+
+		setMessages((prev) => [...prev, newUserMessage]);
+		setMessage("");
+
+		// Show loading state
+		const loadingId = `loading-${Date.now()}`;
+		const loadingMessage: Message = {
+			id: loadingId,
+			content: "Thinking...",
+			timestamp: new Date().toLocaleTimeString([], {
+				hour: "2-digit",
+				minute: "2-digit",
+			}),
+			isUser: false,
+			isLoading: true,
+		};
+
+		setMessages((prev) => [...prev, loadingMessage]);
+
+		// TODO: Replace with actual API call in the future
+		// For now, use a simple placeholder response
+		setTimeout(() => {
+			// Remove the loading message
+			setMessages((prev) => prev.filter((msg) => msg.id !== loadingId));
+
+			const aiResponse: Message = {
+				id: `msg-${Date.now() + 1}`,
+				content:
+					"I'm sorry, but I'm currently under development. Real AI responses will be available in a future update. For now, please try using the main features of the application.",
+				timestamp: new Date().toLocaleTimeString([], {
+					hour: "2-digit",
+					minute: "2-digit",
+				}),
+				isUser: false,
+			};
+			setMessages((prev) => [...prev, aiResponse]);
+		}, 1500);
+	}, [message, conversationStarted]);
+
+	const handleHideAI = useCallback(() => {
+		setIsAnimating(true);
+		// Add a small delay before actually hiding
+		setTimeout(() => {
+			setShowAI(false);
+			setIsAnimating(false);
+		}, 300);
+	}, []);
+
+	const handleRestoreChat = useCallback(() => {
+		setAutoScrolling(true);
+		setShowAI(true);
+		// Use setTimeout to ensure the DOM has updated before scrolling
+		setTimeout(() => {
+			window.scrollTo({ top: 0, behavior: "smooth" });
+			setTimeout(() => setAutoScrolling(false), 1000);
+		}, 100);
+	}, []);
+
+	// Function to handle explicit close from user
+	const handleClose = useCallback(() => {
+		// First hide with animation
+		handleHideAI();
+		// Then call the provided onClose callback with a delay
+		setTimeout(() => {
+			onCloseRef.current();
+		}, 350);
+	}, [handleHideAI]);
+
+	const handleMinimize = useCallback(() => {
+		if (onMinimizeRef.current) {
+			handleHideAI();
+			setTimeout(() => {
+				onMinimizeRef.current?.();
+			}, 350);
+		}
+	}, [handleHideAI]);
+
 	useEffect(() => {
 		// Scroll to bottom whenever messages change
 		messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -59,6 +181,11 @@ export function SmarterAI({
 	useEffect(() => {
 		// Focus the input field when the component mounts
 		inputRef.current?.focus();
+
+		// Cleanup function
+		return () => {
+			// Any cleanup needed
+		};
 	}, []);
 
 	useEffect(() => {
@@ -83,116 +210,30 @@ export function SmarterAI({
 		return () => window.removeEventListener("scroll", handleScroll);
 	}, [lastScrollTop, isHero]);
 
+	// Set up a separate timer for auto-hiding instead of using useEffect dependency array
 	useEffect(() => {
 		if (!isHero) return; // Only auto-hide if in hero mode
 
-		// If user is scrolling down (away from the chat) and chat is not in view
-		// for more than 2 seconds, hide the AI interface
-		let timeout: NodeJS.Timeout;
+		let timeoutId: NodeJS.Timeout | null = null;
 
-		if (scrollDirection === "down" && !inView && !autoScrolling) {
-			timeout = setTimeout(() => {
-				handleHideAI();
-			}, 2000);
-		}
-
-		return () => clearTimeout(timeout);
-	}, [scrollDirection, inView, autoScrolling, isHero]);
-
-	const handleSendMessage = () => {
-		if (!message.trim()) return;
-
-		if (!conversationStarted) {
-			setConversationStarted(true);
-		}
-
-		const newUserMessage: Message = {
-			id: `msg-${Date.now()}`,
-			content: message,
-			timestamp: new Date().toLocaleTimeString([], {
-				hour: "2-digit",
-				minute: "2-digit",
-			}),
-			isUser: true,
+		const checkIfShouldHide = () => {
+			if (
+				!inViewRef.current &&
+				scrollDirectionRef.current === "down" &&
+				!autoScrollingRef.current
+			) {
+				timeoutId = setTimeout(() => {
+					handleHideAI();
+				}, 2000);
+			}
 		};
 
-		setMessages([...messages, newUserMessage]);
-		setMessage("");
+		checkIfShouldHide();
 
-		// Simulate AI response after a short delay
-		setTimeout(() => {
-			const aiResponse: Message = {
-				id: `msg-${Date.now() + 1}`,
-				content: getMockAIResponse(message),
-				timestamp: new Date().toLocaleTimeString([], {
-					hour: "2-digit",
-					minute: "2-digit",
-				}),
-				isUser: false,
-			};
-			setMessages((prev) => [...prev, aiResponse]);
-		}, 1000);
-	};
-
-	const getMockAIResponse = (userMessage: string): string => {
-		const lowerMsg = userMessage.toLowerCase();
-
-		if (lowerMsg.includes("hello") || lowerMsg.includes("hi")) {
-			return "Hello! How can I assist you today?";
-		} else if (lowerMsg.includes("schedule") || lowerMsg.includes("shift")) {
-			return "I can help you manage schedules and shifts. Would you like me to show you how to create a new shift?";
-		} else if (lowerMsg.includes("employee") || lowerMsg.includes("staff")) {
-			return "Need help with employee management? I can assist with adding new employees, viewing performance, or managing time off.";
-		} else if (lowerMsg.includes("location")) {
-			return "I can help you manage your business locations. Would you like to see your current locations or add a new one?";
-		} else if (lowerMsg.includes("help")) {
-			return "I'm here to help! I can assist with scheduling, employee management, location setup, and more. Just let me know what you need.";
-		} else {
-			return (
-				"I understand you're asking about \"" +
-				userMessage +
-				'". How can I provide more specific help with that?'
-			);
-		}
-	};
-
-	const handleHideAI = () => {
-		setIsAnimating(true);
-		// Add a small delay before actually hiding
-		setTimeout(() => {
-			setShowAI(false);
-			setIsAnimating(false);
-		}, 300);
-	};
-
-	const handleRestoreChat = () => {
-		setAutoScrolling(true);
-		setShowAI(true);
-		// Use setTimeout to ensure the DOM has updated before scrolling
-		setTimeout(() => {
-			window.scrollTo({ top: 0, behavior: "smooth" });
-			setTimeout(() => setAutoScrolling(false), 1000);
-		}, 100);
-	};
-
-	// Function to handle explicit close from user
-	const handleClose = () => {
-		// First hide with animation
-		handleHideAI();
-		// Then call the provided onClose callback with a delay
-		setTimeout(() => {
-			onClose();
-		}, 350);
-	};
-
-	const handleMinimize = () => {
-		if (onMinimize) {
-			handleHideAI();
-			setTimeout(() => {
-				onMinimize();
-			}, 350);
-		}
-	};
+		return () => {
+			if (timeoutId) clearTimeout(timeoutId);
+		};
+	}, [isHero, inView, scrollDirection, autoScrolling, handleHideAI]);
 
 	if (!showAI && isHero) {
 		return (

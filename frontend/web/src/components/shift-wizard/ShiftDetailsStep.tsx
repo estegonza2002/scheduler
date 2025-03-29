@@ -10,6 +10,7 @@ import { format } from "date-fns";
 import { CalendarIcon, ArrowLeft, MapPin, X } from "lucide-react";
 import { Textarea } from "../ui/textarea";
 import { Badge } from "../ui/badge";
+import { useMemo } from "react";
 
 type ShiftData = {
 	date: string;
@@ -30,6 +31,17 @@ interface ShiftDetailsStepProps {
 	onBack: () => void;
 }
 
+// Helper function to format time string from 24h to 12h format
+function formatTime(timeString: string): string {
+	if (!timeString) return "";
+
+	const [hours, minutes] = timeString.split(":").map(Number);
+	const period = hours >= 12 ? "PM" : "AM";
+	const displayHours = hours % 12 || 12; // Convert 0 to 12 for 12 AM
+
+	return `${displayHours}:${minutes.toString().padStart(2, "0")} ${period}`;
+}
+
 export function ShiftDetailsStep({
 	shiftForm,
 	locationData,
@@ -37,123 +49,101 @@ export function ShiftDetailsStep({
 	handleShiftDetailsSubmit,
 	onBack,
 }: ShiftDetailsStepProps) {
-	const location = locationData
-		? getLocationById(locationData.locationId)
+	const location = getLocationById(locationData.locationId);
+	const {
+		register,
+		handleSubmit,
+		watch,
+		setValue,
+		formState: { errors, isValid },
+	} = shiftForm;
+
+	// Extract data from form
+	const date = watch("date");
+	const startTime = watch("startTime");
+	const endTime = watch("endTime");
+
+	// Format date and time for display
+	const formattedDate = date
+		? format(new Date(date), "EEEE, MMMM d, yyyy")
 		: null;
 
+	// Calculate shift duration in hours
+	const shiftDuration = useMemo(() => {
+		if (!startTime || !endTime) return null;
+
+		const [startHours, startMinutes] = startTime.split(":").map(Number);
+		const [endHours, endMinutes] = endTime.split(":").map(Number);
+
+		let durationInMinutes =
+			endHours * 60 + endMinutes - (startHours * 60 + startMinutes);
+
+		// If duration is negative, assume shift spans midnight
+		if (durationInMinutes < 0) {
+			durationInMinutes += 24 * 60;
+		}
+
+		const hours = Math.floor(durationInMinutes / 60);
+		const minutes = durationInMinutes % 60;
+
+		return {
+			hours,
+			minutes,
+			totalMinutes: durationInMinutes,
+			displayText:
+				hours > 0
+					? `${hours}h${minutes > 0 ? ` ${minutes}m` : ""}`
+					: `${minutes}m`,
+		};
+	}, [startTime, endTime]);
+
 	return (
-		<div className="flex flex-col h-full relative">
+		<div className="p-6 flex flex-col">
+			<div className="mb-6">
+				<Badge
+					variant="outline"
+					className="mb-2">
+					Location
+				</Badge>
+				<h3 className="text-lg font-medium">{location?.name}</h3>
+				{location?.address && (
+					<p className="text-sm text-muted-foreground">{location.address}</p>
+				)}
+			</div>
+
 			<form
 				id="shift-details-form"
-				onSubmit={shiftForm.handleSubmit(handleShiftDetailsSubmit)}
-				className="flex flex-col h-full">
-				{/* Content area with padding at bottom for fixed footer */}
-				<div className="flex-1 overflow-auto px-6 py-4 pb-24">
-					{/* Location badge at the top */}
-					{location && (
-						<div className="flex items-center gap-2 bg-muted/50 rounded-lg p-3 border">
-							<div className="bg-primary/10 rounded-full p-2 flex-shrink-0">
-								<MapPin className="h-5 w-5 text-primary" />
-							</div>
-							<div className="flex-1 min-w-0">
-								<h3 className="font-medium truncate">{location.name}</h3>
-								{location.address && (
-									<p className="text-sm text-muted-foreground truncate">
-										{location.address}
-										{location.city && `, ${location.city}`}
-										{location.state && ` ${location.state}`}
-									</p>
-								)}
-							</div>
-							<Button
-								variant="ghost"
-								size="icon"
-								onClick={onBack}
-								title="Change location"
-								className="h-8 w-8 rounded-full hover:bg-destructive/10 text-muted-foreground hover:text-destructive">
-								<X className="h-4 w-4" />
-								<span className="sr-only">Change location</span>
-							</Button>
-						</div>
-					)}
-
-					{/* Shift date and times */}
-					<div className="space-y-4">
-						<div>
-							<h3 className="text-lg font-medium">Shift Details</h3>
-							<p className="text-muted-foreground">
-								Set the date and times for this shift
-							</p>
+				className="space-y-4"
+				onSubmit={handleSubmit(handleShiftDetailsSubmit)}>
+				<div className="space-y-4">
+					<div className="grid grid-cols-1 gap-4">
+						<div className="space-y-2">
+							<Label htmlFor="date">Date</Label>
+							<Input
+								id="date"
+								type="date"
+								{...register("date", { required: "Date is required" })}
+							/>
+							{errors.date && (
+								<p className="text-sm text-destructive">
+									{errors.date.message}
+								</p>
+							)}
 						</div>
 
-						{/* Date picker */}
-						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-							<div className="space-y-2">
-								<Label htmlFor="date">Date</Label>
-								<div>
-									<input
-										type="hidden"
-										{...shiftForm.register("date")}
-									/>
-									<Popover>
-										<PopoverTrigger asChild>
-											<Button
-												variant="outline"
-												className="w-full justify-start text-left">
-												{shiftForm.watch("date") ? (
-													format(
-														new Date(shiftForm.watch("date")),
-														"EEE, MMMM d, yyyy"
-													)
-												) : (
-													<span>Pick a date</span>
-												)}
-												<CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-											</Button>
-										</PopoverTrigger>
-										<PopoverContent
-											className="w-auto p-0"
-											align="start">
-											<Calendar
-												mode="single"
-												selected={
-													shiftForm.watch("date")
-														? new Date(shiftForm.watch("date"))
-														: undefined
-												}
-												onSelect={(date) => {
-													if (date) {
-														shiftForm.setValue(
-															"date",
-															format(date, "yyyy-MM-dd")
-														);
-													}
-												}}
-												initialFocus
-											/>
-										</PopoverContent>
-									</Popover>
-									{shiftForm.formState.errors.date && (
-										<p className="text-sm font-medium text-destructive mt-2">
-											{shiftForm.formState.errors.date.message}
-										</p>
-									)}
-								</div>
-							</div>
-						</div>
-
-						{/* Time inputs */}
-						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+						<div className="grid grid-cols-2 gap-4">
 							<div className="space-y-2">
 								<Label htmlFor="startTime">Start Time</Label>
 								<Input
 									id="startTime"
 									type="time"
-									{...shiftForm.register("startTime")}
+									{...register("startTime", {
+										required: "Start time is required",
+									})}
 								/>
-								{shiftForm.formState.errors.startTime && (
-									<p className="text-sm font-medium text-destructive mt-2">
-										{shiftForm.formState.errors.startTime.message}
+								{errors.startTime && (
+									<p className="text-sm text-destructive">
+										{errors.startTime.message}
 									</p>
 								)}
 							</div>
@@ -162,46 +152,52 @@ export function ShiftDetailsStep({
 								<Input
 									id="endTime"
 									type="time"
-									{...shiftForm.register("endTime")}
+									{...register("endTime", {
+										required: "End time is required",
+									})}
 								/>
-								{shiftForm.formState.errors.endTime && (
-									<p className="text-sm font-medium text-destructive mt-2">
-										{shiftForm.formState.errors.endTime.message}
+								{errors.endTime && (
+									<p className="text-sm text-destructive">
+										{errors.endTime.message}
 									</p>
 								)}
 							</div>
 						</div>
 
-						{/* Notes */}
+						{isValid && date && startTime && endTime && (
+							<div className="bg-muted/50 p-3 rounded-md">
+								<div className="flex justify-between text-sm">
+									<span>
+										{formattedDate} • {formatTime(startTime)} to{" "}
+										{formatTime(endTime)}
+									</span>
+									{shiftDuration && (
+										<Badge variant="secondary">
+											{shiftDuration.displayText}
+										</Badge>
+									)}
+								</div>
+							</div>
+						)}
+
 						<div className="space-y-2">
 							<Label htmlFor="notes">Notes (Optional)</Label>
 							<Textarea
 								id="notes"
-								placeholder="Add any additional information about this shift"
+								placeholder="Add any specific details about this shift"
 								className="min-h-[100px]"
-								{...shiftForm.register("notes")}
+								{...register("notes")}
 							/>
 						</div>
 					</div>
 				</div>
-			</form>
 
-			{/* Absolutely positioned footer with buttons */}
-			<div className="absolute bottom-0 left-0 right-0 flex justify-between p-4 border-t bg-background">
-				<Button
-					type="button"
-					variant="outline"
-					onClick={onBack}>
-					<ArrowLeft className="h-4 w-4 mr-2" />
-					Back
-				</Button>
-				<Button
+				{/* Hidden submit button for form validity */}
+				<button
 					type="submit"
-					form="shift-details-form"
-					disabled={!shiftForm.formState.isValid}>
-					Continue
-				</Button>
-			</div>
+					className="hidden"
+				/>
+			</form>
 		</div>
 	);
 }

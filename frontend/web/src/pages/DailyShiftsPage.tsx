@@ -365,58 +365,17 @@ export default function DailyShiftsPage() {
 				title="Daily Shifts"
 				description={`Shifts for ${format(currentDate, "EEEE, MMMM d, yyyy")}`}
 				actions={
-					<div className="flex items-center gap-2">
-						<Button
-							variant="outline"
-							size="sm"
-							onClick={() => updateDate(subDays(currentDate, 1))}>
-							<ChevronLeft className="h-4 w-4" />
-						</Button>
-						<Popover>
-							<PopoverTrigger asChild>
-								<Button
-									variant="outline"
-									size="sm"
-									className="h-9 px-4 gap-2">
-									<CalendarIcon className="h-4 w-4 opacity-70" />
-									{format(currentDate, "MMMM d, yyyy")}
-								</Button>
-							</PopoverTrigger>
-							<PopoverContent
-								className="w-auto p-0"
-								align="start">
-								<Calendar
-									mode="single"
-									selected={currentDate}
-									onSelect={(date) => date && updateDate(date)}
-									initialFocus
-								/>
-							</PopoverContent>
-						</Popover>
-						<Button
-							variant="outline"
-							size="sm"
-							onClick={() => updateDate(addDays(currentDate, 1))}>
-							<ChevronRight className="h-4 w-4" />
-						</Button>
-						<Button
-							variant="outline"
-							size="sm"
-							onClick={() => updateDate(new Date())}>
-							Today
-						</Button>
-						<ShiftCreationSheet
-							scheduleId={selectedSchedule}
-							organizationId={organizationId}
-							initialDate={currentDate}
-							trigger={
-								<Button>
-									<Plus className="h-4 w-4 mr-2" />
-									Add Shift
-								</Button>
-							}
-						/>
-					</div>
+					<ShiftCreationSheet
+						scheduleId={selectedSchedule}
+						organizationId={organizationId}
+						initialDate={currentDate}
+						trigger={
+							<Button>
+								<Plus className="h-4 w-4 mr-2" />
+								Add Shift
+							</Button>
+						}
+					/>
 				}
 			/>
 
@@ -427,17 +386,65 @@ export default function DailyShiftsPage() {
 						shifts.length !== 1 ? "s" : ""
 					} scheduled`}
 					headerActions={
-						<Button
-							variant="outline"
-							className="flex items-center gap-2 h-8"
-							onClick={() =>
-								navigate(
-									`/schedule/monthly?date=${format(currentDate, "yyyy-MM-dd")}`
-								)
-							}>
-							<Maximize2 className="h-4 w-4" />
-							<span>Monthly View</span>
-						</Button>
+						<div className="flex items-center gap-2">
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => updateDate(subDays(currentDate, 1))}>
+								<ChevronLeft className="h-4 w-4" />
+							</Button>
+							<Popover>
+								<PopoverTrigger asChild>
+									<Button
+										variant="outline"
+										size="sm"
+										className="h-8 px-4 gap-2">
+										<CalendarIcon className="h-4 w-4 opacity-70" />
+										{format(currentDate, "MMMM d, yyyy")}
+									</Button>
+								</PopoverTrigger>
+								<PopoverContent
+									className="w-auto p-0"
+									align="start">
+									<Calendar
+										mode="single"
+										selected={currentDate}
+										onSelect={(date) => date && updateDate(date)}
+										initialFocus
+									/>
+								</PopoverContent>
+							</Popover>
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => updateDate(addDays(currentDate, 1))}>
+								<ChevronRight className="h-4 w-4" />
+							</Button>
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => updateDate(new Date())}>
+								Today
+							</Button>
+							<Separator
+								orientation="vertical"
+								className="h-8"
+							/>
+							<Button
+								variant="outline"
+								className="flex items-center gap-2 h-8"
+								onClick={() =>
+									navigate(
+										`/schedule/monthly?date=${format(
+											currentDate,
+											"yyyy-MM-dd"
+										)}`
+									)
+								}>
+								<Maximize2 className="h-4 w-4" />
+								<span>Monthly View</span>
+							</Button>
+						</div>
 					}>
 					{/* Shifts display with standardized patterns */}
 					{loading ? (

@@ -1,19 +1,21 @@
 import { useState, useEffect } from "react";
 import { Employee, EmployeesAPI, Location, LocationsAPI } from "@/api";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { Building2, Loader2, CheckCircle, MapPin } from "lucide-react";
 import {
 	Sheet,
 	SheetContent,
 	SheetHeader,
 	SheetTitle,
+	SheetDescription,
+	SheetFooter,
 	SheetTrigger,
 } from "@/components/ui/sheet";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/utils";
-import { toast } from "sonner";
-import { Building2, Loader2, CheckCircle, MapPin } from "lucide-react";
 
 /**
  * Props for the LocationAssignmentSheet component
@@ -80,16 +82,17 @@ export function LocationAssignmentSheet({
 	const [searchTerm, setSearchTerm] = useState("");
 	const [assignedCount, setAssignedCount] = useState(0);
 
-	const isControlled = controlledOpen !== undefined;
-	const isOpened = isControlled ? controlledOpen : open;
-	const setIsOpened = isControlled ? setControlledOpen! : setOpen;
+	// Determine if we're using controlled or uncontrolled open state
+	const isControlled =
+		controlledOpen !== undefined && setControlledOpen !== undefined;
+	const isOpen = isControlled ? controlledOpen : open;
 
 	// Update selected locations when assigned locations change or when sheet opens
 	useEffect(() => {
-		if (isOpened) {
+		if (isOpen) {
 			setSelectedLocationIds(assignedLocationIds || []);
 		}
-	}, [isOpened, assignedLocationIds]);
+	}, [isOpen, assignedLocationIds]);
 
 	// Filter the locations for assignment
 	const getFilteredLocations = () => {
@@ -149,14 +152,10 @@ export function LocationAssignmentSheet({
 	};
 
 	// Handle sheet open/close
-	const handleOpenChange = (newOpen: boolean) => {
+	const handleOpenChange = (newOpenState: boolean) => {
 		if (isSubmitting) return; // Prevent closing during submission
 
-		if (setIsOpened) {
-			setIsOpened(newOpen);
-		}
-
-		if (newOpen) {
+		if (newOpenState) {
 			// Reset success state when opening the sheet
 			setIsAssigned(false);
 			setSearchTerm("");
@@ -168,156 +167,147 @@ export function LocationAssignmentSheet({
 				setAssignedCount(0);
 			}, 300); // Wait for sheet close animation
 		}
+
+		if (isControlled && setControlledOpen) {
+			setControlledOpen(newOpenState);
+		} else {
+			setOpen(newOpenState);
+		}
 	};
+
+	// Success state content
+	const renderSuccessState = () => (
+		<div className="flex flex-col items-center py-4 text-center">
+			<div className="rounded-full bg-primary/10 p-3 mb-4">
+				<CheckCircle className="h-8 w-8 text-primary" />
+			</div>
+			<h3 className="text-xl font-semibold mb-2">
+				{assignedCount} Location{assignedCount !== 1 ? "s" : ""} Assigned
+			</h3>
+			<p className="text-muted-foreground mb-4">
+				Locations successfully assigned to {employeeName}.
+			</p>
+			<div className="flex gap-3 mt-2">
+				<Button onClick={() => handleOpenChange(false)}>Close</Button>
+				<Button
+					variant="outline"
+					onClick={() => setIsAssigned(false)}>
+					Modify Assignments
+				</Button>
+			</div>
+		</div>
+	);
+
+	// Selection state content
+	const renderSelectionState = () => (
+		<div className="space-y-4">
+			<div className="relative">
+				<Input
+					placeholder="Search locations..."
+					value={searchTerm}
+					onChange={(e) => setSearchTerm(e.target.value)}
+					className="pl-9"
+				/>
+				<Building2 className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+			</div>
+
+			<p className="text-sm text-muted-foreground">
+				Select the locations to assign to this employee.
+			</p>
+
+			<div className="border rounded-md divide-y">
+				{getFilteredLocations().length > 0 ? (
+					getFilteredLocations().map((location) => {
+						const isSelected = selectedLocationIds.includes(location.id);
+						const isAlreadyAssigned = isLocationAssigned(location.id);
+
+						return (
+							<div
+								key={location.id}
+								className={cn(
+									"flex items-center p-3 hover:bg-accent cursor-pointer",
+									isSelected && "bg-primary/10 hover:bg-primary/15"
+								)}
+								onClick={() => toggleLocationSelection(location.id)}>
+								<Checkbox
+									checked={isSelected}
+									className="mr-3"
+									onCheckedChange={() => toggleLocationSelection(location.id)}
+								/>
+								<div className="flex-1 min-w-0">
+									<div className="font-medium truncate">{location.name}</div>
+									<div className="text-xs text-muted-foreground truncate">
+										{location.address || "No address provided"}
+									</div>
+								</div>
+								{isAlreadyAssigned && (
+									<span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-md ml-2">
+										Current
+									</span>
+								)}
+							</div>
+						);
+					})
+				) : (
+					<div className="p-4 text-center text-muted-foreground">
+						No locations found matching your search.
+					</div>
+				)}
+			</div>
+		</div>
+	);
 
 	return (
 		<Sheet
-			open={isOpened}
+			open={isOpen}
 			onOpenChange={handleOpenChange}>
-			<SheetTrigger asChild>{trigger}</SheetTrigger>
-			<SheetContent
-				className={cn(
-					"sm:max-w-[550px] p-0 flex flex-col h-[100dvh]",
-					className
+			<SheetTrigger asChild>
+				{trigger || (
+					<Button>
+						<MapPin className="h-4 w-4 mr-2" />
+						Assign Locations
+					</Button>
 				)}
-				side="right">
-				<SheetHeader className="px-6 py-4 border-b text-left flex-shrink-0">
-					<div className="flex items-center gap-2">
-						<MapPin className="h-5 w-5 text-primary" />
-						<SheetTitle>Assign Locations to {employeeName}</SheetTitle>
-					</div>
-				</SheetHeader>
+			</SheetTrigger>
 
-				<ScrollArea className="flex-1 px-6 py-4">
-					<div className="space-y-4">
-						{isAssigned ? (
-							<div className="flex flex-col items-center justify-center py-8 text-center">
-								<div className="rounded-full bg-primary/10 p-3 mb-4">
-									<CheckCircle className="h-8 w-8 text-primary" />
-								</div>
-								<h3 className="text-xl font-semibold mb-2">
-									Locations Assigned!
-								</h3>
-								<p className="text-muted-foreground mb-2">
-									{assignedCount} location{assignedCount !== 1 ? "s" : ""}{" "}
-									assigned to {employeeName}
-								</p>
-								<div className="flex flex-col gap-3 mt-6 w-full max-w-xs">
-									<Button
-										onClick={() => {
-											handleOpenChange(false);
-										}}>
-										Close
-									</Button>
-									<Button
-										variant="outline"
-										onClick={() => {
-											setIsAssigned(false);
-										}}>
-										Modify Assignments
-									</Button>
-								</div>
-							</div>
-						) : (
-							<div>
-								{/* Search box */}
-								<div className="mb-6">
-									<Input
-										placeholder="Search locations..."
-										value={searchTerm}
-										onChange={(e) => setSearchTerm(e.target.value)}
-										className="w-full"
-									/>
-								</div>
+			<SheetContent
+				className={cn("sm:max-w-md p-0 flex flex-col h-full", className)}>
+				<div className="p-6 pb-0">
+					<SheetHeader>
+						<div className="flex items-center gap-2">
+							<MapPin className="h-5 w-5 text-primary" />
+							<SheetTitle>Assign Locations</SheetTitle>
+						</div>
+						<SheetDescription>
+							Assign locations to {employeeName}
+						</SheetDescription>
+					</SheetHeader>
+				</div>
 
-								{/* Instructions */}
-								<p className="text-sm text-muted-foreground mb-4">
-									Select the locations to assign to this employee.
-								</p>
+				<div className="flex-1 px-6 my-4 overflow-auto">
+					{isAssigned ? renderSuccessState() : renderSelectionState()}
+				</div>
 
-								{/* Locations list */}
-								<div className="space-y-2">
-									{getFilteredLocations().map((location) => {
-										const isSelected = selectedLocationIds.includes(
-											location.id
-										);
-										const isAlreadyAssigned = isLocationAssigned(location.id);
-										return (
-											<div
-												key={location.id}
-												className={cn(
-													"flex items-center gap-3 p-3 border rounded hover:bg-accent/5 cursor-pointer",
-													isSelected &&
-														"bg-primary/5 border-primary/20 hover:bg-primary/10",
-													isAlreadyAssigned &&
-														!isSelected &&
-														"bg-muted/10 border-muted-foreground/20"
-												)}
-												onClick={() => toggleLocationSelection(location.id)}>
-												<Checkbox
-													checked={isSelected}
-													onCheckedChange={() =>
-														toggleLocationSelection(location.id)
-													}
-													className="rounded-sm"
-												/>
-												<div className="flex-1 min-w-0">
-													<div className="font-medium flex items-center gap-2">
-														{location.name}
-														{isAlreadyAssigned && !isSelected && (
-															<span className="text-xs text-muted-foreground bg-muted/20 px-2 py-0.5 rounded-full">
-																Assigned
-															</span>
-														)}
-													</div>
-													<div className="text-xs text-muted-foreground truncate">
-														{location.address &&
-															`${location.address}${
-																location.city ? `, ${location.city}` : ""
-															}${location.state ? `, ${location.state}` : ""}`}
-													</div>
-												</div>
-											</div>
-										);
-									})}
-
-									{getFilteredLocations().length === 0 && (
-										<div className="text-center py-8 text-muted-foreground">
-											No locations found matching your search.
-										</div>
-									)}
-								</div>
-
-								<div className="flex justify-end space-x-2 pt-8">
-									<Button
-										type="button"
-										variant="outline"
-										onClick={() => handleOpenChange(false)}
-										disabled={isSubmitting}>
-										Cancel
-									</Button>
-									<Button
-										type="button"
-										onClick={assignLocationsToEmployee}
-										disabled={selectedLocationIds.length === 0 || isSubmitting}>
-										{isSubmitting ? (
-											<>
-												<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-												Assigning...
-											</>
-										) : (
-											<>
-												<Building2 className="mr-2 h-4 w-4" />
-												Assign {selectedLocationIds.length} Location
-												{selectedLocationIds.length !== 1 ? "s" : ""}
-											</>
-										)}
-									</Button>
-								</div>
-							</div>
-						)}
-					</div>
-				</ScrollArea>
+				{!isAssigned && (
+					<SheetFooter className="px-6 py-4 sticky bottom-0 bg-background border-t">
+						<Button
+							onClick={assignLocationsToEmployee}
+							disabled={isSubmitting || selectedLocationIds.length === 0}
+							className="w-full">
+							{isSubmitting ? (
+								<>
+									<Loader2 className="h-4 w-4 mr-2 animate-spin" />
+									Assigning...
+								</>
+							) : (
+								<>
+									Assign {selectedLocationIds.length} Location
+									{selectedLocationIds.length !== 1 ? "s" : ""}
+								</>
+							)}
+						</Button>
+					</SheetFooter>
+				)}
 			</SheetContent>
 		</Sheet>
 	);

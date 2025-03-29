@@ -5,6 +5,7 @@ import {
 	Sparkles,
 	User,
 	Building2,
+	Tags,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -111,6 +112,12 @@ export function NavUser({
 									</Link>
 								</DropdownMenuItem>
 							)}
+							<DropdownMenuItem asChild>
+								<Link to="/pricing">
+									<Tags className="mr-2 h-4 w-4" />
+									Pricing Plans
+								</Link>
+							</DropdownMenuItem>
 							{!isPaidUser ? (
 								<DropdownMenuItem asChild>
 									<Link to="/billing">
