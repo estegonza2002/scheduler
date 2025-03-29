@@ -147,9 +147,7 @@ export function EmployeeDetailDialog({
 							</Avatar>
 							<div className="min-w-0">
 								<h2 className="text-xl font-semibold">{employee.name}</h2>
-								<p className="text-muted-foreground">
-									{employee.position || employee.role}
-								</p>
+								<p className="text-muted-foreground">{employee.role}</p>
 								{employee.hourlyRate !== undefined && (
 									<div className="flex items-center gap-1 mt-1 text-sm text-muted-foreground">
 										<DollarSign className="h-3.5 w-3.5" />
@@ -204,12 +202,6 @@ export function EmployeeDetailDialog({
 									</h5>
 									<Separator className="my-1.5" />
 									<div className="space-y-2 text-sm">
-										<div className="flex items-center justify-between">
-											<span className="text-muted-foreground">Position:</span>
-											<span className="font-medium">
-												{employee.position || "N/A"}
-											</span>
-										</div>
 										<div className="flex items-center justify-between">
 											<span className="text-muted-foreground">Role:</span>
 											<span className="font-medium">

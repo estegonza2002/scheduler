@@ -153,12 +153,18 @@ export function ShiftCreationSheet({
 				)
 				?.click();
 		} else if (currentStep === "assign-employee") {
-			// Click the submit button in the employee assignment form
-			document
-				.querySelector<HTMLButtonElement>(
-					'form#employee-assignment-form button[type="submit"]'
-				)
-				?.click();
+			// Find and click the create shift button directly
+			const createShiftButton = document.querySelector<HTMLButtonElement>(
+				"#create-shift-button"
+			);
+
+			console.log("Found create shift button:", createShiftButton);
+
+			if (createShiftButton) {
+				createShiftButton.click();
+			} else {
+				console.error("Create shift button not found");
+			}
 		}
 	};
 

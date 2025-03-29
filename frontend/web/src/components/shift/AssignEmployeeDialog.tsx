@@ -70,8 +70,7 @@ export function AssignEmployeeDialog({
 		return (
 			employee.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
 			employee.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-			(employee.position &&
-				employee.position.toLowerCase().includes(searchQuery.toLowerCase()))
+			employee.role.toLowerCase().includes(searchQuery.toLowerCase())
 		);
 	});
 
@@ -87,7 +86,7 @@ export function AssignEmployeeDialog({
 				// Add if not selected
 				newSelected[employee.id] = {
 					employee,
-					role: employee.position || "Staff",
+					role: employee.role || "Staff",
 					notes: "",
 				};
 			}
@@ -158,7 +157,7 @@ export function AssignEmployeeDialog({
 					<DialogTitle>Assign Employees to Shift</DialogTitle>
 					<DialogDescription>
 						Select employees to assign to this shift on{" "}
-						{new Date(shift.startTime).toLocaleDateString()}.
+						{new Date(shift.start_time).toLocaleDateString()}.
 					</DialogDescription>
 				</DialogHeader>
 
@@ -166,7 +165,7 @@ export function AssignEmployeeDialog({
 					<div className="relative mb-4">
 						<Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
 						<Input
-							placeholder="Search employees by name, email or position..."
+							placeholder="Search employees by name, email or role..."
 							className="pl-9"
 							value={searchQuery}
 							onChange={(e) => setSearchQuery(e.target.value)}
@@ -219,7 +218,7 @@ export function AssignEmployeeDialog({
 														{employee.name}
 													</div>
 													<div className="text-xs text-muted-foreground truncate">
-														{employee.position || "Staff"} • {employee.email}
+														{employee.role || "Staff"} • {employee.email}
 													</div>
 												</div>
 												{employee.hourlyRate ? (

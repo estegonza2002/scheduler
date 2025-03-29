@@ -205,13 +205,7 @@ function App() {
 															/>
 															<Route
 																path="/schedule"
-																element={
-																	<Navigate
-																		to={`/daily-shifts?date=${
-																			new Date().toISOString().split("T")[0]
-																		}`}
-																	/>
-																}
+																element={<SchedulePage />}
 															/>
 															<Route
 																path="/schedule/monthly"

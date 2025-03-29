@@ -156,8 +156,8 @@ export function ShiftCreationForm({
 				user_id: data.employeeId,
 				start_time: startDateTime,
 				end_time: endDateTime,
-				position: data.role,
 				description: data.notes,
+				status: "scheduled",
 			});
 
 			toast.success("Shift created successfully");

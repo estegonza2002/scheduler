@@ -112,24 +112,12 @@ export default function MyShiftsPage() {
 				<CardContent className="p-4">
 					<div className="flex justify-between items-start">
 						<div>
-							<h4 className="font-medium">
-								{format(parseISO(shift.start_time), "EEE, MMM d")}
-							</h4>
-							<p className="text-sm text-muted-foreground">
-								{format(parseISO(shift.start_time), "h:mm a")} -{" "}
+							<p className="font-medium">
+								{format(parseISO(shift.start_time), "h:mm a")} -
 								{format(parseISO(shift.end_time), "h:mm a")}
 								<span className="mx-1">•</span>
 								{calculateHours(shift.start_time, shift.end_time)} hours
 							</p>
-						</div>
-						<div>
-							{shift.position && (
-								<Badge
-									variant="outline"
-									className="text-xs">
-									{shift.position}
-								</Badge>
-							)}
 						</div>
 					</div>
 					{shift.location_id && (

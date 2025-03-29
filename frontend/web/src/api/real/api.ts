@@ -241,6 +241,7 @@ export const ShiftsAPI = {
 			is_schedule: false,
 			created_at: new Date().toISOString(),
 			updated_at: new Date().toISOString(),
+			status: data.status || "scheduled",
 		};
 
 		const { data: createdShift, error } = await supabase

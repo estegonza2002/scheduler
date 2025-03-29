@@ -415,7 +415,7 @@ export function ShiftCreationWizard({
 			console.log("Creating shift with times", { startDateTime, endDateTime });
 
 			// If no employees selected, create shift without an employee
-			if (selectedEmployees.length === 0) {
+			if (!selectedEmployees || selectedEmployees.length === 0) {
 				console.log("Creating shift without employee");
 				await ShiftsAPI.createShift({
 					parent_shift_id: scheduleId,
@@ -424,9 +424,9 @@ export function ShiftCreationWizard({
 					user_id: "", // Empty string for no employee
 					start_time: startDateTime,
 					end_time: endDateTime,
-					position: "", // Role
 					description: shiftData.notes, // Notes
 					is_schedule: false,
+					status: "scheduled", // Required field in the database
 				});
 
 				toast.success("Shift created successfully");
@@ -436,23 +436,25 @@ export function ShiftCreationWizard({
 					selectedEmployees
 				);
 				// Create a shift for each selected employee
-				for (const employee of selectedEmployees) {
+				const promises = selectedEmployees.map((employee) => {
 					console.log(
 						`Creating shift for employee: ${employee.name}`,
 						employee
 					);
-					await ShiftsAPI.createShift({
+					return ShiftsAPI.createShift({
 						parent_shift_id: scheduleId,
 						organization_id: organizationId,
 						location_id: locationData.locationId,
 						user_id: employee.id,
 						start_time: startDateTime,
 						end_time: endDateTime,
-						position: employee.role || "",
 						description: shiftData.notes,
 						is_schedule: false,
+						status: "scheduled", // Required field in the database
 					});
-				}
+				});
+
+				await Promise.all(promises);
 
 				toast.success(
 					`${selectedEmployees.length} ${
@@ -464,7 +466,10 @@ export function ShiftCreationWizard({
 			console.log("Shifts created successfully");
 			if (onComplete) {
 				console.log("Calling onComplete callback");
-				onComplete();
+				// Wait a brief moment to ensure everything is updated
+				setTimeout(() => {
+					onComplete();
+				}, 100);
 			}
 		} catch (error) {
 			console.error("Error creating shift:", error);
@@ -592,9 +597,10 @@ export function ShiftCreationWizard({
 								filteredEmployees={filteredEmployees}
 								loadingEmployees={loadingEmployees}
 								getLocationName={getLocationName}
-								handleEmployeeAssignSubmit={(data) =>
-									handleEmployeeAssignSubmit(data, selectedEmployees)
-								}
+								handleEmployeeAssignSubmit={(data) => {
+									console.log("Received form submission with data:", data);
+									handleEmployeeAssignSubmit(data, selectedEmployees);
+								}}
 								onBack={() => setStep("shift-details")}
 								onResetLocation={resetLocation}
 								loading={loading}

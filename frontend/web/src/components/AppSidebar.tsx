@@ -182,7 +182,9 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 		{
 			icon: <Calendar className="h-5 w-5" />,
 			label: "Schedule",
-			href: `/daily-shifts?date=${new Date().toISOString().split("T")[0]}`,
+			href: `/schedule?organizationId=${
+				organization?.id || "org-1"
+			}&scheduleId=sch-4`,
 			isActive:
 				isRouteActive("/schedule") ||
 				isRouteActive("/schedule/monthly") ||

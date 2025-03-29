@@ -309,27 +309,27 @@ export default function DashboardPage() {
 											key={shift.id}
 											className="flex flex-col p-3 rounded-md bg-muted">
 											<div className="flex justify-between items-center">
-												<p className="text-sm font-medium">
-													{formatShiftTime(shift)} at{" "}
-													{locations.find((l) => l.id === shift.location_id)
-														?.name || "Unknown location"}
-												</p>
+												<div>
+													<Link
+														to={`/shifts/${shift.id}`}
+														className="font-medium hover:underline">
+														{locations.find(
+															(loc) => loc.id === shift.location_id
+														)?.name || "Unknown location"}
+													</Link>
+													<p className="text-xs text-muted-foreground">
+														{formatShiftTime(shift)}
+													</p>
+												</div>
 												<Link to={`/shifts/${shift.id}`}>
 													<Button
-														variant="ghost"
+														variant="outline"
 														size="sm"
 														className="h-8 px-2">
 														View Details
 													</Button>
 												</Link>
 											</div>
-											{shift.position && (
-												<p className="text-xs mt-1">
-													<span className="inline-flex items-center bg-muted/80 px-2 py-0.5 rounded">
-														{shift.position}
-													</span>
-												</p>
-											)}
 										</div>
 									))}
 									<div className="mt-2">
@@ -546,27 +546,25 @@ export default function DashboardPage() {
 											<div className="flex justify-between items-start">
 												<div>
 													<h3 className="font-medium text-blue-700">
-														{locations.find((l) => l.id === shift.location_id)
-															?.name || "Unknown location"}
+														{locations.find(
+															(loc) => loc.id === shift.location_id
+														)?.name || "Unknown location"}
 													</h3>
 													<p className="text-sm text-muted-foreground">
 														{format(new Date(shift.start_time), "h:mm a")} -{" "}
 														{format(new Date(shift.end_time), "h:mm a")}
 													</p>
-													{shift.position && (
-														<p className="text-xs mt-1 inline-flex items-center bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
-															{shift.position}
-														</p>
-													)}
 												</div>
-												<Link to={`/shifts/${shift.id}`}>
-													<Button
-														variant="outline"
-														size="sm"
-														className="border-blue-200 text-blue-700 hover:bg-blue-50">
-														Details
-													</Button>
-												</Link>
+												<div>
+													<Link to={`/shifts/${shift.id}`}>
+														<Button
+															variant="outline"
+															size="sm"
+															className="border-blue-200 text-blue-700 hover:bg-blue-50">
+															Details
+														</Button>
+													</Link>
+												</div>
 											</div>
 										</CardContent>
 									</div>

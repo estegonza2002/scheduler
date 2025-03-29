@@ -41,6 +41,8 @@ import {
 	TooltipTrigger,
 } from "../ui/tooltip";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
+import { toast } from "sonner";
+import { EmployeeLocationsAPI } from "../../api";
 
 type EmployeeData = {
 	employeeId: string;
@@ -82,55 +84,74 @@ interface EmployeeAssignmentStepProps {
 	selectedEmployees: SelectedEmployee[];
 	onSelectedEmployeesChange: (employees: SelectedEmployee[]) => void;
 	allEmployees: Employee[];
+	onFormSubmit: (data: any) => void;
 }
 
 interface EmployeeItemProps {
 	employee: Employee;
 	selected: boolean;
-	onToggle: (e?: React.MouseEvent) => void;
+	onToggle: () => void;
+	isFromSelectedLocation?: boolean;
+	locationName?: string;
 }
 
-function EmployeeItem({ employee, selected, onToggle }: EmployeeItemProps) {
-	// Function to prevent event bubbling
-	const handleClick = (e: React.MouseEvent) => {
-		e.preventDefault();
-		e.stopPropagation();
-		onToggle(e);
-	};
-
+function EmployeeCard({
+	employee,
+	selected,
+	onToggle,
+	isFromSelectedLocation = false,
+	locationName = "This location",
+}: EmployeeItemProps) {
 	return (
 		<div
-			className={`flex items-center gap-2 p-2 rounded-md cursor-pointer ${
-				selected ? "bg-primary/10 border-primary" : "hover:bg-accent"
-			}`}
-			onClick={handleClick}>
-			<Checkbox
-				checked={selected}
-				onCheckedChange={(checked) => {
-					// Prevent the default behavior
-					const event = window.event;
-					event?.preventDefault?.();
-					event?.stopPropagation?.();
-					onToggle();
-				}}
-				className="h-4 w-4"
-			/>
-			<Avatar className="h-8 w-8">
-				<AvatarFallback>
-					{employee.name
-						.split(" ")
-						.map((n) => n[0])
-						.join("")
-						.toUpperCase()}
-				</AvatarFallback>
-			</Avatar>
-			<div className="flex-1 min-w-0">
-				<div className="font-medium text-sm">{employee.name}</div>
-				{employee.role && (
-					<div className="text-xs text-muted-foreground">{employee.role}</div>
+			onClick={() => onToggle()}
+			className={`border rounded-md p-3 flex flex-col items-center text-center cursor-pointer transition-all ${
+				selected
+					? "bg-primary/10 border-primary shadow-sm"
+					: isFromSelectedLocation
+					? "border-accent-foreground/30 hover:bg-accent/50 hover:border-accent"
+					: "hover:bg-accent/50 hover:border-accent"
+			}`}>
+			<div className="relative mb-2">
+				<Avatar className="h-16 w-16">
+					<AvatarFallback className="text-lg">
+						{employee.name
+							.split(" ")
+							.map((n) => n[0])
+							.join("")
+							.toUpperCase()}
+					</AvatarFallback>
+				</Avatar>
+				{selected && (
+					<div className="absolute -top-1 -right-1 bg-primary text-white rounded-full p-1">
+						<Check className="h-3 w-3" />
+					</div>
+				)}
+				{isFromSelectedLocation && !selected && (
+					<div className="absolute -top-1 -right-1 bg-accent-foreground/70 text-white rounded-full p-1">
+						<MapPin className="h-3 w-3" />
+					</div>
 				)}
 			</div>
-			{selected && <Check className="h-4 w-4 text-primary" />}
+			<div className="w-full">
+				<div className="font-medium text-sm truncate max-w-full">
+					{employee.name}
+				</div>
+				{employee.role && (
+					<div className="text-xs text-muted-foreground truncate max-w-full">
+						{employee.role}
+					</div>
+				)}
+				{isFromSelectedLocation && (
+					<div className="mt-1">
+						<Badge
+							variant="outline"
+							className="text-xs py-0 px-1.5 bg-accent/30">
+							{locationName}
+						</Badge>
+					</div>
+				)}
+			</div>
 		</div>
 	);
 }
@@ -153,7 +174,36 @@ export function EmployeeAssignmentStep({
 	selectedEmployees,
 	onSelectedEmployeesChange,
 	allEmployees,
+	onFormSubmit,
 }: EmployeeAssignmentStepProps) {
+	// State for tracking which employees are assigned to this location
+	const [locationEmployeeIds, setLocationEmployeeIds] = useState<string[]>([]);
+	const [loadingLocationEmployees, setLoadingLocationEmployees] =
+		useState(false);
+
+	// Fetch employees assigned to this location
+	useEffect(() => {
+		const fetchLocationEmployees = async () => {
+			if (!locationData.locationId) return;
+
+			try {
+				setLoadingLocationEmployees(true);
+				const assignedEmployeeIds = await EmployeeLocationsAPI.getByLocationId(
+					locationData.locationId
+				);
+				setLocationEmployeeIds(assignedEmployeeIds);
+			} catch (error) {
+				console.error("Error fetching location employees:", error);
+				// If there's an error, we'll just show all employees without distinction
+				setLocationEmployeeIds([]);
+			} finally {
+				setLoadingLocationEmployees(false);
+			}
+		};
+
+		fetchLocationEmployees();
+	}, [locationData.locationId]);
+
 	// Debug logs
 	console.log("EmployeeAssignmentStep rendering", {
 		filteredEmployees,
@@ -201,54 +251,26 @@ export function EmployeeAssignmentStep({
 		return filteredEmployees;
 	}, [filteredEmployees]);
 
-	// Handle employee selection/deselection
-	const toggleEmployeeSelection = (
-		employee: Employee,
-		event?: React.MouseEvent
-	) => {
-		const isSelected = selectedEmployees.some((e) => e.id === employee.id);
+	// Separate employees into those assigned to this location and others
+	const groupedEmployees = useMemo(() => {
+		// First filter by search term if applicable
+		let filtered = eligibleEmployees;
 
-		if (isSelected) {
-			// Remove employee if already selected
-			onSelectedEmployeesChange(
-				selectedEmployees.filter((e) => e.id !== employee.id)
-			);
-		} else {
-			// Add employee if not selected
-			onSelectedEmployeesChange([
-				...selectedEmployees,
-				{
-					id: employee.id,
-					name: employee.name,
-					role: employee.role,
-				},
-			]);
-		}
+		// Then split into location employees and others
+		const locationEmployees = filtered.filter((emp) =>
+			locationEmployeeIds.includes(emp.id)
+		);
 
-		// Prevent the event from bubbling up and causing page navigation
-		event?.preventDefault?.();
-		event?.stopPropagation?.();
-	};
+		const otherEmployees = filtered.filter(
+			(emp) => !locationEmployeeIds.includes(emp.id)
+		);
+
+		return { locationEmployees, otherEmployees };
+	}, [eligibleEmployees, locationEmployeeIds]);
 
 	// Check if an employee is selected
 	const isEmployeeSelected = (id: string) => {
 		return selectedEmployees.some((employee) => employee.id === id);
-	};
-
-	// Handle form submission with multiple employees
-	const handleSubmit = (e?: React.FormEvent) => {
-		// Prevent default form submission behavior
-		e?.preventDefault?.();
-
-		// If no employees are selected, use the original form submit with empty employeeId
-		if (selectedEmployees.length === 0) {
-			employeeForm.setValue("employeeId", "");
-		} else {
-			// For backward compatibility, set the first employee as the form value
-			employeeForm.setValue("employeeId", selectedEmployees[0].id);
-		}
-
-		employeeForm.handleSubmit(handleEmployeeAssignSubmit)();
 	};
 
 	// Extract unique roles from all employees, not just filtered ones
@@ -259,7 +281,27 @@ export function EmployeeAssignmentStep({
 		return roles;
 	}, [allEmployees]);
 
-	if (loadingEmployees) {
+	// Create a reusable toggle function
+	const toggleEmployee = (employee: Employee) => {
+		const isSelected = isEmployeeSelected(employee.id);
+
+		if (isSelected) {
+			onSelectedEmployeesChange(
+				selectedEmployees.filter((e) => e.id !== employee.id)
+			);
+		} else {
+			onSelectedEmployeesChange([
+				...selectedEmployees,
+				{
+					id: employee.id,
+					name: employee.name,
+					role: employee.role,
+				},
+			]);
+		}
+	};
+
+	if (loadingEmployees || loadingLocationEmployees) {
 		return (
 			<div className="p-6 flex flex-col items-center justify-center min-h-[400px]">
 				<Loader2 className="h-8 w-8 animate-spin opacity-30 mb-4" />
@@ -315,15 +357,12 @@ export function EmployeeAssignmentStep({
 			</div>
 
 			<form
-				ref={formRef}
-				id="employee-assignment-form"
 				onSubmit={(e) => {
 					e.preventDefault();
 					e.stopPropagation();
-					handleSubmit(e);
-					return false; // Ensure no default form submission
+					return false;
 				}}
-				className="space-y-4">
+				className="flex flex-col gap-4 h-full">
 				<div className="space-y-4">
 					{/* Search and filter controls */}
 					<div className="flex flex-col gap-2 sm:flex-row">
@@ -352,70 +391,177 @@ export function EmployeeAssignmentStep({
 					</div>
 
 					{/* Employee list */}
-					<div className="border rounded-md">
+					<div className="border rounded-md bg-background/50">
 						<ScrollArea className="h-[320px]">
-							<div className="p-2">
+							<div className="p-4">
 								{filteredEmployees.length === 0 ? (
 									<div className="p-6 text-center text-muted-foreground">
 										{searchTerm ? (
-											<>No employees found matching "{searchTerm}"</>
+											<div>No employees found matching "{searchTerm}"</div>
 										) : (
-											<>No employees available</>
+											<div>No employees available</div>
 										)}
 									</div>
 								) : (
-									<div className="space-y-1">
-										{eligibleEmployees.map((employee) => (
-											<EmployeeItem
-												key={employee.id}
-												employee={employee}
-												selected={isEmployeeSelected(employee.id)}
-												onToggle={(e) => toggleEmployeeSelection(employee, e)}
-											/>
-										))}
+									<div className="space-y-5">
+										{/* Employees assigned to this location - always show this section */}
+										<div className="space-y-3">
+											<h3 className="text-sm font-medium flex items-center">
+												<MapPin className="h-3.5 w-3.5 mr-1.5" />
+												Employees at {locationName}
+												<Badge
+													variant="outline"
+													className="ml-2">
+													{groupedEmployees.locationEmployees.length}
+												</Badge>
+											</h3>
+
+											{groupedEmployees.locationEmployees.length > 0 ? (
+												<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+													{groupedEmployees.locationEmployees.map(
+														(employee) => {
+															const isSelected = isEmployeeSelected(
+																employee.id
+															);
+															return (
+																<EmployeeCard
+																	key={employee.id}
+																	employee={employee}
+																	selected={isSelected}
+																	isFromSelectedLocation={true}
+																	locationName={locationName}
+																	onToggle={() => toggleEmployee(employee)}
+																/>
+															);
+														}
+													)}
+												</div>
+											) : (
+												<div className="border border-dashed border-muted-foreground/20 rounded-md p-4 text-center text-muted-foreground">
+													<MapPin className="h-5 w-5 mx-auto mb-2 opacity-50" />
+													<p className="text-sm">
+														No employees assigned to this location
+													</p>
+													<p className="text-xs mt-1">
+														Employees will appear here when assigned to{" "}
+														{locationName}
+													</p>
+												</div>
+											)}
+										</div>
+
+										{/* Other employees */}
+										<div className="space-y-3">
+											<h3 className="text-sm font-medium flex items-center">
+												<Users className="h-3.5 w-3.5 mr-1.5" />
+												Other Employees
+												<Badge
+													variant="outline"
+													className="ml-2">
+													{groupedEmployees.otherEmployees.length}
+												</Badge>
+											</h3>
+
+											{groupedEmployees.otherEmployees.length > 0 ? (
+												<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+													{groupedEmployees.otherEmployees.map((employee) => {
+														const isSelected = isEmployeeSelected(employee.id);
+														return (
+															<EmployeeCard
+																key={employee.id}
+																employee={employee}
+																selected={isSelected}
+																isFromSelectedLocation={false}
+																locationName={locationName}
+																onToggle={() => toggleEmployee(employee)}
+															/>
+														);
+													})}
+												</div>
+											) : (
+												<div className="border border-dashed border-muted-foreground/20 rounded-md p-4 text-center text-muted-foreground">
+													<Users className="h-5 w-5 mx-auto mb-2 opacity-50" />
+													<p className="text-sm">
+														No other employees available
+													</p>
+												</div>
+											)}
+										</div>
 									</div>
 								)}
 							</div>
 						</ScrollArea>
 					</div>
 
-					{/* Selected count */}
-					<div className="text-sm text-center">
-						{selectedEmployees.length === 0 ? (
-							<span className="text-muted-foreground">
-								No employees selected
-							</span>
+					{/* Selected employees display */}
+					<div className="mt-3">
+						{selectedEmployees.length > 0 ? (
+							<div className="space-y-2">
+								<div className="flex items-center justify-between">
+									<h4 className="text-sm font-medium">Selected Employees</h4>
+									<Badge variant="outline">{selectedEmployees.length}</Badge>
+								</div>
+								<div className="flex flex-wrap gap-1.5">
+									{selectedEmployees.map((employee) => (
+										<Badge
+											key={employee.id}
+											variant="secondary"
+											className="flex items-center gap-1.5 py-1.5 pl-1.5 pr-2">
+											<Avatar className="h-5 w-5 mr-1">
+												<AvatarFallback className="text-[10px]">
+													{employee.name
+														.split(" ")
+														.map((n) => n[0])
+														.join("")
+														.toUpperCase()}
+												</AvatarFallback>
+											</Avatar>
+											<span>{employee.name}</span>
+											<X
+												className="h-3 w-3 ml-1 cursor-pointer opacity-70 hover:opacity-100"
+												onClick={(e) => {
+													e.stopPropagation();
+													onSelectedEmployeesChange(
+														selectedEmployees.filter(
+															(e) => e.id !== employee.id
+														)
+													);
+												}}
+											/>
+										</Badge>
+									))}
+								</div>
+							</div>
 						) : (
-							<span>
-								<span className="font-medium">{selectedEmployees.length}</span>{" "}
-								{selectedEmployees.length === 1 ? "employee" : "employees"}{" "}
-								selected
-							</span>
+							<div className="text-sm text-center text-muted-foreground py-2">
+								No employees selected
+							</div>
 						)}
 					</div>
 				</div>
 
-				<div className="flex justify-end mt-6">
+				{/* Submit button */}
+				<div className="mt-auto pt-4">
 					<Button
-						type="submit"
-						onClick={(e) => {
-							e.preventDefault();
-							e.stopPropagation();
-							handleSubmit(e);
+						type="button"
+						className="w-full"
+						onClick={() => {
+							// Create a simple handler that just calls the submission function
+							// without any additional state updates
+							const formData = {
+								...shiftData,
+								employeeIds: selectedEmployees.map((emp) => emp.id),
+							};
+							onFormSubmit(formData);
 						}}
 						disabled={loading}>
-						{loading ? (
-							<>
-								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-								Creating...
-							</>
-						) : selectedEmployees.length > 0 ? (
-							`Create ${selectedEmployees.length} ${
-								selectedEmployees.length === 1 ? "Shift" : "Shifts"
-							}`
-						) : (
-							"Create Shift"
-						)}
+						{loading
+							? "Assigning..."
+							: `Assign ${
+									selectedEmployees.length > 0
+										? selectedEmployees.length + " "
+										: ""
+							  }Employee${selectedEmployees.length !== 1 ? "s" : ""}`}
 					</Button>
 				</div>
 			</form>

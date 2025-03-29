@@ -13,6 +13,10 @@ import {
 	startOfWeek,
 	endOfWeek,
 	parseISO,
+	addDays,
+	isFuture,
+	isPast,
+	isToday,
 } from "date-fns";
 import {
 	Shift,
@@ -34,6 +38,8 @@ import {
 	MapPin,
 	User,
 	Clock,
+	Search,
+	AlertCircle,
 } from "lucide-react";
 import { ShiftCreationSheet } from "@/components/ShiftCreationSheet";
 import { cn } from "@/lib/utils";
@@ -43,6 +49,7 @@ import {
 	CardHeader,
 	CardTitle,
 	CardFooter,
+	CardDescription,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -69,39 +76,48 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useHeader } from "@/lib/header-context";
+import { Input } from "@/components/ui/input";
 
 export default function SchedulePage() {
 	const [searchParams, setSearchParams] = useSearchParams();
 	const navigate = useNavigate();
 	const organizationId = searchParams.get("organizationId") || "org-1";
 	const scheduleId = searchParams.get("scheduleId") || "sch-4";
+	const { updateHeader } = useHeader();
 
-	// Get date from URL param or use today's date
-	const dateParam = searchParams.get("date");
-	const initialDate = dateParam ? new Date(dateParam) : new Date();
-
-	// Track current month and selected date
-	const [currentMonth, setCurrentMonth] = useState<Date>(initialDate);
-	const [selectedDate, setSelectedDate] = useState<Date>(initialDate);
 	const [shifts, setShifts] = useState<Shift[]>([]);
 	const [locations, setLocations] = useState<Location[]>([]);
 	const [employees, setEmployees] = useState<Employee[]>([]);
-	const [loading, setLoading] = useState(false);
-	const [view, setView] = useState<"grid" | "list">("grid");
-	const [selectedLocationFilter, setSelectedLocationFilter] =
-		useState<string>("all");
-	const [selectedEmployeeFilter, setSelectedEmployeeFilter] =
-		useState<string>("all");
+	const [loading, setLoading] = useState(true);
+	const [searchQuery, setSearchQuery] = useState("");
 
-	// Get dates for the current month view
-	const monthStart = startOfMonth(currentMonth);
-	const monthEnd = endOfMonth(currentMonth);
-	const startDate = startOfWeek(monthStart);
-	const endDate = endOfWeek(monthEnd);
-	const days = eachDayOfInterval({ start: startDate, end: endDate });
-	const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+	// Define header actions with the Create Shift button as the main CTA
+	const getHeaderActions = () => {
+		return (
+			<ShiftCreationSheet
+				scheduleId={scheduleId}
+				organizationId={organizationId}
+				initialDate={new Date()}
+				trigger={
+					<Button className="bg-primary hover:bg-primary/90 text-white h-9">
+						<Plus className="h-5 w-5 mr-2" />
+						Create Shift
+					</Button>
+				}
+			/>
+		);
+	};
 
-	// Fetch locations, employees, and shifts
+	useEffect(() => {
+		updateHeader({
+			title: "Schedule",
+			description: "Manage and view your team's schedule",
+			actions: getHeaderActions(),
+		});
+	}, [updateHeader, scheduleId, organizationId]);
+
+	// Fetch shifts, locations, and employees
 	useEffect(() => {
 		const fetchData = async () => {
 			try {
@@ -116,27 +132,9 @@ export default function SchedulePage() {
 				setLocations(fetchedLocations);
 				setEmployees(fetchedEmployees);
 
-				// Fetch shifts for the selected schedule and month
-				const monthStart = startOfMonth(currentMonth);
-				const monthEnd = endOfMonth(currentMonth);
-
-				// Get all schedules first
-				const schedules = await ShiftsAPI.getAllSchedules(organizationId);
-				const activeScheduleId = scheduleId || schedules[0]?.id;
-
-				if (activeScheduleId) {
-					const shiftsData = await ShiftsAPI.getShiftsForSchedule(
-						activeScheduleId
-					);
-
-					// Filter shifts for current month view range
-					const visibleShifts = shiftsData.filter((shift) => {
-						const shiftDate = new Date(shift.start_time);
-						return shiftDate >= startDate && shiftDate <= endDate;
-					});
-
-					setShifts(visibleShifts);
-				}
+				// Fetch shifts for the schedule
+				const shiftsData = await ShiftsAPI.getShiftsForSchedule(scheduleId);
+				setShifts(shiftsData);
 			} catch (error) {
 				console.error("Error fetching data:", error);
 			} finally {
@@ -145,432 +143,179 @@ export default function SchedulePage() {
 		};
 
 		fetchData();
-	}, [organizationId, scheduleId, currentMonth]);
+	}, [organizationId, scheduleId]);
 
-	// Handle date selection
-	const handleDateSelect = (date: Date) => {
-		setSelectedDate(date);
-
-		// Get shifts for the selected date
-		const selectedDateShifts = shifts.filter((shift) =>
-			isSameDay(new Date(shift.start_time), date)
-		);
-
-		// Navigate to daily view when a date is clicked
-		const formattedDate = format(date, "yyyy-MM-dd");
-		navigate(
-			`/daily-shifts?date=${formattedDate}&scheduleId=${scheduleId}&organizationId=${organizationId}`
-		);
-	};
-
-	const handlePreviousMonth = () => {
-		setCurrentMonth(subMonths(currentMonth, 1));
-	};
-
-	const handleNextMonth = () => {
-		setCurrentMonth(addMonths(currentMonth, 1));
-	};
-
-	const handleToday = () => {
-		setCurrentMonth(new Date());
-		setSelectedDate(new Date());
-	};
-
+	// Helper functions
 	const formatTime = (dateString: string) => {
 		return format(new Date(dateString), "h:mm a");
 	};
 
-	const getLocationById = (locationId: string | undefined) => {
-		if (!locationId) return { name: "Unassigned", color: "gray" };
+	const getLocationName = (locationId: string | undefined) => {
+		if (!locationId) return "Unassigned";
 		const location = locations.find((loc) => loc.id === locationId);
-		return location
-			? { name: location.name, color: "blue" }
-			: { name: `Location ${locationId.replace("loc-", "")}`, color: "blue" };
+		return location ? location.name : "Unknown Location";
 	};
 
-	const getEmployeeById = (employeeId: string | undefined) => {
+	const getEmployeeName = (employeeId: string | undefined) => {
 		if (!employeeId) return "Unassigned";
 		const employee = employees.find((emp) => emp.id === employeeId);
-		return employee
-			? employee.name
-			: `Employee ${employeeId.replace("emp-", "")}`;
+		return employee ? employee.name : "Unknown Employee";
 	};
 
-	// Filter shifts based on selected location and employee
+	// Filter shifts based on search query
 	const filteredShifts = shifts.filter((shift) => {
-		const locationMatch =
-			selectedLocationFilter === "all" ||
-			shift.location_id === selectedLocationFilter;
-		const employeeMatch =
-			selectedEmployeeFilter === "all" ||
-			shift.user_id === selectedEmployeeFilter;
-		return locationMatch && employeeMatch;
+		if (!searchQuery) return true;
+
+		const locationName = getLocationName(shift.location_id);
+		const employeeName = getEmployeeName(shift.user_id);
+		const shiftTime = `${formatTime(shift.start_time)} - ${formatTime(
+			shift.end_time
+		)}`;
+		const searchLower = searchQuery.toLowerCase();
+
+		return (
+			locationName.toLowerCase().includes(searchLower) ||
+			employeeName.toLowerCase().includes(searchLower) ||
+			shiftTime.toLowerCase().includes(searchLower)
+		);
 	});
 
-	// Group shifts by date for list view
-	const shiftsByDate = filteredShifts.reduce((acc, shift) => {
-		const dateKey = format(new Date(shift.start_time), "yyyy-MM-dd");
-		if (!acc[dateKey]) {
-			acc[dateKey] = [];
-		}
-		acc[dateKey].push(shift);
-		return acc;
-	}, {} as Record<string, Shift[]>);
+	// Group shifts by today and upcoming
+	const todayShifts = filteredShifts.filter((shift) =>
+		isToday(new Date(shift.start_time))
+	);
 
-	// Generate color class based on location
-	const getLocationColorClass = (locationId: string | undefined) => {
-		if (!locationId) return "bg-gray-100 text-gray-800";
+	const upcomingShifts = filteredShifts
+		.filter(
+			(shift) =>
+				isFuture(new Date(shift.start_time)) &&
+				!isToday(new Date(shift.start_time))
+		)
+		.slice(0, 10); // Limit to 10 upcoming shifts
 
-		// Map location IDs to Tailwind color classes
-		const colorMap: Record<string, string> = {
-			"loc-1": "bg-blue-100 text-blue-800",
-			"loc-2": "bg-purple-100 text-purple-800",
-			"loc-3": "bg-green-100 text-green-800",
-			"loc-4": "bg-amber-100 text-amber-800",
-			"loc-5": "bg-red-100 text-red-800",
-			"loc-6": "bg-indigo-100 text-indigo-800",
-			"loc-7": "bg-pink-100 text-pink-800",
-			"loc-8": "bg-teal-100 text-teal-800",
-		};
-
-		return colorMap[locationId] || "bg-blue-100 text-blue-800";
+	// Handle opening shift details in a new page
+	const openShiftDetails = (shiftId: string) => {
+		window.open(`/shifts/${shiftId}`, "_blank");
 	};
 
+	// Render a shift card
+	const ShiftCard = ({ shift }: { shift: Shift }) => (
+		<Card
+			key={shift.id}
+			className="cursor-pointer hover:shadow-md transition-all border hover:border-primary"
+			onClick={() => openShiftDetails(shift.id)}>
+			<CardContent className="p-4">
+				<div className="flex justify-between items-start">
+					<div>
+						<h3 className="font-medium flex items-center">
+							<Clock className="h-4 w-4 mr-2 text-primary" />
+							{formatTime(shift.start_time)} - {formatTime(shift.end_time)}
+						</h3>
+						<p className="text-sm text-muted-foreground mt-1 flex items-center">
+							<MapPin className="h-3.5 w-3.5 mr-1" />
+							{getLocationName(shift.location_id)}
+						</p>
+					</div>
+					<Badge variant={shift.user_id ? "secondary" : "destructive"}>
+						{shift.user_id ? getEmployeeName(shift.user_id) : "Unassigned"}
+					</Badge>
+				</div>
+			</CardContent>
+		</Card>
+	);
+
 	return (
-		<Card className="shadow-sm border-border/40">
-			<CardHeader className="pb-3">
-				<div className="flex items-center justify-end">
-					<div className="flex items-center gap-2">
-						<Tabs
-							defaultValue="grid"
-							className="w-[180px]">
-							<TabsList className="grid grid-cols-2">
-								<TabsTrigger
-									value="grid"
-									onClick={() => setView("grid")}
-									className="flex items-center gap-1.5">
-									<LayoutGrid className="h-4 w-4" />
-									<span className="hidden sm:inline">Grid</span>
-								</TabsTrigger>
-								<TabsTrigger
-									value="list"
-									onClick={() => setView("list")}
-									className="flex items-center gap-1.5">
-									<List className="h-4 w-4" />
-									<span className="hidden sm:inline">List</span>
-								</TabsTrigger>
-							</TabsList>
-						</Tabs>
-
-						<Separator
-							orientation="vertical"
-							className="h-8"
+		<Card className="shadow-sm border-border/40 flex flex-col h-[calc(100vh-120px)]">
+			<CardContent className="flex-grow p-6 overflow-y-auto">
+				{/* Search Section */}
+				<div className="mb-6">
+					<div className="relative">
+						<Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+						<Input
+							placeholder="Search shifts by employee, location, or time..."
+							className="pl-10"
+							value={searchQuery}
+							onChange={(e) => setSearchQuery(e.target.value)}
 						/>
-
-						<div className="flex items-center gap-2">
-							<Button
-								variant="outline"
-								size="icon"
-								onClick={handlePreviousMonth}>
-								<ChevronLeft className="h-4 w-4" />
-							</Button>
-
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={handleToday}
-								className="whitespace-nowrap">
-								Today
-							</Button>
-
-							<Button
-								variant="outline"
-								size="icon"
-								onClick={handleNextMonth}>
-								<ChevronRight className="h-4 w-4" />
-							</Button>
-						</div>
-
-						<Separator
-							orientation="vertical"
-							className="h-8"
-						/>
-
-						<DropdownMenu>
-							<DropdownMenuTrigger asChild>
-								<Button
-									variant="outline"
-									size="sm"
-									className="flex items-center gap-1.5">
-									<Filter className="h-4 w-4" />
-									<span className="hidden sm:inline">Filters</span>
-								</Button>
-							</DropdownMenuTrigger>
-							<DropdownMenuContent
-								align="end"
-								className="w-56">
-								<DropdownMenuLabel>Filter Shifts</DropdownMenuLabel>
-								<DropdownMenuSeparator />
-
-								<div className="p-2">
-									<p className="text-sm font-medium mb-2">Location</p>
-									<Select
-										value={selectedLocationFilter}
-										onValueChange={setSelectedLocationFilter}>
-										<SelectTrigger className="w-full">
-											<SelectValue placeholder="All Locations" />
-										</SelectTrigger>
-										<SelectContent>
-											<SelectItem value="all">All Locations</SelectItem>
-											{locations.map((location) => (
-												<SelectItem
-													key={location.id}
-													value={location.id}>
-													{location.name ||
-														`Location ${location.id.replace("loc-", "")}`}
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
-								</div>
-
-								<div className="p-2 pt-0">
-									<p className="text-sm font-medium mb-2">Employee</p>
-									<Select
-										value={selectedEmployeeFilter}
-										onValueChange={setSelectedEmployeeFilter}>
-										<SelectTrigger className="w-full">
-											<SelectValue placeholder="All Employees" />
-										</SelectTrigger>
-										<SelectContent>
-											<SelectItem value="all">All Employees</SelectItem>
-											{employees.map((employee) => (
-												<SelectItem
-													key={employee.id}
-													value={employee.id}>
-													{employee.name ||
-														`Employee ${employee.id.replace("emp-", "")}`}
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
-								</div>
-							</DropdownMenuContent>
-						</DropdownMenu>
 					</div>
 				</div>
-			</CardHeader>
 
-			<CardContent>
 				{loading ? (
-					<div className="flex items-center justify-center py-20">
-						<div className="flex flex-col items-center gap-2">
-							<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-							<p className="text-sm text-muted-foreground">
-								Loading schedule...
-							</p>
-						</div>
-					</div>
-				) : view === "grid" ? (
-					/* Grid View */
-					<div className="rounded-md overflow-hidden">
-						{/* Calendar Days Header */}
-						<div className="grid grid-cols-7 bg-muted">
-							{dayNames.map((day, i) => (
-								<div
-									key={day}
-									className={cn(
-										"h-10 flex items-center justify-center text-sm font-medium",
-										i === 0 || i === 6 ? "text-muted-foreground" : ""
-									)}>
-									{day}
-								</div>
-							))}
-						</div>
-
-						{/* Calendar Days */}
-						<div className="grid grid-cols-7 border-t border-l">
-							{days.map((day, i) => {
-								// Get shifts for this day
-								const dayShifts = filteredShifts.filter((shift) =>
-									isSameDay(new Date(shift.start_time), day)
-								);
-
-								const isToday = isSameDay(day, new Date());
-								const isCurrentMonth = isSameMonth(day, currentMonth);
-								const isSelected = isSameDay(day, selectedDate);
-
-								return (
-									<div
-										key={i}
-										className={cn(
-											"min-h-28 p-1.5 border-b border-r relative",
-											isCurrentMonth ? "" : "bg-muted/30",
-											isSelected ? "bg-muted/80" : ""
-										)}
-										onClick={() => handleDateSelect(day)}>
-										{/* Day Number Badge */}
-										<div className="flex justify-between items-start">
-											<div
-												className={cn(
-													"flex items-center justify-center h-7 w-7 text-sm rounded-full",
-													isToday
-														? "bg-primary text-primary-foreground font-medium"
-														: ""
-												)}>
-												{format(day, "d")}
-											</div>
-
-											{/* Shift count badge */}
-											{dayShifts.length > 0 && (
-												<Badge
-													variant="secondary"
-													className="text-xs flex items-center gap-1">
-													<Clock className="h-3 w-3" />
-													{dayShifts.length}
-												</Badge>
-											)}
-										</div>
-
-										{/* Shifts */}
-										<div className="mt-1 space-y-1">
-											{dayShifts.slice(0, 3).map((shift) => (
-												<TooltipProvider key={shift.id}>
-													<Tooltip>
-														<TooltipTrigger asChild>
-															<div
-																className={cn(
-																	"text-xs rounded py-1 px-2 truncate cursor-pointer",
-																	getLocationColorClass(shift.location_id)
-																)}>
-																{formatTime(shift.start_time)} -{" "}
-																{formatTime(shift.end_time)}
-															</div>
-														</TooltipTrigger>
-														<TooltipContent>
-															<div className="space-y-1">
-																<p className="font-medium">
-																	{formatTime(shift.start_time)} -{" "}
-																	{formatTime(shift.end_time)}
-																</p>
-																<p className="flex items-center gap-1">
-																	<MapPin className="h-3.5 w-3.5" />
-																	{getLocationById(shift.location_id).name}
-																</p>
-																<p className="flex items-center gap-1">
-																	<User className="h-3.5 w-3.5" />
-																	{getEmployeeById(shift.user_id)}
-																</p>
-															</div>
-														</TooltipContent>
-													</Tooltip>
-												</TooltipProvider>
-											))}
-
-											{/* More indicator */}
-											{dayShifts.length > 3 && (
-												<div className="text-xs text-muted-foreground px-2">
-													+ {dayShifts.length - 3} more
-												</div>
-											)}
-										</div>
-									</div>
-								);
-							})}
-						</div>
+					<div className="flex items-center justify-center h-40">
+						<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
 					</div>
 				) : (
-					/* List View */
-					<div className="space-y-6 pb-4">
-						{Object.keys(shiftsByDate).length > 0 ? (
-							Object.entries(shiftsByDate)
-								.sort(
-									([dateA], [dateB]) =>
-										new Date(dateA).getTime() - new Date(dateB).getTime()
-								)
-								.map(([dateStr, shifts]) => {
-									const date = new Date(dateStr);
-									const isToday = isSameDay(date, new Date());
+					<>
+						{/* Today's Shifts Section */}
+						<div className="mb-8">
+							<h2 className="text-lg font-semibold mb-4 flex items-center">
+								<Badge
+									variant="outline"
+									className="mr-2">
+									{todayShifts.length}
+								</Badge>
+								Today's Shifts
+							</h2>
 
-									return (
-										<div
-											key={dateStr}
-											className="space-y-2">
-											<div className="flex items-center gap-2">
-												<h3
-													className={cn(
-														"text-sm font-medium flex items-center gap-2",
-														isToday ? "text-primary" : ""
-													)}>
-													{format(date, "EEEE, MMMM d")}
-													{isToday && <Badge variant="outline">Today</Badge>}
-												</h3>
-											</div>
+							{todayShifts.length > 0 ? (
+								<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+									{todayShifts.map((shift) => (
+										<ShiftCard
+											key={shift.id}
+											shift={shift}
+										/>
+									))}
+								</div>
+							) : (
+								<Card className="bg-muted/30">
+									<CardContent className="p-8 flex flex-col items-center justify-center text-center">
+										<Calendar className="h-10 w-10 text-muted-foreground mb-3" />
+										<h3 className="font-medium">No shifts scheduled today</h3>
+										<p className="text-sm text-muted-foreground mt-1">
+											Use the Create Shift button to add new shifts
+										</p>
+									</CardContent>
+								</Card>
+							)}
+						</div>
 
-											<div className="rounded-md border divide-y">
-												{shifts.map((shift) => (
-													<div
-														key={shift.id}
-														className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-muted/50 cursor-pointer"
-														onClick={() => navigate(`/shifts/${shift.id}`)}>
-														<div className="flex items-center gap-3">
-															<Badge
-																className={cn(
-																	getLocationColorClass(shift.location_id)
-																)}>
-																{formatTime(shift.start_time)} -{" "}
-																{formatTime(shift.end_time)}
-															</Badge>
-															<span className="text-sm flex items-center gap-1.5">
-																<MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-																{getLocationById(shift.location_id).name}
-															</span>
-														</div>
+						{/* Upcoming Shifts Section */}
+						<div>
+							<h2 className="text-lg font-semibold mb-4 flex items-center">
+								<Badge
+									variant="outline"
+									className="mr-2">
+									{upcomingShifts.length}
+								</Badge>
+								Upcoming Shifts
+							</h2>
 
-														<div className="text-sm text-muted-foreground flex items-center gap-1.5">
-															<User className="h-3.5 w-3.5" />
-															{getEmployeeById(shift.user_id)}
-														</div>
-													</div>
-												))}
-											</div>
-										</div>
-									);
-								})
-						) : (
-							<div className="text-center py-10">
-								<Calendar className="h-10 w-10 mx-auto text-muted-foreground" />
-								<h3 className="mt-4 text-lg font-medium">No shifts found</h3>
-								<p className="text-muted-foreground mt-1">
-									{selectedLocationFilter !== "all" ||
-									selectedEmployeeFilter !== "all"
-										? "Try changing your filters"
-										: "Create shifts to see them in the calendar"}
-								</p>
-							</div>
-						)}
-					</div>
+							{upcomingShifts.length > 0 ? (
+								<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+									{upcomingShifts.map((shift) => (
+										<ShiftCard
+											key={shift.id}
+											shift={shift}
+										/>
+									))}
+								</div>
+							) : (
+								<Card className="bg-muted/30">
+									<CardContent className="p-8 flex flex-col items-center justify-center text-center">
+										<Calendar className="h-10 w-10 text-muted-foreground mb-3" />
+										<h3 className="font-medium">
+											No upcoming shifts scheduled
+										</h3>
+										<p className="text-sm text-muted-foreground mt-1">
+											Plan ahead by scheduling future shifts
+										</p>
+									</CardContent>
+								</Card>
+							)}
+						</div>
+					</>
 				)}
 			</CardContent>
-
-			<CardFooter className="flex justify-between pt-2">
-				<p className="text-xs text-muted-foreground">
-					{filteredShifts.length}{" "}
-					{filteredShifts.length === 1 ? "shift" : "shifts"} in{" "}
-					{format(currentMonth, "MMMM")}
-				</p>
-
-				<Button
-					variant="outline"
-					size="sm"
-					onClick={() =>
-						navigate(`/schedule?date=${format(currentMonth, "yyyy-MM-dd")}`)
-					}
-					className="text-xs">
-					<Calendar className="h-3.5 w-3.5 mr-1.5" />
-					Monthly View
-				</Button>
-			</CardFooter>
 		</Card>
 	);
 }
