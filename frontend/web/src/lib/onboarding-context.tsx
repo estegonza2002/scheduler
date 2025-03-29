@@ -44,12 +44,12 @@ const initialState: OnboardingState = {
 	lastCompletedAt: null,
 };
 
-export const OnboardingContext = createContext<
-	OnboardingContextType | undefined
->(undefined);
+export const OnboardingCtx = createContext<OnboardingContextType | undefined>(
+	undefined
+);
 
 export function useOnboarding() {
-	const context = useContext(OnboardingContext);
+	const context = useContext(OnboardingCtx);
 	if (context === undefined) {
 		throw new Error("useOnboarding must be used within an OnboardingProvider");
 	}
@@ -259,8 +259,6 @@ export function OnboardingProvider({
 	};
 
 	return (
-		<OnboardingContext.Provider value={value}>
-			{children}
-		</OnboardingContext.Provider>
+		<OnboardingCtx.Provider value={value}>{children}</OnboardingCtx.Provider>
 	);
 }

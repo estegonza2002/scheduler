@@ -20,12 +20,13 @@ import {
 	Package,
 	Receipt,
 	Check,
+	Save,
+	Upload,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ContentContainer } from "@/components/ui/content-container";
 import { FormSection } from "@/components/ui/form-section";
 import { ContentSection } from "@/components/ui/content-section";
-import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingState } from "@/components/ui/loading-state";

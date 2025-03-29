@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNotifications } from "@/lib/notification-context";
+import { useNotificationsContext } from "@/lib/notification-context";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -52,7 +52,6 @@ import {
 } from "lucide-react";
 import { NotificationItem } from "@/components/NotificationItem";
 import { ContentContainer } from "@/components/ui/content-container";
-import { PageHeader } from "@/components/ui/page-header";
 import { ContentSection } from "@/components/ui/content-section";
 import { Card, CardContent } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
@@ -203,7 +202,7 @@ export default function NotificationsPage() {
 		dismissNotification,
 		dismissAllNotifications,
 		refreshNotifications,
-	} = useNotifications();
+	} = useNotificationsContext();
 
 	// Table filters
 	const [currentPage, setCurrentPage] = useState(1);

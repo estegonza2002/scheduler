@@ -35,7 +35,7 @@ export function StripeProvider({ children }: { children: ReactNode }) {
 
 		try {
 			setIsLoading(true);
-			const data = await BillingAPI.getSubscription(organization.id);
+			const data = await BillingAPI.getCurrentSubscription(organization.id);
 			setSubscription(data);
 		} catch (error) {
 			console.error("Error fetching subscription:", error);
@@ -112,7 +112,7 @@ export function StripeProvider({ children }: { children: ReactNode }) {
 }
 
 // Custom hook to use the Stripe context
-export function useStripe() {
+export function useStripeContext() {
 	const context = useContext(StripeContext);
 	if (context === undefined) {
 		throw new Error("useStripe must be used within a StripeProvider");

@@ -17,13 +17,13 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LoadingState } from "@/components/ui/loading-state";
 import { Separator } from "@/components/ui/separator";
-import { useStripe } from "@/lib/stripe";
+import { useStripeContext } from "@/lib/stripe";
 import { useHeader } from "@/lib/header-context";
 
 export default function AccountPage() {
 	const { user, isLoading: isLoadingAuth } = useAuth();
 	const { organization, isLoading: isLoadingOrg } = useOrganization();
-	const { subscription } = useStripe();
+	const { subscription } = useStripeContext();
 	const navigate = useNavigate();
 	const location = useLocation();
 	const { updateHeader } = useHeader();

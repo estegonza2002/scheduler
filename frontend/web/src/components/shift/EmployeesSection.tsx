@@ -8,8 +8,8 @@ interface EmployeesSectionProps {
 	assignedEmployees: AssignedEmployee[];
 	availableEmployees: any[];
 	shift: {
-		startTime: string;
-		endTime: string;
+		start_time: string;
+		end_time: string;
 	};
 	onRemoveEmployeeClick: (employeeId: string, assignmentId: string) => void;
 	onAssignClick: () => void;
@@ -141,8 +141,8 @@ export function EmployeesSection({
 											<div className="font-medium">
 												$
 												{calculateEmployeeCost(
-													shift.startTime,
-													shift.endTime,
+													shift.start_time,
+													shift.end_time,
 													employee
 												)}
 											</div>

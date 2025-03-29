@@ -1,6 +1,6 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { getOrganizationId } from "./organization";
+import { getOrgId } from "./organization";
 
 export function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs));
@@ -19,8 +19,8 @@ export function formatPhoneNumber(phone: string): string {
  * Returns the current organization ID from context or a fallback UUID
  * This should be used in components that require an organization ID
  *
- * @deprecated Use getOrganizationId from @/lib/organization instead
+ * @deprecated Use getOrgId from @/lib/organization instead
  */
 export function getDefaultOrganizationId(): string {
-	return getOrganizationId();
+	return getOrgId();
 }

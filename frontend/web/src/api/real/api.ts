@@ -1209,7 +1209,7 @@ export interface ConversationCreateInput {
 // Billing API
 export const BillingAPI = {
 	// Subscriptions
-	getSubscription: async (
+	getCurrentSubscription: async (
 		organizationId: string
 	): Promise<Subscription | null> => {
 		try {
@@ -1220,7 +1220,8 @@ export const BillingAPI = {
 				.eq("id", organizationId)
 				.single();
 
-			if (orgError || !org.subscription_id) {
+			// Handle missing subscription_id field by setting default free subscription
+			if (orgError || !org || !org.subscription_id) {
 				console.error("Error fetching organization subscription:", orgError);
 				// If no subscription_id, return a default free subscription
 				return {
@@ -1229,34 +1230,62 @@ export const BillingAPI = {
 					plan: "free",
 					current_period_start: new Date().toISOString(),
 					current_period_end: new Date(
-						Date.now() + 30 * 24 * 60 * 60 * 1000
+						new Date().setFullYear(new Date().getFullYear() + 1)
 					).toISOString(),
 					cancel_at_period_end: false,
 				};
 			}
 
-			// Call the Stripe endpoint to get subscription details
-			const response = await fetch(
-				`${import.meta.env.VITE_API_URL}/api/stripe/subscriptions/${
-					org.subscription_id
-				}`,
-				{
-					method: "GET",
-					headers: {
-						"Content-Type": "application/json",
-					},
-				}
-			);
-
-			if (!response.ok) {
-				throw new Error(`Failed to fetch subscription: ${response.statusText}`);
+			// If it's the free subscription, return hardcoded defaults
+			if (org.subscription_id === "free_subscription") {
+				return {
+					id: "free_subscription",
+					status: "active",
+					plan: "free",
+					current_period_start: new Date().toISOString(),
+					current_period_end: new Date(
+						new Date().setFullYear(new Date().getFullYear() + 1)
+					).toISOString(),
+					cancel_at_period_end: false,
+				};
 			}
 
-			const subscription = await response.json();
-			return subscription;
+			// Get the subscription from Stripe
+			try {
+				const response = await fetch(
+					`${import.meta.env.VITE_API_URL}/api/stripe/subscriptions/${
+						org.subscription_id
+					}`,
+					{
+						method: "GET",
+						headers: {
+							"Content-Type": "application/json",
+						},
+					}
+				);
+
+				if (!response.ok) {
+					throw new Error(`Failed to get subscription: ${response.statusText}`);
+				}
+
+				const subscription = await response.json();
+				return subscription;
+			} catch (stripeError) {
+				console.error("Error fetching Stripe subscription:", stripeError);
+				// Fallback to free subscription on error
+				return {
+					id: "free_subscription",
+					status: "active",
+					plan: "free",
+					current_period_start: new Date().toISOString(),
+					current_period_end: new Date(
+						new Date().setFullYear(new Date().getFullYear() + 1)
+					).toISOString(),
+					cancel_at_period_end: false,
+				};
+			}
 		} catch (error) {
-			console.error("Error fetching subscription:", error);
-			toast.error("Failed to load subscription information");
+			console.error("Error in getCurrentSubscription:", error);
 			return null;
 		}
 	},

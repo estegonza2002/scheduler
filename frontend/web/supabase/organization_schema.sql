@@ -9,7 +9,11 @@ CREATE TABLE IF NOT EXISTS organizations (
   name TEXT NOT NULL,
   description TEXT,
   logo_url TEXT,
-  owner_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE
+  owner_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  subscription_id TEXT DEFAULT 'free_subscription',
+  subscription_status TEXT DEFAULT 'active',
+  subscription_plan TEXT DEFAULT 'free',
+  stripe_customer_id TEXT
 );
 
 -- Organization Members table (for proper user-organization relationships)

@@ -29,7 +29,6 @@ import { AppSidebar } from "../AppSidebar";
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { OrganizationsAPI, Organization } from "../../api";
-import { useLayout } from "../../lib/layout-context";
 import { useAuth } from "../../lib/auth";
 import { OnboardingModal } from "../onboarding/OnboardingModal";
 import * as React from "react";

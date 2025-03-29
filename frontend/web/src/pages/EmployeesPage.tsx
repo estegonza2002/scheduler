@@ -75,7 +75,6 @@ import {
 } from "@/components/ui/tooltip";
 import { AvatarWithStatus } from "@/components/ui/avatar-with-status";
 import { cn } from "@/lib/utils";
-import { PageHeader } from "@/components/ui/page-header";
 import { ContentSection } from "@/components/ui/content-section";
 import { DataCardGrid } from "@/components/ui/data-card-grid";
 import { getDefaultOrganizationId } from "@/lib/utils";

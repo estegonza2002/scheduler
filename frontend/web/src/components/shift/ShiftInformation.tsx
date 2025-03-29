@@ -34,11 +34,11 @@ export function ShiftInformation({
 				<CardContent className="p-4 pt-3">
 					<div>
 						<div className="text-sm font-medium">
-							{format(parseISO(shift.startTime), "h:mm a")} -{" "}
-							{format(parseISO(shift.endTime), "h:mm a")}
+							{format(parseISO(shift.start_time), "h:mm a")} -{" "}
+							{format(parseISO(shift.end_time), "h:mm a")}
 						</div>
 						<div className="text-xs text-muted-foreground mt-1">
-							{calculateHours(shift.startTime, shift.endTime)} hours
+							{calculateHours(shift.start_time, shift.end_time)} hours
 						</div>
 					</div>
 				</CardContent>

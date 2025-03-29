@@ -19,7 +19,6 @@ import {
 	type PaymentMethod,
 } from "@/api";
 import { Separator } from "@/components/ui/separator";
-import { PageHeader } from "@/components/ui/page-header";
 import { format } from "date-fns";
 import { ContentContainer } from "@/components/ui/content-container";
 import { ContentSection } from "@/components/ui/content-section";
@@ -35,7 +34,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { ColumnDef } from "@tanstack/react-table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
-import { useStripe } from "@/lib/stripe";
+import { useStripeContext } from "@/lib/stripe";
 import { useOrganization } from "@/lib/organization";
 import {
 	CardElement,
@@ -131,7 +130,7 @@ export default function BillingPage() {
 		isLoading: isLoadingSubscription,
 		upgradeSubscription,
 		cancelSubscription,
-	} = useStripe();
+	} = useStripeContext();
 
 	const [isLoading, setIsLoading] = useState(false);
 	const [isUpgrading, setIsUpgrading] = useState(false);

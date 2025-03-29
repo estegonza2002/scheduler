@@ -9,7 +9,7 @@ import { Shift, Schedule } from "@/api/types";
 import { ShiftsAPI } from "@/api";
 import { supabase } from "./supabase";
 import { toast } from "sonner";
-import { getOrganizationId } from "./organization";
+import { getOrgId } from "./organization";
 
 // Context type that includes all necessary functionality
 interface ShiftContextType {
@@ -43,7 +43,7 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
 	const refreshShifts = async () => {
 		try {
 			setIsLoading(true);
-			const organizationId = getOrganizationId();
+			const organizationId = getOrgId();
 
 			// First get all schedules
 			const schedulesData = await ShiftsAPI.getAllSchedules(organizationId);
@@ -146,7 +146,7 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
 
 	// Set up real-time subscription for shift updates
 	useEffect(() => {
-		const organizationId = getOrganizationId();
+		const organizationId = getOrgId();
 
 		const subscription = supabase
 			.channel("shift-updates")
@@ -198,7 +198,7 @@ export function useShift() {
 }
 
 // Utility function to get shift ID (can be used in any context)
-export function getShiftId(): string | null {
+export function getCurrentShift(): string | null {
 	try {
 		// This will work in component contexts
 		const { getCurrentShiftId } = useShift();

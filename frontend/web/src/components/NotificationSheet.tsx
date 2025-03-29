@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useNotifications } from "@/lib/notification-context";
+import { useNotificationsContext } from "@/lib/notification-context";
 import { CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -27,7 +27,7 @@ export function NotificationSheet() {
 		markAllAsRead,
 		dismissNotification,
 		dismissAllNotifications,
-	} = useNotifications();
+	} = useNotificationsContext();
 
 	const [open, setOpen] = useState(false);
 

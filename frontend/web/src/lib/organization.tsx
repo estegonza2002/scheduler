@@ -129,7 +129,7 @@ export function useOrganization() {
 }
 
 // Utility function to get organization ID (can be used in any context)
-export function getOrganizationId(): string {
+export function getOrgId(): string {
 	try {
 		// This will work in component contexts
 		const { getCurrentOrganizationId } = useOrganization();

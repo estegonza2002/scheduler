@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import {
 	LayoutDashboard,
@@ -35,11 +35,11 @@ import {
 	SidebarGroupLabel,
 	SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { NavUser } from "@/components/NavUser";
 import { useState, useEffect } from "react";
 import { OrganizationsAPI, type Organization } from "@/api";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { AvatarWithStatus } from "@/components/ui/avatar-with-status";
 import { Card, CardContent } from "@/components/ui/card";
 
 type NavItem = {
@@ -54,6 +54,7 @@ type NavItem = {
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 	const { user, signOut } = useAuth();
 	const location = useLocation();
+	const navigate = useNavigate();
 	const [organization, setOrganization] = useState<Organization | null>(null);
 	const [subscriptionPlan, setSubscriptionPlan] = useState<
 		"free" | "pro" | "business"
@@ -67,14 +68,17 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 
 	// Helper function to check if a route is active
 	const isRouteActive = (path: string): boolean => {
+		// Handle paths without query parameters
+		const currentPath = location.pathname;
+
 		// Exact matches
-		if (location.pathname === path) return true;
+		if (currentPath === path) return true;
 
 		// Special case for nested routes - only match if the path is a prefix of the current path
 		// and followed by a slash or end of string
-		if (path !== "/" && location.pathname.startsWith(path)) {
+		if (path !== "/" && currentPath.startsWith(path)) {
 			// Check if the next character after the path is a slash or end of string
-			const nextChar = location.pathname.charAt(path.length);
+			const nextChar = currentPath.charAt(path.length);
 			return nextChar === "/" || nextChar === "";
 		}
 
@@ -100,6 +104,73 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 		fetchOrganizationData();
 	}, []);
 
+	// Handle navigation for a menu item
+	const handleNavigation = (href: string, event?: React.MouseEvent) => {
+		// Prevent default if there's an event
+		if (event) {
+			event.preventDefault();
+		}
+
+		if (href === "#") {
+			return; // This is for sign out, handled separately
+		}
+
+		// Use setTimeout to allow the event to complete before navigating
+		setTimeout(() => {
+			console.log("Navigating to:", href);
+
+			// First, try using React Router's navigate
+			navigate(href);
+
+			// Set a fallback timeout in case navigate doesn't work
+			// This happens in some versions of React Router
+			const fallbackTimeout = setTimeout(() => {
+				// Check if location didn't change
+				if (location.pathname !== href.split("?")[0]) {
+					console.log("Fallback navigation to:", href);
+					window.location.href = href;
+				}
+			}, 100);
+
+			// Clean up the timeout if component unmounts
+			return () => clearTimeout(fallbackTimeout);
+		}, 0);
+	};
+
+	// Handle profile click (replaces NavUser profile click functionality)
+	const handleProfileClick = (e: React.MouseEvent) => {
+		e.preventDefault();
+		console.log("Navigating to profile");
+
+		// Use setTimeout to allow the event to complete before navigating
+		setTimeout(() => {
+			// Try React Router navigation
+			navigate("/profile");
+
+			// Set a fallback timeout in case navigate doesn't work
+			const fallbackTimeout = setTimeout(() => {
+				console.log("Fallback navigation to profile");
+				window.location.href = "/profile";
+			}, 100);
+
+			// Clean up timeout if component unmounts
+			return () => clearTimeout(fallbackTimeout);
+		}, 0);
+	};
+
+	const handleSignOut = () => {
+		signOut();
+	};
+
+	// User display info directly in AppSidebar (formerly in NavUser)
+	const userDisplay = {
+		name: `${user?.user_metadata?.firstName || ""} ${
+			user?.user_metadata?.lastName || ""
+		}`,
+		email: user?.email || "",
+		avatar_url: user?.user_metadata?.avatar_url || "",
+	};
+
 	const mainNavItems: NavItem[] = [
 		{
 			icon: <LayoutDashboard className="h-5 w-5" />,
@@ -111,7 +182,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 		{
 			icon: <Calendar className="h-5 w-5" />,
 			label: "Schedule",
-			href: "/schedule",
+			href: `/daily-shifts?date=${new Date().toISOString().split("T")[0]}`,
 			isActive:
 				isRouteActive("/schedule") ||
 				isRouteActive("/schedule/monthly") ||
@@ -204,14 +275,6 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 			: isRouteActive("/pricing"),
 	};
 
-	const userDisplay = {
-		name: `${user?.user_metadata?.firstName || ""} ${
-			user?.user_metadata?.lastName || ""
-		}`,
-		email: user?.email || "",
-		avatar_url: user?.user_metadata?.avatar_url || "",
-	};
-
 	// Debug logs for avatar URL
 	console.log("User in sidebar:", JSON.stringify(user, null, 2));
 	console.log("User metadata in sidebar:", user?.user_metadata);
@@ -227,14 +290,12 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 					key={index}
 					className={isFooterMenu ? "px-0" : ""}>
 					<SidebarMenuButton
-						asChild
 						isActive={item.isActive}
 						className={
 							isFooterMenu ? "w-full rounded-none px-4 hover:bg-muted/80" : ""
-						}>
-						<Link
-							to={item.href}
-							className="flex items-center justify-between w-full">
+						}
+						onClick={(e) => handleNavigation(item.href, e)}>
+						<div className="flex items-center justify-between w-full">
 							<div className="flex items-center gap-3">
 								{item.icon}
 								<span>{item.label}</span>
@@ -246,18 +307,21 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 									New
 								</Badge>
 							)}
-						</Link>
+						</div>
 					</SidebarMenuButton>
 				</SidebarMenuItem>
 			);
 		});
 	};
 
-	const handleSignOut = () => {
-		signOut();
+	const accountNavItem = {
+		icon: <User className="h-5 w-5" />,
+		label: "Account Settings",
+		href: "/account",
+		isActive: isRouteActive("/account"),
 	};
 
-	// Add new Reports navigation items
+	// Reports navigation items
 	const reportsNavItems: NavItem[] = [
 		{
 			icon: <BarChart3 className="h-5 w-5" />,
@@ -289,33 +353,44 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 		},
 	];
 
-	// Replace accountNavItem with a single Account entry
-	const accountNavItem: NavItem = {
-		icon: <Settings className="h-5 w-5" />,
-		label: "Account",
-		href: "/account",
-		isActive: isRouteActive("/account"),
-		adminOnly: true,
-	};
-
-	// Sign out item for the footer
-	const signOutItem: NavItem = {
-		icon: <LogOut className="h-5 w-5" />,
-		label: "Sign Out",
-		href: "#",
-		isActive: false,
-	};
+	// User profile
+	const renderUserProfile = () => (
+		<SidebarMenu className="px-2 pt-2 pb-1">
+			<SidebarMenuItem>
+				<SidebarMenuButton
+					size="lg"
+					className="w-full rounded-md"
+					onClick={handleProfileClick}>
+					<AvatarWithStatus
+						isOnline={isOnline}
+						fallback={userDisplay.name.charAt(0)}
+						src={userDisplay.avatar_url}
+						alt={userDisplay.name}
+						className="mr-2"
+					/>
+					<span className="flex-1 overflow-hidden text-left">
+						<span className="block truncate font-medium">
+							{userDisplay.name}
+						</span>
+						<span className="block truncate text-xs text-muted-foreground">
+							{userDisplay.email}
+						</span>
+					</span>
+				</SidebarMenuButton>
+			</SidebarMenuItem>
+		</SidebarMenu>
+	);
 
 	return (
 		<Sidebar {...props}>
 			<SidebarHeader>
 				<div className="w-full">
 					{isAdmin ? (
-						<Link
-							to="/admin-dashboard"
-							className="flex items-center gap-3 px-4 py-2 rounded-md text-lg font-bold text-primary hover:bg-muted/50 transition-colors ">
+						<div
+							onClick={(e) => handleNavigation("/admin-dashboard", e)}
+							className="flex items-center gap-3 px-4 py-2 rounded-md text-lg font-bold text-primary hover:bg-muted/50 transition-colors cursor-pointer">
 							Scheduler
-						</Link>
+						</div>
 					) : (
 						<h2>Scheduler</h2>
 					)}
@@ -356,13 +431,8 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 			</SidebarContent>
 
 			<SidebarFooter className="pb-4">
-				{/* User profile section using NavUser component */}
-				<NavUser
-					user={userDisplay}
-					isAdmin={isAdmin}
-					subscriptionPlan={subscriptionPlan}
-					isOnline={isOnline}
-				/>
+				{/* User profile section directly in AppSidebar */}
+				{renderUserProfile()}
 
 				{/* Upgrade Banner */}
 				{!isPaidUser && (
@@ -376,11 +446,11 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 								<p className="text-xs text-muted-foreground mb-3">
 									Get unlimited shifts, locations, and premium features.
 								</p>
-								<Link
-									to="/pricing"
-									className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 w-full">
+								<div
+									onClick={(e) => handleNavigation("/pricing", e)}
+									className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 w-full cursor-pointer">
 									See Plans
-								</Link>
+								</div>
 							</CardContent>
 						</Card>
 					</div>
@@ -392,14 +462,12 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 					{isAdmin && (
 						<SidebarMenuItem>
 							<SidebarMenuButton
-								asChild
-								className="w-full justify-start rounded-md text-sm py-2 hover:bg-muted">
-								<Link
-									to={accountNavItem.href}
-									className="flex items-center gap-3">
+								className="w-full justify-start rounded-md text-sm py-2 hover:bg-muted"
+								onClick={(e) => handleNavigation(accountNavItem.href, e)}>
+								<div className="flex items-center gap-3">
 									{accountNavItem.icon}
 									<span>{accountNavItem.label}</span>
-								</Link>
+								</div>
 							</SidebarMenuButton>
 						</SidebarMenuItem>
 					)}

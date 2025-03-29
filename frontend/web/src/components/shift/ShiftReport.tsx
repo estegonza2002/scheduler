@@ -1,4 +1,4 @@
-import { Shift, CheckInTask, CheckOutTask } from "../../api";
+import { Shift, ShiftTask } from "../../api";
 import { AssignedEmployee } from "../../types/shift-types";
 import { calculateHours } from "../../utils/time-calculations";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
@@ -14,7 +14,7 @@ interface ShiftReportProps {
 export function ShiftReport({ shift, assignedEmployees }: ShiftReportProps) {
 	// Calculate metrics
 	const scheduledHours = parseFloat(
-		calculateHours(shift.startTime, shift.endTime)
+		calculateHours(shift.start_time, shift.end_time)
 	);
 
 	// Calculate actual hours (in a real app, this would come from check-in/out data)
@@ -23,17 +23,17 @@ export function ShiftReport({ shift, assignedEmployees }: ShiftReportProps) {
 	const hoursVariance = actualHours - scheduledHours;
 
 	// Calculate task completion rates
-	const totalCheckInTasks = shift.checkInTasks?.length || 0;
+	const totalCheckInTasks = shift.check_in_tasks?.length || 0;
 	const completedCheckInTasks =
-		shift.checkInTasks?.filter((task) => task.completed).length || 0;
+		shift.check_in_tasks?.filter((task) => task.completed).length || 0;
 	const checkInCompletionRate =
 		totalCheckInTasks === 0
 			? 100
 			: Math.round((completedCheckInTasks / totalCheckInTasks) * 100);
 
-	const totalCheckOutTasks = shift.checkOutTasks?.length || 0;
+	const totalCheckOutTasks = shift.check_out_tasks?.length || 0;
 	const completedCheckOutTasks =
-		shift.checkOutTasks?.filter((task) => task.completed).length || 0;
+		shift.check_out_tasks?.filter((task) => task.completed).length || 0;
 	const checkOutCompletionRate =
 		totalCheckOutTasks === 0
 			? 100

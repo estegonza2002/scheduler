@@ -21,7 +21,6 @@ import {
 	SearchX,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { PageHeader } from "@/components/ui/page-header";
 import { ContentContainer } from "@/components/ui/content-container";
 import { ContentSection } from "@/components/ui/content-section";
 import {

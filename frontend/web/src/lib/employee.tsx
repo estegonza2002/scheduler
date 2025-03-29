@@ -9,7 +9,7 @@ import { Employee } from "@/api/types";
 import { EmployeesAPI } from "@/api";
 import { supabase } from "./supabase";
 import { toast } from "sonner";
-import { getOrganizationId } from "./organization";
+import { getOrgId } from "./organization";
 
 // Context type that includes all necessary functionality
 interface EmployeeContextType {
@@ -40,7 +40,7 @@ export function EmployeeProvider({ children }: { children: ReactNode }) {
 	const refreshEmployees = async () => {
 		try {
 			setIsLoading(true);
-			const organizationId = getOrganizationId();
+			const organizationId = getOrgId();
 			const employeeData = await EmployeesAPI.getAll(organizationId);
 
 			setEmployees(employeeData);
@@ -92,7 +92,7 @@ export function EmployeeProvider({ children }: { children: ReactNode }) {
 
 	// Set up real-time subscription for employee updates
 	useEffect(() => {
-		const organizationId = getOrganizationId();
+		const organizationId = getOrgId();
 
 		const subscription = supabase
 			.channel("employee-updates")
@@ -142,7 +142,7 @@ export function useEmployee() {
 }
 
 // Utility function to get employee ID (can be used in any context)
-export function getEmployeeId(): string | null {
+export function getCurrentEmployee(): string | null {
 	try {
 		// This will work in component contexts
 		const { getCurrentEmployeeId } = useEmployee();

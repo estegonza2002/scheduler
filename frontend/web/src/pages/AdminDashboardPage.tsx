@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
-import { useLayout } from "@/lib/layout-context";
+import { useHeader } from "@/lib/header-context";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -39,7 +39,7 @@ import { LoadingState } from "@/components/ui/loading-state";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { DollarSign, Users, Calendar } from "lucide-react";
-import { useHeader } from "@/lib/header-context";
+import { FragmentFix } from "@/components/ui/fragment-fix";
 
 // Extended organization type for UI display purposes
 interface ExtendedOrganization extends Organization {
@@ -56,7 +56,6 @@ interface WeeklyStats {
 
 export default function AdminDashboardPage() {
 	const { user } = useAuth();
-	const {} = useLayout();
 	const { updateHeader } = useHeader();
 	const {
 		onboardingState,
@@ -85,60 +84,24 @@ export default function AdminDashboardPage() {
 	});
 	const navigate = useNavigate();
 
-	// Update header with title, description, and action buttons
-	useEffect(() => {
-		const headerActions = (
-			<>
-				<Button
-					variant="outline"
-					onClick={() => startOnboarding()}
-					className="mr-2">
-					<Settings className="h-4 w-4 mr-2" />
-					Setup Guide ({getCompletedStepsCount()}/{getTotalStepsCount()})
-				</Button>
-				<Button onClick={() => navigate("/schedule/create")}>
-					<Plus className="h-4 w-4 mr-2" />
-					Create Schedule
-				</Button>
-			</>
-		);
+	// Data fetching effect is now separated to prevent infinite update loops
+	const fetchData = useCallback(async () => {
+		if (!loading) return; // Only fetch if we're in loading state
 
-		if (loading) {
-			updateHeader({
-				title: "Loading Dashboard",
-				description: "Retrieving your business data",
-			});
-		} else {
-			updateHeader({
-				title: "Business Dashboard",
-				description: "Manage your business operations and view key metrics",
-				actions: headerActions,
-			});
-		}
-	}, [
-		loading,
-		updateHeader,
-		startOnboarding,
-		getCompletedStepsCount,
-		getTotalStepsCount,
-		navigate,
-	]);
+		try {
+			setLoadingPhase("organization");
+			const orgs = await OrganizationsAPI.getAll();
 
-	useEffect(() => {
-		const fetchData = async () => {
-			try {
-				setLoading(true);
-				setLoadingPhase("organization");
-				const orgs = await OrganizationsAPI.getAll();
-				if (orgs.length > 0) {
-					// Add subscription_plan for display purposes
-					const orgWithPlan = {
-						...orgs[0],
-						subscription_plan: "free" as const,
-					};
-					setOrganization(orgWithPlan);
-					setLoadingPhase("employees");
+			if (orgs.length > 0) {
+				// Add subscription_plan for display purposes
+				const orgWithPlan = {
+					...orgs[0],
+					subscription_plan: "free" as const,
+				};
+				setOrganization(orgWithPlan);
+				setLoadingPhase("employees");
 
+				try {
 					// Fetch data in parallel for better performance
 					const [fetchedEmployees, locations, schedules] = await Promise.all([
 						EmployeesAPI.getAll(orgs[0].id),
@@ -161,38 +124,47 @@ export default function AdminDashboardPage() {
 						setCurrentSchedule(latestSchedule.id);
 					}
 
-					// Get shifts for all schedules
-					const shiftsPromises = schedules.map((schedule) =>
-						ShiftsAPI.getShiftsForSchedule(schedule.id)
-					);
-					const shiftsArrays = await Promise.all(shiftsPromises);
-					const allShifts = shiftsArrays.flat();
+					try {
+						// Get shifts for all schedules
+						const shiftsPromises = schedules.map((schedule) =>
+							ShiftsAPI.getShiftsForSchedule(schedule.id)
+						);
+						const shiftsArrays = await Promise.all(shiftsPromises);
+						const allShifts = shiftsArrays.flat();
 
-					// Calculate active and upcoming shifts
-					const now = new Date();
-					const active = allShifts.filter(
-						(shift) =>
-							new Date(shift.start_time) <= now &&
-							new Date(shift.end_time) >= now
-					).length;
+						// Calculate active and upcoming shifts
+						const now = new Date();
+						const active = allShifts.filter(
+							(shift) =>
+								new Date(shift.start_time) <= now &&
+								new Date(shift.end_time) >= now
+						).length;
 
-					const upcoming = allShifts.filter(
-						(shift) => new Date(shift.start_time) > now
-					).length;
+						const upcoming = allShifts.filter(
+							(shift) => new Date(shift.start_time) > now
+						).length;
 
-					setActiveShifts(active);
-					setUpcomingShifts(upcoming);
+						setActiveShifts(active);
+						setUpcomingShifts(upcoming);
+					} catch (shiftsError) {
+						console.error("Error fetching shifts:", shiftsError);
+					}
+				} catch (dataError) {
+					console.error("Error fetching related data:", dataError);
 				}
-			} catch (error) {
-				console.error("Error fetching data:", error);
-			} finally {
-				setLoading(false);
-				setLoadingPhase("");
 			}
-		};
+		} catch (error) {
+			console.error("Error fetching data:", error);
+		} finally {
+			setLoading(false);
+			setLoadingPhase("");
+		}
+	}, [loading]);
 
+	// Run the fetch data function only once on component mount
+	useEffect(() => {
 		fetchData();
-	}, []);
+	}, [fetchData]);
 
 	const handleEmployeesAdded = useCallback((newEmployees: Employee[]) => {
 		setEmployees((prev) => [...prev, ...newEmployees]);
@@ -275,6 +247,41 @@ export default function AdminDashboardPage() {
 			);
 		}
 	};
+
+	// Update header with title, description, and action buttons
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	useEffect(() => {
+		// Simple function to update the header based on loading state
+		if (loading) {
+			updateHeader({
+				title: "Loading Dashboard",
+				description: "Retrieving your business data",
+			});
+		} else {
+			// Create actions element for non-loading state
+			const actions = (
+				<div className="flex items-center gap-2">
+					<Button
+						variant="outline"
+						onClick={() => startOnboarding()}
+						className="mr-2">
+						<Settings className="h-4 w-4 mr-2" />
+						Setup Guide ({getCompletedStepsCount()}/{getTotalStepsCount()})
+					</Button>
+					<Button onClick={() => navigate("/schedule/create")}>
+						<Plus className="h-4 w-4 mr-2" />
+						Create Schedule
+					</Button>
+				</div>
+			);
+
+			updateHeader({
+				title: "Business Dashboard",
+				description: "Manage your business operations and view key metrics",
+				actions,
+			});
+		}
+	}, [loading]); // Only depend on loading state, ignore eslint warning with the comment above
 
 	if (loading) {
 		return <ContentContainer>{renderLoadingState()}</ContentContainer>;

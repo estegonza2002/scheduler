@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
-import { useStripe } from "@/lib/stripe";
+import { useStripeContext } from "@/lib/stripe";
 import { useOrganization } from "@/lib/organization";
 
 type TeamSize = "small" | "medium" | "large";
@@ -142,7 +142,7 @@ const teamSizeOptions = [
 export default function PricingPlans() {
 	const [teamSize, setTeamSize] = useState<TeamSize>("small");
 	const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
-	const { subscription, upgradeSubscription, isLoading } = useStripe();
+	const { subscription, upgradeSubscription, isLoading } = useStripeContext();
 	const { organization } = useOrganization();
 
 	// Define pricing plans based on team size and billing cycle

@@ -226,7 +226,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
 	);
 };
 
-export const useNotifications = () => {
+export const useNotificationsContext = () => {
 	const context = useContext(NotificationContext);
 	if (context === undefined) {
 		throw new Error(

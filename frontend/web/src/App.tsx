@@ -10,13 +10,14 @@ import { StripeProvider } from "./lib/stripe";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import AppLayout from "./components/layout/AppLayout";
 import { NotificationProvider } from "./lib/notification-context";
-import { LayoutProvider } from "./lib/layout-context";
 import { OnboardingProvider } from "./lib/onboarding-context";
 import { useEffect, useState } from "react";
 import { BusinessSetupModal } from "./components/auth/BusinessSetupModal";
 import { LocationProvider } from "./lib/location";
 import { EmployeeProvider } from "./lib/employee";
 import { ShiftProvider } from "./lib/shift";
+import { Button } from "./components/ui/button";
+import { HeaderProvider } from "./lib/header-context";
 
 // Import our pages
 import LoginPage from "./pages/LoginPage";
@@ -61,18 +62,47 @@ import AccountPage from "./pages/AccountPage";
 function RootRedirect() {
 	const { user, isLoading } = useAuth();
 	const [showBusinessSetup, setShowBusinessSetup] = useState(false);
+	const [loadingTimeout, setLoadingTimeout] = useState(false);
 
 	useEffect(() => {
 		// Check if this is a Google sign-in for business registration
 		if (user && localStorage.getItem("business_signup") === "true") {
 			setShowBusinessSetup(true);
 		}
-	}, [user]);
 
-	if (isLoading) {
+		// Set a timeout to avoid infinite loading state
+		const timeoutId = setTimeout(() => {
+			if (isLoading) {
+				console.warn("Loading timeout in RootRedirect");
+				setLoadingTimeout(true);
+			}
+		}, 8000); // 8 seconds timeout
+
+		return () => clearTimeout(timeoutId);
+	}, [user, isLoading]);
+
+	if (isLoading && !loadingTimeout) {
 		return (
 			<div className="min-h-screen flex items-center justify-center">
 				<div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+			</div>
+		);
+	}
+
+	// If we hit a timeout but are still loading, show a retry button
+	if (loadingTimeout && isLoading) {
+		return (
+			<div className="min-h-screen flex flex-col items-center justify-center gap-4 p-4">
+				<div className="text-center">
+					<h2 className="text-2xl font-semibold mb-2">Connection Issue</h2>
+					<p className="text-muted-foreground mb-4">
+						We're having trouble connecting to our servers. This might be due to
+						network issues.
+					</p>
+					<Button onClick={() => window.location.reload()}>
+						Retry Connection
+					</Button>
+				</div>
 			</div>
 		);
 	}
@@ -103,22 +133,12 @@ function RootRedirect() {
 	}
 
 	if (!user) {
-		return (
-			<Navigate
-				to="/login"
-				replace
-			/>
-		);
+		return <Navigate to="/login" />;
 	}
 
 	// Check if user is an admin
 	const isAdmin = user?.user_metadata?.role === "admin";
-	return (
-		<Navigate
-			to={isAdmin ? "/admin-dashboard" : "/dashboard"}
-			replace
-		/>
-	);
+	return <Navigate to={isAdmin ? "/admin-dashboard" : "/dashboard"} />;
 }
 
 function App() {
@@ -130,7 +150,7 @@ function App() {
 						<EmployeeProvider>
 							<ShiftProvider>
 								<StripeProvider>
-									<LayoutProvider>
+									<HeaderProvider>
 										<NotificationProvider>
 											<OnboardingProvider>
 												<Routes>
@@ -190,7 +210,6 @@ function App() {
 																		to={`/daily-shifts?date=${
 																			new Date().toISOString().split("T")[0]
 																		}`}
-																		replace
 																	/>
 																}
 															/>
@@ -217,7 +236,6 @@ function App() {
 																		to={`/daily-shifts?date=${
 																			new Date().toISOString().split("T")[0]
 																		}`}
-																		replace
 																	/>
 																}
 															/>
@@ -332,29 +350,16 @@ function App() {
 															<Route
 																path="/business-profile"
 																element={
-																	<Navigate
-																		to="/account/business-profile"
-																		replace
-																	/>
+																	<Navigate to="/account/business-profile" />
 																}
 															/>
 															<Route
 																path="/billing"
-																element={
-																	<Navigate
-																		to="/account/billing"
-																		replace
-																	/>
-																}
+																element={<Navigate to="/account/billing" />}
 															/>
 															<Route
 																path="/users"
-																element={
-																	<Navigate
-																		to="/account/users"
-																		replace
-																	/>
-																}
+																element={<Navigate to="/account/users" />}
 															/>
 															<Route
 																path="/branding"
@@ -370,17 +375,12 @@ function App() {
 													/>
 													<Route
 														path="*"
-														element={
-															<Navigate
-																to="/"
-																replace
-															/>
-														}
+														element={<Navigate to="/" />}
 													/>
 												</Routes>
 											</OnboardingProvider>
 										</NotificationProvider>
-									</LayoutProvider>
+									</HeaderProvider>
 								</StripeProvider>
 							</ShiftProvider>
 						</EmployeeProvider>

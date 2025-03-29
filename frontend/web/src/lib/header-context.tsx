@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, {
+	createContext,
+	useContext,
+	useState,
+	ReactNode,
+	useCallback,
+} from "react";
 
 // Define the interface for header content
 interface HeaderContent {
@@ -11,7 +17,9 @@ interface HeaderContent {
 // Interface for the context value
 interface HeaderContextType {
 	headerContent: HeaderContent;
-	updateHeader: (content: HeaderContent) => void;
+	updateHeader: (
+		content: HeaderContent | ((prev: HeaderContent) => HeaderContent)
+	) => void;
 }
 
 // Create the context with undefined default value
@@ -25,9 +33,25 @@ export function HeaderProvider({ children }: { children: ReactNode }) {
 		title: "Scheduler",
 	});
 
-	const updateHeader = (content: HeaderContent) => {
-		setHeaderContent(content);
-	};
+	// Use useCallback to prevent the updateHeader function from being recreated on each render
+	const updateHeader = useCallback(
+		(content: HeaderContent | ((prev: HeaderContent) => HeaderContent)) => {
+			setHeaderContent((prevContent) => {
+				// If content is a function, call it with the previous content
+				if (typeof content === "function") {
+					return content(prevContent);
+				}
+
+				// Compare objects to prevent unnecessary updates
+				if (JSON.stringify(prevContent) === JSON.stringify(content)) {
+					return prevContent; // Return previous content to avoid re-render
+				}
+
+				return content;
+			});
+		},
+		[]
+	);
 
 	return (
 		<HeaderContext.Provider value={{ headerContent, updateHeader }}>

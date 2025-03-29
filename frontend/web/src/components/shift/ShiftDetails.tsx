@@ -4,8 +4,7 @@ import {
 	Shift,
 	Employee,
 	Location,
-	CheckInTask,
-	CheckOutTask,
+	ShiftTask,
 	ShiftsAPI,
 	LocationsAPI,
 	EmployeesAPI,
@@ -33,13 +32,13 @@ import { format, parseISO } from "date-fns";
 import { Button } from "../ui/button";
 import { Switch } from "../ui/switch";
 import { Label } from "../ui/label";
-import { useNotifications } from "../../lib/notification-context";
+import { useNotificationsContext } from "../../lib/notification-context";
 import { ShiftReport } from "./ShiftReport";
 
 // Define API access functions
 const getShift = async (shiftId: string): Promise<Shift | null> => {
 	console.log(`Getting shift with ID: ${shiftId}`);
-	return ShiftsAPI.getById(shiftId);
+	return ShiftsAPI.getShiftById(shiftId);
 };
 
 const getLocation = async (locationId: string): Promise<Location | null> => {
@@ -51,7 +50,7 @@ const getShiftAssignments = async (
 	shiftId: string
 ): Promise<ShiftAssignment[]> => {
 	console.log(`Getting assignments for shift: ${shiftId}`);
-	return ShiftAssignmentsAPI.getByShiftId(shiftId);
+	return ShiftAssignmentsAPI.getAll(shiftId);
 };
 
 const getEmployee = async (employeeId: string): Promise<Employee | null> => {
@@ -69,12 +68,12 @@ const updateShift = async (
 	shiftData: Partial<Shift>
 ): Promise<Shift | null> => {
 	console.log(`Updating shift with ID: ${shiftId}`);
-	return ShiftsAPI.update({ id: shiftId, ...shiftData });
+	return ShiftsAPI.updateShift(shiftId, shiftData);
 };
 
-const deleteShift = async (shiftId: string): Promise<boolean> => {
+const deleteShift = async (shiftId: string): Promise<void> => {
 	console.log(`Deleting shift with ID: ${shiftId}`);
-	return ShiftsAPI.delete(shiftId);
+	return ShiftsAPI.deleteShift(shiftId);
 };
 
 const createShiftAssignment = async (
@@ -96,7 +95,6 @@ const sampleAssignedEmployees: AssignedEmployee[] = [
 		name: "John Smith",
 		email: "john.smith@example.com",
 		phone: "555-123-4567",
-		position: "Manager",
 		role: "Manager",
 		organizationId: "org-1",
 		hourlyRate: 25,
@@ -113,8 +111,7 @@ const sampleAssignedEmployees: AssignedEmployee[] = [
 		name: "Emily Johnson",
 		email: "emily.j@example.com",
 		phone: "555-987-6543",
-		position: "Server",
-		role: "Staff",
+		role: "Server",
 		organizationId: "org-1",
 		hourlyRate: 18,
 		avatar: "",
@@ -130,8 +127,7 @@ const sampleAssignedEmployees: AssignedEmployee[] = [
 		name: "Michael Williams",
 		email: "m.williams@example.com",
 		phone: "555-456-7890",
-		position: "Bartender",
-		role: "Staff",
+		role: "Bartender",
 		organizationId: "org-1",
 		hourlyRate: 20,
 		avatar: "",
@@ -144,43 +140,43 @@ const sampleAssignedEmployees: AssignedEmployee[] = [
 	},
 ];
 
-const sampleCheckInTasks: CheckInTask[] = [
+const sampleCheckInTasks: ShiftTask[] = [
 	{
 		id: "sample-checkin-1",
-		description: "Verify cleanliness of dining area",
+		title: "Verify cleanliness of dining area",
 		completed: true,
 	},
 	{
 		id: "sample-checkin-2",
-		description: "Ensure POS systems are operational",
+		title: "Ensure POS systems are operational",
 		completed: true,
 	},
 	{
 		id: "sample-checkin-3",
-		description: "Check inventory levels",
+		title: "Check inventory levels",
 		completed: false,
 	},
 	{
 		id: "sample-checkin-4",
-		description: "Staff briefing",
+		title: "Staff briefing",
 		completed: false,
 	},
 ];
 
-const sampleCheckOutTasks: CheckOutTask[] = [
+const sampleCheckOutTasks: ShiftTask[] = [
 	{
 		id: "sample-checkout-1",
-		description: "Close out all registers",
+		title: "Close out all registers",
 		completed: true,
 	},
 	{
 		id: "sample-checkout-2",
-		description: "Clean kitchen equipment",
+		title: "Clean kitchen equipment",
 		completed: false,
 	},
 	{
 		id: "sample-checkout-3",
-		description: "Secure premises",
+		title: "Secure premises",
 		completed: false,
 	},
 ];
@@ -211,11 +207,12 @@ export function ShiftDetails() {
 		AssignedEmployee[]
 	>([]);
 	const [availableEmployees, setAvailableEmployees] = useState<Employee[]>([]);
-	const [localCheckInTasks, setLocalCheckInTasks] = useState<CheckInTask[]>([]);
-	const [localCheckOutTasks, setLocalCheckOutTasks] = useState<CheckOutTask[]>(
+	const [localCheckInTasks, setLocalCheckInTasks] = useState<ShiftTask[]>([]);
+	const [localCheckOutTasks, setLocalCheckOutTasks] = useState<ShiftTask[]>([]);
+	const [localNotes, setLocalNotes] = useState("");
+	const [shiftAssignments, setShiftAssignments] = useState<ShiftAssignment[]>(
 		[]
 	);
-	const [localNotes, setLocalNotes] = useState("");
 
 	// Dialog states
 	const [assignEmployeeDialogOpen, setAssignEmployeeDialogOpen] =
@@ -234,68 +231,69 @@ export function ShiftDetails() {
 
 			try {
 				// Load shift and related data from API
-				const [shiftData, assignmentsData] = await Promise.all([
-					getShift(shiftId),
-					getShiftAssignments(shiftId),
-				]);
+				const shiftData = await getShift(shiftId);
+				setShift(shiftData);
 
 				if (!shiftData) {
 					console.error("Shift not found");
 					return;
 				}
 
-				setShift(shiftData);
-
 				// Load location data
-				if (shiftData.locationId) {
-					const locationData = await getLocation(shiftData.locationId);
+				if (shiftData.location_id) {
+					const locationData = await getLocation(shiftData.location_id);
 					setLocation(locationData);
 				}
 
-				// Process assignments
-				const employeePromises = assignmentsData.map((assignment) =>
-					getEmployee(assignment.employeeId)
+				// Load shift assignments and associated employees
+				const assignmentsData = await getShiftAssignments(shiftId);
+				setShiftAssignments(assignmentsData);
+
+				// For each assignment, fetch the employee details
+				const assignedEmployeePromises = assignmentsData.map(
+					async (assignment) => {
+						const employee = await getEmployee(assignment.employeeId);
+						if (employee) {
+							return {
+								...employee,
+								assignmentId: assignment.id,
+								assignmentRole: assignment.role,
+								assignmentNotes: assignment.notes,
+							};
+						}
+						return null;
+					}
 				);
 
-				const employeeData = await Promise.all(employeePromises);
-
-				// Combine assignments with employee data
-				const assignedEmployeeData = assignmentsData
-					.map((assignment, index) => {
-						const employee = employeeData[index];
-						if (!employee) return null;
-
-						return {
-							...employee,
-							assignmentId: assignment.id,
-							assignmentRole: assignment.role,
-							assignmentNotes: assignment.notes,
-						};
-					})
-					.filter((item): item is AssignedEmployee => item !== null);
-
-				setAssignedEmployees(assignedEmployeeData);
+				const assignedEmployeeData = await Promise.all(
+					assignedEmployeePromises
+				);
+				const filteredEmployees = assignedEmployeeData.filter(
+					(item) => item !== null
+				) as AssignedEmployee[];
+				setAssignedEmployees(filteredEmployees);
 
 				// Set check-in/check-out tasks and notes
-				if (shiftData.checkInTasks) {
-					setLocalCheckInTasks(shiftData.checkInTasks);
+				if (shiftData.check_in_tasks) {
+					setLocalCheckInTasks(shiftData.check_in_tasks);
 				}
 
-				if (shiftData.checkOutTasks) {
-					setLocalCheckOutTasks(shiftData.checkOutTasks);
+				if (shiftData.check_out_tasks) {
+					setLocalCheckOutTasks(shiftData.check_out_tasks);
 				}
 
-				if (shiftData.notes) {
-					setLocalNotes(shiftData.notes);
+				if (shiftData.description) {
+					setLocalNotes(shiftData.description);
 				}
 
 				// Load available employees
-				if (shiftData.organizationId) {
-					const employeesData = await getEmployees(shiftData.organizationId);
+				if (shiftData.organization_id) {
+					const employeesData = await getEmployees(shiftData.organization_id);
 					setAvailableEmployees(employeesData);
 				}
 			} catch (error) {
 				console.error("Error loading shift data:", error);
+				toast.error("Failed to load shift data");
 			} finally {
 				setLoading(false);
 			}
@@ -330,19 +328,15 @@ export function ShiftDetails() {
 	const handleDeleteShift = async () => {
 		if (!shift || !shiftId) return;
 
-		setSaving(true);
-
 		try {
-			const success = await deleteShift(shiftId);
-			if (success) {
-				toast.success("Shift deleted successfully");
-				navigate("/schedule");
-			} else {
-				toast.error("Failed to delete shift");
-			}
+			setSaving(true);
+			await deleteShift(shiftId);
+			toast.success("Shift deleted successfully");
+			// Navigate back to overview
+			navigate("/schedule");
 		} catch (error) {
 			console.error("Error deleting shift:", error);
-			toast.error("Error deleting shift");
+			toast.error("Failed to delete shift");
 		} finally {
 			setSaving(false);
 			setDeleteAlertOpen(false);
@@ -438,33 +432,27 @@ export function ShiftDetails() {
 	// Handle notes update
 	const handleSaveNotes = async (notes: string) => {
 		setLocalNotes(notes);
-
-		if (!shift || !shiftId) return;
-		await saveShift({ notes });
-		setNotesDialogOpen(false);
+		await saveShift({ description: notes });
+		toast.success("Notes saved successfully");
 	};
 
 	// Handle check-in tasks update
-	const handleSaveCheckInTasks = async (tasks: CheckInTask[]) => {
+	const handleSaveCheckInTasks = async (tasks: ShiftTask[]) => {
 		setLocalCheckInTasks(tasks);
-
-		if (!shift || !shiftId) return;
-		await saveShift({ checkInTasks: tasks });
-		setCheckInTasksDialogOpen(false);
+		await saveShift({ check_in_tasks: tasks });
+		toast.success("Check-in tasks saved successfully");
 	};
 
 	// Handle check-out tasks update
-	const handleSaveCheckOutTasks = async (tasks: CheckOutTask[]) => {
+	const handleSaveCheckOutTasks = async (tasks: ShiftTask[]) => {
 		setLocalCheckOutTasks(tasks);
-
-		if (!shift || !shiftId) return;
-		await saveShift({ checkOutTasks: tasks });
-		setCheckOutTasksDialogOpen(false);
+		await saveShift({ check_out_tasks: tasks });
+		toast.success("Check-out tasks saved successfully");
 	};
 
 	// Format date for URL parameters
 	const formatDateParam = (date: string) => {
-		return new Date(date).toISOString().split("T")[0];
+		return format(parseISO(date), "yyyy-MM-dd");
 	};
 
 	// Calculate total cost for shift
@@ -472,8 +460,8 @@ export function ShiftDetails() {
 		if (assignedEmployees.length === 0) return "0.00";
 
 		return calculateTotalCost(
-			shift?.startTime || "",
-			shift?.endTime || "",
+			shift?.start_time || "",
+			shift?.end_time || "",
 			assignedEmployees
 		);
 	}, [assignedEmployees, shift]);
@@ -481,7 +469,7 @@ export function ShiftDetails() {
 	// Check if shift has ended
 	const hasShiftEnded = useCallback(() => {
 		if (!shift) return false;
-		const endTime = new Date(shift.endTime);
+		const endTime = new Date(shift.end_time);
 		const now = new Date();
 		return endTime < now;
 	}, [shift]);
@@ -540,14 +528,14 @@ export function ShiftDetails() {
 			);
 			setLocalCheckInTasks(updatedTasks);
 
-			saveShift({ checkInTasks: updatedTasks });
+			saveShift({ check_in_tasks: updatedTasks });
 		} else {
 			const updatedTasks = localCheckOutTasks.map((task) =>
 				task.id === taskId ? { ...task, completed: !task.completed } : task
 			);
 			setLocalCheckOutTasks(updatedTasks);
 
-			saveShift({ checkOutTasks: updatedTasks });
+			saveShift({ check_out_tasks: updatedTasks });
 		}
 	};
 
@@ -569,14 +557,14 @@ export function ShiftDetails() {
 			);
 			setLocalCheckInTasks(updatedTasks);
 
-			saveShift({ checkInTasks: updatedTasks });
+			saveShift({ check_in_tasks: updatedTasks });
 		} else {
 			const updatedTasks = localCheckOutTasks.filter(
 				(task) => task.id !== taskId
 			);
 			setLocalCheckOutTasks(updatedTasks);
 
-			saveShift({ checkOutTasks: updatedTasks });
+			saveShift({ check_out_tasks: updatedTasks });
 		}
 	};
 
@@ -645,8 +633,16 @@ export function ShiftDetails() {
 
 					<EmployeesSection
 						assignedEmployees={assignedEmployees}
-						availableEmployees={availableEmployees}
-						shift={shift}
+						availableEmployees={availableEmployees.filter(
+							(employee) =>
+								!assignedEmployees.some(
+									(assigned) => assigned.id === employee.id
+								)
+						)}
+						shift={{
+							start_time: shift?.start_time || "",
+							end_time: shift?.end_time || "",
+						}}
 						onRemoveEmployeeClick={handleRemoveEmployee}
 						onAssignClick={handleAssignEmployeeDialogOpen}
 						isCompleted={hasShiftEnded()}
@@ -661,7 +657,7 @@ export function ShiftDetails() {
 								return;
 							}
 							setLocalNotes("");
-							saveShift({ notes: "" });
+							saveShift({ description: "" });
 						}}
 						isCompleted={hasShiftEnded()}
 					/>

@@ -9,7 +9,7 @@ import { Location } from "@/api/types";
 import { LocationsAPI } from "@/api";
 import { supabase } from "./supabase";
 import { toast } from "sonner";
-import { getOrganizationId } from "./organization";
+import { getOrgId } from "./organization";
 
 // Context type that includes all necessary functionality
 interface LocationContextType {
@@ -40,7 +40,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
 	const refreshLocations = async () => {
 		try {
 			setIsLoading(true);
-			const organizationId = getOrganizationId();
+			const organizationId = getOrgId();
 			const locationsData = await LocationsAPI.getAll(organizationId);
 
 			setLocations(locationsData);
@@ -92,7 +92,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
 
 	// Set up real-time subscription for location updates
 	useEffect(() => {
-		const organizationId = getOrganizationId();
+		const organizationId = getOrgId();
 
 		const subscription = supabase
 			.channel("location-updates")
@@ -142,7 +142,7 @@ export function useLocation() {
 }
 
 // Utility function to get location ID (can be used in any context)
-export function getLocationId(): string | null {
+export function getCurrentLocation(): string | null {
 	try {
 		// This will work in component contexts
 		const { getCurrentLocationId } = useLocation();

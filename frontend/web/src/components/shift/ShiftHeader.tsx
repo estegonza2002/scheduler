@@ -38,7 +38,7 @@ export function ShiftHeader({
 }: ShiftHeaderProps) {
 	// Check if shift has ended
 	const isShiftCompleted = () => {
-		const endTime = new Date(shift.endTime);
+		const endTime = new Date(shift.end_time);
 		const now = new Date();
 		return now > endTime;
 	};
@@ -56,13 +56,13 @@ export function ShiftHeader({
 				</Link>
 				<ChevronRight className="h-4 w-4 mx-1" />
 				<Link
-					to={`/daily-shifts?date=${formatDateParam(shift.startTime)}${
+					to={`/daily-shifts?date=${formatDateParam(shift.start_time)}${
 						window.location.search.includes("organizationId")
 							? "&" + window.location.search.substring(1)
 							: ""
 					}`}
 					className="hover:text-foreground">
-					{format(parseISO(shift.startTime), "MMMM d, yyyy")}
+					{format(parseISO(shift.start_time), "MMMM d, yyyy")}
 				</Link>
 				<ChevronRight className="h-4 w-4 mx-1" />
 				<span className="text-foreground font-medium">Shift Details</span>
@@ -95,9 +95,9 @@ export function ShiftHeader({
 										: "Unassigned"}
 								</Badge>
 								<p className="text-muted-foreground">
-									{format(parseISO(shift.startTime), "EEEE, MMMM d, yyyy")} ·
-									{format(parseISO(shift.startTime), "h:mm a")} -{" "}
-									{format(parseISO(shift.endTime), "h:mm a")}
+									{format(parseISO(shift.start_time), "EEEE, MMMM d, yyyy")} ·
+									{format(parseISO(shift.start_time), "h:mm a")} -{" "}
+									{format(parseISO(shift.end_time), "h:mm a")}
 								</p>
 							</div>
 						</div>
@@ -109,7 +109,7 @@ export function ShiftHeader({
 								className="h-9"
 								asChild>
 								<Link
-									to={`/daily-shifts?date=${formatDateParam(shift.startTime)}${
+									to={`/daily-shifts?date=${formatDateParam(shift.start_time)}${
 										window.location.search.includes("organizationId")
 											? "&" + window.location.search.substring(1)
 											: ""

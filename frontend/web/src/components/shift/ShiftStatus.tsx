@@ -14,8 +14,8 @@ interface ShiftStatusProps {
 export function ShiftStatus({ shift }: ShiftStatusProps) {
 	const getShiftStatus = () => {
 		const now = new Date();
-		const startTime = new Date(shift.startTime);
-		const endTime = new Date(shift.endTime);
+		const startTime = new Date(shift.start_time);
+		const endTime = new Date(shift.end_time);
 
 		if (now < startTime) {
 			return {

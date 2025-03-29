@@ -42,6 +42,7 @@ import {
 	ShiftsAPI,
 	Location,
 	LocationsAPI,
+	Schedule,
 } from "@/api";
 import { LoadingState } from "@/components/ui/loading-state";
 import {
@@ -59,7 +60,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { PageHeader } from "@/components/ui/page-header";
+import { useHeader } from "@/lib/header-context";
 
 // Types for report data
 interface EarningsReportItem {
@@ -84,6 +85,7 @@ interface DateRange {
 export default function EmployeeEarningsPage() {
 	const { employeeId } = useParams();
 	const navigate = useNavigate();
+	const { updateHeader } = useHeader();
 
 	// State variables
 	const [employee, setEmployee] = useState<Employee | null>(null);
@@ -96,6 +98,47 @@ export default function EmployeeEarningsPage() {
 		to: endOfMonth(new Date()),
 	});
 	const [activeTab, setActiveTab] = useState("current-month");
+
+	// Update header
+	useEffect(() => {
+		if (loading) {
+			updateHeader({
+				title: "Loading Earnings Report",
+				description: "Please wait while we load the employee data",
+				showBackButton: true,
+			});
+		} else if (employee) {
+			updateHeader({
+				title: `${employee.name}'s Earnings`,
+				description: `Earnings report for employee ID: ${employeeId}`,
+				actions: (
+					<div className="flex gap-2">
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={() => handleExportReport("csv")}>
+							<FileText className="h-4 w-4 mr-2" />
+							Export CSV
+						</Button>
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={() => handleExportReport("excel")}>
+							<Download className="h-4 w-4 mr-2" />
+							Export Excel
+						</Button>
+					</div>
+				),
+				showBackButton: true,
+			});
+		} else {
+			updateHeader({
+				title: "Employee Earnings",
+				description: "Earnings report by employee",
+				showBackButton: true,
+			});
+		}
+	}, [loading, employee, employeeId, updateHeader]);
 
 	// Fetch employee and data
 	useEffect(() => {
@@ -111,18 +154,26 @@ export default function EmployeeEarningsPage() {
 					setEmployee(employeeData);
 				}
 
-				// Fetch all shifts
-				const allShifts = await ShiftsAPI.getAll();
+				// Get all schedules
+				const schedules = await ShiftsAPI.getAllSchedules();
+
+				// Fetch shifts for each schedule
+				const allShiftsPromises = schedules.map((schedule: Schedule) =>
+					ShiftsAPI.getShiftsForSchedule(schedule.id)
+				);
+
+				const allShiftsArrays = await Promise.all(allShiftsPromises);
+				const allShifts = allShiftsArrays.flat();
 
 				// Filter for this employee's shifts
 				const employeeShifts = allShifts.filter(
-					(shift) => shift.user_id === employeeId
+					(shift: Shift) => shift.user_id === employeeId
 				);
 				setShifts(employeeShifts);
 
 				// Get all locations used in shifts
 				const locationIds = new Set<string>();
-				employeeShifts.forEach((shift) => {
+				employeeShifts.forEach((shift: Shift) => {
 					if (shift.location_id) {
 						locationIds.add(shift.location_id);
 					}
@@ -147,6 +198,19 @@ export default function EmployeeEarningsPage() {
 
 		fetchData();
 	}, [employeeId]);
+
+	// Function to handle export
+	const handleExportReport = (formatType: "csv" | "excel") => {
+		// Same as original implementation
+		const data = getExportData();
+		const filename = `${employee?.email || "employee"}_earnings_report`;
+
+		if (formatType === "csv") {
+			exportToCSV(data, filename);
+		} else {
+			exportToExcel(data, filename);
+		}
+	};
 
 	// Generate report data when shifts, employee, or date range changes
 	useEffect(() => {
@@ -317,26 +381,6 @@ export default function EmployeeEarningsPage() {
 		}));
 	};
 
-	// Handle exporting the earnings report
-	const handleExportReport = (formatType: "csv" | "excel") => {
-		if (!employee) return;
-
-		const exportData = getExportData();
-		const filename = `${employee.name.replace(
-			/\s+/g,
-			"_"
-		)}_Earnings_Report_${format(
-			dateRange.from || new Date(),
-			"yyyy-MM-dd"
-		)}_to_${format(dateRange.to || new Date(), "yyyy-MM-dd")}`;
-
-		if (formatType === "csv") {
-			exportToCSV(exportData, filename);
-		} else {
-			exportToExcel(exportData, filename);
-		}
-	};
-
 	// Add this function before the return statement
 	const renderVariance = (scheduled: number, actual: number | null) => {
 		if (actual === null) return null;
@@ -468,13 +512,6 @@ export default function EmployeeEarningsPage() {
 
 	return (
 		<>
-			<PageHeader
-				title={`${employee.name}'s Earnings`}
-				description="View detailed earnings reports and payroll information"
-				actions={headerActions}
-				showBackButton={true}
-			/>
-
 			<ContentContainer>
 				<ContentSection
 					title="Date Range Selection"
