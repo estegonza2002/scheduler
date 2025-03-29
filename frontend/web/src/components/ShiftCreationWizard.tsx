@@ -279,9 +279,24 @@ export function ShiftCreationWizard({
 	useEffect(() => {
 		async function fetchEmployees() {
 			try {
+				console.log(
+					"Starting to fetch employees for organization:",
+					organizationId
+				);
 				setLoadingEmployees(true);
 				setError(null);
 				const employeeList = await EmployeesAPI.getAll(organizationId);
+				console.log("Employees fetched successfully:", employeeList);
+
+				if (employeeList.length > 0) {
+					// Log the structure of the first employee
+					console.log("First employee structure:", {
+						employee: employeeList[0],
+						hasStatusProperty: "status" in employeeList[0],
+						properties: Object.keys(employeeList[0]),
+					});
+				}
+
 				setEmployees(employeeList);
 				setFilteredEmployees(employeeList);
 			} catch (error) {
@@ -298,8 +313,15 @@ export function ShiftCreationWizard({
 
 	// Filter employees based on search term
 	useEffect(() => {
+		console.log("Running employee filter effect", {
+			searchTerm,
+			searchFilter,
+			employees: employees.length,
+		});
+
 		// If no search term and no role filter (all), show all employees
 		if (!searchTerm.trim() && searchFilter === "all") {
+			console.log("No filter active, showing all employees", employees);
 			setFilteredEmployees(employees);
 			return;
 		}
@@ -340,6 +362,7 @@ export function ShiftCreationWizard({
 			return true;
 		});
 
+		console.log("Applied filters, filtered employees:", filtered);
 		setFilteredEmployees(filtered);
 	}, [searchTerm, searchFilter, employees]);
 

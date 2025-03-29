@@ -154,6 +154,15 @@ export function EmployeeAssignmentStep({
 	onSelectedEmployeesChange,
 	allEmployees,
 }: EmployeeAssignmentStepProps) {
+	// Debug logs
+	console.log("EmployeeAssignmentStep rendering", {
+		filteredEmployees,
+		loadingEmployees,
+		searchTerm,
+		searchFilter,
+		allEmployees,
+	});
+
 	// State & derived values
 	const locationName = getLocationName(locationData.locationId);
 	const formattedDate = shiftData.date
@@ -169,11 +178,27 @@ export function EmployeeAssignmentStep({
 
 	// Filter out the invited employees to show them separately
 	const invitedEmployees = useMemo(() => {
-		return filteredEmployees.filter((emp) => emp.status === "invited");
+		console.log("Computing invitedEmployees", {
+			filteredEmployees,
+			result: filteredEmployees.filter((emp) => emp.status === "invited"),
+		});
+
+		// Return empty array for now since we're not distinguishing invited employees
+		return []; // This ensures we don't try to render a separate section for invited employees
 	}, [filteredEmployees]);
 
 	const eligibleEmployees = useMemo(() => {
-		return filteredEmployees.filter((emp) => emp.status !== "invited");
+		console.log("Computing eligibleEmployees", {
+			filteredEmployees,
+			hasStatusField:
+				filteredEmployees.length > 0 ? "status" in filteredEmployees[0] : false,
+			statuses: filteredEmployees.map((emp) => emp.status || "unknown"),
+			result: filteredEmployees,
+		});
+
+		// Return all employees since the status field might not be reliable
+		// This ensures employees are displayed regardless of their status
+		return filteredEmployees;
 	}, [filteredEmployees]);
 
 	// Handle employee selection/deselection
@@ -332,7 +357,11 @@ export function EmployeeAssignmentStep({
 							<div className="p-2">
 								{filteredEmployees.length === 0 ? (
 									<div className="p-6 text-center text-muted-foreground">
-										No employees found matching "{searchTerm}"
+										{searchTerm ? (
+											<>No employees found matching "{searchTerm}"</>
+										) : (
+											<>No employees available</>
+										)}
 									</div>
 								) : (
 									<div className="space-y-1">

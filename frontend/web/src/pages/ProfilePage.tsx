@@ -1064,122 +1064,115 @@ export default function ProfilePage() {
 
 							<FormSection title="Personal Details">
 								<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-									<div className="space-y-2">
-										<Label htmlFor="firstName">
-											First Name <span className="text-red-500">*</span>
-										</Label>
-										<Input
-											id="firstName"
-											placeholder="Enter your first name"
-											{...profileForm.register("firstName")}
-											className={
-												profileForm.formState.errors.firstName
-													? "border-red-500"
-													: ""
-											}
-											aria-required="true"
-											aria-invalid={!!profileForm.formState.errors.firstName}
-										/>
-										{profileForm.formState.errors.firstName && (
-											<p
-												className="text-sm text-red-500"
-												role="alert">
-												{profileForm.formState.errors.firstName.message}
-											</p>
+									<FormField
+										control={profileForm.control}
+										name="firstName"
+										render={({ field }) => (
+											<FormItem className="space-y-2">
+												<FormLabel htmlFor="firstName">
+													First Name <span className="text-destructive">*</span>
+												</FormLabel>
+												<FormControl>
+													<Input
+														id="firstName"
+														placeholder="Enter your first name"
+														{...field}
+														aria-required="true"
+														aria-invalid={
+															!!profileForm.formState.errors.firstName
+														}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
 										)}
-									</div>
+									/>
 
-									<div className="space-y-2">
-										<Label htmlFor="lastName">
-											Last Name <span className="text-red-500">*</span>
-										</Label>
-										<Input
-											id="lastName"
-											placeholder="Enter your last name"
-											{...profileForm.register("lastName")}
-											className={
-												profileForm.formState.errors.lastName
-													? "border-red-500"
-													: ""
-											}
-											aria-required="true"
-											aria-invalid={!!profileForm.formState.errors.lastName}
-										/>
-										{profileForm.formState.errors.lastName && (
-											<p
-												className="text-sm text-red-500"
-												role="alert">
-												{profileForm.formState.errors.lastName.message}
-											</p>
+									<FormField
+										control={profileForm.control}
+										name="lastName"
+										render={({ field }) => (
+											<FormItem className="space-y-2">
+												<FormLabel htmlFor="lastName">
+													Last Name <span className="text-destructive">*</span>
+												</FormLabel>
+												<FormControl>
+													<Input
+														id="lastName"
+														placeholder="Enter your last name"
+														{...field}
+														aria-required="true"
+														aria-invalid={
+															!!profileForm.formState.errors.lastName
+														}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
 										)}
-									</div>
+									/>
 								</div>
 
-								<div className="space-y-2">
-									<Label htmlFor="email">
-										Email <span className="text-red-500">*</span>
-									</Label>
-									<Input
-										id="email"
-										type="email"
-										placeholder="Enter your email"
-										{...profileForm.register("email")}
-										className={
-											profileForm.formState.errors.email ? "border-red-500" : ""
-										}
-										aria-required="true"
-										aria-invalid={!!profileForm.formState.errors.email}
-									/>
-									{profileForm.formState.errors.email && (
-										<p
-											className="text-sm text-red-500"
-											role="alert">
-											{profileForm.formState.errors.email.message}
-										</p>
+								<FormField
+									control={profileForm.control}
+									name="email"
+									render={({ field }) => (
+										<FormItem className="space-y-2">
+											<FormLabel htmlFor="email">
+												Email <span className="text-destructive">*</span>
+											</FormLabel>
+											<FormControl>
+												<Input
+													id="email"
+													type="email"
+													placeholder="Enter your email"
+													{...field}
+													aria-required="true"
+													aria-invalid={!!profileForm.formState.errors.email}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
 									)}
-								</div>
+								/>
 
-								<div className="space-y-2">
-									<Label htmlFor="phone">Phone Number</Label>
-									<Input
-										id="phone"
-										placeholder="Enter your phone number"
-										{...profileForm.register("phone")}
-										className={
-											profileForm.formState.errors.phone ? "border-red-500" : ""
-										}
-										aria-invalid={!!profileForm.formState.errors.phone}
-									/>
-									{profileForm.formState.errors.phone && (
-										<p
-											className="text-sm text-red-500"
-											role="alert">
-											{profileForm.formState.errors.phone.message}
-										</p>
+								<FormField
+									control={profileForm.control}
+									name="phone"
+									render={({ field }) => (
+										<FormItem className="space-y-2">
+											<FormLabel htmlFor="phone">Phone Number</FormLabel>
+											<FormControl>
+												<FormPhoneInput
+													control={profileForm.control}
+													name="phone"
+													placeholder="Enter your phone number"
+													aria-invalid={!!profileForm.formState.errors.phone}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
 									)}
-								</div>
+								/>
 
-								<div className="space-y-2">
-									<Label htmlFor="position">Position/Title</Label>
-									<Input
-										id="position"
-										placeholder="Enter your job title or position"
-										{...profileForm.register("position")}
-										className={
-											profileForm.formState.errors.position
-												? "border-red-500"
-												: ""
-										}
-										aria-invalid={!!profileForm.formState.errors.position}
-									/>
-									{profileForm.formState.errors.position && (
-										<p
-											className="text-sm text-red-500"
-											role="alert">
-											{profileForm.formState.errors.position.message}
-										</p>
+								<FormField
+									control={profileForm.control}
+									name="position"
+									render={({ field }) => (
+										<FormItem className="space-y-2">
+											<FormLabel htmlFor="position">Position/Title</FormLabel>
+											<FormControl>
+												<Input
+													id="position"
+													placeholder="Enter your job title or position"
+													{...field}
+													aria-invalid={!!profileForm.formState.errors.position}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
 									)}
-								</div>
+								/>
 							</FormSection>
 
 							<div className="flex justify-end">
@@ -1203,87 +1196,83 @@ export default function ProfilePage() {
 							className="space-y-6">
 							<FormSection title="Change Password">
 								<div className="space-y-4">
-									<div className="space-y-2">
-										<Label htmlFor="currentPassword">
-											Current Password <span className="text-red-500">*</span>
-										</Label>
-										<Input
-											id="currentPassword"
-											type="password"
-											placeholder="Enter your current password"
-											{...passwordForm.register("currentPassword")}
-											className={
-												passwordForm.formState.errors.currentPassword
-													? "border-red-500"
-													: ""
-											}
-											aria-required="true"
-											aria-invalid={
-												!!passwordForm.formState.errors.currentPassword
-											}
-										/>
-										{passwordForm.formState.errors.currentPassword && (
-											<p
-												className="text-sm text-red-500"
-												role="alert">
-												{passwordForm.formState.errors.currentPassword.message}
-											</p>
+									<FormField
+										control={passwordForm.control}
+										name="currentPassword"
+										render={({ field }) => (
+											<FormItem className="space-y-2">
+												<FormLabel htmlFor="currentPassword">
+													Current Password{" "}
+													<span className="text-destructive">*</span>
+												</FormLabel>
+												<FormControl>
+													<Input
+														id="currentPassword"
+														type="password"
+														placeholder="Enter your current password"
+														{...field}
+														aria-required="true"
+														aria-invalid={
+															!!passwordForm.formState.errors.currentPassword
+														}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
 										)}
-									</div>
+									/>
 
-									<div className="space-y-2">
-										<Label htmlFor="newPassword">
-											New Password <span className="text-red-500">*</span>
-										</Label>
-										<Input
-											id="newPassword"
-											type="password"
-											placeholder="Enter your new password"
-											{...passwordForm.register("newPassword")}
-											className={
-												passwordForm.formState.errors.newPassword
-													? "border-red-500"
-													: ""
-											}
-											aria-required="true"
-											aria-invalid={!!passwordForm.formState.errors.newPassword}
-										/>
-										{passwordForm.formState.errors.newPassword && (
-											<p
-												className="text-sm text-red-500"
-												role="alert">
-												{passwordForm.formState.errors.newPassword.message}
-											</p>
+									<FormField
+										control={passwordForm.control}
+										name="newPassword"
+										render={({ field }) => (
+											<FormItem className="space-y-2">
+												<FormLabel htmlFor="newPassword">
+													New Password{" "}
+													<span className="text-destructive">*</span>
+												</FormLabel>
+												<FormControl>
+													<Input
+														id="newPassword"
+														type="password"
+														placeholder="Enter your new password"
+														{...field}
+														aria-required="true"
+														aria-invalid={
+															!!passwordForm.formState.errors.newPassword
+														}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
 										)}
-									</div>
+									/>
 
-									<div className="space-y-2">
-										<Label htmlFor="confirmPassword">
-											Confirm Password <span className="text-red-500">*</span>
-										</Label>
-										<Input
-											id="confirmPassword"
-											type="password"
-											placeholder="Confirm your new password"
-											{...passwordForm.register("confirmPassword")}
-											className={
-												passwordForm.formState.errors.confirmPassword
-													? "border-red-500"
-													: ""
-											}
-											aria-required="true"
-											aria-invalid={
-												!!passwordForm.formState.errors.confirmPassword
-											}
-										/>
-										{passwordForm.formState.errors.confirmPassword && (
-											<p
-												className="text-sm text-red-500"
-												role="alert">
-												{passwordForm.formState.errors.confirmPassword.message}
-											</p>
+									<FormField
+										control={passwordForm.control}
+										name="confirmPassword"
+										render={({ field }) => (
+											<FormItem className="space-y-2">
+												<FormLabel htmlFor="confirmPassword">
+													Confirm Password{" "}
+													<span className="text-destructive">*</span>
+												</FormLabel>
+												<FormControl>
+													<Input
+														id="confirmPassword"
+														type="password"
+														placeholder="Confirm your new password"
+														{...field}
+														aria-required="true"
+														aria-invalid={
+															!!passwordForm.formState.errors.confirmPassword
+														}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
 										)}
-									</div>
+									/>
 								</div>
 							</FormSection>
 
