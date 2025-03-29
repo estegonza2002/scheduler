@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -248,22 +248,23 @@ export default function BusinessProfilePage() {
 		}
 	}
 
-	const goBack = () => {
+	// Update handler functions to use useCallback
+	const goBack = useCallback(() => {
 		navigate(-1);
-	};
+	}, [navigate]);
 
 	// Get business initials for avatar fallback
-	const getBusinessInitials = () => {
+	const getBusinessInitials = useCallback(() => {
 		const name = organization?.name || "";
 		const words = name.split(" ");
 		if (words.length >= 2) {
 			return `${words[0].charAt(0)}${words[1].charAt(0)}`.toUpperCase();
 		}
 		return name.substring(0, 2).toUpperCase();
-	};
+	}, [organization]);
 
 	// Add the handleUpgrade function from BillingPage
-	const handleUpgrade = async (plan: "pro" | "business") => {
+	const handleUpgrade = useCallback(async (plan: "pro" | "business") => {
 		try {
 			setIsUpgrading(true);
 			// In a real implementation, this would call an API to upgrade the subscription
@@ -276,20 +277,91 @@ export default function BusinessProfilePage() {
 		} finally {
 			setIsUpgrading(false);
 		}
-	};
+	}, []);
 
 	// Add handleTabChange function
-	const handleTabChange = (tab: string) => {
-		if (
-			tab === "profile" ||
-			tab === "password" ||
-			tab === "notifications" ||
-			tab === "branding" ||
-			tab === "billing"
-		) {
-			navigate(`/profile?tab=${tab}`);
-		}
-	};
+	const handleTabChange = useCallback(
+		(tab: string) => {
+			if (
+				tab === "profile" ||
+				tab === "password" ||
+				tab === "notifications" ||
+				tab === "branding" ||
+				tab === "billing"
+			) {
+				navigate(`/profile?tab=${tab}`);
+			}
+		},
+		[navigate]
+	);
+
+	// Convert onSubmit to useCallback
+	const handleSubmit = useCallback(
+		async (values: BusinessProfileFormValues) => {
+			setIsLoading(true);
+			try {
+				if (!organization) {
+					console.error("No organization found when attempting to save");
+					toast.error(
+						"No organization found. Please create a business profile first."
+					);
+
+					// Show create button dialog if no organization exists
+					const createProfileSection =
+						document.querySelector(".mt-8.p-6.border");
+					if (createProfileSection) {
+						createProfileSection.scrollIntoView({ behavior: "smooth" });
+						// Highlight the create profile section
+						createProfileSection.classList.add(
+							"animate-pulse",
+							"border-primary"
+						);
+						setTimeout(() => {
+							createProfileSection.classList.remove(
+								"animate-pulse",
+								"border-primary"
+							);
+						}, 2000);
+					}
+
+					setIsLoading(false);
+					return;
+				}
+
+				// Map the values to match the database column names
+				const updatedFields = {
+					id: organization.id,
+					name: values.name,
+					description: values.description,
+					contactemail: values.contactEmail,
+					contactphone: values.contactPhone,
+					address: values.address,
+					country: values.country,
+					website: values.website,
+					businesshours: values.businessHours,
+				};
+
+				// Update the organization in the database via API
+				const updatedOrg = await OrganizationsAPI.update(updatedFields as any);
+
+				if (updatedOrg) {
+					setOrganization(updatedOrg);
+					toast.success("Business profile updated successfully");
+				} else {
+					console.error("Update returned null/undefined");
+					toast.error("Failed to update business profile");
+				}
+			} catch (error: unknown) {
+				console.error("Error during update:", error);
+				const errorMessage =
+					error instanceof Error ? error.message : "Unknown error";
+				toast.error("Failed to update business profile: " + errorMessage);
+			} finally {
+				setIsLoading(false);
+			}
+		},
+		[organization]
+	);
 
 	if (isLoading && !organization) {
 		return (
@@ -347,7 +419,7 @@ export default function BusinessProfilePage() {
 					className="pt-4">
 					<Form {...form}>
 						<form
-							onSubmit={form.handleSubmit(onSubmit)}
+							onSubmit={form.handleSubmit(handleSubmit)}
 							className="space-y-6 pb-8">
 							<FormSection
 								title="Business Information"
@@ -363,9 +435,13 @@ export default function BusinessProfilePage() {
 										className={
 											form.formState.errors.name ? "border-red-500" : ""
 										}
+										aria-required="true"
+										aria-invalid={!!form.formState.errors.name}
 									/>
 									{form.formState.errors.name && (
-										<p className="text-sm text-red-500">
+										<p
+											className="text-sm text-red-500"
+											role="alert">
 											{form.formState.errors.name.message}
 										</p>
 									)}
@@ -381,9 +457,12 @@ export default function BusinessProfilePage() {
 										className={
 											form.formState.errors.description ? "border-red-500" : ""
 										}
+										aria-invalid={!!form.formState.errors.description}
 									/>
 									{form.formState.errors.description && (
-										<p className="text-sm text-red-500">
+										<p
+											className="text-sm text-red-500"
+											role="alert">
 											{form.formState.errors.description.message}
 										</p>
 									)}
@@ -407,9 +486,12 @@ export default function BusinessProfilePage() {
 													? "border-red-500"
 													: ""
 											}
+											aria-invalid={!!form.formState.errors.contactEmail}
 										/>
 										{form.formState.errors.contactEmail && (
-											<p className="text-sm text-red-500">
+											<p
+												className="text-sm text-red-500"
+												role="alert">
 												{form.formState.errors.contactEmail.message}
 											</p>
 										)}
@@ -423,7 +505,9 @@ export default function BusinessProfilePage() {
 										countryField="country"
 									/>
 									{form.formState.errors.contactPhone && (
-										<p className="text-sm text-red-500">
+										<p
+											className="text-sm text-red-500"
+											role="alert">
 											{form.formState.errors.contactPhone.message}
 										</p>
 									)}
@@ -514,9 +598,12 @@ export default function BusinessProfilePage() {
 										className={
 											form.formState.errors.website ? "border-red-500" : ""
 										}
+										aria-invalid={!!form.formState.errors.website}
 									/>
 									{form.formState.errors.website && (
-										<p className="text-sm text-red-500">
+										<p
+											className="text-sm text-red-500"
+											role="alert">
 											{form.formState.errors.website.message}
 										</p>
 									)}
@@ -534,7 +621,15 @@ export default function BusinessProfilePage() {
 										placeholder="Monday-Friday: 9am-5pm&#10;Saturday: 10am-3pm&#10;Sunday: Closed"
 										rows={3}
 										{...form.register("businessHours")}
+										aria-invalid={!!form.formState.errors.businessHours}
 									/>
+									{form.formState.errors.businessHours && (
+										<p
+											className="text-sm text-red-500"
+											role="alert">
+											{form.formState.errors.businessHours.message}
+										</p>
+									)}
 								</div>
 							</FormSection>
 

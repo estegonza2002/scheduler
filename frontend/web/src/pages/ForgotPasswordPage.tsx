@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -13,10 +13,12 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
+import { FormSection } from "@/components/ui/form-section";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ContentContainer } from "@/components/ui/content-container";
 import { ContentSection } from "@/components/ui/content-section";
+import { Mail } from "lucide-react";
 
 const forgotPasswordSchema = z.object({
 	email: z.string().email("Please enter a valid email address"),
@@ -36,99 +38,115 @@ export default function ForgotPasswordPage() {
 		},
 	});
 
-	async function onSubmit(values: ForgotPasswordFormValues) {
-		setIsLoading(true);
-		try {
-			const { error } = await resetPassword(values.email);
+	const onSubmit = useCallback(
+		async (values: ForgotPasswordFormValues) => {
+			setIsLoading(true);
+			try {
+				const { error } = await resetPassword(values.email);
 
-			if (error) {
-				toast.error(error.message);
-				return;
+				if (error) {
+					toast.error(error.message);
+					return;
+				}
+
+				setEmailSent(true);
+				toast.success("Password reset instructions sent to your email");
+			} catch (error) {
+				toast.error("An unexpected error occurred");
+				console.error("Password reset error:", error);
+			} finally {
+				setIsLoading(false);
 			}
-
-			setEmailSent(true);
-			toast.success("Password reset instructions sent to your email");
-		} catch (error) {
-			toast.error("An unexpected error occurred");
-			console.error("Password reset error:", error);
-		} finally {
-			setIsLoading(false);
-		}
-	}
+		},
+		[resetPassword]
+	);
 
 	return (
-		<div className="min-h-screen flex items-center justify-center bg-muted">
-			<ContentContainer
-				maxWidth="max-w-md"
-				className="flex justify-center items-center">
-				<ContentSection
-					title="Forgot Password"
-					description={
-						emailSent
-							? "Check your email for a link to reset your password"
-							: "Enter your email address to reset your password"
-					}
-					footer={
-						<div className="text-sm text-center">
-							<span className="text-muted-foreground">
-								Remember your password?
-							</span>{" "}
-							<Link
-								to="/login"
-								className="underline text-primary hover:text-primary/90">
-								Back to Login
-							</Link>
+		<ContentContainer>
+			<ContentSection
+				title="Reset Password"
+				className="max-w-md mx-auto">
+				<div className="space-y-6">
+					<div className="text-center">
+						<h1 className="text-2xl font-bold tracking-tight">
+							Reset your password
+						</h1>
+						<p className="text-sm text-muted-foreground mt-2">
+							Enter your email address and we'll send you a link to reset your
+							password
+						</p>
+					</div>
+
+					{emailSent ? (
+						<div className="bg-muted p-4 rounded-md">
+							<p className="text-center">
+								Check your email for a link to reset your password. If it
+								doesn't appear within a few minutes, check your spam folder.
+							</p>
+							<div className="mt-4 text-center">
+								<Link
+									to="/login"
+									className="text-primary hover:underline">
+									Return to login
+								</Link>
+							</div>
 						</div>
-					}>
-					{!emailSent ? (
+					) : (
 						<Form {...form}>
 							<form
 								onSubmit={form.handleSubmit(onSubmit)}
-								className="space-y-4">
-								<FormField
-									control={form.control}
-									name="email"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>Email</FormLabel>
-											<FormControl>
-												<Input
-													type="email"
-													placeholder="you@example.com"
-													disabled={isLoading}
-													{...field}
-												/>
-											</FormControl>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
+								className="space-y-6">
+								<FormSection
+									title="Password Recovery"
+									description="We'll send you a secure reset link">
+									<FormField
+										control={form.control}
+										name="email"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>
+													Email <span className="text-destructive">*</span>
+												</FormLabel>
+												<FormControl>
+													<div className="relative">
+														<Input
+															type="email"
+															placeholder="you@example.com"
+															disabled={isLoading}
+															className="pl-9"
+															aria-required="true"
+															aria-invalid={!!form.formState.errors.email}
+															required
+															{...field}
+														/>
+														<Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+													</div>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+								</FormSection>
+
 								<Button
 									type="submit"
 									className="w-full"
 									disabled={isLoading}>
-									{isLoading ? "Sending..." : "Send Reset Instructions"}
+									{isLoading ? "Sending..." : "Send reset link"}
 								</Button>
+
+								<div className="text-center text-sm">
+									<Link
+										to="/login"
+										className="text-primary hover:underline">
+										Back to login
+									</Link>
+								</div>
 							</form>
 						</Form>
-					) : (
-						<div className="text-center space-y-4">
-							<p className="text-sm text-muted-foreground">
-								We've sent password reset instructions to your email. Please
-								check your inbox and follow the instructions to reset your
-								password.
-							</p>
-							<Button
-								type="button"
-								variant="outline"
-								className="w-full"
-								onClick={() => setEmailSent(false)}>
-								Try Again
-							</Button>
-						</div>
 					)}
-				</ContentSection>
-			</ContentContainer>
-		</div>
+				</div>
+			</ContentSection>
+		</ContentContainer>
 	);
 }

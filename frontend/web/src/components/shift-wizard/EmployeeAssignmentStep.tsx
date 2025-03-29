@@ -87,19 +87,32 @@ interface EmployeeAssignmentStepProps {
 interface EmployeeItemProps {
 	employee: Employee;
 	selected: boolean;
-	onToggle: () => void;
+	onToggle: (e?: React.MouseEvent) => void;
 }
 
 function EmployeeItem({ employee, selected, onToggle }: EmployeeItemProps) {
+	// Function to prevent event bubbling
+	const handleClick = (e: React.MouseEvent) => {
+		e.preventDefault();
+		e.stopPropagation();
+		onToggle(e);
+	};
+
 	return (
 		<div
 			className={`flex items-center gap-2 p-2 rounded-md cursor-pointer ${
 				selected ? "bg-primary/10 border-primary" : "hover:bg-accent"
 			}`}
-			onClick={onToggle}>
+			onClick={handleClick}>
 			<Checkbox
 				checked={selected}
-				onCheckedChange={onToggle}
+				onCheckedChange={(checked) => {
+					// Prevent the default behavior
+					const event = window.event;
+					event?.preventDefault?.();
+					event?.stopPropagation?.();
+					onToggle();
+				}}
 				className="h-4 w-4"
 			/>
 			<Avatar className="h-8 w-8">
@@ -164,7 +177,10 @@ export function EmployeeAssignmentStep({
 	}, [filteredEmployees]);
 
 	// Handle employee selection/deselection
-	const toggleEmployeeSelection = (employee: Employee) => {
+	const toggleEmployeeSelection = (
+		employee: Employee,
+		event?: React.MouseEvent
+	) => {
 		const isSelected = selectedEmployees.some((e) => e.id === employee.id);
 
 		if (isSelected) {
@@ -183,6 +199,10 @@ export function EmployeeAssignmentStep({
 				},
 			]);
 		}
+
+		// Prevent the event from bubbling up and causing page navigation
+		event?.preventDefault?.();
+		event?.stopPropagation?.();
 	};
 
 	// Check if an employee is selected
@@ -191,7 +211,10 @@ export function EmployeeAssignmentStep({
 	};
 
 	// Handle form submission with multiple employees
-	const handleSubmit = () => {
+	const handleSubmit = (e?: React.FormEvent) => {
+		// Prevent default form submission behavior
+		e?.preventDefault?.();
+
 		// If no employees are selected, use the original form submit with empty employeeId
 		if (selectedEmployees.length === 0) {
 			employeeForm.setValue("employeeId", "");
@@ -271,7 +294,9 @@ export function EmployeeAssignmentStep({
 				id="employee-assignment-form"
 				onSubmit={(e) => {
 					e.preventDefault();
-					handleSubmit();
+					e.stopPropagation();
+					handleSubmit(e);
+					return false; // Ensure no default form submission
 				}}
 				className="space-y-4">
 				<div className="space-y-4">
@@ -311,29 +336,12 @@ export function EmployeeAssignmentStep({
 									</div>
 								) : (
 									<div className="space-y-1">
-										{filteredEmployees.map((employee) => (
+										{eligibleEmployees.map((employee) => (
 											<EmployeeItem
 												key={employee.id}
 												employee={employee}
-												selected={selectedEmployees.some(
-													(e) => e.id === employee.id
-												)}
-												onToggle={() => {
-													const newSelectedEmployees = selectedEmployees.some(
-														(e) => e.id === employee.id
-													)
-														? selectedEmployees.filter(
-																(e) => e.id !== employee.id
-														  )
-														: [
-																...selectedEmployees,
-																{
-																	id: employee.id,
-																	name: employee.name,
-																},
-														  ];
-													onSelectedEmployeesChange(newSelectedEmployees);
-												}}
+												selected={isEmployeeSelected(employee.id)}
+												onToggle={(e) => toggleEmployeeSelection(employee, e)}
 											/>
 										))}
 									</div>
@@ -358,11 +366,29 @@ export function EmployeeAssignmentStep({
 					</div>
 				</div>
 
-				{/* Hidden submit button for form validity */}
-				<button
-					type="submit"
-					className="hidden"
-				/>
+				<div className="flex justify-end mt-6">
+					<Button
+						type="submit"
+						onClick={(e) => {
+							e.preventDefault();
+							e.stopPropagation();
+							handleSubmit(e);
+						}}
+						disabled={loading}>
+						{loading ? (
+							<>
+								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+								Creating...
+							</>
+						) : selectedEmployees.length > 0 ? (
+							`Create ${selectedEmployees.length} ${
+								selectedEmployees.length === 1 ? "Shift" : "Shifts"
+							}`
+						) : (
+							"Create Shift"
+						)}
+					</Button>
+				</div>
 			</form>
 		</div>
 	);

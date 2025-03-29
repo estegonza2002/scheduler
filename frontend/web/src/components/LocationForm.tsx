@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Location, LocationsAPI } from "@/api";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -16,7 +16,16 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Building, Loader2, MapPin, Pencil, Plus, Upload } from "lucide-react";
+import {
+	Building,
+	Loader2,
+	MapPin,
+	Pencil,
+	Plus,
+	Upload,
+	Mail,
+	Phone,
+} from "lucide-react";
 import {
 	GooglePlacesAutocomplete,
 	GooglePlaceResult,
@@ -26,6 +35,7 @@ import { isValidPhoneNumber } from "react-phone-number-input";
 import { GoogleMap } from "@/components/ui/google-map";
 import { uploadImage, deleteImage } from "@/lib/storage";
 import { supabase } from "@/lib/supabase";
+import { FormSection } from "@/components/ui/form-section";
 
 // Extended Location type to include optional fields
 interface ExtendedLocation extends Location {
@@ -147,85 +157,93 @@ export function LocationForm({
 		}
 	}, [form.formState.isDirty, form.formState.isValid, isSubmitting, isEditing]);
 
-	const onSubmit = async (data: FormValues) => {
-		try {
-			setIsSubmitting(true);
+	// Memoize the submit function to avoid recreating it on every render
+	const onSubmit = useCallback(
+		async (data: FormValues) => {
+			try {
+				setIsSubmitting(true);
 
-			if (isEditing && initialData) {
-				// Update existing location
-				const locationToUpdate = {
-					id: initialData.id,
-					...data,
-				};
+				if (isEditing && initialData) {
+					// Update existing location
+					const locationToUpdate = {
+						id: initialData.id,
+						...data,
+					};
 
-				const updatedLocation = (await LocationsAPI.update(
-					locationToUpdate as Partial<Location> & { id: string }
-				)) as ExtendedLocation;
+					const updatedLocation = (await LocationsAPI.update(
+						locationToUpdate as Partial<Location> & { id: string }
+					)) as ExtendedLocation;
 
-				onSuccess(updatedLocation);
-				toast.success(`${updatedLocation.name} updated successfully`);
-			} else {
-				// Create new location
-				const locationToCreate = {
-					...data,
-					organizationId,
-				};
+					onSuccess(updatedLocation);
+					toast.success(`${updatedLocation.name} updated successfully`);
+				} else {
+					// Create new location
+					const locationToCreate = {
+						...data,
+						organizationId,
+					};
 
-				// Ensure name is defined as it's required by the API
-				if (!locationToCreate.name) {
-					toast.error("Location name is required");
-					return;
+					// Ensure name is defined as it's required by the API
+					if (!locationToCreate.name) {
+						toast.error("Location name is required");
+						return;
+					}
+
+					// Only include properties that exist in the Location interface
+					const newLocation = await LocationsAPI.create({
+						name: locationToCreate.name,
+						address: locationToCreate.address,
+						city: locationToCreate.city,
+						state: locationToCreate.state,
+						zipCode: locationToCreate.zipCode,
+						latitude: locationToCreate.latitude,
+						longitude: locationToCreate.longitude,
+						isActive: locationToCreate.isActive,
+						imageUrl: locationToCreate.imageUrl,
+						organizationId,
+						// country, phone, and email are used locally but not sent to API
+					});
+
+					// Store the extended properties locally
+					const extendedLocation: ExtendedLocation = {
+						...newLocation,
+						phone: locationToCreate.phone,
+						email: locationToCreate.email,
+						country: locationToCreate.country,
+					};
+
+					onSuccess(extendedLocation);
+					toast.success(`${newLocation.name} created successfully`);
 				}
-
-				// Only include properties that exist in the Location interface
-				const newLocation = await LocationsAPI.create({
-					name: locationToCreate.name,
-					address: locationToCreate.address,
-					city: locationToCreate.city,
-					state: locationToCreate.state,
-					zipCode: locationToCreate.zipCode,
-					latitude: locationToCreate.latitude,
-					longitude: locationToCreate.longitude,
-					isActive: locationToCreate.isActive,
-					imageUrl: locationToCreate.imageUrl,
-					organizationId,
-					// country, phone, and email are used locally but not sent to API
-				});
-
-				// Store the extended properties locally
-				const extendedLocation: ExtendedLocation = {
-					...newLocation,
-					phone: locationToCreate.phone,
-					email: locationToCreate.email,
-					country: locationToCreate.country,
-				};
-
-				onSuccess(extendedLocation);
-				toast.success(`${newLocation.name} created successfully`);
+			} catch (error) {
+				console.error("Error saving location:", error);
+				toast.error(`Failed to ${isEditing ? "update" : "create"} location`);
+			} finally {
+				setIsSubmitting(false);
 			}
-		} catch (error) {
-			console.error("Error saving location:", error);
-			toast.error(`Failed to ${isEditing ? "update" : "create"} location`);
-		} finally {
-			setIsSubmitting(false);
-		}
-	};
+		},
+		[isEditing, initialData, organizationId, onSuccess]
+	);
 
-	const handlePlaceSelect = (place: ExtendedGooglePlaceResult) => {
-		form.setValue("address", place.address);
-		form.setValue("city", place.city);
-		form.setValue("state", place.state);
-		form.setValue("zipCode", place.zipCode);
+	// Memoize the place select handler
+	const handlePlaceSelect = useCallback(
+		(place: ExtendedGooglePlaceResult) => {
+			form.setValue("address", place.address);
+			form.setValue("city", place.city);
+			form.setValue("state", place.state);
+			form.setValue("zipCode", place.zipCode);
 
-		if (place.country) {
-			form.setValue("country", place.country);
-		}
+			if (place.country) {
+				form.setValue("country", place.country);
+			}
 
-		if (place.latitude !== undefined && place.longitude !== undefined) {
-			form.setValue("latitude", place.latitude);
-			form.setValue("longitude", place.longitude);
-		}
-	};
+			if (place.latitude !== undefined && place.longitude !== undefined) {
+				form.setValue("latitude", place.latitude);
+				form.setValue("longitude", place.longitude);
+			}
+		},
+		[form]
+	);
 
 	const getFullAddressString = () => {
 		const { address, city, state, zipCode } = form.getValues();
@@ -353,238 +371,264 @@ export function LocationForm({
 		<Form {...form}>
 			<form
 				onSubmit={form.handleSubmit(onSubmit)}
-				className="space-y-4">
-				<FormField
-					control={form.control}
-					name="name"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel>Name</FormLabel>
-							<FormControl>
-								<div className="relative">
-									<Input
-										placeholder="Location name"
-										{...field}
-										className="pl-9"
-									/>
-									<Building className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-								</div>
-							</FormControl>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
-
-				<FormItem>
-					<FormLabel>Address Search</FormLabel>
-					<GooglePlacesAutocomplete
-						onPlaceSelect={handlePlaceSelect}
-						defaultValue={getFullAddressString()}
-						placeholder="Search for an address..."
-						className="mb-0"
-					/>
-					<FormDescription>
-						Search for an address to auto-fill the fields below
-					</FormDescription>
-				</FormItem>
-
-				<FormField
-					control={form.control}
-					name="address"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel>Street Address</FormLabel>
-							<FormControl>
-								<div className="relative">
-									<Input
-										placeholder="Street address"
-										{...field}
-										className="pl-9"
-									/>
-									<MapPin className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-								</div>
-							</FormControl>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
-
-				<div className="grid grid-cols-2 gap-4">
-					<FormField
-						control={form.control}
-						name="city"
-						render={({ field }) => (
-							<FormItem>
-								<FormLabel>City</FormLabel>
-								<FormControl>
-									<Input
-										placeholder="City"
-										{...field}
-									/>
-								</FormControl>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
-
-					<div className="grid grid-cols-2 gap-2">
+				className="space-y-6">
+				<FormSection
+					title="Basic Information"
+					description="Enter the location name and status">
+					<div className="space-y-4">
 						<FormField
 							control={form.control}
-							name="state"
+							name="name"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>State</FormLabel>
+									<FormLabel>
+										Name <span className="text-destructive">*</span>
+									</FormLabel>
 									<FormControl>
-										<Input
-											placeholder="State"
-											{...field}
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-
-						<FormField
-							control={form.control}
-							name="zipCode"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>ZIP</FormLabel>
-									<FormControl>
-										<Input
-											placeholder="ZIP"
-											{...field}
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-					</div>
-				</div>
-
-				<FormField
-					control={form.control}
-					name="imageUrl"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel>Location Image</FormLabel>
-							<FormControl>
-								<div className="space-y-2">
-									{field.value && (
-										<div className="relative overflow-hidden rounded border h-40 w-full">
-											<img
-												src={field.value}
-												alt="Location"
-												className="h-full w-full object-cover"
+										<div className="relative">
+											<Input
+												placeholder="Location name"
+												{...field}
+												className="pl-9"
+												aria-required="true"
+												aria-invalid={!!form.formState.errors.name}
+												required
 											/>
+											<Building className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
 										</div>
-									)}
-									<div className="flex items-center gap-2">
-										<Input
-											type="file"
-											id="imageUpload"
-											accept="image/*"
-											className="hidden"
-											onChange={handleImageUpload}
-										/>
-										<label
-											htmlFor="imageUpload"
-											className="flex h-10 items-center justify-center rounded-md border border-input bg-background px-3 py-2 text-sm font-medium ring-offset-background hover:bg-accent hover:text-accent-foreground cursor-pointer">
-											{uploadingImage ? (
-												<>
-													<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-													Uploading...
-												</>
-											) : (
-												<>
-													<Upload className="mr-2 h-4 w-4" />
-													Upload Image
-												</>
-											)}
-										</label>
-										{field.value && (
-											<Button
-												type="button"
-												variant="outline"
-												size="sm"
-												onClick={handleRemoveImage}>
-												Remove
-											</Button>
-										)}
-									</div>
-									{!field.value && (
-										<p className="text-xs text-muted-foreground">
-											Upload an image for this location. The image will be
-											displayed on location cards.
-										</p>
-									)}
-								</div>
-							</FormControl>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 
-				{form.watch("latitude") && form.watch("longitude") && (
-					<div className="mt-2 mb-4">
-						<div className="text-sm font-medium mb-1">Map Preview</div>
-						<GoogleMap
-							latitude={form.watch("latitude") || 0}
-							longitude={form.watch("longitude") || 0}
-							height="180px"
+						<FormField
+							control={form.control}
+							name="isActive"
+							render={({ field }) => (
+								<FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+									<FormControl>
+										<Checkbox
+											checked={field.value}
+											onCheckedChange={field.onChange}
+										/>
+									</FormControl>
+									<div className="space-y-1 leading-none">
+										<FormLabel>Active Location</FormLabel>
+										<FormDescription>
+											This location will be available for scheduling if active.
+										</FormDescription>
+									</div>
+								</FormItem>
+							)}
 						/>
 					</div>
-				)}
+				</FormSection>
 
-				<div className="grid grid-cols-2 gap-4">
-					<FormPhoneInput
-						control={form.control}
-						name="phone"
-						label="Phone"
-						placeholder="Enter phone number"
-						countryField="country"
-					/>
-
-					<FormField
-						control={form.control}
-						name="email"
-						render={({ field }) => (
-							<FormItem>
-								<FormLabel>Email</FormLabel>
-								<FormControl>
-									<Input
-										placeholder="Email address"
-										{...field}
-									/>
-								</FormControl>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
-				</div>
-
-				<FormField
-					control={form.control}
-					name="isActive"
-					render={({ field }) => (
-						<FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow-sm">
-							<FormControl>
-								<Checkbox
-									checked={field.value}
-									onCheckedChange={field.onChange}
-								/>
-							</FormControl>
-							<div className="space-y-1 leading-none">
-								<FormLabel>Active Location</FormLabel>
-								<FormDescription>
-									This location will be available for scheduling if active
-								</FormDescription>
-							</div>
+				<FormSection
+					title="Address Information"
+					description="Enter the location address details">
+					<div className="space-y-4">
+						<FormItem>
+							<FormLabel>Address Search</FormLabel>
+							<GooglePlacesAutocomplete
+								onPlaceSelect={handlePlaceSelect}
+								defaultValue={getFullAddressString()}
+								placeholder="Search for an address..."
+								className="mb-0"
+							/>
+							<FormDescription>
+								Search for an address to auto-fill the fields below
+							</FormDescription>
 						</FormItem>
-					)}
-				/>
+
+						<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+							<FormField
+								control={form.control}
+								name="address"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Street Address</FormLabel>
+										<FormControl>
+											<div className="relative">
+												<Input
+													placeholder="Street address"
+													{...field}
+													className="pl-9"
+													aria-invalid={!!form.formState.errors.address}
+												/>
+												<MapPin className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+											</div>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+
+							<FormField
+								control={form.control}
+								name="city"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>City</FormLabel>
+										<FormControl>
+											<Input
+												placeholder="City"
+												{...field}
+												aria-invalid={!!form.formState.errors.city}
+											/>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+
+							<FormField
+								control={form.control}
+								name="state"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>State/Province</FormLabel>
+										<FormControl>
+											<Input
+												placeholder="State or province"
+												{...field}
+												aria-invalid={!!form.formState.errors.state}
+											/>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+
+							<FormField
+								control={form.control}
+								name="zipCode"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Postal Code</FormLabel>
+										<FormControl>
+											<Input
+												placeholder="Postal code"
+												{...field}
+												aria-invalid={!!form.formState.errors.zipCode}
+											/>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						</div>
+
+						{form.watch("latitude") && form.watch("longitude") && (
+							<div className="mt-2 mb-4">
+								<div className="text-sm font-medium mb-1">Map Preview</div>
+								<GoogleMap
+									latitude={form.watch("latitude") || 0}
+									longitude={form.watch("longitude") || 0}
+									height="180px"
+								/>
+							</div>
+						)}
+					</div>
+				</FormSection>
+
+				<FormSection
+					title="Contact Information"
+					description="Add contact details for this location">
+					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+						<FormPhoneInput
+							control={form.control}
+							name="phone"
+							label="Phone Number"
+							placeholder="Enter phone number"
+						/>
+
+						<FormField
+							control={form.control}
+							name="email"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Email</FormLabel>
+									<FormControl>
+										<div className="relative">
+											<Input
+												placeholder="location@example.com"
+												type="email"
+												{...field}
+												className="pl-9"
+												aria-invalid={!!form.formState.errors.email}
+											/>
+											<Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+										</div>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+					</div>
+				</FormSection>
+
+				<FormSection
+					title="Location Image"
+					description="Upload an image for this location (optional)">
+					<div className="space-y-2">
+						{form.watch("imageUrl") && (
+							<div className="relative overflow-hidden rounded border h-40 w-full">
+								<img
+									src={form.watch("imageUrl")}
+									alt="Location"
+									className="h-full w-full object-cover"
+								/>
+							</div>
+						)}
+						<div className="flex items-center gap-2">
+							<Input
+								type="file"
+								id="imageUpload"
+								accept="image/*"
+								className="hidden"
+								onChange={handleImageUpload}
+							/>
+							<label
+								htmlFor="imageUpload"
+								className="flex h-10 items-center justify-center rounded-md border border-input bg-background px-3 py-2 text-sm font-medium ring-offset-background hover:bg-accent hover:text-accent-foreground cursor-pointer">
+								{uploadingImage ? (
+									<>
+										<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+										Uploading...
+									</>
+								) : (
+									<>
+										<Upload className="mr-2 h-4 w-4" />
+										Upload Image
+									</>
+								)}
+							</label>
+							{form.watch("imageUrl") && (
+								<Button
+									type="button"
+									variant="outline"
+									size="sm"
+									onClick={handleRemoveImage}>
+									Remove
+								</Button>
+							)}
+						</div>
+						{!form.watch("imageUrl") && (
+							<p className="text-xs text-muted-foreground">
+								Upload an image for this location. The image will be displayed
+								on location cards.
+							</p>
+						)}
+					</div>
+				</FormSection>
+
+				<Button
+					type="submit"
+					disabled={!form.formState.isValid || isSubmitting}>
+					{isSubmitting ? "Submitting..." : "Submit"}
+				</Button>
 			</form>
 		</Form>
 	);

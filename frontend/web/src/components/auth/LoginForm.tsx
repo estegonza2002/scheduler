@@ -1,4 +1,4 @@
-import { useState, forwardRef, useImperativeHandle } from "react";
+import { useState, forwardRef, useImperativeHandle, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -15,7 +15,9 @@ import {
 	FormLabel,
 	FormMessage,
 } from "../ui/form";
+import { FormSection } from "../ui/form-section";
 import { toast } from "sonner";
+import { Mail, Lock } from "lucide-react";
 
 const loginSchema = z.object({
 	email: z.string().email("Invalid email address"),
@@ -56,80 +58,107 @@ export const LoginForm = forwardRef<LoginFormRef>((props, ref) => {
 		},
 	}));
 
-	async function onSubmit(values: LoginFormValues) {
-		setIsLoading(true);
-		try {
-			const { data, error } = await signIn({
-				email: values.email,
-				password: values.password,
-			});
+	const onSubmit = useCallback(
+		async (values: LoginFormValues) => {
+			setIsLoading(true);
+			try {
+				const { data, error } = await signIn({
+					email: values.email,
+					password: values.password,
+				});
 
-			if (error) {
-				if (error.message.includes("Invalid login credentials")) {
-					toast.error("Invalid email or password. Please try again.");
-				} else if (error.message.includes("Email not confirmed")) {
-					toast.error("Please confirm your email address before logging in.");
-				} else {
-					toast.error(error.message);
+				if (error) {
+					if (error.message.includes("Invalid login credentials")) {
+						toast.error("Invalid email or password. Please try again.");
+					} else if (error.message.includes("Email not confirmed")) {
+						toast.error("Please confirm your email address before logging in.");
+					} else {
+						toast.error(error.message);
+					}
+					console.error("Login error:", error);
+					return;
 				}
-				console.error("Login error:", error);
-				return;
+
+				toast.success("Logged in successfully");
+
+				// Check if user is an admin and redirect to appropriate dashboard
+				const isAdmin = data.user?.user_metadata?.role === "admin";
+				navigate(isAdmin ? "/admin-dashboard" : "/dashboard");
+			} catch (error) {
+				toast.error("An unexpected error occurred");
+				console.error("Login exception:", error);
+			} finally {
+				setIsLoading(false);
 			}
-
-			toast.success("Logged in successfully");
-
-			// Check if user is an admin and redirect to appropriate dashboard
-			const isAdmin = data.user?.user_metadata?.role === "admin";
-			navigate(isAdmin ? "/admin-dashboard" : "/dashboard");
-		} catch (error) {
-			toast.error("An unexpected error occurred");
-			console.error("Login exception:", error);
-		} finally {
-			setIsLoading(false);
-		}
-	}
+		},
+		[signIn, navigate]
+	);
 
 	return (
 		<Form {...form}>
 			<form
 				onSubmit={form.handleSubmit(onSubmit)}
-				className="space-y-4">
-				<FormField
-					control={form.control}
-					name="email"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel>Email</FormLabel>
-							<FormControl>
-								<Input
-									type="email"
-									placeholder="you@example.com"
-									disabled={isLoading}
-									{...field}
-								/>
-							</FormControl>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
-				<FormField
-					control={form.control}
-					name="password"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel>Password</FormLabel>
-							<FormControl>
-								<Input
-									type="password"
-									placeholder="******"
-									disabled={isLoading}
-									{...field}
-								/>
-							</FormControl>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
+				className="space-y-6">
+				<FormSection
+					title="Account Login"
+					description="Enter your credentials to access your account">
+					<div className="space-y-4">
+						<FormField
+							control={form.control}
+							name="email"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>
+										Email <span className="text-destructive">*</span>
+									</FormLabel>
+									<FormControl>
+										<div className="relative">
+											<Input
+												type="email"
+												placeholder="you@example.com"
+												disabled={isLoading}
+												className="pl-9"
+												aria-required="true"
+												aria-invalid={!!form.formState.errors.email}
+												required
+												{...field}
+											/>
+											<Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+										</div>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="password"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>
+										Password <span className="text-destructive">*</span>
+									</FormLabel>
+									<FormControl>
+										<div className="relative">
+											<Input
+												type="password"
+												placeholder="******"
+												disabled={isLoading}
+												className="pl-9"
+												aria-required="true"
+												aria-invalid={!!form.formState.errors.password}
+												required
+												{...field}
+											/>
+											<Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+										</div>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+					</div>
+				</FormSection>
 
 				<Button
 					type="submit"

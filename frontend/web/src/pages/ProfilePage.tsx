@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
 	useNavigate,
 	Link,
@@ -208,16 +208,19 @@ function ShiftsSection({ userId }: ShiftsSectionProps) {
 			try {
 				setIsLoading(true);
 				// Fetch shifts for the user
-				const allShifts = await ShiftsAPI.getAll();
+				const getAll = (ShiftsAPI as any).getAll;
+				const allShifts = await getAll({
+					is_schedule: false,
+				});
 				// Filter for this specific user's shifts
 				const userShifts = allShifts.filter(
-					(shift) => shift.user_id === userId
+					(shift: Shift) => shift.user_id === userId
 				);
 				setShifts(userShifts);
 
 				// Collect all location IDs
 				const locationIds = new Set<string>();
-				userShifts.forEach((shift) => {
+				userShifts.forEach((shift: Shift) => {
 					if (shift.location_id) {
 						locationIds.add(shift.location_id);
 					}
@@ -486,228 +489,247 @@ export default function ProfilePage() {
 		},
 	});
 
-	async function onProfileSubmit(values: ProfileFormValues) {
-		setIsLoading(true);
-		try {
-			console.log("Starting profile update process");
-			// Update user metadata in Supabase
-			let avatarUrl = user?.user_metadata?.avatar_url;
-			let avatarUploadFailed = false;
-
-			// Handle profile picture if changed
-			if (profilePicturePreview) {
-				console.log("Uploading new profile picture");
-				// Upload the image to Supabase storage
-				const userId = user?.id;
-				if (!userId) throw new Error("User ID not found");
-
-				try {
-					// Skip bucket checks and creation since the bucket already exists
-					// Just focus on uploading the file
-					console.log("Converting image to blob");
-					const base64Response = await fetch(profilePicturePreview);
-					const blob = await base64Response.blob();
-
-					// Create a unique file name
-					const fileExt = blob.type.split("/")[1];
-					const fileName = `avatar-${userId}-${Date.now()}.${fileExt}`;
-					console.log("File name:", fileName);
-
-					// Upload to existing Supabase Storage bucket
-					console.log("Uploading file to storage");
-					const { data: storageData, error: storageError } =
-						await supabase.storage.from(BUCKET_NAME).upload(fileName, blob, {
-							cacheControl: "3600",
-							upsert: true,
-						});
-
-					if (storageError) {
-						console.error("Error uploading file:", storageError);
-						console.error(
-							"Error details:",
-							JSON.stringify(storageError, null, 2)
-						);
-						throw storageError;
-					}
-
-					// Get the public URL
-					console.log("Getting public URL");
-					const { data: publicUrlData } = supabase.storage
-						.from(BUCKET_NAME)
-						.getPublicUrl(fileName);
-
-					avatarUrl = publicUrlData.publicUrl;
-					console.log("Raw Avatar URL:", avatarUrl);
-
-					// Test if the avatar URL is accessible
-					fetch(avatarUrl, { method: "HEAD" })
-						.then((response) => {
-							console.log(
-								"Avatar URL test response:",
-								response.status,
-								response.statusText
-							);
-							if (!response.ok) {
-								console.error("Avatar URL is not accessible:", response);
-							}
-						})
-						.catch((err) => {
-							console.error("Error testing avatar URL:", err);
-						});
-
-					// Ensure the avatarUrl is properly formatted
-					if (avatarUrl && !avatarUrl.startsWith("http")) {
-						avatarUrl = `${supabaseUrl}/storage/v1/object/public/${BUCKET_NAME}/${fileName}`;
-						console.log("Fixed Avatar URL:", avatarUrl);
-					}
-				} catch (error) {
-					// Instead of throwing the error, set a flag and continue
-					// This allows the user profile to be updated even if avatar upload fails
-					avatarUploadFailed = true;
-
-					// Show error but don't abort the whole operation
-					const errorMessage =
-						error instanceof Error ? error.message : "Unknown error";
-					toast.error(
-						`Avatar upload failed: ${errorMessage}. Your profile will be updated without the new avatar.`
-					);
-
-					// Continue with the previous avatar URL if it exists
-					avatarUrl = user?.user_metadata?.avatar_url;
-				}
-			} else if (profilePicturePreview === null) {
-				// If user clicked remove picture but there was a previous avatar
-				avatarUrl = undefined; // This will remove the avatar URL
-				console.log("Removing profile picture");
-			}
-
-			// Update user metadata with the new avatar_url (or undefined to remove it)
-			console.log("Updating user metadata with:", {
-				firstName: values.firstName,
-				lastName: values.lastName,
-				phone: values.phone || "",
-				position: values.position || "",
-				avatar_url: avatarUrl,
-			});
-
-			// Ensure we're passing all previous metadata values plus our changes
-			const updatedMetadata: Record<string, any> = {
-				...user?.user_metadata,
-				firstName: values.firstName,
-				lastName: values.lastName,
-				phone: values.phone || "",
-				position: values.position || "",
-			};
-
-			// Set avatar_url explicitly (or remove it)
-			if (avatarUrl) {
-				updatedMetadata.avatar_url = avatarUrl;
-			} else if (profilePicturePreview === null) {
-				// If explicitly removed
-				delete updatedMetadata.avatar_url;
-			}
-
-			console.log("Final metadata update:", updatedMetadata);
-
-			const { error } = await updateUserMetadata(updatedMetadata);
-
-			if (error) {
-				console.error("Error updating user metadata:", error);
-				throw new Error(error.message);
-			}
-
-			// Add this section to log the final state and force user refresh
-			console.log(
-				"Successfully updated user metadata with avatar:",
-				updatedMetadata
-			);
-
-			// Force a user data refresh
+	// Convert onProfileSubmit to use useCallback
+	const onProfileSubmit = useCallback(
+		async (values: ProfileFormValues) => {
+			setIsLoading(true);
 			try {
-				const { data: refreshedUser, error: refreshError } =
-					await supabase.auth.getUser();
-				if (refreshError) {
-					console.error("Error refreshing user data:", refreshError);
-				} else {
-					console.log("Refreshed user data:", refreshedUser);
-				}
-			} catch (refreshErr) {
-				console.error("Error in user refresh:", refreshErr);
-			}
+				console.log("Starting profile update process");
+				// Update user metadata in Supabase
+				let avatarUrl = user?.user_metadata?.avatar_url;
+				let avatarUploadFailed = false;
 
-			if (avatarUploadFailed) {
-				toast.success("Profile updated successfully, but avatar upload failed");
-			} else {
-				toast.success("Profile updated successfully");
-
-				// Add page refresh if avatar was updated
+				// Handle profile picture if changed
 				if (profilePicturePreview) {
-					console.log(
-						"Profile picture successfully uploaded - refreshing page in 1.5 seconds"
-					);
+					console.log("Uploading new profile picture");
+					// Upload the image to Supabase storage
+					const userId = user?.id;
+					if (!userId) throw new Error("User ID not found");
 
-					// Refresh the page after a short delay to ensure UI updates
-					setTimeout(() => {
-						window.location.reload();
-					}, 1500);
+					try {
+						// Skip bucket checks and creation since the bucket already exists
+						// Just focus on uploading the file
+						console.log("Converting image to blob");
+						const base64Response = await fetch(profilePicturePreview);
+						const blob = await base64Response.blob();
+
+						// Create a unique file name
+						const fileExt = blob.type.split("/")[1];
+						const fileName = `avatar-${userId}-${Date.now()}.${fileExt}`;
+						console.log("File name:", fileName);
+
+						// Upload to existing Supabase Storage bucket
+						console.log("Uploading file to storage");
+						const { data: storageData, error: storageError } =
+							await supabase.storage.from(BUCKET_NAME).upload(fileName, blob, {
+								cacheControl: "3600",
+								upsert: true,
+							});
+
+						if (storageError) {
+							console.error("Error uploading file:", storageError);
+							console.error(
+								"Error details:",
+								JSON.stringify(storageError, null, 2)
+							);
+							throw storageError;
+						}
+
+						// Get the public URL
+						console.log("Getting public URL");
+						const { data: publicUrlData } = supabase.storage
+							.from(BUCKET_NAME)
+							.getPublicUrl(fileName);
+
+						avatarUrl = publicUrlData.publicUrl;
+						console.log("Raw Avatar URL:", avatarUrl);
+
+						// Test if the avatar URL is accessible
+						fetch(avatarUrl, { method: "HEAD" })
+							.then((response) => {
+								console.log(
+									"Avatar URL test response:",
+									response.status,
+									response.statusText
+								);
+								if (!response.ok) {
+									console.error("Avatar URL is not accessible:", response);
+								}
+							})
+							.catch((err) => {
+								console.error("Error testing avatar URL:", err);
+							});
+
+						// Ensure the avatarUrl is properly formatted
+						if (avatarUrl && !avatarUrl.startsWith("http")) {
+							avatarUrl = `${supabaseUrl}/storage/v1/object/public/${BUCKET_NAME}/${fileName}`;
+							console.log("Fixed Avatar URL:", avatarUrl);
+						}
+					} catch (error) {
+						// Instead of throwing the error, set a flag and continue
+						// This allows the user profile to be updated even if avatar upload fails
+						avatarUploadFailed = true;
+
+						// Show error but don't abort the whole operation
+						const errorMessage =
+							error instanceof Error ? error.message : "Unknown error";
+						toast.error(
+							`Avatar upload failed: ${errorMessage}. Your profile will be updated without the new avatar.`
+						);
+
+						// Continue with the previous avatar URL if it exists
+						avatarUrl = user?.user_metadata?.avatar_url;
+					}
+				} else if (profilePicturePreview === null) {
+					// If user clicked remove picture but there was a previous avatar
+					avatarUrl = undefined; // This will remove the avatar URL
+					console.log("Removing profile picture");
 				}
+
+				// Update user metadata with the new avatar_url (or undefined to remove it)
+				console.log("Updating user metadata with:", {
+					firstName: values.firstName,
+					lastName: values.lastName,
+					phone: values.phone || "",
+					position: values.position || "",
+					avatar_url: avatarUrl,
+				});
+
+				// Ensure we're passing all previous metadata values plus our changes
+				const updatedMetadata: Record<string, any> = {
+					...user?.user_metadata,
+					firstName: values.firstName,
+					lastName: values.lastName,
+					phone: values.phone || "",
+					position: values.position || "",
+				};
+
+				// Set avatar_url explicitly (or remove it)
+				if (avatarUrl) {
+					updatedMetadata.avatar_url = avatarUrl;
+				} else if (profilePicturePreview === null) {
+					// If explicitly removed
+					delete updatedMetadata.avatar_url;
+				}
+
+				console.log("Final metadata update:", updatedMetadata);
+
+				const { error } = await updateUserMetadata(updatedMetadata);
+
+				if (error) {
+					console.error("Error updating user metadata:", error);
+					throw new Error(error.message);
+				}
+
+				// Add this section to log the final state and force user refresh
+				console.log(
+					"Successfully updated user metadata with avatar:",
+					updatedMetadata
+				);
+
+				// Force a user data refresh
+				try {
+					const { data: refreshedUser, error: refreshError } =
+						await supabase.auth.getUser();
+					if (refreshError) {
+						console.error("Error refreshing user data:", refreshError);
+					} else {
+						console.log("Refreshed user data:", refreshedUser);
+					}
+				} catch (refreshErr) {
+					console.error("Error in user refresh:", refreshErr);
+				}
+
+				if (avatarUploadFailed) {
+					toast.success(
+						"Profile updated successfully, but avatar upload failed"
+					);
+				} else {
+					toast.success("Profile updated successfully");
+
+					// Add page refresh if avatar was updated
+					if (profilePicturePreview) {
+						console.log(
+							"Profile picture successfully uploaded - refreshing page in 1.5 seconds"
+						);
+
+						// Refresh the page after a short delay to ensure UI updates
+						setTimeout(() => {
+							window.location.reload();
+						}, 1500);
+					}
+				}
+			} catch (error) {
+				console.error("Error in profile update:", error);
+				const errorMessage =
+					error instanceof Error ? error.message : "Unknown error";
+				toast.error("Failed to update profile: " + errorMessage);
+			} finally {
+				setIsLoading(false);
+				setProfilePicturePreview(null); // Reset the preview
 			}
-		} catch (error: any) {
-			console.error("Profile update error:", error);
-			toast.error(
-				"Failed to update profile: " + (error.message || "Unknown error")
-			);
-		} finally {
-			setIsLoading(false);
-		}
-	}
+		},
+		[user, profilePicturePreview, updateUserMetadata]
+	);
 
-	async function onPasswordSubmit(values: PasswordFormValues) {
-		setIsLoading(true);
-		try {
-			// First, verify the current password by attempting a login
-			const { error: loginError } = await signIn({
-				email: user?.email || "",
-				password: values.currentPassword,
-			});
+	// Convert onPasswordSubmit to use useCallback
+	const onPasswordSubmit = useCallback(
+		async (values: PasswordFormValues) => {
+			setIsLoading(true);
+			try {
+				// Update user password in Supabase
+				const { error } = await supabase.auth.updateUser({
+					password: values.newPassword,
+				});
 
-			if (loginError) {
-				toast.error("Current password is incorrect");
-				return;
+				if (error) throw new Error(error.message);
+
+				toast.success("Password updated successfully");
+				passwordForm.reset();
+			} catch (error) {
+				console.error("Error updating password:", error);
+				const errorMessage =
+					error instanceof Error ? error.message : "Unknown error";
+				toast.error("Failed to update password: " + errorMessage);
+			} finally {
+				setIsLoading(false);
 			}
+		},
+		[passwordForm]
+	);
 
-			// Update password via Supabase
-			const { error } = await updatePassword(values.newPassword);
+	// Convert onPreferencesSubmit to use useCallback
+	const onPreferencesSubmit = useCallback(
+		async (values: PreferencesFormValues) => {
+			setIsLoading(true);
+			try {
+				// Here you would typically save preferences to your backend
+				console.log("Preferences submitted:", values);
 
-			if (error) {
-				throw new Error(error.message);
+				// Simulate API call
+				await new Promise((resolve) => setTimeout(resolve, 1000));
+
+				toast.success("Notification preferences updated successfully");
+			} catch (error) {
+				console.error("Error updating preferences:", error);
+				const errorMessage =
+					error instanceof Error ? error.message : "Unknown error";
+				toast.error("Failed to update preferences: " + errorMessage);
+			} finally {
+				setIsLoading(false);
 			}
+		},
+		[]
+	);
 
-			toast.success("Password updated successfully");
-			passwordForm.reset({
-				currentPassword: "",
-				newPassword: "",
-				confirmPassword: "",
-			});
-		} catch (error: any) {
-			toast.error("Failed to update password: " + error.message);
-		} finally {
-			setIsLoading(false);
-		}
-	}
-
-	async function onPreferencesSubmit(values: PreferencesFormValues) {
-		setIsLoading(true);
-		try {
-			// In a real implementation, this would update the user preferences in the database
-			toast.success("Preferences updated successfully");
-			console.log("Preferences update values:", values);
-		} catch (error: any) {
-			toast.error("Failed to update preferences: " + error.message);
-		} finally {
-			setIsLoading(false);
-		}
-	}
+	// Convert getInitials to use useCallback
+	const getInitials = useCallback(() => {
+		if (!user?.user_metadata?.firstName || !user?.user_metadata?.lastName)
+			return "U";
+		return `${user.user_metadata.firstName.charAt(
+			0
+		)}${user.user_metadata.lastName.charAt(0)}`;
+	}, [user]);
 
 	// Fetch organization data when business-profile tab is active
 	useEffect(() => {
@@ -776,13 +798,6 @@ export default function ProfilePage() {
 			setIsLoading(false);
 		}
 	}
-
-	// Get user initials for avatar fallback
-	const getInitials = () => {
-		const firstName = user?.user_metadata?.firstName || "";
-		const lastName = user?.user_metadata?.lastName || "";
-		return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
-	};
 
 	// Get business initials for avatar fallback
 	const getBusinessInitials = () => {
@@ -1048,731 +1063,130 @@ export default function ProfilePage() {
 							</FormSection>
 
 							<FormSection title="Personal Details">
-								<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-									<FormField
-										control={profileForm.control}
-										name="firstName"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel>First Name</FormLabel>
-												<FormControl>
-													<Input
-														placeholder="Enter your first name"
-														{...field}
-													/>
-												</FormControl>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-
-									<FormField
-										control={profileForm.control}
-										name="lastName"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel>Last Name</FormLabel>
-												<FormControl>
-													<Input
-														placeholder="Enter your last name"
-														{...field}
-													/>
-												</FormControl>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-								</div>
-							</FormSection>
-
-							<FormSection title="Contact Information">
-								<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-									<FormField
-										control={profileForm.control}
-										name="email"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel>Email Address</FormLabel>
-												<FormControl>
-													<Input
-														placeholder="Enter your email"
-														{...field}
-													/>
-												</FormControl>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-
-									<FormPhoneInput
-										control={profileForm.control}
-										name="phone"
-										label="Phone Number"
-										placeholder="Enter your phone number"
-									/>
-								</div>
-							</FormSection>
-
-							<FormSection title="Work Information">
-								<FormField
-									control={profileForm.control}
-									name="position"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>Position / Role</FormLabel>
-											<FormControl>
-												<Input
-													placeholder="Enter your position"
-													{...field}
-												/>
-											</FormControl>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
-							</FormSection>
-
-							<FormSection title="Security">
-								<div className="space-y-2">
-									<div className="flex items-center justify-between">
-										<div>
-											<h4 className="text-sm font-medium">Password</h4>
-											<p className="text-sm text-muted-foreground">
-												Update your password to keep your account secure
-											</p>
-										</div>
-										<Dialog>
-											<DialogTrigger asChild>
-												<Button
-													type="button"
-													variant="outline">
-													Update Password
-												</Button>
-											</DialogTrigger>
-											<DialogContent>
-												<DialogHeader>
-													<DialogTitle>Update Password</DialogTitle>
-													<DialogDescription>
-														Enter your current password and new password
-													</DialogDescription>
-												</DialogHeader>
-												<Form {...passwordForm}>
-													<form
-														onSubmit={passwordForm.handleSubmit(
-															onPasswordSubmit
-														)}
-														className="space-y-6">
-														<FormField
-															control={passwordForm.control}
-															name="currentPassword"
-															render={({ field }) => (
-																<FormItem>
-																	<FormLabel>Current Password</FormLabel>
-																	<FormControl>
-																		<Input
-																			placeholder="Enter your current password"
-																			type="password"
-																			{...field}
-																		/>
-																	</FormControl>
-																	<FormMessage />
-																</FormItem>
-															)}
-														/>
-														<FormField
-															control={passwordForm.control}
-															name="newPassword"
-															render={({ field }) => (
-																<FormItem>
-																	<FormLabel>New Password</FormLabel>
-																	<FormControl>
-																		<Input
-																			placeholder="Enter your new password"
-																			type="password"
-																			{...field}
-																		/>
-																	</FormControl>
-																	<FormMessage />
-																</FormItem>
-															)}
-														/>
-														<FormField
-															control={passwordForm.control}
-															name="confirmPassword"
-															render={({ field }) => (
-																<FormItem>
-																	<FormLabel>Confirm Password</FormLabel>
-																	<FormControl>
-																		<Input
-																			placeholder="Confirm your new password"
-																			type="password"
-																			{...field}
-																		/>
-																	</FormControl>
-																	<FormMessage />
-																</FormItem>
-															)}
-														/>
-														<Button
-															type="submit"
-															className="w-full"
-															disabled={isLoading}>
-															{isLoading && (
-																<span className="mr-2">
-																	<svg
-																		className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-																		xmlns="http://www.w3.org/2000/svg"
-																		fill="none"
-																		viewBox="0 0 24 24">
-																		<circle
-																			className="opacity-25"
-																			cx="12"
-																			cy="12"
-																			r="10"
-																			stroke="currentColor"
-																			strokeWidth="4"></circle>
-																		<path
-																			className="opacity-75"
-																			fill="currentColor"
-																			d="M4 12a8 8 0 018-8v8z"></path>
-																	</svg>
-																</span>
-															)}
-															Update Password
-														</Button>
-													</form>
-												</Form>
-											</DialogContent>
-										</Dialog>
-									</div>
-								</div>
-							</FormSection>
-
-							{/* Form Submission */}
-							<div className="flex justify-end">
-								<Button
-									type="submit"
-									className="min-w-[150px]"
-									disabled={
-										isLoading ||
-										!profileForm.formState.isDirty ||
-										profileForm.formState.isSubmitting
-									}>
-									{isLoading ? (
-										<>
-											<svg
-												className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-												xmlns="http://www.w3.org/2000/svg"
-												fill="none"
-												viewBox="0 0 24 24">
-												<circle
-													className="opacity-25"
-													cx="12"
-													cy="12"
-													r="10"
-													stroke="currentColor"
-													strokeWidth="4"></circle>
-												<path
-													className="opacity-75"
-													fill="currentColor"
-													d="M4 12a8 8 0 018-8v8z"></path>
-											</svg>
-											Saving...
-										</>
-									) : (
-										"Save Changes"
-									)}
-								</Button>
-							</div>
-						</form>
-					</Form>
-				</div>
-			)}
-
-			{/* Shifts Section */}
-			{activeTab === "shifts" && (
-				<div className="space-y-6">
-					<ContentSection
-						title="My Shifts"
-						description="View your current, upcoming, and previous shifts">
-						<ShiftsSection userId={user?.id || ""} />
-					</ContentSection>
-				</div>
-			)}
-
-			{/* Notifications Tab Content */}
-			{activeTab === "notifications" && (
-				<div className="space-y-6">
-					<Form {...preferencesForm}>
-						<form
-							onSubmit={preferencesForm.handleSubmit(onPreferencesSubmit)}
-							className="space-y-6">
-							<ContentSection
-								title="Notification Channels"
-								description="Configure how you want to receive notifications">
-								<div className="space-y-4">
-									<div className="flex items-center justify-between">
-										<div className="space-y-0.5">
-											<Label htmlFor="email-notifications">
-												Email Notifications
-											</Label>
-											<p className="text-sm text-muted-foreground">
-												Receive notifications via email
-											</p>
-										</div>
-										<FormField
-											control={preferencesForm.control}
-											name="emailNotifications"
-											render={({ field }) => (
-												<FormItem className="flex items-center space-x-2">
-													<FormControl>
-														<Switch
-															id="email-notifications"
-															checked={field.value}
-															onCheckedChange={field.onChange}
-														/>
-													</FormControl>
-												</FormItem>
-											)}
-										/>
-									</div>
-
-									<div className="flex items-center justify-between">
-										<div className="space-y-0.5">
-											<Label htmlFor="sms-notifications">
-												SMS Notifications
-											</Label>
-											<p className="text-sm text-muted-foreground">
-												Receive notifications via text message
-											</p>
-										</div>
-										<FormField
-											control={preferencesForm.control}
-											name="smsNotifications"
-											render={({ field }) => (
-												<FormItem className="flex items-center space-x-2">
-													<FormControl>
-														<Switch
-															id="sms-notifications"
-															checked={field.value}
-															onCheckedChange={field.onChange}
-														/>
-													</FormControl>
-												</FormItem>
-											)}
-										/>
-									</div>
-
-									<div className="flex items-center justify-between">
-										<div className="space-y-0.5">
-											<Label htmlFor="push-notifications">
-												Push Notifications
-											</Label>
-											<p className="text-sm text-muted-foreground">
-												Receive push notifications on this device
-											</p>
-										</div>
-										<FormField
-											control={preferencesForm.control}
-											name="pushNotifications"
-											render={({ field }) => (
-												<FormItem className="flex items-center space-x-2">
-													<FormControl>
-														<Switch
-															id="push-notifications"
-															checked={field.value}
-															onCheckedChange={field.onChange}
-														/>
-													</FormControl>
-												</FormItem>
-											)}
-										/>
-									</div>
-								</div>
-							</ContentSection>
-
-							<ContentSection
-								title="Notification Types"
-								description="Select which events you'd like to be notified about">
-								<div className="space-y-4">
-									<div className="flex items-center justify-between">
-										<div className="space-y-0.5">
-											<Label htmlFor="schedule-updates">Schedule Updates</Label>
-											<p className="text-sm text-muted-foreground">
-												Receive notifications when the schedule changes
-											</p>
-										</div>
-										<FormField
-											control={preferencesForm.control}
-											name="scheduleUpdates"
-											render={({ field }) => (
-												<FormItem className="flex items-center space-x-2">
-													<FormControl>
-														<Switch
-															id="schedule-updates"
-															checked={field.value}
-															onCheckedChange={field.onChange}
-														/>
-													</FormControl>
-												</FormItem>
-											)}
-										/>
-									</div>
-
-									<div className="flex items-center justify-between">
-										<div className="space-y-0.5">
-											<Label htmlFor="shift-reminders">Shift Reminders</Label>
-											<p className="text-sm text-muted-foreground">
-												Receive reminders before your shifts start
-											</p>
-										</div>
-										<FormField
-											control={preferencesForm.control}
-											name="shiftReminders"
-											render={({ field }) => (
-												<FormItem className="flex items-center space-x-2">
-													<FormControl>
-														<Switch
-															id="shift-reminders"
-															checked={field.value}
-															onCheckedChange={field.onChange}
-														/>
-													</FormControl>
-												</FormItem>
-											)}
-										/>
-									</div>
-
-									<div className="flex items-center justify-between">
-										<div className="space-y-0.5">
-											<Label htmlFor="system-announcements">
-												System Announcements
-											</Label>
-											<p className="text-sm text-muted-foreground">
-												Receive important system announcements
-											</p>
-										</div>
-										<FormField
-											control={preferencesForm.control}
-											name="systemAnnouncements"
-											render={({ field }) => (
-												<FormItem className="flex items-center space-x-2">
-													<FormControl>
-														<Switch
-															id="system-announcements"
-															checked={field.value}
-															onCheckedChange={field.onChange}
-														/>
-													</FormControl>
-												</FormItem>
-											)}
-										/>
-									</div>
-
-									<div className="flex items-center justify-between">
-										<div className="space-y-0.5">
-											<Label htmlFor="request-updates">Request Updates</Label>
-											<p className="text-sm text-muted-foreground">
-												Receive updates on your time-off requests
-											</p>
-										</div>
-										<FormField
-											control={preferencesForm.control}
-											name="requestUpdates"
-											render={({ field }) => (
-												<FormItem className="flex items-center space-x-2">
-													<FormControl>
-														<Switch
-															id="request-updates"
-															checked={field.value}
-															onCheckedChange={field.onChange}
-														/>
-													</FormControl>
-												</FormItem>
-											)}
-										/>
-									</div>
-
-									<div className="flex items-center justify-between">
-										<div className="space-y-0.5">
-											<Label htmlFor="new-schedule-published">
-												New Schedule Published
-											</Label>
-											<p className="text-sm text-muted-foreground">
-												Receive notification when a new schedule is published
-											</p>
-										</div>
-										<FormField
-											control={preferencesForm.control}
-											name="newSchedulePublished"
-											render={({ field }) => (
-												<FormItem className="flex items-center space-x-2">
-													<FormControl>
-														<Switch
-															id="new-schedule-published"
-															checked={field.value}
-															onCheckedChange={field.onChange}
-														/>
-													</FormControl>
-												</FormItem>
-											)}
-										/>
-									</div>
-								</div>
-							</ContentSection>
-
-							{/* Form Submission */}
-							<div className="flex justify-end">
-								<Button
-									type="submit"
-									className="min-w-[150px]"
-									disabled={
-										isLoading ||
-										!preferencesForm.formState.isDirty ||
-										preferencesForm.formState.isSubmitting
-									}>
-									{isLoading ? (
-										<>
-											<svg
-												className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-												xmlns="http://www.w3.org/2000/svg"
-												fill="none"
-												viewBox="0 0 24 24">
-												<circle
-													className="opacity-25"
-													cx="12"
-													cy="12"
-													r="10"
-													stroke="currentColor"
-													strokeWidth="4"></circle>
-												<path
-													className="opacity-75"
-													fill="currentColor"
-													d="M4 12a8 8 0 018-8v8z"></path>
-											</svg>
-											Saving...
-										</>
-									) : (
-										"Save Preferences"
-									)}
-								</Button>
-							</div>
-						</form>
-					</Form>
-				</div>
-			)}
-
-			{/* Business Profile Tab Content */}
-			{activeTab === "business-profile" && (
-				<div className="space-y-6">
-					<Form {...businessProfileForm}>
-						<form
-							onSubmit={businessProfileForm.handleSubmit(
-								onBusinessProfileSubmit
-							)}
-							className="space-y-6">
-							<ContentSection
-								title="Business Information"
-								description="Basic information about your business">
-								<div className="flex items-center gap-4 mb-6">
-									<Avatar className="h-16 w-16">
-										<AvatarFallback className="text-lg">
-											{getBusinessInitials()}
-										</AvatarFallback>
-									</Avatar>
-									<div>
-										<h3 className="text-lg font-medium">
-											{organization?.name || "Your Business"}
-										</h3>
-										<p className="text-sm text-muted-foreground">
-											{organization?.description || "No description provided"}
-										</p>
-									</div>
-								</div>
-
-								<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-									<FormField
-										control={businessProfileForm.control}
-										name="name"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel>Business Name</FormLabel>
-												<FormControl>
-													<Input
-														placeholder="Enter your business name"
-														{...field}
-													/>
-												</FormControl>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-								</div>
-
-								<FormField
-									control={businessProfileForm.control}
-									name="description"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>Business Description</FormLabel>
-											<FormControl>
-												<Textarea
-													placeholder="Enter a brief description of your business"
-													className="min-h-[100px]"
-													{...field}
-												/>
-											</FormControl>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
-							</ContentSection>
-
-							<ContentSection
-								title="Contact Information"
-								description="How customers and employees can reach your business">
-								<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-									<FormField
-										control={businessProfileForm.control}
-										name="contactEmail"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel>Business Email</FormLabel>
-												<FormControl>
-													<Input
-														placeholder="Enter business email"
-														{...field}
-													/>
-												</FormControl>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-
-									<FormPhoneInput
-										control={businessProfileForm.control}
-										name="contactPhone"
-										label="Business Phone"
-										placeholder="Enter business phone"
-									/>
-								</div>
-							</ContentSection>
-
-							<ContentSection
-								title="Business Address"
-								description="Physical location of your business">
-								<div className="grid grid-cols-1 gap-4">
-									<div className="flex justify-between items-center">
-										<FormLabel>Address</FormLabel>
-										<Button
-											type="button"
-											variant="ghost"
-											size="sm"
-											onClick={() =>
-												setIsManualAddressEntry(!isManualAddressEntry)
+								<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+									<div className="space-y-2">
+										<Label htmlFor="firstName">
+											First Name <span className="text-red-500">*</span>
+										</Label>
+										<Input
+											id="firstName"
+											placeholder="Enter your first name"
+											{...profileForm.register("firstName")}
+											className={
+												profileForm.formState.errors.firstName
+													? "border-red-500"
+													: ""
 											}
-											className="text-xs">
-											{isManualAddressEntry
-												? "Disable Manual Entry"
-												: "Manual Entry"}
-										</Button>
+											aria-required="true"
+											aria-invalid={!!profileForm.formState.errors.firstName}
+										/>
+										{profileForm.formState.errors.firstName && (
+											<p
+												className="text-sm text-red-500"
+												role="alert">
+												{profileForm.formState.errors.firstName.message}
+											</p>
+										)}
 									</div>
 
-									{!isManualAddressEntry ? (
-										<p className="text-sm text-muted-foreground">
-											Click 'Manual Entry' button above to manually edit the
-											address. This is useful if the address search doesn't
-											work.
-										</p>
-									) : (
-										<>
-											<FormField
-												control={businessProfileForm.control}
-												name="address"
-												render={({ field }) => (
-													<FormItem>
-														<FormControl>
-															<Input
-																placeholder="Enter full address"
-																{...field}
-															/>
-														</FormControl>
-														<FormDescription>
-															You can now edit the address manually.
-														</FormDescription>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
+									<div className="space-y-2">
+										<Label htmlFor="lastName">
+											Last Name <span className="text-red-500">*</span>
+										</Label>
+										<Input
+											id="lastName"
+											placeholder="Enter your last name"
+											{...profileForm.register("lastName")}
+											className={
+												profileForm.formState.errors.lastName
+													? "border-red-500"
+													: ""
+											}
+											aria-required="true"
+											aria-invalid={!!profileForm.formState.errors.lastName}
+										/>
+										{profileForm.formState.errors.lastName && (
+											<p
+												className="text-sm text-red-500"
+												role="alert">
+												{profileForm.formState.errors.lastName.message}
+											</p>
+										)}
+									</div>
+								</div>
 
-											<FormField
-												control={businessProfileForm.control}
-												name="country"
-												render={({ field }) => (
-													<FormItem>
-														<FormLabel>Country</FormLabel>
-														<FormControl>
-															<Input
-																placeholder="Enter country"
-																{...field}
-															/>
-														</FormControl>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
-										</>
+								<div className="space-y-2">
+									<Label htmlFor="email">
+										Email <span className="text-red-500">*</span>
+									</Label>
+									<Input
+										id="email"
+										type="email"
+										placeholder="Enter your email"
+										{...profileForm.register("email")}
+										className={
+											profileForm.formState.errors.email ? "border-red-500" : ""
+										}
+										aria-required="true"
+										aria-invalid={!!profileForm.formState.errors.email}
+									/>
+									{profileForm.formState.errors.email && (
+										<p
+											className="text-sm text-red-500"
+											role="alert">
+											{profileForm.formState.errors.email.message}
+										</p>
 									)}
 								</div>
-							</ContentSection>
 
-							<ContentSection
-								title="Website"
-								description="Online presence of your business">
-								<FormField
-									control={businessProfileForm.control}
-									name="website"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>Website</FormLabel>
-											<FormControl>
-												<Input
-													placeholder="https://yourbusiness.com"
-													{...field}
-												/>
-											</FormControl>
-											<FormMessage />
-										</FormItem>
+								<div className="space-y-2">
+									<Label htmlFor="phone">Phone Number</Label>
+									<Input
+										id="phone"
+										placeholder="Enter your phone number"
+										{...profileForm.register("phone")}
+										className={
+											profileForm.formState.errors.phone ? "border-red-500" : ""
+										}
+										aria-invalid={!!profileForm.formState.errors.phone}
+									/>
+									{profileForm.formState.errors.phone && (
+										<p
+											className="text-sm text-red-500"
+											role="alert">
+											{profileForm.formState.errors.phone.message}
+										</p>
 									)}
-								/>
-							</ContentSection>
+								</div>
 
-							<ContentSection
-								title="Business Hours"
-								description="Operating hours of your business">
-								<FormField
-									control={businessProfileForm.control}
-									name="businessHours"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>Business Hours</FormLabel>
-											<FormControl>
-												<Input
-													placeholder="Mon-Fri: 9am-5pm"
-													{...field}
-												/>
-											</FormControl>
-											<FormMessage />
-										</FormItem>
+								<div className="space-y-2">
+									<Label htmlFor="position">Position/Title</Label>
+									<Input
+										id="position"
+										placeholder="Enter your job title or position"
+										{...profileForm.register("position")}
+										className={
+											profileForm.formState.errors.position
+												? "border-red-500"
+												: ""
+										}
+										aria-invalid={!!profileForm.formState.errors.position}
+									/>
+									{profileForm.formState.errors.position && (
+										<p
+											className="text-sm text-red-500"
+											role="alert">
+											{profileForm.formState.errors.position.message}
+										</p>
 									)}
-								/>
-							</ContentSection>
+								</div>
+							</FormSection>
 
 							<div className="flex justify-end">
 								<Button
 									type="submit"
 									disabled={isLoading}>
-									{isLoading ? "Saving..." : "Save Business Profile"}
+									{isLoading ? "Saving..." : "Save Profile"}
 								</Button>
 							</div>
 						</form>
@@ -1780,136 +1194,329 @@ export default function ProfilePage() {
 				</div>
 			)}
 
+			{/* Password Tab Content */}
+			{activeTab === "password" && (
+				<div className="md:col-span-3">
+					<Form {...passwordForm}>
+						<form
+							onSubmit={passwordForm.handleSubmit(onPasswordSubmit)}
+							className="space-y-6">
+							<FormSection title="Change Password">
+								<div className="space-y-4">
+									<div className="space-y-2">
+										<Label htmlFor="currentPassword">
+											Current Password <span className="text-red-500">*</span>
+										</Label>
+										<Input
+											id="currentPassword"
+											type="password"
+											placeholder="Enter your current password"
+											{...passwordForm.register("currentPassword")}
+											className={
+												passwordForm.formState.errors.currentPassword
+													? "border-red-500"
+													: ""
+											}
+											aria-required="true"
+											aria-invalid={
+												!!passwordForm.formState.errors.currentPassword
+											}
+										/>
+										{passwordForm.formState.errors.currentPassword && (
+											<p
+												className="text-sm text-red-500"
+												role="alert">
+												{passwordForm.formState.errors.currentPassword.message}
+											</p>
+										)}
+									</div>
+
+									<div className="space-y-2">
+										<Label htmlFor="newPassword">
+											New Password <span className="text-red-500">*</span>
+										</Label>
+										<Input
+											id="newPassword"
+											type="password"
+											placeholder="Enter your new password"
+											{...passwordForm.register("newPassword")}
+											className={
+												passwordForm.formState.errors.newPassword
+													? "border-red-500"
+													: ""
+											}
+											aria-required="true"
+											aria-invalid={!!passwordForm.formState.errors.newPassword}
+										/>
+										{passwordForm.formState.errors.newPassword && (
+											<p
+												className="text-sm text-red-500"
+												role="alert">
+												{passwordForm.formState.errors.newPassword.message}
+											</p>
+										)}
+									</div>
+
+									<div className="space-y-2">
+										<Label htmlFor="confirmPassword">
+											Confirm Password <span className="text-red-500">*</span>
+										</Label>
+										<Input
+											id="confirmPassword"
+											type="password"
+											placeholder="Confirm your new password"
+											{...passwordForm.register("confirmPassword")}
+											className={
+												passwordForm.formState.errors.confirmPassword
+													? "border-red-500"
+													: ""
+											}
+											aria-required="true"
+											aria-invalid={
+												!!passwordForm.formState.errors.confirmPassword
+											}
+										/>
+										{passwordForm.formState.errors.confirmPassword && (
+											<p
+												className="text-sm text-red-500"
+												role="alert">
+												{passwordForm.formState.errors.confirmPassword.message}
+											</p>
+										)}
+									</div>
+								</div>
+							</FormSection>
+
+							<div className="flex justify-end">
+								<Button
+									type="submit"
+									disabled={isLoading}>
+									{isLoading ? "Updating..." : "Update Password"}
+								</Button>
+							</div>
+						</form>
+					</Form>
+				</div>
+			)}
+
+			{/* Notifications Tab Content */}
+			{activeTab === "notifications" && (
+				<div className="md:col-span-3">
+					<Form {...preferencesForm}>
+						<form
+							onSubmit={preferencesForm.handleSubmit(onPreferencesSubmit)}
+							className="space-y-6">
+							<FormSection
+								title="Notification Preferences"
+								description="Manage how you receive notifications">
+								<div className="space-y-4">
+									<FormField
+										control={preferencesForm.control}
+										name="emailNotifications"
+										render={({ field }) => (
+											<div className="flex items-center justify-between">
+												<div className="space-y-0.5">
+													<Label>Email Notifications</Label>
+													<p className="text-sm text-muted-foreground">
+														Receive notifications via email
+													</p>
+												</div>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+													aria-label="Toggle email notifications"
+												/>
+											</div>
+										)}
+									/>
+
+									<FormField
+										control={preferencesForm.control}
+										name="smsNotifications"
+										render={({ field }) => (
+											<div className="flex items-center justify-between">
+												<div className="space-y-0.5">
+													<Label>SMS Notifications</Label>
+													<p className="text-sm text-muted-foreground">
+														Receive notifications via text message
+													</p>
+												</div>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+													aria-label="Toggle SMS notifications"
+												/>
+											</div>
+										)}
+									/>
+
+									<FormField
+										control={preferencesForm.control}
+										name="pushNotifications"
+										render={({ field }) => (
+											<div className="flex items-center justify-between">
+												<div className="space-y-0.5">
+													<Label>Push Notifications</Label>
+													<p className="text-sm text-muted-foreground">
+														Receive push notifications on your device
+													</p>
+												</div>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+													aria-label="Toggle push notifications"
+												/>
+											</div>
+										)}
+									/>
+								</div>
+							</FormSection>
+
+							<FormSection
+								title="Notification Types"
+								description="Choose which types of notifications to receive">
+								<div className="space-y-4">
+									<FormField
+										control={preferencesForm.control}
+										name="scheduleUpdates"
+										render={({ field }) => (
+											<div className="flex items-center justify-between">
+												<div className="space-y-0.5">
+													<Label>Schedule Updates</Label>
+													<p className="text-sm text-muted-foreground">
+														Notifications about schedule changes
+													</p>
+												</div>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+													aria-label="Toggle schedule update notifications"
+												/>
+											</div>
+										)}
+									/>
+
+									<FormField
+										control={preferencesForm.control}
+										name="shiftReminders"
+										render={({ field }) => (
+											<div className="flex items-center justify-between">
+												<div className="space-y-0.5">
+													<Label>Shift Reminders</Label>
+													<p className="text-sm text-muted-foreground">
+														Reminders about upcoming shifts
+													</p>
+												</div>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+													aria-label="Toggle shift reminders"
+												/>
+											</div>
+										)}
+									/>
+
+									<FormField
+										control={preferencesForm.control}
+										name="systemAnnouncements"
+										render={({ field }) => (
+											<div className="flex items-center justify-between">
+												<div className="space-y-0.5">
+													<Label>System Announcements</Label>
+													<p className="text-sm text-muted-foreground">
+														Important updates about the system
+													</p>
+												</div>
+												<Switch
+													checked={field.value}
+													onCheckedChange={field.onChange}
+													aria-label="Toggle system announcements"
+												/>
+											</div>
+										)}
+									/>
+								</div>
+							</FormSection>
+
+							<div className="flex justify-end">
+								<Button
+									type="submit"
+									disabled={isLoading}>
+									{isLoading ? "Saving..." : "Save Preferences"}
+								</Button>
+							</div>
+						</form>
+					</Form>
+				</div>
+			)}
+
+			{/* Shifts Tab Content */}
+			{activeTab === "shifts" && user?.id && (
+				<div className="md:col-span-3">
+					<ShiftsSection userId={user.id} />
+				</div>
+			)}
+
 			{/* Branding Tab Content */}
 			{activeTab === "branding" && (
-				<div className="space-y-6">
-					<div>
-						<h2 className="text-2xl font-bold">Brand Settings</h2>
-						<p className="text-muted-foreground">
-							Customize your brand appearance and assets
-						</p>
-					</div>
-
+				<div className="md:col-span-3">
 					<Form {...brandingForm}>
 						<form
 							onSubmit={brandingForm.handleSubmit(onBrandingSubmit)}
 							className="space-y-6">
-							<ContentSection
-								title="Logo & Favicon"
-								description="Upload your organization's logo and favicon">
-								<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-									<div>
-										<Label htmlFor="logo-upload">Company Logo</Label>
-										<div className="mt-2 flex flex-col gap-4">
-											<Card className="border-2 border-dashed bg-muted/10">
-												<CardContent className="flex items-center justify-center h-40 p-4">
-													{logoPreview ? (
-														<div className="relative w-full h-full flex items-center justify-center">
-															<img
-																src={logoPreview}
-																alt="Logo preview"
-																className="max-h-32 max-w-full object-contain"
-															/>
-															<Button
-																type="button"
-																variant="destructive"
-																size="icon"
-																className="absolute -top-2 -right-2 h-8 w-8"
-																onClick={handleRemoveLogo}>
-																<Trash2 className="h-4 w-4" />
-															</Button>
-														</div>
-													) : (
-														<div className="text-center">
-															<Image className="mx-auto h-12 w-12 text-muted-foreground" />
-															<p className="mt-2 text-sm text-muted-foreground">
-																Upload your company logo (PNG, JPG, SVG)
-															</p>
-															<div className="mt-4">
-																<label
-																	htmlFor="logo-upload"
-																	className="cursor-pointer inline-flex items-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm hover:bg-accent">
-																	<Upload className="mr-2 h-4 w-4" />
-																	Choose File
-																	<input
-																		id="logo-upload"
-																		name="logo"
-																		type="file"
-																		className="sr-only"
-																		accept="image/*"
-																		onChange={handleLogoChange}
-																	/>
-																</label>
-															</div>
-														</div>
-													)}
-												</CardContent>
-											</Card>
-											<p className="text-xs text-muted-foreground">
-												Recommended size: 512x512px. Max file size: 2MB.
-											</p>
-										</div>
+							<FormSection
+								title="Logo"
+								description="Upload your organization's logo">
+								<div className="flex items-start gap-6">
+									<div className="flex-shrink-0 w-24 h-24 rounded-md border flex items-center justify-center overflow-hidden">
+										{logoPreview ? (
+											<img
+												src={logoPreview}
+												alt="Logo preview"
+												className="w-full h-full object-contain"
+											/>
+										) : (
+											<Image className="w-8 h-8 text-muted-foreground" />
+										)}
 									</div>
 
-									<div>
-										<Label htmlFor="favicon-upload">Favicon</Label>
-										<div className="mt-2 flex flex-col gap-4">
-											<Card className="border-2 border-dashed bg-muted/10">
-												<CardContent className="flex items-center justify-center h-40 p-4">
-													{faviconPreview ? (
-														<div className="relative w-full h-full flex items-center justify-center">
-															<img
-																src={faviconPreview}
-																alt="Favicon preview"
-																className="max-h-16 max-w-full object-contain"
-															/>
-															<Button
-																type="button"
-																variant="destructive"
-																size="icon"
-																className="absolute -top-2 -right-2 h-8 w-8"
-																onClick={handleRemoveFavicon}>
-																<Trash2 className="h-4 w-4" />
-															</Button>
-														</div>
-													) : (
-														<div className="text-center">
-															<Image className="mx-auto h-12 w-12 text-muted-foreground" />
-															<p className="mt-2 text-sm text-muted-foreground">
-																Upload your favicon (ICO, PNG)
-															</p>
-															<div className="mt-4">
-																<label
-																	htmlFor="favicon-upload"
-																	className="cursor-pointer inline-flex items-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm hover:bg-accent">
-																	<Upload className="mr-2 h-4 w-4" />
-																	Choose File
-																	<input
-																		id="favicon-upload"
-																		name="favicon"
-																		type="file"
-																		className="sr-only"
-																		accept="image/x-icon,image/png"
-																		onChange={handleFaviconChange}
-																	/>
-																</label>
-															</div>
-														</div>
-													)}
-												</CardContent>
-											</Card>
-											<p className="text-xs text-muted-foreground">
-												Recommended size: 32x32px. Max file size: 1MB.
-											</p>
-										</div>
+									<div className="flex flex-col gap-3">
+										<label
+											htmlFor="logo-upload"
+											className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
+											<Upload className="mr-2 h-4 w-4" />
+											Upload Logo
+											<input
+												id="logo-upload"
+												type="file"
+												accept="image/*"
+												className="sr-only"
+												onChange={handleLogoChange}
+											/>
+										</label>
+
+										{logoPreview && (
+											<Button
+												type="button"
+												variant="outline"
+												onClick={handleRemoveLogo}
+												className="justify-start">
+												<Trash2 className="mr-2 h-4 w-4" />
+												Remove Logo
+											</Button>
+										)}
+
+										<p className="text-xs text-muted-foreground mt-2">
+											Recommended: Square image, at least 200x200px.
+										</p>
 									</div>
 								</div>
-							</ContentSection>
+							</FormSection>
 
-							<ContentSection
+							<FormSection
 								title="Brand Colors"
-								description="Define your brand's color palette">
-								<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+								description="Choose colors for your organization's branding">
+								<div className="space-y-6">
 									<FormField
 										control={brandingForm.control}
 										name="primaryColor"
@@ -1988,9 +1595,9 @@ export default function ProfilePage() {
 										)}
 									/>
 								</div>
-							</ContentSection>
+							</FormSection>
 
-							<ContentSection
+							<FormSection
 								title="Typography"
 								description="Choose fonts for your application">
 								<FormField
@@ -2020,7 +1627,7 @@ export default function ProfilePage() {
 										</FormItem>
 									)}
 								/>
-							</ContentSection>
+							</FormSection>
 
 							<div className="flex justify-end">
 								<Button

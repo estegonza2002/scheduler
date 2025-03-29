@@ -344,8 +344,8 @@ export function ShiftCreationWizard({
 	}, [searchTerm, searchFilter, employees]);
 
 	// Handle the location step submission
-	const handleLocationSelect = (data: LocationData) => {
-		setLocationData(data);
+	const handleLocationSelect = (locationId: string) => {
+		setLocationData({ locationId });
 		setStep("shift-details");
 	};
 
@@ -369,7 +369,17 @@ export function ShiftCreationWizard({
 		data: EmployeeData,
 		selectedEmployees: SelectedEmployee[]
 	) => {
-		if (!locationData || !shiftData) return;
+		console.log("Starting handleEmployeeAssignSubmit", {
+			data,
+			selectedEmployees,
+			locationData,
+			shiftData,
+		});
+
+		if (!locationData || !shiftData) {
+			console.error("Missing required data", { locationData, shiftData });
+			return;
+		}
 
 		try {
 			setLoading(true);
@@ -379,8 +389,11 @@ export function ShiftCreationWizard({
 			const startDateTime = `${shiftData.date}T${shiftData.startTime}:00`;
 			const endDateTime = `${shiftData.date}T${shiftData.endTime}:00`;
 
+			console.log("Creating shift with times", { startDateTime, endDateTime });
+
 			// If no employees selected, create shift without an employee
 			if (selectedEmployees.length === 0) {
+				console.log("Creating shift without employee");
 				await ShiftsAPI.createShift({
 					parent_shift_id: scheduleId,
 					organization_id: organizationId,
@@ -395,8 +408,16 @@ export function ShiftCreationWizard({
 
 				toast.success("Shift created successfully");
 			} else {
+				console.log(
+					`Creating ${selectedEmployees.length} shifts with employees`,
+					selectedEmployees
+				);
 				// Create a shift for each selected employee
 				for (const employee of selectedEmployees) {
+					console.log(
+						`Creating shift for employee: ${employee.name}`,
+						employee
+					);
 					await ShiftsAPI.createShift({
 						parent_shift_id: scheduleId,
 						organization_id: organizationId,
@@ -417,7 +438,9 @@ export function ShiftCreationWizard({
 				);
 			}
 
+			console.log("Shifts created successfully");
 			if (onComplete) {
+				console.log("Calling onComplete callback");
 				onComplete();
 			}
 		} catch (error) {
@@ -456,7 +479,7 @@ export function ShiftCreationWizard({
 		locationForm.setValue("locationId", locationId);
 
 		// Automatically submit the form to advance to the next step
-		handleLocationSelect({ locationId });
+		handleLocationSelect(locationId);
 	};
 
 	// Function to handle step navigation via progress bar
