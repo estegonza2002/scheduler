@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
 	AlertTriangle,
 	Bell,
@@ -47,12 +47,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-	AppHeader,
-	AppTitle,
-	AppDescription,
-	AppContent,
-} from "@/components/layout/AppLayout";
+import { useHeader } from "@/lib/header-context";
+import { AppContent } from "@/components/layout/AppLayout";
 
 export default function DesignSystemShowcasePage() {
 	// State for interactive examples
@@ -60,6 +56,24 @@ export default function DesignSystemShowcasePage() {
 	const [statusFilter, setStatusFilter] = useState("");
 	const [typeFilter, setTypeFilter] = useState("");
 	const [showLoading, setShowLoading] = useState(false);
+	const { updateHeader } = useHeader();
+
+	// Set page header
+	useEffect(() => {
+		updateHeader({
+			title: "Design System Showcase",
+			description: "Visual reference of all UI components with usage examples",
+			actions: (
+				<Button
+					size="sm"
+					onClick={() =>
+						window.open("/docs/design-system/component-inventory.md", "_blank")
+					}>
+					View Documentation
+				</Button>
+			),
+		});
+	}, [updateHeader]);
 
 	// Toggle loading state for demonstration
 	const toggleLoading = () => {
@@ -75,29 +89,6 @@ export default function DesignSystemShowcasePage() {
 
 	return (
 		<>
-			<AppHeader>
-				<div className="flex justify-between w-full">
-					<div>
-						<AppTitle>Design System Showcase</AppTitle>
-						<AppDescription>
-							Visual reference of all UI components with usage examples
-						</AppDescription>
-					</div>
-					<div>
-						<Button
-							size="sm"
-							onClick={() =>
-								window.open(
-									"/docs/design-system/component-inventory.md",
-									"_blank"
-								)
-							}>
-							View Documentation
-						</Button>
-					</div>
-				</div>
-			</AppHeader>
-
 			<AppContent>
 				<Tabs defaultValue="layout">
 					<TabsList className="mb-8">

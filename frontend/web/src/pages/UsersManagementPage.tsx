@@ -1,11 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
-import {
-	AppHeader,
-	AppTitle,
-	AppDescription,
-	AppContent,
-} from "@/components/layout/AppLayout";
+import { AppContent } from "@/components/layout/AppLayout";
 import { ContentSection } from "@/components/ui/content-section";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +13,7 @@ import {
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useOrganization } from "@/lib/organization";
+import { useHeader } from "@/lib/header-context";
 import {
 	Table,
 	TableBody,
@@ -125,6 +121,17 @@ export default function UsersManagementPage() {
 	const [isInviteSheetOpen, setIsInviteSheetOpen] = useState(false);
 	const location = useLocation();
 	const isInAccountPage = location.pathname.includes("/account/");
+	const { updateHeader } = useHeader();
+
+	// Set page header if not in account page
+	useEffect(() => {
+		if (!isInAccountPage) {
+			updateHeader({
+				title: "Users Management",
+				description: "Manage users and admin access for your organization",
+			});
+		}
+	}, [updateHeader, isInAccountPage]);
 
 	// Define fetchUsers function in the component scope so it can be called from anywhere
 	const fetchUsers = async () => {
@@ -914,17 +921,5 @@ export default function UsersManagementPage() {
 	}
 
 	// Otherwise, render with the header for standalone page
-	return (
-		<>
-			<AppHeader>
-				<div>
-					<AppTitle>Users Management</AppTitle>
-					<AppDescription>
-						Manage users and admin access for your organization
-					</AppDescription>
-				</div>
-			</AppHeader>
-			{renderContent()}
-		</>
-	);
+	return renderContent();
 }

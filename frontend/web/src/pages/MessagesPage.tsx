@@ -8,10 +8,10 @@ import { NewConversationModal } from "@/components/messages/NewConversationModal
 
 import { ContentContainer } from "@/components/ui/content-container";
 import { Button } from "@/components/ui/button";
-import { PageHeader } from "@/components/ui/page-header";
 import { ContentSection } from "@/components/ui/content-section";
 import { Card, CardContent } from "@/components/ui/card";
 import { AppContent } from "@/components/layout/AppLayout";
+import { useHeader } from "@/lib/header-context";
 
 type MessageTab = "chats" | "groups" | "active-shifts" | "one-to-one";
 
@@ -22,6 +22,7 @@ export default function MessagesPage() {
 	>(null);
 	const [isNewConversationModalOpen, setIsNewConversationModalOpen] =
 		useState(false);
+	const { updateHeader } = useHeader();
 
 	useEffect(() => {
 		// Get latest conversation from localStorage if available
@@ -46,6 +47,19 @@ export default function MessagesPage() {
 			document.body.style.overflow = "";
 		};
 	}, []);
+
+	// Set up the header
+	useEffect(() => {
+		updateHeader({
+			title: "Messages",
+			description: "Communicate with your team and manage conversations",
+			actions: (
+				<Button onClick={() => setIsNewConversationModalOpen(true)}>
+					<Plus className="h-4 w-4 mr-2" /> New Conversation
+				</Button>
+			),
+		});
+	}, [updateHeader]);
 
 	// Store the selected conversation and tab whenever they change
 	useEffect(() => {
@@ -98,13 +112,6 @@ export default function MessagesPage() {
 	};
 
 	const emptyState = getEmptyStateMessage();
-
-	// Action for the page header
-	const headerActions = (
-		<Button onClick={() => setIsNewConversationModalOpen(true)}>
-			<Plus className="h-4 w-4 mr-2" /> New Conversation
-		</Button>
-	);
 
 	// Create the message sidebar component
 	const messageSidebar = (
@@ -169,12 +176,6 @@ export default function MessagesPage() {
 
 	return (
 		<>
-			<div className="mb-6">
-				<h1 className="text-2xl font-bold tracking-tight">Messages</h1>
-				<p className="mt-2 text-muted-foreground">
-					Communicate with your team and manage conversations
-				</p>
-			</div>
 			<div className="flex">
 				{/* Sidebar */}
 				<div className="w-64 flex-shrink-0">{messageSidebar}</div>

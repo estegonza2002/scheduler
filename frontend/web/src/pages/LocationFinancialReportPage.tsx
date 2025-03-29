@@ -27,27 +27,99 @@ import { LocationFinancialReport } from "@/components/LocationFinancialReport";
 import { LocationSubNav } from "@/components/LocationSubNav";
 import { LoadingState } from "@/components/ui/loading-state";
 import {
-	AppHeader,
-	AppTitle,
-	AppDescription,
-	AppContent,
-} from "@/components/layout/AppLayout";
-import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { useHeader } from "@/lib/header-context";
 
 export default function LocationFinancialReportPage() {
 	const { locationId } = useParams<{ locationId: string }>();
 	const navigate = useNavigate();
+	const { updateHeader } = useHeader();
 	const [location, setLocation] = useState<Location | null>(null);
 	const [shifts, setShifts] = useState<Shift[]>([]);
 	const [assignedEmployees, setAssignedEmployees] = useState<Employee[]>([]);
 	const [loading, setLoading] = useState<boolean>(true);
 	const [loadingPhase, setLoadingPhase] = useState<string>("location");
+
+	// Handle print
+	const handlePrint = () => {
+		window.print();
+	};
+
+	// Handle export (dummy function - would normally generate PDF or CSV)
+	const handleExport = () => {
+		toast.success("Financial report exported successfully");
+	};
+
+	// Update the header content based on loading and location state
+	useEffect(() => {
+		if (loading) {
+			updateHeader({
+				title: "Loading...",
+				description: "Retrieving financial report data",
+				showBackButton: true,
+			});
+		} else if (!location) {
+			updateHeader({
+				title: "Location not found",
+				description: "The requested location could not be found",
+				showBackButton: true,
+			});
+		} else {
+			// Actions for the header
+			const headerActions = (
+				<div className="flex gap-2">
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={() =>
+							navigate(`/locations/${locationId}/financial/monthly`)
+						}>
+						<CalendarRange className="h-4 w-4 mr-2" /> Monthly Reports
+					</Button>
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={() =>
+							navigate(`/locations/${locationId}/financial/expenses`)
+						}>
+						<Calculator className="h-4 w-4 mr-2" /> Expense Analysis
+					</Button>
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={handlePrint}>
+						<Printer className="h-4 w-4 mr-2" /> Print Report
+					</Button>
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={handleExport}>
+						<Download className="h-4 w-4 mr-2" /> Export as CSV
+					</Button>
+				</div>
+			);
+
+			updateHeader({
+				title: `${location.name} - Financial Report`,
+				description: "Comprehensive financial analysis and reporting tools",
+				actions: headerActions,
+				showBackButton: true,
+			});
+		}
+	}, [
+		loading,
+		location,
+		locationId,
+		navigate,
+		handlePrint,
+		handleExport,
+		updateHeader,
+	]);
 
 	useEffect(() => {
 		const fetchData = async () => {
@@ -113,229 +185,125 @@ export default function LocationFinancialReportPage() {
 		fetchData();
 	}, [locationId, navigate]);
 
-	// Handle print
-	const handlePrint = () => {
-		window.print();
-	};
-
-	// Handle export (dummy function - would normally generate PDF or CSV)
-	const handleExport = () => {
-		toast.success("Financial report exported successfully");
-	};
-
 	if (loading) {
 		return (
-			<>
-				<AppHeader>
-					<div className="flex items-center">
-						<Button
-							variant="ghost"
-							size="icon"
-							onClick={() => navigate(-1)}
-							className="h-8 w-8 mr-2"
-							title="Go back">
-							<ChevronLeft className="h-5 w-5" />
-						</Button>
-						<div>
-							<AppTitle>Loading...</AppTitle>
-							<AppDescription>Retrieving financial report data</AppDescription>
-						</div>
-					</div>
-				</AppHeader>
-
-				<AppContent>
-					<LoadingState
-						type="spinner"
-						message={`Loading ${loadingPhase}...`}
-						className="py-12"
-					/>
-				</AppContent>
-			</>
+			<ContentContainer>
+				<LoadingState
+					type="spinner"
+					message={`Loading ${loadingPhase}...`}
+					className="py-12"
+				/>
+			</ContentContainer>
 		);
 	}
 
 	if (!location) {
 		return (
-			<>
-				<AppHeader>
-					<div className="flex items-center">
+			<ContentContainer>
+				<ContentSection
+					title="Location not found"
+					description="The requested location could not be found."
+					footer={
 						<Button
-							variant="ghost"
-							size="icon"
-							onClick={() => navigate(-1)}
-							className="h-8 w-8 mr-2"
-							title="Go back">
-							<ChevronLeft className="h-5 w-5" />
+							variant="outline"
+							onClick={() => navigate("/locations")}
+							className="mt-2">
+							Back to Locations
 						</Button>
-						<div>
-							<AppTitle>Location not found</AppTitle>
-							<AppDescription>
-								The requested location could not be found
-							</AppDescription>
-						</div>
-					</div>
-				</AppHeader>
-
-				<AppContent>
-					<ContentSection
-						title="Location not found"
-						description="The requested location could not be found."
-						footer={
-							<Button
-								variant="outline"
-								onClick={() => navigate("/locations")}
-								className="mt-2">
-								Back to Locations
-							</Button>
-						}>
-						<p>
-							The location you're looking for may have been removed or doesn't
-							exist.
-						</p>
-					</ContentSection>
-				</AppContent>
-			</>
+					}>
+					<p>
+						The location you're looking for may have been removed or doesn't
+						exist.
+					</p>
+				</ContentSection>
+			</ContentContainer>
 		);
 	}
 
-	// Actions for the header
-	const headerActions = (
-		<div className="flex gap-2">
-			<Button
-				variant="outline"
-				size="sm"
-				onClick={() => navigate(`/locations/${locationId}/financial/monthly`)}>
-				<CalendarRange className="h-4 w-4 mr-2" /> Monthly Reports
-			</Button>
-			<Button
-				variant="outline"
-				size="sm"
-				onClick={() => navigate(`/locations/${locationId}/financial/expenses`)}>
-				<Calculator className="h-4 w-4 mr-2" /> Expense Analysis
-			</Button>
-			<Button
-				variant="outline"
-				size="sm"
-				onClick={handlePrint}>
-				<Printer className="h-4 w-4 mr-2" /> Print Report
-			</Button>
-			<Button
-				variant="outline"
-				size="sm"
-				onClick={handleExport}>
-				<Download className="h-4 w-4 mr-2" /> Export as CSV
-			</Button>
-		</div>
-	);
-
 	return (
-		<>
-			<AppHeader>
-				<div className="flex justify-between w-full">
-					<div className="flex items-center">
-						<Button
-							variant="ghost"
-							size="icon"
-							onClick={() => navigate(-1)}
-							className="h-8 w-8 mr-2"
-							title="Go back">
-							<ChevronLeft className="h-5 w-5" />
-						</Button>
-						<div>
-							<AppTitle>{`${location.name} - Financial Report`}</AppTitle>
-							<AppDescription>
-								Comprehensive financial analysis and reporting tools
-							</AppDescription>
-						</div>
-					</div>
-					<div>{headerActions}</div>
+		<ContentContainer>
+			<LocationSubNav
+				locationId={locationId || ""}
+				locationName={location.name}
+			/>
+
+			<ContentSection
+				title="Financial Reports"
+				description="Select a financial report to view detailed information"
+				className="mt-6 print:hidden">
+				<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+					<Card>
+						<CardHeader>
+							<CardTitle>Profit & Loss</CardTitle>
+							<CardDescription>
+								Detailed P&L statements with monthly comparison
+							</CardDescription>
+						</CardHeader>
+						<CardContent>
+							<Button
+								variant="default"
+								className="w-full"
+								onClick={() =>
+									navigate(`/locations/${locationId}/financial/profit-loss`)
+								}>
+								<FileBarChart className="h-5 w-5 mr-2" />
+								View Report
+							</Button>
+						</CardContent>
+					</Card>
+
+					<Card>
+						<CardHeader>
+							<CardTitle>Cost vs Revenue</CardTitle>
+							<CardDescription>
+								Track all expenses against revenue streams
+							</CardDescription>
+						</CardHeader>
+						<CardContent>
+							<Button
+								variant="default"
+								className="w-full"
+								onClick={() =>
+									navigate(`/locations/${locationId}/financial/cost-revenue`)
+								}>
+								<FilePieChart className="h-5 w-5 mr-2" />
+								View Report
+							</Button>
+						</CardContent>
+					</Card>
+
+					<Card>
+						<CardHeader>
+							<CardTitle>Financial Forecasting</CardTitle>
+							<CardDescription>
+								Predictive analytics and future projections
+							</CardDescription>
+						</CardHeader>
+						<CardContent>
+							<Button
+								variant="default"
+								className="w-full"
+								onClick={() =>
+									navigate(`/locations/${locationId}/financial/forecasting`)
+								}>
+								<DollarSign className="h-5 w-5 mr-2" />
+								View Report
+							</Button>
+						</CardContent>
+					</Card>
 				</div>
-			</AppHeader>
+			</ContentSection>
 
-			<AppContent>
-				<LocationSubNav
-					locationId={locationId || ""}
-					locationName={location.name}
+			<ContentSection
+				title="Financial Summary"
+				description="Current financial metrics and performance data"
+				className="mt-6 print:py-4">
+				<LocationFinancialReport
+					location={location}
+					shifts={shifts}
+					employees={assignedEmployees}
 				/>
-
-				<ContentSection
-					title="Financial Reports"
-					description="Select a financial report to view detailed information"
-					className="mt-6 print:hidden">
-					<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-						<Card>
-							<CardHeader>
-								<CardTitle>Profit & Loss</CardTitle>
-								<CardDescription>
-									Detailed P&L statements with monthly comparison
-								</CardDescription>
-							</CardHeader>
-							<CardContent>
-								<Button
-									variant="default"
-									className="w-full"
-									onClick={() =>
-										navigate(`/locations/${locationId}/financial/profit-loss`)
-									}>
-									<FileBarChart className="h-5 w-5 mr-2" />
-									View Report
-								</Button>
-							</CardContent>
-						</Card>
-
-						<Card>
-							<CardHeader>
-								<CardTitle>Cost vs Revenue</CardTitle>
-								<CardDescription>
-									Track all expenses against revenue streams
-								</CardDescription>
-							</CardHeader>
-							<CardContent>
-								<Button
-									variant="default"
-									className="w-full"
-									onClick={() =>
-										navigate(`/locations/${locationId}/financial/cost-revenue`)
-									}>
-									<FilePieChart className="h-5 w-5 mr-2" />
-									View Report
-								</Button>
-							</CardContent>
-						</Card>
-
-						<Card>
-							<CardHeader>
-								<CardTitle>Financial Forecasting</CardTitle>
-								<CardDescription>
-									Predictive analytics and future projections
-								</CardDescription>
-							</CardHeader>
-							<CardContent>
-								<Button
-									variant="default"
-									className="w-full"
-									onClick={() =>
-										navigate(`/locations/${locationId}/financial/forecasting`)
-									}>
-									<DollarSign className="h-5 w-5 mr-2" />
-									View Report
-								</Button>
-							</CardContent>
-						</Card>
-					</div>
-				</ContentSection>
-
-				<ContentSection
-					title="Financial Summary"
-					description="Current financial metrics and performance data"
-					className="mt-6 print:py-4">
-					<LocationFinancialReport
-						location={location}
-						shifts={shifts}
-						employees={assignedEmployees}
-					/>
-				</ContentSection>
-			</AppContent>
-		</>
+			</ContentSection>
+		</ContentContainer>
 	);
 }
