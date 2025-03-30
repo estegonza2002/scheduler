@@ -13,10 +13,13 @@ import { format } from "date-fns";
 import {
 	LocationSelectionStep,
 	ShiftDetailsStep,
-	EmployeeAssignmentStep,
 	WizardProgressBar,
 	WizardStep,
 } from "./shift-wizard";
+import {
+	EmployeeSelectionComponent,
+	SelectedEmployee,
+} from "./employee/EmployeeSelectionComponent";
 import { Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -97,15 +100,6 @@ type ShiftData = {
  */
 type EmployeeData = {
 	employeeId: string;
-};
-
-/**
- * Data structure for a selected employee
- */
-type SelectedEmployee = {
-	id: string;
-	name: string;
-	role?: string;
 };
 
 /**
@@ -373,7 +367,7 @@ export function ShiftCreationWizard({
 	// Handle the shift details step submission
 	const handleShiftDetailsSubmit = (data: ShiftData) => {
 		setShiftData(data);
-		setStep("assign-employee");
+		setStep("assign-employees");
 	};
 
 	// Handle the full form submission with multiple employees
@@ -481,7 +475,8 @@ export function ShiftCreationWizard({
 					};
 					console.log("Shift creation payload:", shiftCreateData);
 
-					await ShiftsAPI.createShift(shiftCreateData);
+					const createdShift = await ShiftsAPI.createShift(shiftCreateData);
+					console.log("Shift created successfully:", createdShift);
 					toast.success("Shift created successfully");
 				} catch (err) {
 					console.error("Detailed error creating shift:", err);
@@ -516,7 +511,7 @@ export function ShiftCreationWizard({
 					console.log("Creating assignments for shift ID:", shiftId);
 
 					// Process each employee assignment in sequence to avoid overwhelming the database
-					for (const employee of selectedEmployees) {
+					const assignmentPromises = selectedEmployees.map(async (employee) => {
 						try {
 							console.log(
 								`Creating assignment for employee: ${employee.name} (${employee.id})`
@@ -531,14 +526,19 @@ export function ShiftCreationWizard({
 								`Assignment created for ${employee.name}:`,
 								assignment
 							);
+							return assignment;
 						} catch (err) {
 							console.error(
 								`Error creating assignment for ${employee.name}:`,
 								err
 							);
 							// Continue with other employees even if one fails
+							return null;
 						}
-					}
+					});
+
+					// Wait for all assignments to complete
+					await Promise.all(assignmentPromises);
 
 					console.log("All assignments processed");
 					toast.success("Shift created with employee assignments");
@@ -578,12 +578,12 @@ export function ShiftCreationWizard({
 			}
 
 			console.log("Shifts created successfully");
+			// Add a delay to ensure all database operations are complete before notifying the parent
+			await new Promise((resolve) => setTimeout(resolve, 500));
+
 			if (onComplete) {
 				console.log("Calling onComplete callback");
-				// Wait a brief moment to ensure everything is updated
-				setTimeout(() => {
-					onComplete();
-				}, 100);
+				onComplete();
 			}
 		} catch (error) {
 			console.error("Error creating shift:", error);
@@ -637,7 +637,7 @@ export function ShiftCreationWizard({
 			resetLocation();
 		} else if (targetStep === "shift-details" && locationData) {
 			setStep(targetStep);
-		} else if (targetStep === "assign-employee" && locationData && shiftData) {
+		} else if (targetStep === "assign-employees" && locationData && shiftData) {
 			setStep(targetStep);
 		}
 	};
@@ -703,58 +703,34 @@ export function ShiftCreationWizard({
 				)}
 
 				{/* Step 3: Assign Employee */}
-				{step === "assign-employee" && locationData && shiftData && (
-					<>
-						<EmployeeAssignmentStep
-							employeeForm={employeeForm}
-							locationData={locationData}
-							shiftData={shiftData}
-							searchTerm={searchTerm}
-							setSearchTerm={setSearchTerm}
-							filteredEmployees={filteredEmployees}
-							loadingEmployees={loadingEmployees}
-							getLocationName={getLocationName}
-							handleEmployeeAssignSubmit={(data) => {
-								console.log("Received form submission with data:", data);
-								handleEmployeeAssignSubmit(data, selectedEmployees);
-							}}
-							onFormSubmit={(formData) => {
-								console.log("Form submit with data:", formData);
-								// Check if selectedEmployees are in the form data
-								if (
-									formData.selectedEmployees &&
-									Array.isArray(formData.selectedEmployees)
-								) {
-									console.log(
-										"Using employees from form data:",
-										formData.selectedEmployees
-									);
-									handleEmployeeAssignSubmit(
-										{ employeeId: formData.employeeIds?.[0] || "" },
-										formData.selectedEmployees
-									);
-								} else {
-									console.log("Using employees from state:", selectedEmployees);
-									handleEmployeeAssignSubmit(
-										{ employeeId: "" }, // placeholder data
-										selectedEmployees
-									);
-								}
-							}}
-							onBack={() => setStep("shift-details")}
-							onResetLocation={resetLocation}
-							loading={loading}
-							selectedEmployees={selectedEmployees}
-							onSelectedEmployeesChange={handleSelectedEmployeesChange}
-							allEmployees={employees}
-						/>
-						<Button
-							id="employee-assign-back-button"
-							className="hidden"
-							onClick={() => setStep("shift-details")}>
-							Back to Shift Details
-						</Button>
-					</>
+				{step === "assign-employees" && locationData && shiftData && (
+					<EmployeeSelectionComponent
+						employeeForm={employeeForm}
+						locationData={locationData || { locationId: "" }}
+						shiftData={shiftData || { date: "", startTime: "", endTime: "" }}
+						searchTerm={searchTerm}
+						setSearchTerm={setSearchTerm}
+						filteredEmployees={filteredEmployees}
+						loadingEmployees={loadingEmployees}
+						getLocationName={getLocationName}
+						onFormSubmit={() =>
+							handleEmployeeAssignSubmit(
+								employeeForm.getValues(),
+								selectedEmployees
+							)
+						}
+						onBack={() => setStep("shift-details")}
+						onResetLocation={resetLocation}
+						loading={loading}
+						selectedEmployees={selectedEmployees}
+						onSelectedEmployeesChange={handleSelectedEmployeesChange}
+						allEmployees={employees}
+						title="Assign Employees"
+						subtitle="Select employees to assign to this shift"
+						showShiftInfo={true}
+						filterByLocation={true}
+						submitButtonText="Create Shift"
+					/>
 				)}
 			</div>
 		</div>

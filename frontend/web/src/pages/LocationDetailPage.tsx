@@ -78,6 +78,7 @@ const isUUID = (id: string): boolean => {
 
 export default function LocationDetailPage() {
 	const { locationId } = useParams<{ locationId: string }>();
+	console.log("LocationDetailPage: Rendering with locationId:", locationId);
 	const navigate = useNavigate();
 	const { updateHeader } = useHeader();
 	const [location, setLocation] = useState<ExtendedLocation | null>(null);
@@ -98,6 +99,8 @@ export default function LocationDetailPage() {
 	const [employeeLocationCounts, setEmployeeLocationCounts] = useState<
 		Record<string, number>
 	>({});
+	const [hasError, setHasError] = useState<boolean>(false);
+	const [errorMessage, setErrorMessage] = useState<string>("");
 
 	// Function to get the full address string
 	const getFullAddress = (loc: ExtendedLocation | null): string => {
@@ -188,17 +191,29 @@ export default function LocationDetailPage() {
 
 	useEffect(() => {
 		const fetchLocation = async () => {
-			if (!locationId) return;
+			if (!locationId) {
+				setErrorMessage("No location ID provided");
+				setHasError(true);
+				setLoading(false);
+				return;
+			}
 
 			try {
 				setLoading(true);
+				setHasError(false);
 				setLoadingPhase("location");
+
+				console.log("Fetching location with ID:", locationId);
 				const locationData = await LocationsAPI.getById(locationId);
+
 				if (!locationData) {
-					toast.error("Location not found");
-					navigate("/locations");
+					console.error("Location not found for ID:", locationId);
+					setErrorMessage("Location not found");
+					setHasError(true);
+					setLoading(false);
 					return;
 				}
+
 				setLocation(locationData);
 
 				// Fetch shifts for this location
@@ -210,7 +225,18 @@ export default function LocationDetailPage() {
 					(schedule) => schedule.is_schedule === true
 				);
 				if (defaultSchedule) {
+					console.log("Setting default schedule ID:", defaultSchedule.id);
 					setDefaultScheduleId(defaultSchedule.id);
+				} else {
+					console.error(
+						"No default schedule found! Using first schedule if available"
+					);
+					if (allSchedules.length > 0) {
+						console.log("Using first available schedule:", allSchedules[0].id);
+						setDefaultScheduleId(allSchedules[0].id);
+					} else {
+						console.error("No schedules found at all!");
+					}
 				}
 
 				// Get all shifts from all schedules
@@ -302,6 +328,8 @@ export default function LocationDetailPage() {
 				setShiftAssignments(locationShiftAssignments);
 			} catch (error) {
 				console.error("Error fetching location details:", error);
+				setErrorMessage("Failed to load location details");
+				setHasError(true);
 				toast.error("Failed to load location details");
 			} finally {
 				setLoading(false);
@@ -359,6 +387,28 @@ export default function LocationDetailPage() {
 					message={`Loading ${loadingPhase}...`}
 					className="py-12"
 				/>
+			</ContentContainer>
+		);
+	}
+
+	if (hasError) {
+		return (
+			<ContentContainer>
+				<ContentSection
+					title="Error Loading Location"
+					description={
+						errorMessage || "An error occurred while loading the location."
+					}
+					footer={
+						<Button
+							variant="outline"
+							onClick={() => navigate("/locations")}
+							className="mt-2">
+							Back to Locations
+						</Button>
+					}>
+					<p>Please try again or contact support if the problem persists.</p>
+				</ContentSection>
 			</ContentContainer>
 		);
 	}
@@ -433,7 +483,79 @@ export default function LocationDetailPage() {
 									initialLocationId={locationId}
 									onComplete={() => {
 										// Refresh shifts data after creating a new shift
-										window.location.reload();
+										// Replace the inefficient page reload with targeted data refresh
+										const refreshData = async () => {
+											try {
+												setLoading(true);
+												setLoadingPhase("shifts");
+
+												// Add a slight delay to ensure assignments are completed before refresh
+												await new Promise((resolve) =>
+													setTimeout(resolve, 1000)
+												);
+
+												// Fetch all schedules
+												const allSchedules = await ShiftsAPI.getAllSchedules();
+												// Get all shifts from all schedules
+												const allShiftsPromises = allSchedules.map((schedule) =>
+													ShiftsAPI.getShiftsForSchedule(schedule.id)
+												);
+												const allShiftsArrays = await Promise.all(
+													allShiftsPromises
+												);
+												const allShifts = allShiftsArrays.flat();
+
+												// Filter for shifts at this location
+												const locationShifts = allShifts.filter(
+													(shift: Shift) => shift.location_id === locationId
+												);
+
+												// Separate shifts into upcoming and past
+												const now = new Date();
+												const upcomingShifts = locationShifts
+													.filter((shift) => new Date(shift.end_time) > now)
+													.sort(
+														(a, b) =>
+															new Date(a.start_time).getTime() -
+															new Date(b.start_time).getTime()
+													);
+
+												const pastShifts = locationShifts
+													.filter((shift) => new Date(shift.end_time) <= now)
+													.sort(
+														(a, b) =>
+															new Date(b.start_time).getTime() -
+															new Date(a.start_time).getTime()
+													);
+
+												// Also fetch the latest shift assignments
+												setLoadingPhase("shiftAssignments");
+												const locationShiftIds = locationShifts.map(
+													(shift) => shift.id
+												);
+												const allAssignments =
+													await ShiftAssignmentsAPI.getAll();
+												const locationShiftAssignments = allAssignments.filter(
+													(assignment) =>
+														locationShiftIds.includes(assignment.shift_id)
+												);
+
+												setShiftAssignments(locationShiftAssignments);
+												setShifts(locationShifts);
+												setUpcomingShifts(upcomingShifts);
+												setPastShifts(pastShifts);
+
+												toast.success("Shift created and data refreshed");
+											} catch (error) {
+												console.error("Error refreshing shifts data:", error);
+												toast.error("Failed to refresh shifts after creation");
+											} finally {
+												setLoading(false);
+												setLoadingPhase("");
+											}
+										};
+
+										refreshData();
 									}}
 									trigger={
 										<Button
@@ -516,7 +638,79 @@ export default function LocationDetailPage() {
 									initialLocationId={locationId}
 									onComplete={() => {
 										// Refresh shifts data after creating a new shift
-										window.location.reload();
+										// Replace the inefficient page reload with targeted data refresh
+										const refreshData = async () => {
+											try {
+												setLoading(true);
+												setLoadingPhase("shifts");
+
+												// Add a slight delay to ensure assignments are completed before refresh
+												await new Promise((resolve) =>
+													setTimeout(resolve, 1000)
+												);
+
+												// Fetch all schedules
+												const allSchedules = await ShiftsAPI.getAllSchedules();
+												// Get all shifts from all schedules
+												const allShiftsPromises = allSchedules.map((schedule) =>
+													ShiftsAPI.getShiftsForSchedule(schedule.id)
+												);
+												const allShiftsArrays = await Promise.all(
+													allShiftsPromises
+												);
+												const allShifts = allShiftsArrays.flat();
+
+												// Filter for shifts at this location
+												const locationShifts = allShifts.filter(
+													(shift: Shift) => shift.location_id === locationId
+												);
+
+												// Separate shifts into upcoming and past
+												const now = new Date();
+												const upcomingShifts = locationShifts
+													.filter((shift) => new Date(shift.end_time) > now)
+													.sort(
+														(a, b) =>
+															new Date(a.start_time).getTime() -
+															new Date(b.start_time).getTime()
+													);
+
+												const pastShifts = locationShifts
+													.filter((shift) => new Date(shift.end_time) <= now)
+													.sort(
+														(a, b) =>
+															new Date(b.start_time).getTime() -
+															new Date(a.start_time).getTime()
+													);
+
+												// Also fetch the latest shift assignments
+												setLoadingPhase("shiftAssignments");
+												const locationShiftIds = locationShifts.map(
+													(shift) => shift.id
+												);
+												const allAssignments =
+													await ShiftAssignmentsAPI.getAll();
+												const locationShiftAssignments = allAssignments.filter(
+													(assignment) =>
+														locationShiftIds.includes(assignment.shift_id)
+												);
+
+												setShiftAssignments(locationShiftAssignments);
+												setShifts(locationShifts);
+												setUpcomingShifts(upcomingShifts);
+												setPastShifts(pastShifts);
+
+												toast.success("Shift created and data refreshed");
+											} catch (error) {
+												console.error("Error refreshing shifts data:", error);
+												toast.error("Failed to refresh shifts after creation");
+											} finally {
+												setLoading(false);
+												setLoadingPhase("");
+											}
+										};
+
+										refreshData();
 									}}
 									trigger={
 										<Button
@@ -569,6 +763,7 @@ export default function LocationDetailPage() {
 										locationName={location.name}
 										assignedEmployees={shiftEmployees}
 										showLocationName={false}
+										isLoading={loading && loadingPhase === "shiftAssignments"}
 									/>
 								);
 							})}

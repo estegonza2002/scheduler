@@ -97,10 +97,13 @@ export function ShiftCreationSheet({
 
 	// Handle completion
 	const handleComplete = () => {
+		console.log("ShiftCreationSheet: handleComplete called");
 		if (onOpenChange) {
+			console.log("ShiftCreationSheet: Closing sheet");
 			onOpenChange(false);
 		}
 		if (onComplete) {
+			console.log("ShiftCreationSheet: Calling onComplete callback");
 			onComplete();
 		}
 	};

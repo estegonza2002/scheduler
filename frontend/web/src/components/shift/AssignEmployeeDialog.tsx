@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "../ui/sheet";
-import { EmployeeAssignmentStep } from "../shift-wizard/EmployeeAssignmentStep";
 import {
 	EmployeesAPI,
 	LocationsAPI,
@@ -10,8 +9,9 @@ import {
 	Shift,
 } from "../../api";
 import { toast } from "sonner";
-import { AssignEmployeeStep, SelectedEmployee } from "./AssignEmployeeStep";
 import { cn } from "@/lib/utils";
+import { EmployeeSelectionComponent } from "../employee/EmployeeSelectionComponent";
+import type { SelectedEmployee } from "../employee/EmployeeSelectionComponent";
 
 interface AssignEmployeeDialogProps {
 	open: boolean;
@@ -31,6 +31,7 @@ export function AssignEmployeeDialog({
 	const [employees, setEmployees] = useState<Employee[]>([]);
 	const [locations, setLocations] = useState<Location[]>([]);
 	const [shift, setShift] = useState<Shift | null>(null);
+	const [locationName, setLocationName] = useState<string>("Loading...");
 	const [selectedEmployees, setSelectedEmployees] = useState<
 		SelectedEmployee[]
 	>([]);
@@ -41,15 +42,72 @@ export function AssignEmployeeDialog({
 			const fetchData = async () => {
 				try {
 					setLoading(true);
-					const [employeesData, locationsData, shiftData] = await Promise.all([
+					console.log(
+						"AssignEmployeeDialog: Starting data fetch for shift:",
+						shiftId
+					);
+
+					// First get the shift data
+					const shiftData = await ShiftsAPI.getShiftById(shiftId);
+					console.log("AssignEmployeeDialog: Loaded shift data:", shiftData);
+					setShift(shiftData);
+
+					// Next fetch employees and locations in parallel
+					const [employeesData, locationsData] = await Promise.all([
 						EmployeesAPI.getAll(),
 						LocationsAPI.getAll(),
-						ShiftsAPI.getShiftById(shiftId),
 					]);
+
+					console.log("AssignEmployeeDialog: Loaded data:", {
+						employeesCount: employeesData.length,
+						locationsCount: locationsData.length,
+						locationIds: locationsData.map((loc) => loc.id),
+					});
 
 					setEmployees(employeesData);
 					setLocations(locationsData);
-					setShift(shiftData);
+
+					// If shift has a location_id, directly fetch the location by ID
+					if (shiftData?.location_id) {
+						try {
+							const location = await LocationsAPI.getById(
+								shiftData.location_id
+							);
+							if (location) {
+								console.log(
+									"AssignEmployeeDialog: Found location by direct lookup:",
+									location.name
+								);
+								setLocationName(location.name);
+							} else {
+								console.warn(
+									"AssignEmployeeDialog: Location not found by direct lookup:",
+									shiftData.location_id
+								);
+								// Try finding in the locations array as fallback
+								const locFromArray = locationsData.find(
+									(loc) => loc.id === shiftData.location_id
+								);
+								if (locFromArray) {
+									console.log(
+										"AssignEmployeeDialog: Found location in array:",
+										locFromArray.name
+									);
+									setLocationName(locFromArray.name);
+								} else {
+									console.warn(
+										"AssignEmployeeDialog: Location not found in array either"
+									);
+									setLocationName("Unknown Location");
+								}
+							}
+						} catch (error) {
+							console.error("Error fetching location:", error);
+							setLocationName("Unknown Location");
+						}
+					} else {
+						setLocationName("Unassigned");
+					}
 
 					// Find assigned employees only after we have the employee data
 					if (shiftData?.user_id) {
@@ -58,6 +116,10 @@ export function AssignEmployeeDialog({
 						);
 
 						if (assignedEmp) {
+							console.log(
+								"AssignEmployeeDialog: Found assigned employee:",
+								assignedEmp.name
+							);
 							setSelectedEmployees([
 								{
 									id: assignedEmp.id,
@@ -65,6 +127,11 @@ export function AssignEmployeeDialog({
 									role: assignedEmp.role || "",
 								},
 							]);
+						} else {
+							console.warn(
+								"AssignEmployeeDialog: User ID in shift not found in employees:",
+								shiftData.user_id
+							);
 						}
 					}
 				} catch (error) {
@@ -80,8 +147,9 @@ export function AssignEmployeeDialog({
 			// Reset state when dialog is closed
 			setSearchTerm("");
 			setSelectedEmployees([]);
+			setLocationName("Loading...");
 		}
-	}, [open, shiftId]); // Remove employees from dependencies
+	}, [open, shiftId]);
 
 	// Filter employees based on search term
 	const filteredEmployees = employees.filter((employee) =>
@@ -124,8 +192,22 @@ export function AssignEmployeeDialog({
 
 	// Helper function to get location name
 	const getLocationName = (locationId: string) => {
+		if (!locationId) return "Unassigned";
+		// Return the location name from state if we have it
+		if (locationId === shift?.location_id) {
+			return locationName;
+		}
+
+		// Fallback to the old way (search in locations array)
 		const location = locations.find((loc) => loc.id === locationId);
-		return location ? location.name : "Unknown Location";
+		if (!location) {
+			console.warn(
+				`Location not found with ID: ${locationId}. Available location IDs:`,
+				locations.map((loc) => loc.id)
+			);
+			return "Unassigned";
+		}
+		return location.name;
 	};
 
 	if (!shift) {
@@ -147,8 +229,7 @@ export function AssignEmployeeDialog({
 					<SheetTitle>Assign Employees to Shift</SheetTitle>
 				</SheetHeader>
 
-				<AssignEmployeeStep
-					employeeForm={{} as any} // The form is not used directly
+				<EmployeeSelectionComponent
 					locationData={{ locationId: shift.location_id || "" }}
 					shiftData={{
 						date: formattedDate,
@@ -161,14 +242,17 @@ export function AssignEmployeeDialog({
 					filteredEmployees={filteredEmployees}
 					loadingEmployees={loading}
 					getLocationName={getLocationName}
-					handleEmployeeAssignSubmit={handleEmployeeAssignSubmit}
-					onBack={() => onOpenChange(false)} // Go back just closes the dialog
-					onResetLocation={() => {}} // Not needed in this context
+					onBack={() => onOpenChange(false)}
 					loading={loading}
 					selectedEmployees={selectedEmployees}
 					onSelectedEmployeesChange={setSelectedEmployees}
 					allEmployees={employees}
 					onFormSubmit={handleEmployeeAssignSubmit}
+					title="Assign Employees"
+					subtitle="Select employees to assign to this shift"
+					showShiftInfo={true}
+					filterByLocation={true}
+					submitButtonText="Assign Employees"
 				/>
 			</SheetContent>
 		</Sheet>

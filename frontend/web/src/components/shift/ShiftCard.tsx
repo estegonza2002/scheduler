@@ -22,14 +22,21 @@ export function ShiftCard({ shift, locations, employees }: ShiftCardProps) {
 	const getLocationName = (locationId: string | null | undefined): string => {
 		if (!locationId) return "Unassigned";
 		const location = locations.find((loc) => loc.id === locationId);
-		return location ? location.name : "Unknown Location";
+		if (!location) {
+			console.warn(
+				`Location not found with ID: ${locationId}. Available location IDs:`,
+				locations.map((loc) => loc.id)
+			);
+			return "Unassigned";
+		}
+		return location.name;
 	};
 
 	// Count assigned employees (in a real app, this would likely be a property of the shift)
 	const getAssignedEmployeesCount = (): number => {
 		// For now just checking if there's a primary employee assigned
 		// In a real app, you'd likely count all assignments
-		return shift.employee_id ? 1 : 0;
+		return shift.user_id ? 1 : 0;
 	};
 
 	return (

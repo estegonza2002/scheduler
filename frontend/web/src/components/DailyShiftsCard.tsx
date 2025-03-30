@@ -29,7 +29,14 @@ const getLocationName = (
 ): string => {
 	if (!locationId) return "Unassigned";
 	const location = locations.find((loc) => loc.id === locationId);
-	return location ? location.name : "Unknown Location";
+	if (!location) {
+		console.warn(
+			`Location not found with ID: ${locationId}. Available location IDs:`,
+			locations.map((loc) => loc.id)
+		);
+		return "Unassigned";
+	}
+	return location.name;
 };
 
 // Helper function to get employee name

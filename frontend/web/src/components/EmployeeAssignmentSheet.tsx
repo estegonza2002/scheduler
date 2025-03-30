@@ -23,6 +23,10 @@ import {
 	SheetTrigger,
 } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+	EmployeeSelectionComponent,
+	SelectedEmployee,
+} from "@/components/employee/EmployeeSelectionComponent";
 
 /**
  * Props for the EmployeeAssignmentSheet component
@@ -83,7 +87,6 @@ export function EmployeeAssignmentSheet({
 	const [open, setOpen] = useState(false);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [isAssigned, setIsAssigned] = useState(false);
-	const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
 	const [searchTerm, setSearchTerm] = useState("");
 	const [assignedCount, setAssignedCount] = useState(0);
 	const [allEmployees, setAllEmployees] = useState<Employee[]>(
@@ -93,6 +96,11 @@ export function EmployeeAssignmentSheet({
 		propAssignedEmployees || []
 	);
 	const [isLoading, setIsLoading] = useState(false);
+
+	// State for unified component
+	const [selectedEmployeeObjects, setSelectedEmployeeObjects] = useState<
+		SelectedEmployee[]
+	>([]);
 
 	// Determine if we're using controlled or uncontrolled open state
 	const isControlled =
@@ -106,6 +114,12 @@ export function EmployeeAssignmentSheet({
 			(allEmployees.length === 0 || assignedEmployees.length === 0)
 		) {
 			fetchEmployees();
+		}
+
+		// Reset states when opening the sheet
+		if (isOpen) {
+			setIsAssigned(false);
+			setSelectedEmployeeObjects([]);
 		}
 	}, [isOpen]);
 
@@ -138,69 +152,55 @@ export function EmployeeAssignmentSheet({
 		}
 	};
 
-	// Filter the employees for assignment
+	// Get a mapping of already assigned employee IDs for the location
+	const getAlreadyAssignedIds = () => {
+		return new Set(assignedEmployees.map((emp) => emp.id));
+	};
+
+	// Filter employees to exclude those already assigned to this location
 	const getFilteredEmployeesForAssignment = () => {
 		// If still loading, return empty array
 		if (isLoading) return [];
 
-		// Log available data for debugging
-		console.log("DEBUG - All employees:", allEmployees);
-		console.log("DEBUG - Assigned employees:", assignedEmployees);
+		const alreadyAssignedIds = getAlreadyAssignedIds();
 
-		// Show all employees instead of just unassigned ones
-		let employeesToShow = allEmployees;
+		// Get unassigned employees
+		const unassignedEmployees = allEmployees.filter(
+			(emp) => !alreadyAssignedIds.has(emp.id)
+		);
 
-		// If there's a search term, filter by name
+		// Filter by search term if provided
 		if (searchTerm) {
-			employeesToShow = allEmployees.filter((emp) =>
+			return unassignedEmployees.filter((emp) =>
 				emp.name.toLowerCase().includes(searchTerm.toLowerCase())
 			);
 		}
 
-		console.log("DEBUG - Employees to show:", employeesToShow);
-		return employeesToShow;
+		return unassignedEmployees;
 	};
 
-	// Toggle employee selection
-	const toggleEmployeeSelection = (employeeId: string) => {
-		// Don't toggle if the employee is already assigned
-		const isAlreadyAssigned = assignedEmployees.some(
-			(assigned) => assigned.id === employeeId
-		);
-
-		if (isAlreadyAssigned) {
-			return; // Don't allow toggling already assigned employees
-		}
-
-		setSelectedEmployees((prev) =>
-			prev.includes(employeeId)
-				? prev.filter((id) => id !== employeeId)
-				: [...prev, employeeId]
-		);
-	};
-
-	// Assign selected employees to the location
-	const assignEmployeesToLocation = async () => {
-		if (!locationId || selectedEmployees.length === 0) return;
+	// Handle assignment of employees to locations
+	const handleAssignEmployees = async () => {
+		if (!locationId || selectedEmployeeObjects.length === 0) return;
 
 		try {
 			setIsSubmitting(true);
 
 			console.log(
-				`DEBUG: Assigning ${selectedEmployees.length} employees to location ${locationId}`
+				`DEBUG: Assigning ${selectedEmployeeObjects.length} employees to location ${locationId}`
 			);
 
 			// Create an array to track successfully assigned employees
 			const newlyAssignedEmployees: Employee[] = [];
 
-			for (const employeeId of selectedEmployees) {
+			for (const selectedEmp of selectedEmployeeObjects) {
 				// Get the full employee object
-				const employee = allEmployees.find((emp) => emp.id === employeeId);
+				const employee = allEmployees.find((emp) => emp.id === selectedEmp.id);
 				if (employee) {
 					// Use EmployeeLocationsAPI to assign the location to this employee
 					// Get current location assignments for this employee
 					const currentLocations = await EmployeeLocationsAPI.getByEmployeeId(
-						employeeId
+						selectedEmp.id
 					);
 
 					// Add this location if not already assigned
@@ -209,23 +209,23 @@ export function EmployeeAssignmentSheet({
 
 						// Update the employee's location assignments
 						const success = await EmployeeLocationsAPI.assignLocations(
-							employeeId,
+							selectedEmp.id,
 							updatedLocations
 						);
 
 						if (success) {
 							newlyAssignedEmployees.push(employee);
 							console.log(
-								`DEBUG: Successfully assigned employee ${employeeId} to location ${locationId}`
+								`DEBUG: Successfully assigned employee ${selectedEmp.id} to location ${locationId}`
 							);
 						} else {
 							console.error(
-								`DEBUG: Failed to assign employee ${employeeId} to location ${locationId}`
+								`DEBUG: Failed to assign employee ${selectedEmp.id} to location ${locationId}`
 							);
 						}
 					} else {
 						console.log(
-							`DEBUG: Employee ${employeeId} already assigned to location ${locationId}`
+							`DEBUG: Employee ${selectedEmp.id} already assigned to location ${locationId}`
 						);
 						newlyAssignedEmployees.push(employee);
 					}
@@ -249,139 +249,45 @@ export function EmployeeAssignmentSheet({
 
 	// Handle sheet open/close
 	const handleOpenChange = (newOpenState: boolean) => {
-		if (isSubmitting) return; // Prevent closing during submission
-
-		if (!newOpenState) {
-			// Reset state when sheet closes
-			setTimeout(() => {
-				setIsAssigned(false);
-				setSelectedEmployees([]);
-				setSearchTerm("");
-			}, 300); // Wait for sheet close animation
-		}
-
+		// If controlled mode, use the provided setter
 		if (isControlled && setControlledOpen) {
 			setControlledOpen(newOpenState);
 		} else {
+			// Otherwise update internal state
 			setOpen(newOpenState);
+		}
+
+		// If closing, reset state
+		if (!newOpenState) {
+			setTimeout(() => {
+				setIsAssigned(false);
+				setSelectedEmployeeObjects([]);
+				setSearchTerm("");
+			}, 300); // Wait for sheet close animation
 		}
 	};
 
-	// Render loading state
-	const renderLoading = () => (
-		<div className="flex flex-col items-center justify-center py-12">
-			<Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-			<p className="text-muted-foreground">Loading employees...</p>
-		</div>
-	);
-
-	// Render success state
+	// Render the success state
 	const renderSuccessState = () => (
-		<div className="flex flex-col items-center py-8 text-center">
-			<div className="rounded-full bg-primary/10 p-3 mb-4">
-				<CheckCircle className="h-8 w-8 text-primary" />
+		<div className="flex flex-col items-center justify-center h-[60vh] text-center">
+			<div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mb-4">
+				<CheckCircle className="w-8 h-8 text-green-500" />
 			</div>
-			<h3 className="text-xl font-semibold mb-2">
-				{assignedCount} Employee{assignedCount !== 1 ? "s" : ""} Assigned
+			<h3 className="text-lg font-semibold mb-2">
+				{assignedCount} Employees Assigned
 			</h3>
 			<p className="text-muted-foreground mb-6">
-				Employees successfully assigned to {locationName}.
+				Successfully assigned employees to {locationName}
 			</p>
+			<Button onClick={() => handleOpenChange(false)}>Close</Button>
 		</div>
 	);
 
-	// Render selection state
-	const renderSelectionState = () => (
-		<div className="space-y-4">
-			{/* Search input */}
-			<div className="relative">
-				<Input
-					placeholder="Search employees..."
-					value={searchTerm}
-					onChange={(e) => setSearchTerm(e.target.value)}
-					className="pl-9"
-				/>
-				<Users className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-			</div>
-
-			{/* Selection explanation */}
-			<p className="text-sm text-muted-foreground">
-				Select employees to assign to {locationName}.
-				{assignedEmployees.length > 0 &&
-					` Currently assigned employees are marked and cannot be unselected.`}
-			</p>
-
-			{/* Employees list */}
-			<div className="border rounded-md divide-y">
-				{isLoading ? (
-					renderLoading()
-				) : getFilteredEmployeesForAssignment().length > 0 ? (
-					getFilteredEmployeesForAssignment().map((employee) => {
-						const isSelected = selectedEmployees.includes(employee.id);
-						const isAlreadyAssigned = assignedEmployees.some(
-							(assigned) => assigned.id === employee.id
-						);
-
-						return (
-							<div
-								key={employee.id}
-								className={cn(
-									"flex items-center p-3 hover:bg-accent",
-									isSelected && "bg-primary/10 hover:bg-primary/15",
-									isAlreadyAssigned
-										? "opacity-70 cursor-default"
-										: "cursor-pointer"
-								)}
-								onClick={() =>
-									!isAlreadyAssigned && toggleEmployeeSelection(employee.id)
-								}>
-								<Checkbox
-									checked={isSelected || isAlreadyAssigned}
-									className={cn(
-										"mr-3",
-										isAlreadyAssigned && "opacity-50 cursor-not-allowed"
-									)}
-									disabled={isAlreadyAssigned}
-									onCheckedChange={() =>
-										!isAlreadyAssigned && toggleEmployeeSelection(employee.id)
-									}
-								/>
-								<div className="flex items-center flex-1 min-w-0 gap-3">
-									<Avatar className="h-8 w-8">
-										<AvatarImage
-											src={employee.avatar}
-											alt={employee.name}
-										/>
-										<AvatarFallback>
-											{employee.name
-												.split(" ")
-												.map((n) => n[0])
-												.join("")}
-										</AvatarFallback>
-									</Avatar>
-									<div>
-										<div className="font-medium truncate">{employee.name}</div>
-										<div className="text-xs text-muted-foreground truncate">
-											{employee.email}
-										</div>
-									</div>
-								</div>
-								{isAlreadyAssigned && (
-									<span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-md ml-2">
-										Current
-									</span>
-								)}
-							</div>
-						);
-					})
-				) : (
-					<div className="p-4 text-center text-muted-foreground">
-						{searchTerm
-							? "No employees found matching your search"
-							: "No employees available"}
-					</div>
-				)}
-			</div>
+	// Render loading state
+	const renderLoading = () => (
+		<div className="flex flex-col items-center justify-center py-8">
+			<Loader2 className="w-8 h-8 animate-spin text-muted-foreground mb-2" />
+			<p className="text-muted-foreground">Loading employees...</p>
 		</div>
 	);
 
@@ -390,64 +296,54 @@ export function EmployeeAssignmentSheet({
 			open={isOpen}
 			onOpenChange={handleOpenChange}>
 			<SheetTrigger asChild>
-				{trigger || (
+				{trigger ? (
+					trigger
+				) : (
 					<Button>
-						<UserPlus className="h-4 w-4 mr-2" />
-						Assign Employees
+						<UserPlus className="mr-2 h-4 w-4" /> Assign Employee
 					</Button>
 				)}
 			</SheetTrigger>
 
 			<SheetContent
-				className={cn("sm:max-w-md p-0 flex flex-col h-full", className)}>
-				<div className="p-6 pb-0">
-					<SheetHeader>
-						<div className="flex items-center gap-2">
-							<UserPlus className="h-5 w-5 text-primary" />
-							<SheetTitle>Assign Employees</SheetTitle>
+				side="right"
+				className={className}>
+				{isLoading ? (
+					renderLoading()
+				) : isAssigned ? (
+					renderSuccessState()
+				) : (
+					<>
+						<SheetHeader>
+							<SheetTitle>Assign Employees to Location</SheetTitle>
+							<SheetDescription>
+								Select employees to assign to {locationName}
+							</SheetDescription>
+						</SheetHeader>
+
+						<div className="flex-1 py-4">
+							<EmployeeSelectionComponent
+								searchTerm={searchTerm}
+								setSearchTerm={setSearchTerm}
+								filteredEmployees={getFilteredEmployeesForAssignment()}
+								allEmployees={allEmployees}
+								loadingEmployees={isLoading}
+								selectedEmployees={selectedEmployeeObjects}
+								onSelectedEmployeesChange={setSelectedEmployeeObjects}
+								title="Select Employees"
+								subtitle={`Choose employees to assign to ${locationName}`}
+								showLocationInfo={true}
+								locationData={{ locationId }}
+								getLocationName={() => locationName}
+								showSelectedEmployees={true}
+								submitButtonText="Assign to Location"
+								onFormSubmit={handleAssignEmployees}
+								loading={isSubmitting}
+								filterByLocation={false}
+								onBack={() => handleOpenChange(false)}
+							/>
 						</div>
-						<SheetDescription>
-							Assign employees to {locationName}
-						</SheetDescription>
-					</SheetHeader>
-				</div>
-
-				<div className="flex-1 px-6 my-4 overflow-auto">
-					{isAssigned ? renderSuccessState() : renderSelectionState()}
-				</div>
-
-				{!isAssigned && !isLoading && (
-					<SheetFooter className="px-6 py-4">
-						<Button
-							onClick={assignEmployeesToLocation}
-							disabled={isSubmitting || selectedEmployees.length === 0}
-							className="w-full">
-							{isSubmitting ? (
-								<>
-									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-									Assigning Employees...
-								</>
-							) : (
-								<>
-									<CheckSquare className="mr-2 h-4 w-4" />
-									Assign {selectedEmployees.length}{" "}
-									{selectedEmployees.length === 1 ? "Employee" : "Employees"}
-								</>
-							)}
-						</Button>
-					</SheetFooter>
-				)}
-
-				{isAssigned && (
-					<SheetFooter className="px-6 py-4">
-						<Button
-							variant="outline"
-							onClick={() => setIsAssigned(false)}
-							className="mr-auto">
-							Assign More
-						</Button>
-						<Button onClick={() => handleOpenChange(false)}>Close</Button>
-					</SheetFooter>
+					</>
 				)}
 			</SheetContent>
 		</Sheet>

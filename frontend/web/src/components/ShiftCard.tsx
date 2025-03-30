@@ -20,6 +20,7 @@ interface ShiftCardProps {
 	assignedEmployees?: Employee[];
 	showLocationName?: boolean;
 	maxDisplayedAvatars?: number;
+	isLoading?: boolean;
 }
 
 export function ShiftCard({
@@ -28,6 +29,7 @@ export function ShiftCard({
 	assignedEmployees = [],
 	showLocationName = true,
 	maxDisplayedAvatars = 3,
+	isLoading = false,
 }: ShiftCardProps) {
 	const navigate = useNavigate();
 
@@ -170,7 +172,16 @@ export function ShiftCard({
 					{/* Status and Assignment */}
 					<div className="flex justify-between items-center mt-2">
 						<div className="flex items-center">
-							{assignedEmployees.length > 0 ? (
+							{isLoading ? (
+								<div className="flex items-center">
+									<div className="h-8 w-8 rounded-full bg-primary/10 border-2 border-white flex items-center justify-center text-sm animate-pulse">
+										<Users className="h-4 w-4 text-primary" />
+									</div>
+									<span className="ml-2 text-sm text-muted-foreground animate-pulse">
+										Loading assignments...
+									</span>
+								</div>
+							) : assignedEmployees.length > 0 ? (
 								<div className="flex items-center">
 									<div className="flex -space-x-2">
 										{assignedEmployees

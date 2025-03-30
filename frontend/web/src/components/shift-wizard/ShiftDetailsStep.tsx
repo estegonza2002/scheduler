@@ -1,16 +1,32 @@
 import { UseFormReturn } from "react-hook-form";
 import { Button } from "../ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import {
+	Card,
+	CardContent,
+	CardHeader,
+	CardTitle,
+	CardDescription,
+} from "../ui/card";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Location } from "../../api";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Calendar } from "../ui/calendar";
-import { format } from "date-fns";
-import { CalendarIcon, ArrowLeft, MapPin, X } from "lucide-react";
+import { format, parse, addDays, parseISO } from "date-fns";
+import {
+	CalendarIcon,
+	ArrowLeft,
+	MapPin,
+	X,
+	Clock,
+	Building2,
+} from "lucide-react";
 import { Textarea } from "../ui/textarea";
 import { Badge } from "../ui/badge";
-import { useMemo } from "react";
+import { useMemo, useEffect, useState } from "react";
+import { DatePicker } from "../ui/date-picker";
+import { cn } from "@/lib/utils";
+import { LocationCard } from "../ui/location-card";
 
 type ShiftData = {
 	date: string;
@@ -58,6 +74,20 @@ export function ShiftDetailsStep({
 		formState: { errors, isValid },
 	} = shiftForm;
 
+	// Keep a state of the selectedDate to maintain consistency
+	const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+
+	// Set default date to tomorrow when the component renders
+	useEffect(() => {
+		// Only run this once on mount
+		if (!selectedDate) {
+			const tomorrow = addDays(new Date(), 1);
+			const dateStr = format(tomorrow, "yyyy-MM-dd");
+			setSelectedDate(tomorrow);
+			setValue("date", dateStr, { shouldValidate: true });
+		}
+	}, [setValue, selectedDate]);
+
 	// Extract data from form
 	const date = watch("date");
 	const startTime = watch("startTime");
@@ -65,7 +95,7 @@ export function ShiftDetailsStep({
 
 	// Format date and time for display
 	const formattedDate = date
-		? format(new Date(date), "EEEE, MMMM d, yyyy")
+		? format(parseISO(date), "EEEE, MMMM d, yyyy")
 		: null;
 
 	// Calculate shift duration in hours
@@ -97,19 +127,30 @@ export function ShiftDetailsStep({
 		};
 	}, [startTime, endTime]);
 
+	// Handle date change from the DatePicker component
+	const handleDateChange = (newDate: Date | undefined) => {
+		if (newDate) {
+			// Store the selected date in state
+			setSelectedDate(newDate);
+
+			// Just use date portion for form value
+			const dateStr = format(newDate, "yyyy-MM-dd");
+			setValue("date", dateStr, { shouldValidate: true });
+		}
+	};
+
 	return (
 		<div className="p-6 flex flex-col">
-			<div className="mb-6">
-				<Badge
-					variant="outline"
-					className="mb-2">
-					Location
-				</Badge>
-				<h3 className="text-lg font-medium">{location?.name}</h3>
-				{location?.address && (
-					<p className="text-sm text-muted-foreground">{location.address}</p>
-				)}
-			</div>
+			{/* Location Card */}
+			{location && (
+				<div className="mb-6">
+					<LocationCard
+						location={location}
+						variant="detailed"
+						size="md"
+					/>
+				</div>
+			)}
 
 			<form
 				id="shift-details-form"
@@ -119,11 +160,32 @@ export function ShiftDetailsStep({
 					<div className="grid grid-cols-1 gap-4">
 						<div className="space-y-2">
 							<Label htmlFor="date">Date</Label>
-							<Input
-								id="date"
-								type="date"
-								{...register("date", { required: "Date is required" })}
-							/>
+							<Popover>
+								<PopoverTrigger asChild>
+									<Button
+										variant={"outline"}
+										className={cn(
+											"w-full justify-start text-left font-normal",
+											!date && "text-muted-foreground"
+										)}>
+										<CalendarIcon className="mr-2 h-4 w-4" />
+										{date ? format(parseISO(date), "PPP") : "Pick a date"}
+									</Button>
+								</PopoverTrigger>
+								<PopoverContent className="w-auto p-0">
+									<Calendar
+										mode="single"
+										selected={selectedDate}
+										onSelect={handleDateChange}
+										initialFocus
+										disabled={(date) =>
+											// Only disable dates before today (not including today)
+											date < new Date(new Date().setHours(0, 0, 0, 0))
+										}
+										className="rounded-md border"
+									/>
+								</PopoverContent>
+							</Popover>
 							{errors.date && (
 								<p className="text-sm text-destructive">
 									{errors.date.message}
@@ -134,13 +196,17 @@ export function ShiftDetailsStep({
 						<div className="grid grid-cols-2 gap-4">
 							<div className="space-y-2">
 								<Label htmlFor="startTime">Start Time</Label>
-								<Input
-									id="startTime"
-									type="time"
-									{...register("startTime", {
-										required: "Start time is required",
-									})}
-								/>
+								<div className="flex items-center">
+									<Clock className="mr-2 h-4 w-4 text-muted-foreground" />
+									<Input
+										id="startTime"
+										type="time"
+										className="flex-1"
+										{...register("startTime", {
+											required: "Start time is required",
+										})}
+									/>
+								</div>
 								{errors.startTime && (
 									<p className="text-sm text-destructive">
 										{errors.startTime.message}
@@ -149,13 +215,17 @@ export function ShiftDetailsStep({
 							</div>
 							<div className="space-y-2">
 								<Label htmlFor="endTime">End Time</Label>
-								<Input
-									id="endTime"
-									type="time"
-									{...register("endTime", {
-										required: "End time is required",
-									})}
-								/>
+								<div className="flex items-center">
+									<Clock className="mr-2 h-4 w-4 text-muted-foreground" />
+									<Input
+										id="endTime"
+										type="time"
+										className="flex-1"
+										{...register("endTime", {
+											required: "End time is required",
+										})}
+									/>
+								</div>
 								{errors.endTime && (
 									<p className="text-sm text-destructive">
 										{errors.endTime.message}

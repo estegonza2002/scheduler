@@ -255,7 +255,9 @@ export function LocationCreationSheet({
 			</SheetTrigger>
 
 			<SheetContent
-				className={cn("sm:max-w-md p-0 flex flex-col h-full", className)}>
+				side="right"
+				className={className}
+				onOpenAutoFocus={(e) => e.preventDefault()}>
 				<div className="p-6 pb-0">
 					<SheetHeader>
 						<div className="flex items-center gap-2">

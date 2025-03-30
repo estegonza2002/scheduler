@@ -61,7 +61,7 @@ export function NotificationSheet() {
 					)}
 				</Button>
 			</SheetTrigger>
-			<SheetContent className="sm:max-w-md p-0 flex flex-col h-[100dvh]">
+			<SheetContent className="p-0 flex flex-col h-[100dvh]">
 				<div className="flex flex-col h-full">
 					<div className="px-4 py-3 flex items-center justify-between border-b">
 						<div className="flex items-center gap-2">

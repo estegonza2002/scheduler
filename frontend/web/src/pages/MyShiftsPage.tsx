@@ -100,7 +100,14 @@ export default function MyShiftsPage() {
 	// Helper function to get location name
 	const getLocationName = (locationId?: string) => {
 		if (!locationId) return "Unassigned";
-		return locations[locationId]?.name || "Unknown Location";
+		const locationName = locations[locationId]?.name;
+		if (!locationName) {
+			console.warn(
+				`Location not found with ID: ${locationId}. Available location IDs:`,
+				Object.keys(locations)
+			);
+		}
+		return locationName || "Unassigned";
 	};
 
 	// Helper function to render a shift card

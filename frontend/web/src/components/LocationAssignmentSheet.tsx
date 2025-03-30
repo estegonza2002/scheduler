@@ -271,7 +271,8 @@ export function LocationAssignmentSheet({
 			</SheetTrigger>
 
 			<SheetContent
-				className={cn("sm:max-w-md p-0 flex flex-col h-full", className)}>
+				side="right"
+				className={cn("p-0 flex flex-col h-full", className)}>
 				<div className="p-6 pb-0">
 					<SheetHeader>
 						<div className="flex items-center gap-2">
