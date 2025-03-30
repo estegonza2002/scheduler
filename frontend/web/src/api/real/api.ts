@@ -584,6 +584,8 @@ export const EmployeesAPI = {
 	},
 
 	getById: async (id: string): Promise<Employee | null> => {
+		console.log(`EmployeesAPI.getById called with id: ${id}`);
+
 		const { data, error } = await supabase
 			.from("employees")
 			.select("*")
@@ -591,12 +593,17 @@ export const EmployeesAPI = {
 			.single();
 
 		if (error) {
-			toast.error("Failed to fetch employee");
-			console.error("Error fetching employee:", error);
+			console.error(`Error fetching employee with id ${id}:`, error);
+			toast.error(`Failed to fetch employee: ${error.message}`);
 			return null;
 		}
 
-		if (!data) return null;
+		if (!data) {
+			console.error(`No employee found with id ${id}`);
+			return null;
+		}
+
+		console.log(`Successfully fetched employee:`, data);
 
 		// Convert snake_case to camelCase for frontend compatibility
 		return {
@@ -621,15 +628,22 @@ export const EmployeesAPI = {
 
 	create: async (data: Omit<Employee, "id">): Promise<Employee> => {
 		// Convert camelCase properties to snake_case for the database
-		const snakeCaseData: Record<string, any> = {};
-		Object.entries(data).forEach(([key, value]) => {
-			// Convert camelCase to snake_case
-			const snakeKey = key.replace(
-				/[A-Z]/g,
-				(letter) => `_${letter.toLowerCase()}`
-			);
-			snakeCaseData[snakeKey] = value;
-		});
+		const snakeCaseData = {
+			organization_id: data.organizationId,
+			name: data.name,
+			email: data.email,
+			role: data.role || "Employee",
+			phone: data.phone,
+			hire_date: data.hireDate,
+			address: data.address,
+			emergency_contact: data.emergencyContact,
+			notes: data.notes,
+			avatar: data.avatar,
+			hourly_rate: data.hourlyRate,
+			status: data.status || "active",
+			is_online: data.isOnline || false,
+			last_active: data.lastActive || new Date().toISOString(),
+		};
 
 		const { data: newEmployee, error } = await supabase
 			.from("employees")
@@ -643,8 +657,30 @@ export const EmployeesAPI = {
 			throw error;
 		}
 
+		// Convert snake_case back to camelCase for frontend
+		const employee = {
+			id: newEmployee.id,
+			organizationId: newEmployee.organization_id,
+			name: newEmployee.name,
+			email: newEmployee.email,
+			role: newEmployee.role,
+			phone: newEmployee.phone,
+			hireDate: newEmployee.hire_date,
+			address: newEmployee.address,
+			emergencyContact: newEmployee.emergency_contact,
+			notes: newEmployee.notes,
+			avatar: newEmployee.avatar,
+			hourlyRate:
+				newEmployee.hourly_rate !== null
+					? parseFloat(newEmployee.hourly_rate)
+					: undefined,
+			status: newEmployee.status,
+			isOnline: newEmployee.is_online,
+			lastActive: newEmployee.last_active,
+		} as Employee;
+
 		toast.success("Employee created successfully!");
-		return newEmployee as Employee;
+		return employee;
 	},
 
 	update: async (
@@ -653,14 +689,25 @@ export const EmployeesAPI = {
 	): Promise<Employee | null> => {
 		// Convert camelCase properties to snake_case for the database
 		const snakeCaseData: Record<string, any> = {};
-		Object.entries(data).forEach(([key, value]) => {
-			// Convert camelCase to snake_case
-			const snakeKey = key.replace(
-				/[A-Z]/g,
-				(letter) => `_${letter.toLowerCase()}`
-			);
-			snakeCaseData[snakeKey] = value;
-		});
+
+		if (data.organizationId !== undefined)
+			snakeCaseData.organization_id = data.organizationId;
+		if (data.name !== undefined) snakeCaseData.name = data.name;
+		if (data.email !== undefined) snakeCaseData.email = data.email;
+		if (data.role !== undefined) snakeCaseData.role = data.role;
+		if (data.phone !== undefined) snakeCaseData.phone = data.phone;
+		if (data.hireDate !== undefined) snakeCaseData.hire_date = data.hireDate;
+		if (data.address !== undefined) snakeCaseData.address = data.address;
+		if (data.emergencyContact !== undefined)
+			snakeCaseData.emergency_contact = data.emergencyContact;
+		if (data.notes !== undefined) snakeCaseData.notes = data.notes;
+		if (data.avatar !== undefined) snakeCaseData.avatar = data.avatar;
+		if (data.hourlyRate !== undefined)
+			snakeCaseData.hourly_rate = data.hourlyRate;
+		if (data.status !== undefined) snakeCaseData.status = data.status;
+		if (data.isOnline !== undefined) snakeCaseData.is_online = data.isOnline;
+		if (data.lastActive !== undefined)
+			snakeCaseData.last_active = data.lastActive;
 
 		const { data: updated, error } = await supabase
 			.from("employees")
@@ -675,8 +722,30 @@ export const EmployeesAPI = {
 			return null;
 		}
 
+		// Convert snake_case back to camelCase for frontend
+		const employee = {
+			id: updated.id,
+			organizationId: updated.organization_id,
+			name: updated.name,
+			email: updated.email,
+			role: updated.role,
+			phone: updated.phone,
+			hireDate: updated.hire_date,
+			address: updated.address,
+			emergencyContact: updated.emergency_contact,
+			notes: updated.notes,
+			avatar: updated.avatar,
+			hourlyRate:
+				updated.hourly_rate !== null
+					? parseFloat(updated.hourly_rate)
+					: undefined,
+			status: updated.status,
+			isOnline: updated.is_online,
+			lastActive: updated.last_active,
+		} as Employee;
+
 		toast.success("Employee updated successfully!");
-		return updated as Employee;
+		return employee;
 	},
 
 	delete: async (id: string): Promise<void> => {

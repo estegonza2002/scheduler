@@ -29,6 +29,8 @@ import { Switch } from "@/components/ui/switch";
 import { FormDescription } from "@/components/ui/form";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useHeader } from "@/lib/header-context";
+import { useTheme } from "@/components/ThemeProvider";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 // Get the Supabase URL from environment or use a fallback
 const supabaseUrl =
@@ -949,6 +951,27 @@ function PreferencesTab() {
 	);
 }
 
+function AppearanceTab() {
+	return (
+		<TabsContent value="appearance">
+			<div className="space-y-6">
+				<div className="mb-6">
+					<h3 className="text-lg font-medium">Appearance</h3>
+					<p className="text-sm text-muted-foreground">
+						Customize the app's appearance and theme settings
+					</p>
+				</div>
+
+				<Card>
+					<CardContent className="pt-6">
+						<ThemeToggle />
+					</CardContent>
+				</Card>
+			</div>
+		</TabsContent>
+	);
+}
+
 export default function ProfilePage() {
 	const { updateHeader } = useHeader();
 
@@ -978,6 +1001,11 @@ export default function ProfilePage() {
 							Preferences
 						</TabsTrigger>
 						<TabsTrigger
+							value="appearance"
+							className="flex-1">
+							Appearance
+						</TabsTrigger>
+						<TabsTrigger
 							value="security"
 							className="flex-1">
 							Security
@@ -985,6 +1013,7 @@ export default function ProfilePage() {
 					</TabsList>
 					<ProfileTab />
 					<PreferencesTab />
+					<AppearanceTab />
 					<SecurityTab />
 				</Tabs>
 			</div>

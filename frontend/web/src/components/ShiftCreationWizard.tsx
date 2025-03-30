@@ -525,8 +525,6 @@ export function ShiftCreationWizard({
 							const assignment = await ShiftAssignmentsAPI.create({
 								shift_id: shiftId,
 								employee_id: employee.id,
-								role: employee.role || "Employee",
-								notes: "",
 							});
 
 							console.log(

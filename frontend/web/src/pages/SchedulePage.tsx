@@ -82,6 +82,8 @@ import {
 } from "@/components/ui/tooltip";
 import { useHeader } from "@/lib/header-context";
 import { Input } from "@/components/ui/input";
+import { ShiftCard } from "@/components/ShiftCard";
+import { toast } from "sonner";
 
 export default function SchedulePage() {
 	const [searchParams, setSearchParams] = useSearchParams();
@@ -379,75 +381,6 @@ export default function SchedulePage() {
 		navigate(`/shifts/${shiftId}`);
 	};
 
-	// Render a shift card
-	const ShiftCard = ({ shift }: { shift: Shift }) => {
-		const assignedEmployees = getShiftEmployees(shift);
-		const hasAssignments = assignedEmployees.length > 0;
-
-		return (
-			<Card
-				key={shift.id}
-				className="cursor-pointer hover:shadow-md transition-all border hover:border-primary"
-				onClick={() => openShiftDetails(shift.id)}>
-				<CardContent className="p-4">
-					<div className="flex justify-between items-start">
-						<div>
-							<h3 className="font-medium flex items-center">
-								<Clock className="h-4 w-4 mr-2 text-primary" />
-								{formatTime(shift.start_time)} - {formatTime(shift.end_time)}
-							</h3>
-							<p className="text-sm text-muted-foreground mt-1 flex items-center">
-								<MapPin className="h-3.5 w-3.5 mr-1" />
-								{getLocationName(shift.location_id)}
-							</p>
-						</div>
-
-						<div className="flex items-center">
-							{hasAssignments ? (
-								<div className="flex items-center">
-									<div className="flex -space-x-2 mr-1">
-										{assignedEmployees.slice(0, 3).map((employee, i) => (
-											<div
-												key={employee.id}
-												className="h-8 w-8 rounded-full bg-primary/10 border-2 border-background flex items-center justify-center overflow-hidden"
-												title={employee.name}>
-												{employee.avatar ? (
-													<img
-														src={employee.avatar}
-														alt={employee.name}
-														className="h-full w-full object-cover"
-													/>
-												) : (
-													<span className="text-xs font-medium">
-														{employee.name.charAt(0)}
-													</span>
-												)}
-											</div>
-										))}
-									</div>
-									{assignedEmployees.length > 3 && (
-										<Badge variant="secondary">
-											+{assignedEmployees.length - 3}
-										</Badge>
-									)}
-								</div>
-							) : (
-								<Badge variant="destructive">Unassigned</Badge>
-							)}
-						</div>
-					</div>
-					{shift.description &&
-						!shift.description.includes("Assigned to:") &&
-						!shift.description.includes("(") && (
-							<p className="text-sm mt-2 text-muted-foreground">
-								{shift.description}
-							</p>
-						)}
-				</CardContent>
-			</Card>
-		);
-	};
-
 	return (
 		<Card className="shadow-sm border-border/40 flex flex-col h-[calc(100vh-120px)]">
 			<CardContent className="flex-grow p-6 overflow-y-auto">
@@ -483,12 +416,19 @@ export default function SchedulePage() {
 
 							{todayShifts.length > 0 ? (
 								<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-									{todayShifts.map((shift) => (
-										<ShiftCard
-											key={shift.id}
-											shift={shift}
-										/>
-									))}
+									{todayShifts.map((shift) => {
+										const assignedEmployees = getShiftEmployees(shift);
+										const locationName = getLocationName(shift.location_id);
+
+										return (
+											<ShiftCard
+												key={shift.id}
+												shift={shift}
+												assignedEmployees={assignedEmployees}
+												locationName={locationName}
+											/>
+										);
+									})}
 								</div>
 							) : (
 								<Card className="bg-muted/30">
@@ -516,12 +456,19 @@ export default function SchedulePage() {
 
 							{upcomingShifts.length > 0 ? (
 								<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-									{upcomingShifts.map((shift) => (
-										<ShiftCard
-											key={shift.id}
-											shift={shift}
-										/>
-									))}
+									{upcomingShifts.map((shift) => {
+										const assignedEmployees = getShiftEmployees(shift);
+										const locationName = getLocationName(shift.location_id);
+
+										return (
+											<ShiftCard
+												key={shift.id}
+												shift={shift}
+												assignedEmployees={assignedEmployees}
+												locationName={locationName}
+											/>
+										);
+									})}
 								</div>
 							) : (
 								<Card className="bg-muted/30">

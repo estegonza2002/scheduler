@@ -1,8 +1,7 @@
-import { Users, Plus, Trash } from "lucide-react";
+import { Users, Plus } from "lucide-react";
 import { Button } from "../ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { AssignedEmployee } from "../../types/shift-types";
-import { calculateEmployeeCost } from "../../utils/time-calculations";
+import { ShiftEmployeeCard } from "./ShiftEmployeeCard";
 
 interface EmployeesSectionProps {
 	assignedEmployees: AssignedEmployee[];
@@ -65,113 +64,16 @@ export function EmployeesSection({
 					</Button>
 				</div>
 			) : (
-				<div className="bg-white border rounded-md overflow-hidden">
-					{/* Employee Table */}
-					<table className="w-full">
-						<thead>
-							<tr className="bg-muted/5 border-b">
-								<th className="text-left font-medium text-sm text-muted-foreground px-4 py-3">
-									Employee
-								</th>
-								<th className="text-left font-medium text-sm text-muted-foreground px-4 py-3">
-									Role
-								</th>
-								<th className="text-right font-medium text-sm text-muted-foreground px-4 py-3">
-									Hourly Rate
-								</th>
-								<th className="text-right font-medium text-sm text-muted-foreground px-4 py-3">
-									Cost
-								</th>
-								<th className="w-16 text-right px-4 py-3"></th>
-							</tr>
-						</thead>
-						<tbody>
-							{assignedEmployees.map((employee, index) => (
-								<tr
-									key={employee.id}
-									className={`hover:bg-muted/10 transition-colors ${
-										index !== assignedEmployees.length - 1 ? "border-b" : ""
-									}`}>
-									{/* Employee info column */}
-									<td className="px-4 py-3">
-										<div className="flex items-center gap-3 min-w-0">
-											<Avatar className="h-10 w-10 flex-shrink-0">
-												<AvatarFallback className="bg-primary/10 text-primary">
-													{employee.name.charAt(0)}
-												</AvatarFallback>
-												{employee.avatar && (
-													<AvatarImage src={employee.avatar} />
-												)}
-											</Avatar>
-
-											<div className="min-w-0">
-												<div className="font-medium truncate">
-													{employee.name}
-												</div>
-												{employee.assignmentNotes && (
-													<div className="text-xs text-muted-foreground mt-1 line-clamp-1">
-														{employee.assignmentNotes}
-													</div>
-												)}
-											</div>
-										</div>
-									</td>
-
-									{/* Role column */}
-									<td className="px-4 py-3">
-										<div className="text-sm">
-											{employee.assignmentRole || employee.role}
-										</div>
-									</td>
-
-									{/* Hourly Rate column */}
-									<td className="px-4 py-3 text-right">
-										{employee.hourlyRate ? (
-											<div className="text-sm">
-												${employee.hourlyRate.toFixed(2)}/hr
-											</div>
-										) : (
-											<div className="text-sm text-muted-foreground">
-												Not set
-											</div>
-										)}
-									</td>
-
-									{/* Cost column */}
-									<td className="px-4 py-3 text-right">
-										{employee.hourlyRate ? (
-											<div className="font-medium">
-												$
-												{calculateEmployeeCost(
-													shift.start_time,
-													shift.end_time,
-													employee
-												)}
-											</div>
-										) : (
-											<div className="text-muted-foreground">—</div>
-										)}
-									</td>
-
-									{/* Actions column */}
-									<td className="px-4 py-3 text-right">
-										<Button
-											variant="ghost"
-											size="icon"
-											className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-											onClick={() =>
-												onRemoveEmployeeClick(
-													employee.id,
-													employee.assignmentId
-												)
-											}>
-											<Trash className="h-4 w-4" />
-										</Button>
-									</td>
-								</tr>
-							))}
-						</tbody>
-					</table>
+				<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+					{assignedEmployees.map((employee) => (
+						<ShiftEmployeeCard
+							key={employee.id}
+							employee={employee}
+							onRemove={onRemoveEmployeeClick}
+							shiftStartTime={shift.start_time}
+							shiftEndTime={shift.end_time}
+						/>
+					))}
 				</div>
 			)}
 		</div>

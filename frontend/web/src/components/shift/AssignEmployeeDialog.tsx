@@ -1,339 +1,176 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "../ui/sheet";
+import { EmployeeAssignmentStep } from "../shift-wizard/EmployeeAssignmentStep";
 import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "../ui/dialog";
-import { Button } from "../ui/button";
-import { Input } from "../ui/input";
-import { Checkbox } from "../ui/checkbox";
-import { Label } from "../ui/label";
-import { ScrollArea } from "../ui/scroll-area";
-import { Shift, Employee } from "../../api";
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
-import { Search, Info, AlertTriangle } from "lucide-react";
-import { AssignedEmployee } from "../../types/shift-types";
-import { generateUniqueId } from "../../utils/ids";
+	EmployeesAPI,
+	LocationsAPI,
+	ShiftsAPI,
+	Employee,
+	Location,
+	Shift,
+} from "../../api";
+import { toast } from "sonner";
+import { AssignEmployeeStep, SelectedEmployee } from "./AssignEmployeeStep";
+import { cn } from "@/lib/utils";
 
 interface AssignEmployeeDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	shift: Shift;
-	availableEmployees: Employee[];
-	assignedEmployees: AssignedEmployee[];
-	onAssign: (assignedEmployees: AssignedEmployee[]) => void;
+	onAssigned?: () => void;
+	shiftId: string;
 }
 
 export function AssignEmployeeDialog({
 	open,
 	onOpenChange,
-	shift,
-	availableEmployees,
-	assignedEmployees,
-	onAssign,
+	onAssigned,
+	shiftId,
 }: AssignEmployeeDialogProps) {
-	const [searchQuery, setSearchQuery] = useState("");
-	const [selectedEmployees, setSelectedEmployees] = useState<{
-		[key: string]: {
-			employee: Employee;
-			role: string;
-			notes: string;
-		};
-	}>({});
-	const [saving, setSaving] = useState(false);
+	const [loading, setLoading] = useState(false);
+	const [searchTerm, setSearchTerm] = useState("");
+	const [employees, setEmployees] = useState<Employee[]>([]);
+	const [locations, setLocations] = useState<Location[]>([]);
+	const [shift, setShift] = useState<Shift | null>(null);
+	const [selectedEmployees, setSelectedEmployees] = useState<
+		SelectedEmployee[]
+	>([]);
 
-	// Update state when dialog opens
-	const onDialogOpenChange = (open: boolean) => {
+	// Fetch employees, locations and shift data
+	useEffect(() => {
 		if (open) {
-			// Reset selection state
-			setSearchQuery("");
-			setSelectedEmployees({});
+			const fetchData = async () => {
+				try {
+					setLoading(true);
+					const [employeesData, locationsData, shiftData] = await Promise.all([
+						EmployeesAPI.getAll(),
+						LocationsAPI.getAll(),
+						ShiftsAPI.getShiftById(shiftId),
+					]);
+
+					setEmployees(employeesData);
+					setLocations(locationsData);
+					setShift(shiftData);
+
+					// Find assigned employees only after we have the employee data
+					if (shiftData?.user_id) {
+						const assignedEmp = employeesData.find(
+							(emp) => emp.id === shiftData.user_id
+						);
+
+						if (assignedEmp) {
+							setSelectedEmployees([
+								{
+									id: assignedEmp.id,
+									name: assignedEmp.name,
+									role: assignedEmp.role || "",
+								},
+							]);
+						}
+					}
+				} catch (error) {
+					console.error("Error loading data:", error);
+					toast.error("Error loading data. Please try again.");
+				} finally {
+					setLoading(false);
+				}
+			};
+
+			fetchData();
+		} else {
+			// Reset state when dialog is closed
+			setSearchTerm("");
+			setSelectedEmployees([]);
 		}
-		onOpenChange(open);
-	};
+	}, [open, shiftId]); // Remove employees from dependencies
 
-	// Filter employees based on search query
-	const filteredEmployees = availableEmployees.filter((employee) => {
-		const alreadyAssigned = assignedEmployees.some(
-			(assigned) => assigned.id === employee.id
-		);
+	// Filter employees based on search term
+	const filteredEmployees = employees.filter((employee) =>
+		employee.name.toLowerCase().includes(searchTerm.toLowerCase())
+	);
 
-		// Don't show already assigned employees
-		if (alreadyAssigned) return false;
+	const handleEmployeeAssignSubmit = async (data: any) => {
+		if (!shift) return;
 
-		// Filter by search query
-		if (!searchQuery) return true;
+		try {
+			setLoading(true);
 
-		return (
-			employee.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-			employee.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-			employee.role.toLowerCase().includes(searchQuery.toLowerCase())
-		);
-	});
+			// Get the employee IDs from the selected employees
+			const employeeIds = selectedEmployees.map((emp) => emp.id);
 
-	// Toggle employee selection
-	const toggleEmployeeSelection = (employee: Employee) => {
-		setSelectedEmployees((prev) => {
-			const newSelected = { ...prev };
+			// Since ShiftsAPI doesn't have an explicit method for managing assigned employees,
+			// we'll use updateShift to update the user_id field
+			// This is a simple implementation - in a real app, you'd likely
+			// handle multiple employees differently
+			await ShiftsAPI.updateShift(shiftId, {
+				user_id: employeeIds.length > 0 ? employeeIds[0] : undefined,
+			});
 
-			if (newSelected[employee.id]) {
-				// Remove if already selected
-				delete newSelected[employee.id];
-			} else {
-				// Add if not selected
-				newSelected[employee.id] = {
-					employee,
-					role: employee.role || "Staff",
-					notes: "",
-				};
+			toast.success("Employees assigned successfully");
+
+			// Call the callback if provided
+			if (onAssigned) {
+				onAssigned();
 			}
 
-			return newSelected;
-		});
-	};
-
-	// Update role for selected employee
-	const updateEmployeeRole = (employeeId: string, role: string) => {
-		setSelectedEmployees((prev) => ({
-			...prev,
-			[employeeId]: {
-				...prev[employeeId],
-				role,
-			},
-		}));
-	};
-
-	// Update notes for selected employee
-	const updateEmployeeNotes = (employeeId: string, notes: string) => {
-		setSelectedEmployees((prev) => ({
-			...prev,
-			[employeeId]: {
-				...prev[employeeId],
-				notes,
-			},
-		}));
-	};
-
-	// Handle assigning employees
-	const handleAssignEmployees = () => {
-		setSaving(true);
-
-		// Create assigned employees from selected ones
-		const newAssignedEmployees = Object.values(selectedEmployees).map(
-			({ employee, role, notes }) => ({
-				...employee,
-				assignmentId: generateUniqueId(),
-				assignmentRole: role,
-				assignmentNotes: notes,
-			})
-		);
-
-		// Combine with existing assigned employees
-		onAssign([...assignedEmployees, ...newAssignedEmployees]);
-		setSaving(false);
-		onOpenChange(false);
-	};
-
-	const selectedCount = Object.keys(selectedEmployees).length;
-
-	// Helper to get initials from employee name
-	const getInitials = (name: string): string => {
-		const parts = name.split(" ");
-		if (parts.length >= 2) {
-			return `${parts[0][0]}${parts[1][0]}`;
+			// Close the dialog
+			onOpenChange(false);
+		} catch (error) {
+			console.error("Error assigning employees:", error);
+			toast.error("Failed to assign employees");
+		} finally {
+			setLoading(false);
 		}
-		return name.substring(0, 2).toUpperCase();
 	};
+
+	// Helper function to get location name
+	const getLocationName = (locationId: string) => {
+		const location = locations.find((loc) => loc.id === locationId);
+		return location ? location.name : "Unknown Location";
+	};
+
+	if (!shift) {
+		return null;
+	}
+
+	// Get formatted date and time from shift
+	const shiftDate = new Date(shift.start_time);
+	const formattedDate = shiftDate.toISOString().split("T")[0]; // YYYY-MM-DD
+	const startTime = new Date(shift.start_time).toTimeString().slice(0, 5); // HH:MM
+	const endTime = new Date(shift.end_time).toTimeString().slice(0, 5); // HH:MM
 
 	return (
-		<Dialog
+		<Sheet
 			open={open}
-			onOpenChange={onDialogOpenChange}>
-			<DialogContent className="sm:max-w-[600px]">
-				<DialogHeader>
-					<DialogTitle>Assign Employees to Shift</DialogTitle>
-					<DialogDescription>
-						Select employees to assign to this shift on{" "}
-						{new Date(shift.start_time).toLocaleDateString()}.
-					</DialogDescription>
-				</DialogHeader>
+			onOpenChange={onOpenChange}>
+			<SheetContent side="right">
+				<SheetHeader>
+					<SheetTitle>Assign Employees to Shift</SheetTitle>
+				</SheetHeader>
 
-				<div className="py-4">
-					<div className="relative mb-4">
-						<Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-						<Input
-							placeholder="Search employees by name, email or role..."
-							className="pl-9"
-							value={searchQuery}
-							onChange={(e) => setSearchQuery(e.target.value)}
-						/>
-					</div>
-
-					{filteredEmployees.length === 0 ? (
-						<div className="text-center py-8 border rounded-md">
-							<div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-muted mb-3">
-								<Info className="h-5 w-5 text-muted-foreground" />
-							</div>
-							<h3 className="text-sm font-medium">No employees found</h3>
-							<p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
-								{availableEmployees.length === 0
-									? "There are no available employees to assign to this shift."
-									: assignedEmployees.length === availableEmployees.length
-									? "All employees are already assigned to this shift."
-									: "Try a different search term or clear the search field."}
-							</p>
-						</div>
-					) : (
-						<>
-							<div className="border rounded-md overflow-hidden">
-								<ScrollArea className="h-[240px]">
-									<div className="divide-y">
-										{filteredEmployees.map((employee) => (
-											<div
-												key={employee.id}
-												className={`flex items-center space-x-4 p-3 hover:bg-muted/50 transition-colors ${
-													selectedEmployees[employee.id] ? "bg-muted/80" : ""
-												}`}>
-												<Checkbox
-													id={`employee-${employee.id}`}
-													checked={!!selectedEmployees[employee.id]}
-													onCheckedChange={() =>
-														toggleEmployeeSelection(employee)
-													}
-												/>
-												<Avatar className="h-9 w-9">
-													<AvatarImage
-														src={employee.avatar || undefined}
-														alt={employee.name}
-													/>
-													<AvatarFallback>
-														{getInitials(employee.name)}
-													</AvatarFallback>
-												</Avatar>
-												<div className="flex-1 min-w-0">
-													<div className="font-medium truncate">
-														{employee.name}
-													</div>
-													<div className="text-xs text-muted-foreground truncate">
-														{employee.role || "Staff"} • {employee.email}
-													</div>
-												</div>
-												{employee.hourlyRate ? (
-													<div className="text-sm font-medium tabular-nums">
-														${employee.hourlyRate}/hr
-													</div>
-												) : (
-													<div className="flex items-center text-amber-600 text-xs">
-														<AlertTriangle className="h-3 w-3 mr-1" />
-														<span>No rate</span>
-													</div>
-												)}
-											</div>
-										))}
-									</div>
-								</ScrollArea>
-							</div>
-
-							{selectedCount > 0 && (
-								<div className="mt-4 space-y-4">
-									<div className="text-sm font-medium">
-										Selected {selectedCount} employee
-										{selectedCount !== 1 ? "s" : ""}
-									</div>
-
-									<div className="space-y-3">
-										{Object.entries(selectedEmployees).map(
-											([id, { employee, role, notes }]) => (
-												<div
-													key={id}
-													className="bg-muted/30 rounded-md p-3 space-y-3">
-													<div className="flex items-center justify-between">
-														<div className="flex items-center space-x-3">
-															<Avatar className="h-8 w-8">
-																<AvatarImage
-																	src={employee.avatar || undefined}
-																	alt={employee.name}
-																/>
-																<AvatarFallback>
-																	{getInitials(employee.name)}
-																</AvatarFallback>
-															</Avatar>
-															<div className="font-medium">{employee.name}</div>
-														</div>
-														<Button
-															variant="ghost"
-															size="sm"
-															className="h-7 text-xs"
-															onClick={() => toggleEmployeeSelection(employee)}>
-															Remove
-														</Button>
-													</div>
-
-													<div className="grid gap-2">
-														<Label
-															htmlFor={`role-${id}`}
-															className="text-xs">
-															Role in shift
-														</Label>
-														<Input
-															id={`role-${id}`}
-															placeholder="e.g. Team Lead, Cashier, Server"
-															className="h-8 text-sm"
-															value={role}
-															onChange={(e) =>
-																updateEmployeeRole(id, e.target.value)
-															}
-														/>
-													</div>
-
-													<div className="grid gap-2">
-														<Label
-															htmlFor={`notes-${id}`}
-															className="text-xs">
-															Assignment notes (optional)
-														</Label>
-														<Input
-															id={`notes-${id}`}
-															placeholder="Add any specific notes for this assignment"
-															className="h-8 text-sm"
-															value={notes}
-															onChange={(e) =>
-																updateEmployeeNotes(id, e.target.value)
-															}
-														/>
-													</div>
-												</div>
-											)
-										)}
-									</div>
-								</div>
-							)}
-						</>
-					)}
-				</div>
-
-				<DialogFooter>
-					<Button
-						type="button"
-						variant="outline"
-						onClick={() => onOpenChange(false)}>
-						Cancel
-					</Button>
-					<Button
-						type="button"
-						onClick={handleAssignEmployees}
-						disabled={selectedCount === 0 || saving}>
-						{saving && (
-							<div className="mr-2 animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
-						)}
-						Assign {selectedCount > 0 ? selectedCount : ""} Employee
-						{selectedCount !== 1 ? "s" : ""}
-					</Button>
-				</DialogFooter>
-			</DialogContent>
-		</Dialog>
+				<AssignEmployeeStep
+					employeeForm={{} as any} // The form is not used directly
+					locationData={{ locationId: shift.location_id || "" }}
+					shiftData={{
+						date: formattedDate,
+						startTime: startTime,
+						endTime: endTime,
+						notes: shift.description || "",
+					}}
+					searchTerm={searchTerm}
+					setSearchTerm={setSearchTerm}
+					filteredEmployees={filteredEmployees}
+					loadingEmployees={loading}
+					getLocationName={getLocationName}
+					handleEmployeeAssignSubmit={handleEmployeeAssignSubmit}
+					onBack={() => onOpenChange(false)} // Go back just closes the dialog
+					onResetLocation={() => {}} // Not needed in this context
+					loading={loading}
+					selectedEmployees={selectedEmployees}
+					onSelectedEmployeesChange={setSelectedEmployees}
+					allEmployees={employees}
+					onFormSubmit={handleEmployeeAssignSubmit}
+				/>
+			</SheetContent>
+		</Sheet>
 	);
 }

@@ -19,12 +19,15 @@ import {
 	CalendarRange,
 	FilePieChart,
 	Calculator,
+	Building2,
+	Users,
+	Calendar,
+	BarChart,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ContentContainer } from "@/components/ui/content-container";
 import { ContentSection } from "@/components/ui/content-section";
 import { LocationFinancialReport } from "@/components/LocationFinancialReport";
-import { LocationSubNav } from "@/components/LocationSubNav";
 import { LoadingState } from "@/components/ui/loading-state";
 import {
 	Card,
@@ -34,6 +37,7 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { useHeader } from "@/lib/header-context";
+import { LocationNav } from "@/components/LocationNav";
 
 export default function LocationFinancialReportPage() {
 	const { locationId } = useParams<{ locationId: string }>();
@@ -222,88 +226,88 @@ export default function LocationFinancialReportPage() {
 
 	return (
 		<ContentContainer>
-			<LocationSubNav
-				locationId={locationId || ""}
-				locationName={location.name}
-			/>
+			<LocationNav />
+			<div className="grid gap-8 mt-6">
+				{/* Financial Reports */}
+				<ContentSection
+					title="Financial Reports"
+					description="Select a financial report to view detailed information"
+					className="print:hidden">
+					<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+						<Card>
+							<CardHeader>
+								<CardTitle>Profit & Loss</CardTitle>
+								<CardDescription>
+									Detailed P&L statements with monthly comparison
+								</CardDescription>
+							</CardHeader>
+							<CardContent>
+								<Button
+									variant="default"
+									className="w-full"
+									onClick={() =>
+										navigate(`/locations/${locationId}/financial/profit-loss`)
+									}>
+									<FileBarChart className="h-5 w-5 mr-2" />
+									View Report
+								</Button>
+							</CardContent>
+						</Card>
 
-			<ContentSection
-				title="Financial Reports"
-				description="Select a financial report to view detailed information"
-				className="mt-6 print:hidden">
-				<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-					<Card>
-						<CardHeader>
-							<CardTitle>Profit & Loss</CardTitle>
-							<CardDescription>
-								Detailed P&L statements with monthly comparison
-							</CardDescription>
-						</CardHeader>
-						<CardContent>
-							<Button
-								variant="default"
-								className="w-full"
-								onClick={() =>
-									navigate(`/locations/${locationId}/financial/profit-loss`)
-								}>
-								<FileBarChart className="h-5 w-5 mr-2" />
-								View Report
-							</Button>
-						</CardContent>
-					</Card>
+						<Card>
+							<CardHeader>
+								<CardTitle>Cost vs Revenue</CardTitle>
+								<CardDescription>
+									Track all expenses against revenue streams
+								</CardDescription>
+							</CardHeader>
+							<CardContent>
+								<Button
+									variant="default"
+									className="w-full"
+									onClick={() =>
+										navigate(`/locations/${locationId}/financial/cost-revenue`)
+									}>
+									<FilePieChart className="h-5 w-5 mr-2" />
+									View Report
+								</Button>
+							</CardContent>
+						</Card>
 
-					<Card>
-						<CardHeader>
-							<CardTitle>Cost vs Revenue</CardTitle>
-							<CardDescription>
-								Track all expenses against revenue streams
-							</CardDescription>
-						</CardHeader>
-						<CardContent>
-							<Button
-								variant="default"
-								className="w-full"
-								onClick={() =>
-									navigate(`/locations/${locationId}/financial/cost-revenue`)
-								}>
-								<FilePieChart className="h-5 w-5 mr-2" />
-								View Report
-							</Button>
-						</CardContent>
-					</Card>
+						<Card>
+							<CardHeader>
+								<CardTitle>Financial Forecasting</CardTitle>
+								<CardDescription>
+									Predictive analytics and future projections
+								</CardDescription>
+							</CardHeader>
+							<CardContent>
+								<Button
+									variant="default"
+									className="w-full"
+									onClick={() =>
+										navigate(`/locations/${locationId}/financial/forecasting`)
+									}>
+									<DollarSign className="h-5 w-5 mr-2" />
+									View Report
+								</Button>
+							</CardContent>
+						</Card>
+					</div>
+				</ContentSection>
 
-					<Card>
-						<CardHeader>
-							<CardTitle>Financial Forecasting</CardTitle>
-							<CardDescription>
-								Predictive analytics and future projections
-							</CardDescription>
-						</CardHeader>
-						<CardContent>
-							<Button
-								variant="default"
-								className="w-full"
-								onClick={() =>
-									navigate(`/locations/${locationId}/financial/forecasting`)
-								}>
-								<DollarSign className="h-5 w-5 mr-2" />
-								View Report
-							</Button>
-						</CardContent>
-					</Card>
-				</div>
-			</ContentSection>
-
-			<ContentSection
-				title="Financial Summary"
-				description="Current financial metrics and performance data"
-				className="mt-6 print:py-4">
-				<LocationFinancialReport
-					location={location}
-					shifts={shifts}
-					employees={assignedEmployees}
-				/>
-			</ContentSection>
+				{/* Financial Summary */}
+				<ContentSection
+					title="Financial Summary"
+					description="Current financial metrics and performance data"
+					className="print:py-4">
+					<LocationFinancialReport
+						location={location}
+						shifts={shifts}
+						employees={assignedEmployees}
+					/>
+				</ContentSection>
+			</div>
 		</ContentContainer>
 	);
 }

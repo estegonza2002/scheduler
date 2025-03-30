@@ -101,8 +101,6 @@ export interface ShiftAssignment {
 	id: string;
 	shift_id: string;
 	employee_id: string;
-	role?: string;
-	notes?: string;
 }
 
 export interface Employee {

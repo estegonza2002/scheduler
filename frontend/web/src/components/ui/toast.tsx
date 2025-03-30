@@ -36,7 +36,7 @@ export function toast({
 	action,
 	variant = "default",
 	duration = 5000,
-	position = "top-right",
+	position = "bottom-center",
 }: ToastProps) {
 	const Icon = toastIcons[variant];
 

@@ -10,6 +10,7 @@ import {
 	LocationsAPI,
 	Location,
 	EmployeeLocationsAPI,
+	ShiftAssignmentsAPI,
 } from "@/api";
 import {
 	Mail,
@@ -92,6 +93,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ProfileCompletionAlert } from "@/components/ProfileCompletionAlert";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getProfileCompletionStatus } from "@/utils/profile-completion";
+import { ShiftCard } from "@/components/ShiftCard";
 
 // Default placeholder image for locations
 const LOCATION_PLACEHOLDER_IMAGE =
@@ -255,17 +257,18 @@ function EmployeeShiftsSection({ employeeId }: { employeeId: string }) {
 	const [shifts, setShifts] = useState<Shift[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [locations, setLocations] = useState<Record<string, Location>>({});
+	const [employees, setEmployees] = useState<Employee[]>([]);
 	const navigate = useNavigate();
 
 	useEffect(() => {
 		const fetchEmployeeShifts = async () => {
 			try {
 				setLoading(true);
-				// For now, get all shifts and filter by user_id
+				// Fetch shifts for the employee
 				const allShifts = await ShiftsAPI.getAllSchedules();
-				const allIndividualShifts = [];
 
-				// For each schedule, get its individual shifts
+				// Get individual shifts from each schedule
+				const allIndividualShifts = [];
 				for (const schedule of allShifts) {
 					const scheduleShifts = await ShiftsAPI.getShiftsForSchedule(
 						schedule.id
@@ -273,10 +276,23 @@ function EmployeeShiftsSection({ employeeId }: { employeeId: string }) {
 					allIndividualShifts.push(...scheduleShifts);
 				}
 
-				// Filter for this specific employee's shifts
-				const employeeShifts = allIndividualShifts.filter(
-					(shift: Shift) => shift.user_id === employeeId
+				// Get all shift assignments for this employee
+				const shiftAssignments = await ShiftAssignmentsAPI.getAll();
+				const employeeAssignments = shiftAssignments.filter(
+					(assignment) => assignment.employee_id === employeeId
 				);
+
+				// Get the shift IDs that are assigned to this employee
+				const assignedShiftIds = employeeAssignments.map(
+					(assignment) => assignment.shift_id
+				);
+
+				// Filter for shifts that are either directly assigned or assigned via shift_assignments
+				const employeeShifts = allIndividualShifts.filter(
+					(shift: Shift) =>
+						shift.user_id === employeeId || assignedShiftIds.includes(shift.id)
+				);
+
 				setShifts(employeeShifts);
 
 				// Fetch locations for these shifts
@@ -297,6 +313,12 @@ function EmployeeShiftsSection({ employeeId }: { employeeId: string }) {
 				}
 
 				setLocations(locationsMap);
+
+				// Fetch employee data
+				const fetchedEmployee = await EmployeesAPI.getById(employeeId);
+				if (fetchedEmployee) {
+					setEmployees([fetchedEmployee]);
+				}
 			} catch (error) {
 				console.error("Error fetching employee shifts:", error);
 			} finally {
@@ -332,68 +354,6 @@ function EmployeeShiftsSection({ employeeId }: { employeeId: string }) {
 		return locations[location_id]?.name || "Unknown Location";
 	};
 
-	const renderShiftCard = (shift: Shift) => {
-		const getStatusType = (
-			status?: string
-		): "success" | "warning" | "error" | "info" | "pending" => {
-			if (!status) return "pending";
-			switch (status.toLowerCase()) {
-				case "completed":
-					return "success";
-				case "canceled":
-					return "error";
-				case "pending":
-					return "warning";
-				case "in_progress":
-					return "info";
-				default:
-					return "pending";
-			}
-		};
-
-		const formatStatusText = (status?: string): string => {
-			if (!status) return "Unknown";
-			return status.charAt(0).toUpperCase() + status.slice(1);
-		};
-
-		return (
-			<Card
-				key={shift.id}
-				className="mb-4 cursor-pointer hover:shadow-sm transition-all"
-				onClick={() => navigate(`/shifts/${shift.id}`)}>
-				<CardContent className="p-4">
-					<div className="flex justify-between items-start">
-						<div>
-							<h4 className="font-medium">
-								{getLocationName(shift.location_id)}
-							</h4>
-							<div className="text-sm text-muted-foreground mt-1 flex items-center">
-								<Calendar className="h-3.5 w-3.5 mr-1.5" />
-								{new Date(shift.start_time).toLocaleDateString()}
-							</div>
-							<div className="text-sm text-muted-foreground mt-1 flex items-center">
-								<Clock className="h-3.5 w-3.5 mr-1.5" />
-								{new Date(shift.start_time).toLocaleTimeString([], {
-									hour: "2-digit",
-									minute: "2-digit",
-								})}{" "}
-								-{" "}
-								{new Date(shift.end_time).toLocaleTimeString([], {
-									hour: "2-digit",
-									minute: "2-digit",
-								})}
-							</div>
-						</div>
-						<StatusBadge
-							status={getStatusType(shift.status)}
-							text={formatStatusText(shift.status)}
-						/>
-					</div>
-				</CardContent>
-			</Card>
-		);
-	};
-
 	if (loading) {
 		return (
 			<LoadingState
@@ -413,7 +373,16 @@ function EmployeeShiftsSection({ employeeId }: { employeeId: string }) {
 						<Clock className="h-5 w-5 mr-2 text-muted-foreground" />
 						Current Shift
 					</h3>
-					{currentShifts.map(renderShiftCard)}
+					<div className="space-y-4">
+						{currentShifts.map((shift) => (
+							<ShiftCard
+								key={shift.id}
+								shift={shift}
+								locationName={getLocationName(shift.location_id)}
+								assignedEmployees={employees}
+							/>
+						))}
+					</div>
 				</div>
 			)}
 
@@ -424,7 +393,16 @@ function EmployeeShiftsSection({ employeeId }: { employeeId: string }) {
 					Upcoming Shifts
 				</h3>
 				{upcomingShifts.length > 0 ? (
-					upcomingShifts.map(renderShiftCard)
+					<div className="space-y-4">
+						{upcomingShifts.map((shift) => (
+							<ShiftCard
+								key={shift.id}
+								shift={shift}
+								locationName={getLocationName(shift.location_id)}
+								assignedEmployees={employees}
+							/>
+						))}
+					</div>
 				) : (
 					<EmptyState
 						title="No Upcoming Shifts"
@@ -442,7 +420,16 @@ function EmployeeShiftsSection({ employeeId }: { employeeId: string }) {
 					Previous Shifts
 				</h3>
 				{previousShifts.length > 0 ? (
-					previousShifts.map(renderShiftCard)
+					<div className="space-y-4">
+						{previousShifts.map((shift) => (
+							<ShiftCard
+								key={shift.id}
+								shift={shift}
+								locationName={getLocationName(shift.location_id)}
+								assignedEmployees={employees}
+							/>
+						))}
+					</div>
 				) : (
 					<EmptyState
 						title="No Previous Shifts"
@@ -655,6 +642,7 @@ export default function EmployeeDetailPage() {
 		"overview" | "shifts" | "locations" | "earnings"
 	>("overview");
 	const [locationSheetOpen, setLocationSheetOpen] = useState(false);
+	const [editSheetOpen, setEditSheetOpen] = useState(false);
 
 	// Initialize the presence service when we have an employee
 	const { presenceState, isLoading: presenceIsLoading } = useEmployeePresence(
@@ -681,7 +669,7 @@ export default function EmployeeDetailPage() {
 			return (
 				<>
 					<EmployeeSheet
-						employeeId={employee.id}
+						employee={employee}
 						organizationId={employee.organizationId || "org-1"}
 						onEmployeeUpdated={(updatedEmployee) => {
 							setEmployee((prev) => ({ ...prev!, ...updatedEmployee }));
@@ -757,15 +745,37 @@ export default function EmployeeDetailPage() {
 	useEffect(() => {
 		if (!employeeId) return;
 
+		// Validate that employeeId is a proper UUID format
+		const uuidRegex =
+			/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+		if (!uuidRegex.test(employeeId)) {
+			console.error(`Invalid employee ID format: ${employeeId}`);
+			toast.error("Invalid employee ID format");
+			setIsLoading(false);
+			setEmployee(null);
+			return;
+		}
+
 		const fetchEmployee = async () => {
 			try {
 				setIsLoading(true);
+				console.log(`Fetching employee with ID: ${employeeId}`);
 				const employeeData = await EmployeesAPI.getById(employeeId);
+
 				if (employeeData) {
+					console.log(`Successfully retrieved employee:`, employeeData);
 					setEmployee(employeeData);
+				} else {
+					console.error(`Employee with ID ${employeeId} not found in database`);
+					setEmployee(null);
+					toast.error(
+						"Employee not found. The employee may have been deleted or doesn't exist."
+					);
 				}
 			} catch (error) {
-				console.error("Error fetching employee:", error);
+				console.error(`Error fetching employee with ID ${employeeId}:`, error);
+				setEmployee(null);
+				toast.error("Failed to load employee details");
 			} finally {
 				setIsLoading(false);
 			}
@@ -776,10 +786,33 @@ export default function EmployeeDetailPage() {
 				setShiftsLoading(true);
 				// Fetch shifts for the employee
 				const allShifts = await ShiftsAPI.getAllSchedules();
-				// Filter for this specific employee's shifts
-				const employeeShifts = allShifts.filter(
-					(shift: Shift) => shift.user_id === employeeId
+
+				// Get individual shifts from each schedule
+				const allIndividualShifts = [];
+				for (const schedule of allShifts) {
+					const scheduleShifts = await ShiftsAPI.getShiftsForSchedule(
+						schedule.id
+					);
+					allIndividualShifts.push(...scheduleShifts);
+				}
+
+				// Get all shift assignments for this employee
+				const shiftAssignments = await ShiftAssignmentsAPI.getAll();
+				const employeeAssignments = shiftAssignments.filter(
+					(assignment) => assignment.employee_id === employeeId
 				);
+
+				// Get the shift IDs that are assigned to this employee
+				const assignedShiftIds = employeeAssignments.map(
+					(assignment) => assignment.shift_id
+				);
+
+				// Filter for shifts that are either directly assigned or assigned via shift_assignments
+				const employeeShifts = allIndividualShifts.filter(
+					(shift: Shift) =>
+						shift.user_id === employeeId || assignedShiftIds.includes(shift.id)
+				);
+
 				setShifts(employeeShifts);
 			} catch (error) {
 				console.error("Error fetching employee shifts:", error);
@@ -998,10 +1031,9 @@ export default function EmployeeDetailPage() {
 		}
 	};
 
-	// Function to open the employee edit sheet - moved above ActionButtons
+	// Function to open the employee edit sheet
 	const openEditSheet = () => {
-		const editButton = document.getElementById("edit-employee-trigger");
-		if (editButton) editButton.click();
+		setEditSheetOpen(true);
 	};
 
 	// Action buttons for the header
@@ -1040,6 +1072,8 @@ export default function EmployeeDetailPage() {
 			<EmployeeSheet
 				employee={employee}
 				organizationId={employee.organizationId || ""}
+				open={editSheetOpen}
+				onOpenChange={setEditSheetOpen}
 				trigger={
 					<Button
 						id="edit-employee-trigger"
@@ -1094,6 +1128,19 @@ export default function EmployeeDetailPage() {
 
 	const initials = getInitials(employee.name);
 
+	// Temporarily add debugging info to help diagnose the rendering issue
+	console.log("Employee data loaded:", {
+		employeeId,
+		employee,
+		employeeWithPresence,
+		shiftsLoading,
+		locationsLoading,
+		shifts: shifts.length,
+		assignedLocationIds,
+		locations,
+	});
+
+	// Ensure we have complete data before rendering
 	return (
 		<ContentContainer>
 			{/* Keep the ProfileCompletionAlert but only if it's not an invited employee */}
@@ -1108,14 +1155,367 @@ export default function EmployeeDetailPage() {
 				{/* Secondary Sidebar */}
 				<div className="md:w-80 shrink-0 p-4">
 					<div className="sticky top-6 space-y-6">
-						{/* Employee Profile */}
-						<div className="space-y-2">{/* Rest of the component JSX */}</div>
+						{/* Employee Profile Card */}
+						<Card className="overflow-hidden">
+							<CardContent className="p-6">
+								<div className="flex flex-col items-center text-center">
+									<AvatarWithStatus
+										className="h-24 w-24 mb-4"
+										src={employee.avatar}
+										alt={employee.name}
+										fallback={initials}
+										isOnline={employeeWithPresence?.isOnline || false}
+										status={
+											employee.status as "invited" | "active" | "disabled"
+										}
+									/>
+									<h2 className="text-xl font-semibold">{employee.name}</h2>
+									<p className="text-muted-foreground">
+										{employee.role || "Employee"}
+									</p>
+
+									{/* Employee Status Badge */}
+									<div className="mt-2">
+										<EmployeeStatusBadge
+											status={
+												employee.status === "invited" ||
+												employee.status === "active" ||
+												employee.status === "disabled"
+													? employee.status
+													: "active"
+											}
+										/>
+									</div>
+
+									{/* Only show earnings link if hourly rate is set */}
+									{employee.hourlyRate && (
+										<Button
+											variant="outline"
+											size="sm"
+											className="mt-4 w-full"
+											onClick={() =>
+												navigate(`/employees/${employee.id}/earnings`)
+											}>
+											<DollarSign className="h-4 w-4 mr-2" />
+											View Earnings
+										</Button>
+									)}
+								</div>
+							</CardContent>
+						</Card>
+
+						{/* Contact Information */}
+						<Card>
+							<CardHeader className="pb-2">
+								<CardTitle className="text-md">Contact Information</CardTitle>
+							</CardHeader>
+							<CardContent className="space-y-2">
+								{employee.email && (
+									<div className="flex items-start gap-2">
+										<Mail className="h-4 w-4 text-muted-foreground mt-0.5" />
+										<div className="space-y-0.5">
+											<p className="text-sm font-medium">Email</p>
+											<p className="text-sm text-muted-foreground break-all">
+												{employee.email}
+											</p>
+										</div>
+									</div>
+								)}
+
+								{employee.phone && (
+									<div className="flex items-start gap-2">
+										<Phone className="h-4 w-4 text-muted-foreground mt-0.5" />
+										<div className="space-y-0.5">
+											<p className="text-sm font-medium">Phone</p>
+											<p className="text-sm text-muted-foreground">
+												{employee.phone}
+											</p>
+										</div>
+									</div>
+								)}
+
+								{employee.address && (
+									<div className="flex items-start gap-2">
+										<MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+										<div className="space-y-0.5">
+											<p className="text-sm font-medium">Address</p>
+											<p className="text-sm text-muted-foreground">
+												{employee.address}
+											</p>
+										</div>
+									</div>
+								)}
+
+								{employee.hireDate && (
+									<div className="flex items-start gap-2">
+										<Calendar className="h-4 w-4 text-muted-foreground mt-0.5" />
+										<div className="space-y-0.5">
+											<p className="text-sm font-medium">Hire Date</p>
+											<p className="text-sm text-muted-foreground">
+												{new Date(employee.hireDate).toLocaleDateString()}
+											</p>
+										</div>
+									</div>
+								)}
+
+								{employee.hourlyRate && (
+									<div className="flex items-start gap-2">
+										<DollarSign className="h-4 w-4 text-muted-foreground mt-0.5" />
+										<div className="space-y-0.5">
+											<p className="text-sm font-medium">Hourly Rate</p>
+											<p className="text-sm text-muted-foreground">
+												${employee.hourlyRate}/hr
+											</p>
+										</div>
+									</div>
+								)}
+							</CardContent>
+						</Card>
+
+						{/* Assigned Locations */}
+						<Card>
+							<CardHeader className="pb-2 flex items-center justify-between">
+								<CardTitle className="text-md">Assigned Locations</CardTitle>
+								<LocationAssignmentSheet
+									employeeId={employee.id}
+									employeeName={employee.name}
+									allLocations={allLocations}
+									assignedLocationIds={assignedLocationIds}
+									onLocationsAssigned={handleLocationsAssigned}
+									open={locationSheetOpen}
+									onOpenChange={setLocationSheetOpen}
+									trigger={
+										<Button
+											variant="ghost"
+											size="icon"
+											className="h-8 w-8">
+											<Plus className="h-4 w-4" />
+										</Button>
+									}
+								/>
+							</CardHeader>
+							<CardContent>
+								{locationsLoading ? (
+									<LoadingState
+										type="spinner"
+										message="Loading locations..."
+										className="py-2"
+									/>
+								) : assignedLocationIds.length === 0 ? (
+									<div className="text-sm text-muted-foreground py-2">
+										No locations assigned
+									</div>
+								) : (
+									<div className="space-y-2">
+										{assignedLocationIds.map((locationId, index) => {
+											const location = locations[locationId];
+											if (!location) return null;
+
+											return (
+												<div
+													key={locationId}
+													className="flex items-center justify-between">
+													<div className="flex items-center gap-2">
+														{index === 0 && (
+															<Badge
+																variant="outline"
+																className="text-xs font-normal border-primary/50 text-primary bg-primary/10 rounded-sm">
+																Primary
+															</Badge>
+														)}
+														<span
+															className={
+																index === 0
+																	? "font-medium"
+																	: "text-muted-foreground"
+															}>
+															{location.name}
+														</span>
+													</div>
+													<div className="flex items-center gap-1">
+														{index !== 0 && (
+															<Button
+																variant="ghost"
+																size="icon"
+																className="h-7 w-7"
+																onClick={() => setPrimaryLocation(locationId)}>
+																<MapPinIcon className="h-3.5 w-3.5" />
+															</Button>
+														)}
+														<Button
+															variant="ghost"
+															size="icon"
+															className="h-7 w-7 text-destructive"
+															onClick={() => removeLocation(locationId)}>
+															<X className="h-3.5 w-3.5" />
+														</Button>
+													</div>
+												</div>
+											);
+										})}
+									</div>
+								)}
+							</CardContent>
+						</Card>
 					</div>
 				</div>
 
 				{/* Main Content Area */}
 				<div className="flex-1 space-y-6">
-					{/* Rest of the component JSX */}
+					{/* Main Content Tabs */}
+					<div className="flex border-b">
+						<button
+							onClick={() => setActiveTab("overview")}
+							className={`pb-2 px-4 text-sm font-medium ${
+								activeTab === "overview"
+									? "border-b-2 border-primary text-primary"
+									: "text-muted-foreground"
+							}`}>
+							Overview
+						</button>
+						<button
+							onClick={() => setActiveTab("shifts")}
+							className={`pb-2 px-4 text-sm font-medium ${
+								activeTab === "shifts"
+									? "border-b-2 border-primary text-primary"
+									: "text-muted-foreground"
+							}`}>
+							Shifts
+						</button>
+						<button
+							onClick={() => setActiveTab("locations")}
+							className={`pb-2 px-4 text-sm font-medium ${
+								activeTab === "locations"
+									? "border-b-2 border-primary text-primary"
+									: "text-muted-foreground"
+							}`}>
+							Locations
+						</button>
+						{employee.hourlyRate && (
+							<button
+								onClick={() => setActiveTab("earnings")}
+								className={`pb-2 px-4 text-sm font-medium ${
+									activeTab === "earnings"
+										? "border-b-2 border-primary text-primary"
+										: "text-muted-foreground"
+								}`}>
+								Earnings
+							</button>
+						)}
+					</div>
+
+					{/* Invited Employee Alert */}
+					{employee.status === "invited" && (
+						<Alert
+							variant="destructive"
+							className="bg-red-50 border-red-200">
+							<MailWarning className="h-4 w-4" />
+							<AlertTitle>Pending Account Setup</AlertTitle>
+							<AlertDescription>
+								This employee has been invited but hasn't completed their
+								account setup yet. They won't be able to view or manage their
+								shifts until they sign up.
+							</AlertDescription>
+						</Alert>
+					)}
+
+					{/* Tab Content */}
+					{activeTab === "overview" && !shiftsLoading && (
+						<>
+							<ContentSection title="Employee Overview">
+								<EmployeeStats
+									employee={employee}
+									shifts={shifts}
+								/>
+							</ContentSection>
+
+							<ContentSection title="Notes">
+								{employee.notes ? (
+									<p>{employee.notes}</p>
+								) : (
+									<p className="text-muted-foreground">No notes available</p>
+								)}
+							</ContentSection>
+						</>
+					)}
+
+					{activeTab === "shifts" && (
+						<ContentSection title="Shift History">
+							<EmployeeShiftsSection employeeId={employee.id} />
+						</ContentSection>
+					)}
+
+					{activeTab === "locations" && (
+						<ContentSection title="Assigned Locations">
+							{locationsLoading ? (
+								<LoadingState
+									type="spinner"
+									message="Loading locations..."
+									className="py-4"
+								/>
+							) : assignedLocationIds.length === 0 ? (
+								<EmptyState
+									title="No Locations Assigned"
+									description="This employee hasn't been assigned to any locations yet."
+									action={
+										<Button onClick={() => setLocationSheetOpen(true)}>
+											<Plus className="h-4 w-4 mr-2" />
+											Assign Locations
+										</Button>
+									}
+									icon={<Building2 className="h-8 w-8" />}
+								/>
+							) : (
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+									{assignedLocationIds.map((locationId) => {
+										const location = locations[locationId];
+										if (!location) return null;
+
+										return (
+											<Card
+												key={locationId}
+												className="overflow-hidden">
+												<div className="h-32 bg-muted">
+													{location.imageUrl ? (
+														<img
+															src={location.imageUrl}
+															alt={location.name}
+															className="w-full h-full object-cover"
+														/>
+													) : (
+														<div className="w-full h-full flex items-center justify-center bg-primary/10">
+															<Building2 className="h-8 w-8 text-primary" />
+														</div>
+													)}
+												</div>
+												<CardContent className="p-4">
+													<h3 className="font-medium mb-1">{location.name}</h3>
+													<p className="text-sm text-muted-foreground mb-2">
+														{location.address}
+													</p>
+													<Button
+														variant="outline"
+														size="sm"
+														className="w-full"
+														onClick={() =>
+															navigate(`/locations/${location.id}`)
+														}>
+														View Location
+													</Button>
+												</CardContent>
+											</Card>
+										);
+									})}
+								</div>
+							)}
+						</ContentSection>
+					)}
+
+					{activeTab === "earnings" && (
+						<ContentSection title="Earnings Overview">
+							<EmployeeEarningsSection employeeId={employee.id} />
+						</ContentSection>
+					)}
 				</div>
 			</div>
 		</ContentContainer>

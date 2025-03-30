@@ -98,113 +98,6 @@ const deleteShiftAssignment = async (assignmentId: string): Promise<void> => {
 	return ShiftAssignmentsAPI.delete(assignmentId);
 };
 
-// Sample data for preview mode
-const sampleAssignedEmployees: AssignedEmployee[] = [
-	{
-		id: "sample-emp-1",
-		name: "John Smith",
-		email: "john.smith@example.com",
-		phone: "555-123-4567",
-		role: "Manager",
-		organizationId: "org-1",
-		hourlyRate: 25,
-		avatar: "",
-		assignmentId: "sample-assignment-1",
-		assignmentRole: "Shift Lead",
-		assignmentNotes: "Responsible for opening procedures",
-		status: "active",
-		isOnline: false,
-		lastActive: new Date().toISOString(),
-	},
-	{
-		id: "sample-emp-2",
-		name: "Emily Johnson",
-		email: "emily.j@example.com",
-		phone: "555-987-6543",
-		role: "Server",
-		organizationId: "org-1",
-		hourlyRate: 18,
-		avatar: "",
-		assignmentId: "sample-assignment-2",
-		assignmentRole: "Server",
-		assignmentNotes: "Assigned to sections 1-3",
-		status: "active",
-		isOnline: false,
-		lastActive: new Date().toISOString(),
-	},
-	{
-		id: "sample-emp-3",
-		name: "Michael Williams",
-		email: "m.williams@example.com",
-		phone: "555-456-7890",
-		role: "Bartender",
-		organizationId: "org-1",
-		hourlyRate: 20,
-		avatar: "",
-		assignmentId: "sample-assignment-3",
-		assignmentRole: "Bartender",
-		assignmentNotes: "Specialized in craft cocktails",
-		status: "active",
-		isOnline: false,
-		lastActive: new Date().toISOString(),
-	},
-];
-
-const sampleCheckInTasks: ShiftTask[] = [
-	{
-		id: "sample-checkin-1",
-		title: "Verify cleanliness of dining area",
-		completed: true,
-	},
-	{
-		id: "sample-checkin-2",
-		title: "Ensure POS systems are operational",
-		completed: true,
-	},
-	{
-		id: "sample-checkin-3",
-		title: "Check inventory levels",
-		completed: false,
-	},
-	{
-		id: "sample-checkin-4",
-		title: "Staff briefing",
-		completed: false,
-	},
-];
-
-const sampleCheckOutTasks: ShiftTask[] = [
-	{
-		id: "sample-checkout-1",
-		title: "Close out all registers",
-		completed: true,
-	},
-	{
-		id: "sample-checkout-2",
-		title: "Clean kitchen equipment",
-		completed: false,
-	},
-	{
-		id: "sample-checkout-3",
-		title: "Secure premises",
-		completed: false,
-	},
-];
-
-const sampleNotes =
-	"This is a busy shift during our Friday evening dinner rush. We expect approximately 120 guests with 3 large parties. The Johnson party (12 people) has requested the private dining room at 7:30pm. We'll need extra attention to service timing and food quality during peak hours (6:30-8:30pm).";
-
-const sampleLocation: Location = {
-	id: "sample-location-1",
-	name: "Downtown Restaurant",
-	address: "123 Main Street",
-	city: "New York",
-	state: "NY",
-	zipCode: "10001",
-	organizationId: "org-1",
-	isActive: true,
-};
-
 export function ShiftDetails() {
 	const { shiftId } = useParams<{ shiftId: string }>();
 	const navigate = useNavigate();
@@ -272,8 +165,6 @@ export function ShiftDetails() {
 							return {
 								...employee,
 								assignmentId: assignment.id,
-								assignmentRole: assignment.role,
-								assignmentNotes: assignment.notes,
 							};
 						}
 						return null;
@@ -376,8 +267,6 @@ export function ShiftDetails() {
 				createShiftAssignment({
 					shift_id: shiftId,
 					employee_id: emp.id,
-					role: emp.assignmentRole,
-					notes: emp.assignmentNotes,
 				})
 			);
 
@@ -427,8 +316,6 @@ export function ShiftDetails() {
 					...removedEmployee,
 				} as Employee;
 				delete (employeeWithoutAssignment as any).assignmentId;
-				delete (employeeWithoutAssignment as any).assignmentRole;
-				delete (employeeWithoutAssignment as any).assignmentNotes;
 
 				setAvailableEmployees((prev) => [...prev, employeeWithoutAssignment]);
 			}
@@ -689,10 +576,43 @@ export function ShiftDetails() {
 			<AssignEmployeeDialog
 				open={assignEmployeeDialogOpen}
 				onOpenChange={setAssignEmployeeDialogOpen}
-				shift={shift}
-				assignedEmployees={assignedEmployees}
-				availableEmployees={availableEmployees}
-				onAssign={handleAssignEmployees}
+				shiftId={shiftId || ""}
+				onAssigned={() => {
+					// Reload shift data after employees are assigned
+					if (shiftId) {
+						getShift(shiftId).then((shiftData) => {
+							if (shiftData) {
+								setShift(shiftData);
+								// Also refresh the assigned employees
+								getShiftAssignments(shiftId).then((assignments) => {
+									setShiftAssignments(assignments);
+									// For each assignment, fetch employee details
+									const assignedEmployeePromises = assignments.map(
+										async (assignment) => {
+											const employee = await getEmployee(
+												assignment.employee_id
+											);
+											if (employee) {
+												return {
+													...employee,
+													assignmentId: assignment.id,
+												};
+											}
+											return null;
+										}
+									);
+
+									Promise.all(assignedEmployeePromises).then((employeeData) => {
+										const filteredEmployees = employeeData.filter(
+											(item) => item !== null
+										) as AssignedEmployee[];
+										setAssignedEmployees(filteredEmployees);
+									});
+								});
+							}
+						});
+					}
+				}}
 			/>
 
 			<ShiftNotesDialog

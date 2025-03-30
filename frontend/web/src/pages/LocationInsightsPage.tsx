@@ -12,16 +12,23 @@ import {
 import { ContentContainer } from "@/components/ui/content-container";
 import { ContentSection } from "@/components/ui/content-section";
 import { LoadingState } from "@/components/ui/loading-state";
-import { LocationSubNav } from "@/components/LocationSubNav";
 import { LocationInsights } from "@/components/LocationInsights";
 import { LocationEmployeeInsights } from "@/components/LocationEmployeeInsights";
 import { LocationFinanceInsights } from "@/components/LocationFinanceInsights";
 import { LocationShiftInsights } from "@/components/LocationShiftInsights";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, BarChart, Users, Clock, DollarSign } from "lucide-react";
+import {
+	Building2,
+	Users,
+	Calendar,
+	Clock,
+	DollarSign,
+	BarChart,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { useHeader } from "@/lib/header-context";
+import { LocationNav } from "@/components/LocationNav";
 
 export default function LocationInsightsPage() {
 	const { locationId } = useParams<{ locationId: string }>();
@@ -74,9 +81,9 @@ export default function LocationInsightsPage() {
 
 				// Fetch shifts for this location
 				setLoadingPhase("shifts");
-				const allShifts = await ShiftsAPI.getAll();
+				const allShifts = await ShiftsAPI.getAllSchedules();
 				const locationShifts = allShifts.filter(
-					(shift) => shift.location_id === locationId
+					(shift: Shift) => shift.location_id === locationId
 				);
 				setShifts(locationShifts);
 
@@ -146,11 +153,7 @@ export default function LocationInsightsPage() {
 
 	return (
 		<ContentContainer>
-			<LocationSubNav
-				locationId={locationId || ""}
-				locationName={location.name}
-			/>
-
+			<LocationNav />
 			<div className="grid gap-8 mt-6">
 				{/* General Location Insights */}
 				<ContentSection

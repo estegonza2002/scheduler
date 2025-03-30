@@ -35,7 +35,7 @@ export function ContentContainer({
 		<div
 			className={cn(
 				"content-container-wrapper w-full",
-				withPadding ? "px-0 py-6" : "",
+				withPadding ? "px-0" : "",
 				className
 			)}>
 			{children}

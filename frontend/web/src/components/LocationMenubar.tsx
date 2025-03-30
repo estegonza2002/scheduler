@@ -1,17 +1,19 @@
-import { Link, useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Building2, Users, Calendar, DollarSign, BarChart } from "lucide-react";
+import { Menubar, MenubarMenu, MenubarTrigger } from "@/components/ui/menubar";
 import { cn } from "@/lib/utils";
 
-interface LocationSubNavProps {
+interface LocationMenubarProps {
 	locationId: string;
 	locationName?: string;
 }
 
-export function LocationSubNav({
+export function LocationMenubar({
 	locationId,
 	locationName,
-}: LocationSubNavProps) {
+}: LocationMenubarProps) {
 	const location = useLocation();
+	const navigate = useNavigate();
 	const currentPath = location.pathname;
 
 	const navItems = [
@@ -45,28 +47,29 @@ export function LocationSubNav({
 
 	return (
 		<div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pb-2 w-full">
-			<nav className="flex overflow-x-auto border-b">
+			<Menubar className="border-0 border-b rounded-none px-0">
 				{navItems.map((item) => {
 					const isActive = item.exact
 						? currentPath === item.path
 						: currentPath.startsWith(item.path);
 
 					return (
-						<Link
-							key={item.path}
-							to={item.path}
-							className={cn(
-								"flex items-center px-4 py-2 text-sm font-medium border-b-2 -mb-[2px] transition-colors whitespace-nowrap",
-								isActive
-									? "border-primary text-primary"
-									: "border-transparent text-muted-foreground hover:text-foreground hover:border-muted"
-							)}>
-							<item.icon className="h-4 w-4 mr-2" />
-							{item.name}
-						</Link>
+						<MenubarMenu key={item.path}>
+							<MenubarTrigger
+								onClick={() => navigate(item.path)}
+								className={cn(
+									"flex items-center px-4 py-2 text-sm font-medium border-b-2 -mb-[2px] cursor-pointer",
+									isActive
+										? "border-primary text-primary"
+										: "border-transparent text-muted-foreground hover:text-foreground hover:border-muted"
+								)}>
+								<item.icon className="h-4 w-4 mr-2" />
+								{item.name}
+							</MenubarTrigger>
+						</MenubarMenu>
 					);
 				})}
-			</nav>
+			</Menubar>
 		</div>
 	);
 }

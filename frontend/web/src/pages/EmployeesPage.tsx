@@ -119,6 +119,14 @@ export default function EmployeesPage() {
 			}
 		};
 
+		const handleEmployeeUpdated = (event: CustomEvent<Employee>) => {
+			if (event.detail) {
+				setEmployees((prev) =>
+					prev.map((emp) => (emp.id === event.detail.id ? event.detail : emp))
+				);
+			}
+		};
+
 		const handleEmployeeDeleted = (event: CustomEvent<string>) => {
 			if (event.detail) {
 				setEmployees((prev) => prev.filter((emp) => emp.id !== event.detail));
@@ -131,6 +139,11 @@ export default function EmployeesPage() {
 		);
 
 		window.addEventListener(
+			"employee-updated",
+			handleEmployeeUpdated as EventListener
+		);
+
+		window.addEventListener(
 			"employee-deleted",
 			handleEmployeeDeleted as EventListener
 		);
@@ -140,6 +153,12 @@ export default function EmployeesPage() {
 				"employee-added",
 				handleEmployeeAdded as EventListener
 			);
+
+			window.removeEventListener(
+				"employee-updated",
+				handleEmployeeUpdated as EventListener
+			);
+
 			window.removeEventListener(
 				"employee-deleted",
 				handleEmployeeDeleted as EventListener
@@ -601,13 +620,8 @@ export default function EmployeesPage() {
 																		""
 																	}
 																	onEmployeeUpdated={(updatedEmployee) => {
-																		setEmployees((prev) =>
-																			prev.map((emp) =>
-																				emp.id === updatedEmployee.id
-																					? updatedEmployee
-																					: emp
-																			)
-																		);
+																		// Remove the direct state update in favor of the event-based approach
+																		// which we've now set up in the EmployeeSheet component
 																	}}
 																	trigger={
 																		<button className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full">

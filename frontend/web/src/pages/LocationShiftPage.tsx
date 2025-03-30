@@ -10,15 +10,24 @@ import {
 	EmployeeLocationsAPI,
 } from "@/api";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Calendar, Eye, Clock } from "lucide-react";
+import {
+	Building2,
+	Users,
+	Calendar,
+	DollarSign,
+	BarChart,
+	Eye,
+	Clock,
+	Search,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { toast } from "sonner";
 import { ContentContainer } from "@/components/ui/content-container";
 import { ContentSection } from "@/components/ui/content-section";
 import { LoadingState } from "@/components/ui/loading-state";
-import { LocationSubNav } from "@/components/LocationSubNav";
 import { ShiftCreationSheet } from "@/components/ShiftCreationSheet";
+import { Input } from "@/components/ui/input";
 import {
 	Table,
 	TableBody,
@@ -28,8 +37,9 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { format, parseISO } from "date-fns";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useHeader } from "@/lib/header-context";
+import { LocationNav } from "@/components/LocationNav";
 
 export default function LocationShiftPage() {
 	const { locationId } = useParams<{ locationId: string }>();
@@ -40,6 +50,8 @@ export default function LocationShiftPage() {
 	const [assignedEmployees, setAssignedEmployees] = useState<Employee[]>([]);
 	const [loading, setLoading] = useState<boolean>(true);
 	const [loadingPhase, setLoadingPhase] = useState<string>("location");
+	const [searchQuery, setSearchQuery] = useState<string>("");
+	const [pastShiftsLimit, setPastShiftsLimit] = useState<number>(10);
 
 	// Update the header content based on loading state and location data
 	useEffect(() => {
@@ -62,7 +74,7 @@ export default function LocationShiftPage() {
 					scheduleId={locationId || ""}
 					organizationId="org-1"
 					initialLocationId={locationId || ""}
-					onShiftCreated={() => {
+					onComplete={() => {
 						// Refresh shifts after creation
 						window.location.reload();
 					}}
@@ -97,14 +109,14 @@ export default function LocationShiftPage() {
 
 				// Fetch shifts for this location
 				setLoadingPhase("shifts");
-				const allShifts = await ShiftsAPI.getAll();
+				const allShifts = await ShiftsAPI.getAllSchedules();
 				const locationShifts = allShifts.filter(
-					(shift) => shift.location_id === locationId
+					(shift: Shift) => shift.location_id === locationId
 				);
 
 				// Sort shifts by date (most recent first)
 				const sortedShifts = locationShifts.sort(
-					(a, b) =>
+					(a: Shift, b: Shift) =>
 						new Date(b.start_time).getTime() - new Date(a.start_time).getTime()
 				);
 
@@ -188,6 +200,24 @@ export default function LocationShiftPage() {
 	const { upcoming: upcomingShifts, past: pastShifts } =
 		getUpcomingAndPastShifts();
 
+	// Filter past shifts based on search query
+	const filteredPastShifts = pastShifts.filter((shift) => {
+		if (!searchQuery) return true;
+
+		const employee = assignedEmployees.find((emp) => emp.id === shift.user_id);
+		const employeeName = employee?.name || "Unassigned";
+		const shiftDate = format(parseISO(shift.start_time), "MMM dd, yyyy");
+		const shiftTime = formatShiftTime(shift.start_time, shift.end_time);
+		const searchLower = searchQuery.toLowerCase();
+
+		return (
+			employeeName.toLowerCase().includes(searchLower) ||
+			shiftDate.toLowerCase().includes(searchLower) ||
+			shiftTime.toLowerCase().includes(searchLower) ||
+			(shift.name && shift.name.toLowerCase().includes(searchLower))
+		);
+	});
+
 	if (loading) {
 		return (
 			<ContentContainer>
@@ -225,11 +255,7 @@ export default function LocationShiftPage() {
 
 	return (
 		<ContentContainer>
-			<LocationSubNav
-				locationId={locationId || ""}
-				locationName={location.name}
-			/>
-
+			<LocationNav />
 			<div className="space-y-8 mt-6">
 				{/* Section to display upcoming shifts */}
 				<ContentSection
@@ -305,9 +331,9 @@ export default function LocationShiftPage() {
 									scheduleId={locationId || ""}
 									organizationId="org-1"
 									initialLocationId={locationId || ""}
-									onShiftCreated={() => {
+									onComplete={() => {
 										// Refresh shifts after creation
-										ShiftsAPI.getAll().then((allShifts) => {
+										ShiftsAPI.getAllSchedules().then((allShifts) => {
 											const locationShifts = allShifts.filter(
 												(shift) => shift.location_id === locationId
 											);
@@ -334,6 +360,17 @@ export default function LocationShiftPage() {
 					description={`${pastShifts.length} shifts completed or missed`}>
 					{pastShifts.length > 0 ? (
 						<Card>
+							<CardHeader className="p-4 pb-0">
+								<div className="relative mb-2">
+									<Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+									<Input
+										placeholder="Search past shifts..."
+										className="pl-8"
+										value={searchQuery}
+										onChange={(e) => setSearchQuery(e.target.value)}
+									/>
+								</div>
+							</CardHeader>
 							<Table>
 								<TableHeader>
 									<TableRow>
@@ -346,7 +383,7 @@ export default function LocationShiftPage() {
 									</TableRow>
 								</TableHeader>
 								<TableBody>
-									{pastShifts.slice(0, 10).map((shift) => {
+									{filteredPastShifts.slice(0, pastShiftsLimit).map((shift) => {
 										// Find employee for this shift
 										const employee = assignedEmployees.find(
 											(emp) => emp.id === shift.user_id
@@ -391,6 +428,15 @@ export default function LocationShiftPage() {
 									})}
 								</TableBody>
 							</Table>
+							{filteredPastShifts.length > pastShiftsLimit && (
+								<div className="p-4 flex justify-center">
+									<Button
+										variant="outline"
+										onClick={() => setPastShiftsLimit((prev) => prev + 10)}>
+										Load More Shifts
+									</Button>
+								</div>
+							)}
 						</Card>
 					) : (
 						<Card className="text-center py-8 bg-muted/20">

@@ -43,6 +43,8 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { toast } from "sonner";
 import { EmployeeLocationsAPI } from "../../api";
+import { cn } from "../../lib/utils";
+import { EmployeeCard } from "../EmployeeCard";
 
 type EmployeeData = {
 	employeeId: string;
@@ -90,68 +92,6 @@ interface EmployeeItemProps {
 	selected: boolean;
 	onToggle: () => void;
 	isFromSelectedLocation?: boolean;
-	locationName?: string;
-}
-
-function EmployeeCard({
-	employee,
-	selected,
-	onToggle,
-	isFromSelectedLocation = false,
-	locationName = "This location",
-}: EmployeeItemProps) {
-	return (
-		<div
-			onClick={() => onToggle()}
-			className={`border rounded-md p-3 flex flex-col items-center text-center cursor-pointer transition-all ${
-				selected
-					? "bg-primary/10 border-primary shadow-sm"
-					: isFromSelectedLocation
-					? "border-accent-foreground/30 hover:bg-accent/50 hover:border-accent"
-					: "hover:bg-accent/50 hover:border-accent"
-			}`}>
-			<div className="relative mb-2">
-				<Avatar className="h-16 w-16">
-					<AvatarFallback className="text-lg">
-						{employee.name
-							.split(" ")
-							.map((n) => n[0])
-							.join("")
-							.toUpperCase()}
-					</AvatarFallback>
-				</Avatar>
-				{selected && (
-					<div className="absolute -top-1 -right-1 bg-primary text-white rounded-full p-1">
-						<Check className="h-3 w-3" />
-					</div>
-				)}
-				{isFromSelectedLocation && !selected && (
-					<div className="absolute -top-1 -right-1 bg-accent-foreground/70 text-white rounded-full p-1">
-						<MapPin className="h-3 w-3" />
-					</div>
-				)}
-			</div>
-			<div className="w-full">
-				<div className="font-medium text-sm truncate max-w-full">
-					{employee.name}
-				</div>
-				{employee.role && (
-					<div className="text-xs text-muted-foreground truncate max-w-full">
-						{employee.role}
-					</div>
-				)}
-				{isFromSelectedLocation && (
-					<div className="mt-1">
-						<Badge
-							variant="outline"
-							className="text-xs py-0 px-1.5 bg-accent/30">
-							{locationName}
-						</Badge>
-					</div>
-				)}
-			</div>
-		</div>
-	);
 }
 
 export function EmployeeAssignmentStep({
@@ -337,6 +277,52 @@ export function EmployeeAssignmentStep({
 		);
 	}
 
+	// Render the employee grid
+	const renderEmployeeGrid = (
+		employees: Employee[],
+		fromSelectedLocation = false
+	) => {
+		// If there are no employees, return a placeholder
+		if (employees.length === 0) {
+			return (
+				<div className="col-span-full text-center py-6">
+					<p className="text-muted-foreground">No employees found</p>
+				</div>
+			);
+		}
+
+		return employees.map((employee) => {
+			const isSelected = selectedEmployees.some(
+				(selectedEmp) => selectedEmp.id === employee.id
+			);
+
+			return (
+				<div
+					key={employee.id}
+					className="w-full max-w-[200px]">
+					<EmployeeCard
+						employee={employee}
+						selected={isSelected}
+						onSelect={() => toggleEmployee(employee)}
+						selectable={true}
+						selectionMode="checkbox"
+						variant="compact"
+						size="sm"
+						topLeftLabel={fromSelectedLocation ? "Location" : undefined}
+						showActions={false}
+						className={
+							isSelected
+								? "border-primary bg-primary/5"
+								: "hover:border-primary/50"
+						}
+						hideStatus={true}
+						checkboxPosition="left"
+					/>
+				</div>
+			);
+		});
+	};
+
 	return (
 		<div className="p-6 flex flex-col gap-4">
 			<div className="mb-2">
@@ -387,34 +373,71 @@ export function EmployeeAssignmentStep({
 									<div className="space-y-5">
 										{/* Employees assigned to this location - always show this section */}
 										<div className="space-y-3">
-											<h3 className="text-sm font-medium flex items-center">
-												<MapPin className="h-3.5 w-3.5 mr-1.5" />
-												Employees at {locationName}
-												<Badge
-													variant="outline"
-													className="ml-2">
-													{groupedEmployees.locationEmployees.length}
-												</Badge>
-											</h3>
+											<div className="flex items-center justify-between">
+												<h3 className="text-sm font-medium flex items-center">
+													<MapPin className="h-3.5 w-3.5 mr-1.5" />
+													Employees at {locationName}
+													<Badge
+														variant="outline"
+														className="ml-2">
+														{groupedEmployees.locationEmployees.length}
+													</Badge>
+												</h3>
+
+												{groupedEmployees.locationEmployees.length > 0 && (
+													<div className="flex items-center space-x-2">
+														<Checkbox
+															id="select-all-location"
+															checked={groupedEmployees.locationEmployees.every(
+																(emp) => isEmployeeSelected(emp.id)
+															)}
+															onCheckedChange={(checked) => {
+																if (checked) {
+																	// Select all employees from this location that aren't already selected
+																	const newEmployeesToAdd =
+																		groupedEmployees.locationEmployees
+																			.filter(
+																				(emp) => !isEmployeeSelected(emp.id)
+																			)
+																			.map((emp) => ({
+																				id: emp.id,
+																				name: emp.name,
+																				role: emp.role,
+																			}));
+
+																	onSelectedEmployeesChange([
+																		...selectedEmployees,
+																		...newEmployeesToAdd,
+																	]);
+																} else {
+																	// Remove all employees from this location
+																	const locationEmployeeIds =
+																		groupedEmployees.locationEmployees.map(
+																			(emp) => emp.id
+																		);
+																	onSelectedEmployeesChange(
+																		selectedEmployees.filter(
+																			(emp) =>
+																				!locationEmployeeIds.includes(emp.id)
+																		)
+																	);
+																}
+															}}
+														/>
+														<label
+															htmlFor="select-all-location"
+															className="text-xs cursor-pointer select-none text-muted-foreground hover:text-foreground">
+															Select All
+														</label>
+													</div>
+												)}
+											</div>
 
 											{groupedEmployees.locationEmployees.length > 0 ? (
 												<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-													{groupedEmployees.locationEmployees.map(
-														(employee) => {
-															const isSelected = isEmployeeSelected(
-																employee.id
-															);
-															return (
-																<EmployeeCard
-																	key={employee.id}
-																	employee={employee}
-																	selected={isSelected}
-																	isFromSelectedLocation={true}
-																	locationName={locationName}
-																	onToggle={() => toggleEmployee(employee)}
-																/>
-															);
-														}
+													{renderEmployeeGrid(
+														groupedEmployees.locationEmployees,
+														true
 													)}
 												</div>
 											) : (
@@ -433,31 +456,24 @@ export function EmployeeAssignmentStep({
 
 										{/* Other employees */}
 										<div className="space-y-3">
-											<h3 className="text-sm font-medium flex items-center">
-												<Users className="h-3.5 w-3.5 mr-1.5" />
-												Other Employees
-												<Badge
-													variant="outline"
-													className="ml-2">
-													{groupedEmployees.otherEmployees.length}
-												</Badge>
-											</h3>
+											<div className="flex items-center justify-between">
+												<h3 className="text-sm font-medium flex items-center">
+													<Users className="h-3.5 w-3.5 mr-1.5" />
+													Other Employees
+													<Badge
+														variant="outline"
+														className="ml-2">
+														{groupedEmployees.otherEmployees.length}
+													</Badge>
+												</h3>
+											</div>
 
 											{groupedEmployees.otherEmployees.length > 0 ? (
 												<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-													{groupedEmployees.otherEmployees.map((employee) => {
-														const isSelected = isEmployeeSelected(employee.id);
-														return (
-															<EmployeeCard
-																key={employee.id}
-																employee={employee}
-																selected={isSelected}
-																isFromSelectedLocation={false}
-																locationName={locationName}
-																onToggle={() => toggleEmployee(employee)}
-															/>
-														);
-													})}
+													{renderEmployeeGrid(
+														groupedEmployees.otherEmployees,
+														false
+													)}
 												</div>
 											) : (
 												<div className="border border-dashed border-muted-foreground/20 rounded-md p-4 text-center text-muted-foreground">
@@ -477,58 +493,11 @@ export function EmployeeAssignmentStep({
 					{/* Message about adding more employees later */}
 					<Alert
 						variant="default"
-						className="text-center">
-						<AlertDescription>
-							Don't worry if you can't find all employees now. You can add more
-							employees to this shift later.
+						className="text-center text-xs py-2">
+						<AlertDescription className="text-muted-foreground">
+							You can add more employees to this shift later.
 						</AlertDescription>
 					</Alert>
-
-					{/* Selected employees display */}
-					<div className="mt-3">
-						{selectedEmployees.length > 0 ? (
-							<div className="space-y-2">
-								<div className="flex items-center justify-between">
-									<h4 className="text-sm font-medium">Selected Employees</h4>
-									<Badge variant="outline">{selectedEmployees.length}</Badge>
-								</div>
-								<div className="flex flex-wrap gap-1.5">
-									{selectedEmployees.map((employee) => (
-										<Badge
-											key={employee.id}
-											variant="secondary"
-											className="flex items-center gap-1.5 py-1.5 pl-1.5 pr-2">
-											<Avatar className="h-5 w-5 mr-1">
-												<AvatarFallback className="text-[10px]">
-													{employee.name
-														.split(" ")
-														.map((n) => n[0])
-														.join("")
-														.toUpperCase()}
-												</AvatarFallback>
-											</Avatar>
-											<span>{employee.name}</span>
-											<X
-												className="h-3 w-3 ml-1 cursor-pointer opacity-70 hover:opacity-100"
-												onClick={(e) => {
-													e.stopPropagation();
-													onSelectedEmployeesChange(
-														selectedEmployees.filter(
-															(e) => e.id !== employee.id
-														)
-													);
-												}}
-											/>
-										</Badge>
-									))}
-								</div>
-							</div>
-						) : (
-							<div className="text-sm text-center text-muted-foreground py-2">
-								No employees selected
-							</div>
-						)}
-					</div>
 				</div>
 
 				{/* Navigation Buttons */}
