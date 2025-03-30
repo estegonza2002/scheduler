@@ -27,7 +27,7 @@ import {
 	calculateHours,
 } from "../../utils/time-calculations";
 import { cn } from "../../lib/utils";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft, Edit, Trash } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { Button } from "../ui/button";
 import { Switch } from "../ui/switch";
@@ -44,6 +44,10 @@ import {
 	AlertDialogCancel,
 	AlertDialogAction,
 } from "../ui/alert-dialog";
+import { useHeader } from "../../lib/header-context";
+import { Badge } from "../ui/badge";
+import { ShiftStatus } from "./ShiftStatus";
+import { Link } from "react-router-dom";
 
 // Define API access functions
 const getShift = async (shiftId: string): Promise<Shift | null> => {
@@ -98,9 +102,14 @@ const deleteShiftAssignment = async (assignmentId: string): Promise<void> => {
 	return ShiftAssignmentsAPI.delete(assignmentId);
 };
 
-export function ShiftDetails() {
+interface ShiftDetailsProps {
+	hideHeader?: boolean;
+}
+
+export function ShiftDetails({ hideHeader = false }: ShiftDetailsProps) {
 	const { shiftId } = useParams<{ shiftId: string }>();
 	const navigate = useNavigate();
+	const { updateHeader } = useHeader();
 
 	const [loading, setLoading] = useState(true);
 	const [saving, setSaving] = useState(false);
@@ -288,8 +297,13 @@ export function ShiftDetails() {
 		}
 	};
 
-	// Handle employee removal trigger
+	// Handle remove employee
 	const handleRemoveEmployee = (employeeId: string, assignmentId: string) => {
+		if (hasShiftEnded()) {
+			toast.error("Cannot modify a completed shift");
+			return;
+		}
+
 		setEmployeeToRemove({ id: employeeId, assignmentId });
 		setRemoveEmployeeAlertOpen(true);
 	};
@@ -378,6 +392,10 @@ export function ShiftDetails() {
 
 	// Handle assign employees dialog open
 	const handleAssignEmployeeDialogOpen = () => {
+		if (hasShiftEnded()) {
+			toast.error("Cannot modify a completed shift");
+			return;
+		}
 		setAssignEmployeeDialogOpen(true);
 	};
 
@@ -466,6 +484,84 @@ export function ShiftDetails() {
 		}
 	};
 
+	// Update global header when shift data is loaded
+	useEffect(() => {
+		if (hideHeader && shift) {
+			const isCompleted = hasShiftEnded();
+
+			// Create actions for the header
+			const actions = (
+				<div className="flex items-center gap-2">
+					{!isCompleted ? (
+						<>
+							<Button
+								variant="outline"
+								size="sm"
+								className="h-9 gap-1"
+								onClick={() => navigate(`/edit-shift/${shiftId}`)}>
+								<Edit className="h-4 w-4" />
+								Edit Shift
+							</Button>
+
+							<Button
+								variant="outline"
+								size="sm"
+								className="h-9 text-destructive border-destructive/30"
+								onClick={() => setDeleteAlertOpen(true)}>
+								<Trash className="h-4 w-4 mr-2" /> Delete
+							</Button>
+						</>
+					) : (
+						<>
+							<Button
+								variant="outline"
+								size="sm"
+								className="h-9 gap-1"
+								disabled>
+								<Edit className="h-4 w-4" />
+								Edit Shift
+							</Button>
+
+							<Button
+								variant="outline"
+								size="sm"
+								className="h-9 text-muted-foreground border-muted/30"
+								disabled>
+								<Trash className="h-4 w-4 mr-2" /> Delete
+							</Button>
+						</>
+					)}
+				</div>
+			);
+
+			// Update the header content
+			updateHeader({
+				title: "Shift Details",
+				description: `${format(
+					parseISO(shift.start_time),
+					"EEEE, MMMM d, yyyy"
+				)} · 
+					${format(parseISO(shift.start_time), "h:mm a")} - 
+					${format(parseISO(shift.end_time), "h:mm a")} · 
+					${
+						assignedEmployees.length > 0
+							? `${assignedEmployees.length} Assigned`
+							: "Unassigned"
+					}`,
+				actions: actions,
+				showBackButton: true,
+			});
+		}
+	}, [
+		hideHeader,
+		shift,
+		assignedEmployees.length,
+		hasShiftEnded,
+		shiftId,
+		navigate,
+		updateHeader,
+	]);
+
 	if (loading) {
 		return (
 			<div className="flex justify-center items-center h-[50vh]">
@@ -495,16 +591,18 @@ export function ShiftDetails() {
 	}
 
 	return (
-		<div className="w-full pb-12">
-			<ShiftHeader
-				shift={shift}
-				assignedEmployeesCount={assignedEmployees.length}
-				onDeleteClick={handleDeleteShift}
-				onEditClick={() => navigate(`/edit-shift/${shiftId}`)}
-				deleteAlertOpen={deleteAlertOpen}
-				setDeleteAlertOpen={setDeleteAlertOpen}
-				formatDateParam={formatDateParam}
-			/>
+		<div className="pb-12">
+			{!hideHeader && (
+				<ShiftHeader
+					shift={shift}
+					assignedEmployeesCount={assignedEmployees.length}
+					onDeleteClick={handleDeleteShift}
+					onEditClick={() => navigate(`/edit-shift/${shiftId}`)}
+					deleteAlertOpen={deleteAlertOpen}
+					setDeleteAlertOpen={setDeleteAlertOpen}
+					formatDateParam={formatDateParam}
+				/>
+			)}
 
 			{loading ? (
 				<div className="bg-white border rounded-md p-8 my-6 flex justify-center">
@@ -512,7 +610,15 @@ export function ShiftDetails() {
 				</div>
 			) : (
 				<>
-					{/* If shift has ended, show the report at the top */}
+					{/* Show location, time, and cost information first */}
+					<ShiftInformation
+						shift={shift}
+						location={location}
+						assignedEmployees={assignedEmployees}
+						calculateTotalCost={calculateShiftCost}
+					/>
+
+					{/* If shift has ended, show the report after information */}
 					{hasShiftEnded() && (
 						<div className="my-6">
 							<ShiftReport
@@ -521,13 +627,6 @@ export function ShiftDetails() {
 							/>
 						</div>
 					)}
-
-					<ShiftInformation
-						shift={shift}
-						location={location}
-						assignedEmployees={assignedEmployees}
-						calculateTotalCost={calculateShiftCost}
-					/>
 
 					<EmployeesSection
 						assignedEmployees={assignedEmployees}
@@ -543,7 +642,7 @@ export function ShiftDetails() {
 						}}
 						onRemoveEmployeeClick={handleRemoveEmployee}
 						onAssignClick={handleAssignEmployeeDialogOpen}
-						isCompleted={false}
+						isCompleted={hasShiftEnded()}
 					/>
 
 					<ShiftNotes

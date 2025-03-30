@@ -45,16 +45,14 @@ export function EmptyState({
 	return (
 		<div
 			className={cn(
-				"flex flex-col items-center justify-center text-center rounded-lg border border-dashed p-8",
-				size === "small" && "p-4",
-				size === "large" && "p-12",
+				"flex flex-col items-center justify-center text-center rounded-lg border border-dashed",
 				className
 			)}>
 			<div
 				className={cn(
-					"flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground",
-					size === "small" && "h-10 w-10",
-					size === "large" && "h-16 w-16"
+					"flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground mt-8",
+					size === "small" && "h-10 w-10 mt-4",
+					size === "large" && "h-16 w-16 mt-12"
 				)}>
 				{icon || (
 					<AlertCircle
@@ -85,7 +83,7 @@ export function EmptyState({
 					{description}
 				</p>
 			)}
-			{action && <div className="mt-6">{action}</div>}
+			{action && <div className="mt-6 mb-8">{action}</div>}
 		</div>
 	);
 }

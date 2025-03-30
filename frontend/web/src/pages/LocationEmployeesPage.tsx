@@ -222,82 +222,87 @@ export default function LocationEmployeesPage() {
 	}
 
 	return (
-		<ContentContainer>
+		<>
 			<LocationNav />
-			<div className="grid gap-8 mt-6">
-				{/* Employees List */}
-				<ContentSection
-					title="Assigned Employees"
-					description="Employees assigned to this location">
-					{assignedEmployees.length > 0 ? (
-						<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-							{assignedEmployees.map((employee) => (
-								<div
-									key={employee.id}
-									className="flex items-center gap-3 p-3 border rounded-lg hover:bg-accent/5">
-									<Avatar className="h-10 w-10">
-										<AvatarImage
-											src={employee.avatar}
-											alt={employee.name}
-										/>
-										<AvatarFallback>{employee.name.charAt(0)}</AvatarFallback>
-									</Avatar>
-									<div className="flex-1">
-										<div className="font-medium">{employee.name}</div>
-										<div className="text-sm text-muted-foreground">
-											{employee.role || "Staff"}
+			<ContentContainer>
+				<div className="grid gap-8">
+					{/* Employees List */}
+					<ContentSection
+						title="Assigned Employees"
+						description="Employees assigned to this location">
+						{assignedEmployees.length > 0 ? (
+							<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+								{assignedEmployees.map((employee) => (
+									<div
+										key={employee.id}
+										className="flex items-center gap-3 p-3 border rounded-lg hover:bg-accent/5">
+										<Avatar className="h-10 w-10">
+											<AvatarImage
+												src={employee.avatar}
+												alt={employee.name}
+											/>
+											<AvatarFallback>{employee.name.charAt(0)}</AvatarFallback>
+										</Avatar>
+										<div className="flex-1">
+											<div className="font-medium">{employee.name}</div>
+											<div className="text-sm text-muted-foreground">
+												{employee.role || "Staff"}
+											</div>
 										</div>
+										<Button
+											variant="ghost"
+											size="icon"
+											className="text-muted-foreground hover:text-destructive"
+											onClick={() => {
+												setRemoveEmployeeId(employee.id);
+												setRemoveEmployeeDialogOpen(true);
+											}}>
+											<X className="h-4 w-4" />
+										</Button>
 									</div>
-									<Button
-										variant="ghost"
-										size="icon"
-										className="text-muted-foreground hover:text-destructive"
-										onClick={() => {
-											setRemoveEmployeeId(employee.id);
-											setRemoveEmployeeDialogOpen(true);
-										}}>
-										<X className="h-4 w-4" />
-									</Button>
-								</div>
-							))}
-						</div>
-					) : (
-						<div className="py-12 flex flex-col items-center justify-center text-center text-muted-foreground">
-							<Users className="h-12 w-12 mb-4 opacity-20" />
-							<h3 className="text-lg font-medium mb-1">
-								No employees assigned
-							</h3>
-							<p className="max-w-md">
-								No employees have been assigned to this location yet. Click the
-								"Assign Employees" button to add employees.
-							</p>
-						</div>
-					)}
-				</ContentSection>
-			</div>
+								))}
+							</div>
+						) : (
+							<div className="py-12 flex flex-col items-center justify-center text-center text-muted-foreground">
+								<Users className="h-12 w-12 mb-4 opacity-20" />
+								<h3 className="text-lg font-medium mb-1">
+									No employees assigned
+								</h3>
+								<p className="max-w-md">
+									No employees have been assigned to this location yet. Click
+									the "Assign Employees" button to add employees.
+								</p>
+							</div>
+						)}
+					</ContentSection>
+				</div>
 
-			{/* Confirmation Dialog */}
-			<AlertDialog
-				open={removeEmployeeDialogOpen}
-				onOpenChange={setRemoveEmployeeDialogOpen}>
-				<AlertDialogContent>
-					<AlertDialogHeader>
-						<AlertDialogTitle>Remove employee from location?</AlertDialogTitle>
-						<AlertDialogDescription>
-							This will unassign the employee from this location. They will no
-							longer be available for shifts at this location unless reassigned.
-						</AlertDialogDescription>
-					</AlertDialogHeader>
-					<AlertDialogFooter>
-						<AlertDialogCancel>Cancel</AlertDialogCancel>
-						<AlertDialogAction
-							onClick={removeEmployeeFromLocation}
-							className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-							Remove
-						</AlertDialogAction>
-					</AlertDialogFooter>
-				</AlertDialogContent>
-			</AlertDialog>
-		</ContentContainer>
+				{/* Confirmation Dialog */}
+				<AlertDialog
+					open={removeEmployeeDialogOpen}
+					onOpenChange={setRemoveEmployeeDialogOpen}>
+					<AlertDialogContent>
+						<AlertDialogHeader>
+							<AlertDialogTitle>
+								Remove employee from location?
+							</AlertDialogTitle>
+							<AlertDialogDescription>
+								This will unassign the employee from this location. They will no
+								longer be available for shifts at this location unless
+								reassigned.
+							</AlertDialogDescription>
+						</AlertDialogHeader>
+						<AlertDialogFooter>
+							<AlertDialogCancel>Cancel</AlertDialogCancel>
+							<AlertDialogAction
+								onClick={removeEmployeeFromLocation}
+								className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+								Remove
+							</AlertDialogAction>
+						</AlertDialogFooter>
+					</AlertDialogContent>
+				</AlertDialog>
+			</ContentContainer>
+		</>
 	);
 }

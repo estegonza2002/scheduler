@@ -12,6 +12,7 @@ interface ShiftEmployeeCardProps {
 	shiftStartTime: string;
 	shiftEndTime: string;
 	className?: string;
+	isCompleted?: boolean;
 }
 
 export function ShiftEmployeeCard({
@@ -20,6 +21,7 @@ export function ShiftEmployeeCard({
 	shiftStartTime,
 	shiftEndTime,
 	className,
+	isCompleted = false,
 }: ShiftEmployeeCardProps) {
 	// Calculate cost for this employee's shift
 	const cost = calculateEmployeeCost(shiftStartTime, shiftEndTime, employee);
@@ -35,6 +37,7 @@ export function ShiftEmployeeCard({
 		<Card
 			className={cn(
 				"relative overflow-hidden group h-full transition-all hover:border-primary/50 hover:shadow-sm",
+				isCompleted && "opacity-90",
 				className
 			)}>
 			<CardContent className="p-4">
@@ -91,19 +94,21 @@ export function ShiftEmployeeCard({
 				</div>
 			</CardContent>
 
-			{/* Action button overlay */}
-			<div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-				<div className="bg-white/80 backdrop-blur-sm rounded-md p-0.5 shadow-sm">
-					<Button
-						variant="ghost"
-						size="sm"
-						className="h-7 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-						onClick={() => onRemove(employee.id, employee.assignmentId)}>
-						<UserMinus className="h-3.5 w-3.5 mr-1" />
-						Remove
-					</Button>
+			{/* Action button overlay - only show if not completed */}
+			{!isCompleted && (
+				<div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+					<div className="bg-white/80 backdrop-blur-sm rounded-md p-0.5 shadow-sm">
+						<Button
+							variant="ghost"
+							size="sm"
+							className="h-7 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+							onClick={() => onRemove(employee.id, employee.assignmentId)}>
+							<UserMinus className="h-3.5 w-3.5 mr-1" />
+							Remove
+						</Button>
+					</div>
 				</div>
-			</div>
+			)}
 		</Card>
 	);
 }

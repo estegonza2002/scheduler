@@ -102,6 +102,12 @@ export default function LocationDetailPage() {
 	const [hasError, setHasError] = useState<boolean>(false);
 	const [errorMessage, setErrorMessage] = useState<string>("");
 
+	// For debugging purposes
+	useEffect(() => {
+		console.log("Current state - upcomingShifts:", upcomingShifts);
+		console.log("Current state - pastShifts:", pastShifts);
+	}, [upcomingShifts, pastShifts]);
+
 	// Function to get the full address string
 	const getFullAddress = (loc: ExtendedLocation | null): string => {
 		if (!loc) return "";
@@ -246,9 +252,22 @@ export default function LocationDetailPage() {
 				const allShiftsArrays = await Promise.all(allShiftsPromises);
 				const allShifts = allShiftsArrays.flat();
 
+				console.log("All shifts fetched:", allShifts);
+
 				// Filter for shifts at this location
-				const locationShifts = allShifts.filter(
-					(shift: Shift) => shift.location_id === locationId
+				const locationShifts = allShifts.filter((shift: Shift) => {
+					// Handle possible type mismatches
+					const shiftLocationId = shift.location_id?.toString();
+					const currentLocationId = locationId?.toString();
+
+					return shiftLocationId === currentLocationId;
+				});
+
+				console.log(
+					"Filtered shifts for this location:",
+					locationShifts,
+					"Location ID:",
+					locationId
 				);
 
 				// Separate shifts into upcoming and past
@@ -437,448 +456,325 @@ export default function LocationDetailPage() {
 	}
 
 	return (
-		<ContentContainer>
+		<>
 			<LocationNav />
-
-			{/* Hero Card */}
-			<Card className="mt-4 mb-6 overflow-hidden">
-				<div className="relative">
-					{location.imageUrl && (
-						<div
-							className="absolute inset-0 bg-center bg-cover opacity-10"
-							style={{ backgroundImage: `url(${location.imageUrl})` }}
-						/>
-					)}
-					<div className="relative z-10 p-6">
-						<div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-							<div>
-								<h1 className="text-2xl font-bold">{location.name}</h1>
-								<div className="flex flex-wrap items-center gap-2 mt-1">
-									{location.isActive !== false ? (
-										<Badge className="bg-green-500 hover:bg-green-600">
-											Active
-										</Badge>
-									) : (
-										<Badge variant="destructive">Inactive</Badge>
-									)}
-
-									{(location.address || location.city || location.state) && (
-										<div className="flex items-center gap-1 text-sm text-muted-foreground">
-											<MapPin className="h-4 w-4 flex-shrink-0" />
-											<span>
-												{location.address && `${location.address}, `}
-												{location.city && `${location.city}, `}
-												{location.state} {location.zipCode}
-											</span>
+			<ContentContainer>
+				{/* Content Sections */}
+				<div className="grid gap-6">
+					{/* Contact Information */}
+					{(location.phone || location.email) && (
+						<ContentSection
+							title="Contact Information"
+							description="Ways to contact this location">
+							<div className="space-y-4">
+								{location.phone && (
+									<div className="flex items-center gap-3">
+										<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
+											<Phone className="h-5 w-5 text-primary" />
 										</div>
-									)}
-								</div>
+										<div>
+											<div className="text-sm font-medium">Phone</div>
+											<div className="text-sm">{location.phone}</div>
+										</div>
+									</div>
+								)}
+
+								{location.email && (
+									<div className="flex items-center gap-3">
+										<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
+											<Mail className="h-5 w-5 text-primary" />
+										</div>
+										<div>
+											<div className="text-sm font-medium">Email</div>
+											<div className="text-sm">{location.email}</div>
+										</div>
+									</div>
+								)}
 							</div>
+						</ContentSection>
+					)}
 
-							{/* Quick Actions */}
-							<div className="flex flex-wrap gap-2 mt-2 md:mt-0">
-								<ShiftCreationSheet
-									scheduleId={defaultScheduleId}
-									organizationId={organizationId}
-									initialLocationId={locationId}
-									onComplete={() => {
-										// Refresh shifts data after creating a new shift
-										// Replace the inefficient page reload with targeted data refresh
-										const refreshData = async () => {
-											try {
-												setLoading(true);
-												setLoadingPhase("shifts");
-
-												// Add a slight delay to ensure assignments are completed before refresh
-												await new Promise((resolve) =>
-													setTimeout(resolve, 1000)
-												);
-
-												// Fetch all schedules
-												const allSchedules = await ShiftsAPI.getAllSchedules();
-												// Get all shifts from all schedules
-												const allShiftsPromises = allSchedules.map((schedule) =>
-													ShiftsAPI.getShiftsForSchedule(schedule.id)
-												);
-												const allShiftsArrays = await Promise.all(
-													allShiftsPromises
-												);
-												const allShifts = allShiftsArrays.flat();
-
-												// Filter for shifts at this location
-												const locationShifts = allShifts.filter(
-													(shift: Shift) => shift.location_id === locationId
-												);
-
-												// Separate shifts into upcoming and past
-												const now = new Date();
-												const upcomingShifts = locationShifts
-													.filter((shift) => new Date(shift.end_time) > now)
-													.sort(
-														(a, b) =>
-															new Date(a.start_time).getTime() -
-															new Date(b.start_time).getTime()
-													);
-
-												const pastShifts = locationShifts
-													.filter((shift) => new Date(shift.end_time) <= now)
-													.sort(
-														(a, b) =>
-															new Date(b.start_time).getTime() -
-															new Date(a.start_time).getTime()
-													);
-
-												// Also fetch the latest shift assignments
-												setLoadingPhase("shiftAssignments");
-												const locationShiftIds = locationShifts.map(
-													(shift) => shift.id
-												);
-												const allAssignments =
-													await ShiftAssignmentsAPI.getAll();
-												const locationShiftAssignments = allAssignments.filter(
-													(assignment) =>
-														locationShiftIds.includes(assignment.shift_id)
-												);
-
-												setShiftAssignments(locationShiftAssignments);
-												setShifts(locationShifts);
-												setUpcomingShifts(upcomingShifts);
-												setPastShifts(pastShifts);
-
-												toast.success("Shift created and data refreshed");
-											} catch (error) {
-												console.error("Error refreshing shifts data:", error);
-												toast.error("Failed to refresh shifts after creation");
-											} finally {
-												setLoading(false);
-												setLoadingPhase("");
-											}
-										};
-
-										refreshData();
-									}}
-									trigger={
-										<Button
-											variant="outline"
-											size="sm">
-											<Plus className="h-4 w-4 mr-2" />
-											Create Shift
-										</Button>
-									}
-								/>
-								<Button
-									variant="outline"
-									size="sm"
-									onClick={() => navigate(`/locations/${locationId}/shifts`)}>
-									<Calendar className="h-4 w-4 mr-2" />
-									View Shifts
-								</Button>
-							</div>
-						</div>
-					</div>
-				</div>
-			</Card>
-
-			{/* Content Sections */}
-			<div className="grid gap-6">
-				{/* Contact Information */}
-				{(location.phone || location.email) && (
+					{/* Upcoming Shifts Section */}
 					<ContentSection
-						title="Contact Information"
-						description="Ways to contact this location">
-						<div className="space-y-4">
-							{location.phone && (
-								<div className="flex items-center gap-3">
-									<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
-										<Phone className="h-5 w-5 text-primary" />
-									</div>
-									<div>
-										<div className="text-sm font-medium">Phone</div>
-										<div className="text-sm">{location.phone}</div>
-									</div>
-								</div>
-							)}
-
-							{location.email && (
-								<div className="flex items-center gap-3">
-									<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
-										<Mail className="h-5 w-5 text-primary" />
-									</div>
-									<div>
-										<div className="text-sm font-medium">Email</div>
-										<div className="text-sm">{location.email}</div>
-									</div>
-								</div>
-							)}
-						</div>
-					</ContentSection>
-				)}
-
-				{/* Upcoming Shifts Section */}
-				<ContentSection
-					title="Upcoming Shifts"
-					description={`${upcomingShifts.length} shifts scheduled at this location`}
-					headerActions={
-						<Button
-							variant="outline"
-							size="sm"
-							onClick={() => navigate(`/locations/${locationId}/shifts`)}>
-							View All Shifts
-						</Button>
-					}>
-					{upcomingShifts.length === 0 ? (
-						<EmptyState
-							title="No upcoming shifts"
-							description="There are no upcoming shifts scheduled at this location."
-							icon={<Calendar className="h-6 w-6" />}
-							action={
-								<ShiftCreationSheet
-									scheduleId={defaultScheduleId}
-									organizationId={organizationId}
-									initialLocationId={locationId}
-									onComplete={() => {
-										// Refresh shifts data after creating a new shift
-										// Replace the inefficient page reload with targeted data refresh
-										const refreshData = async () => {
-											try {
-												setLoading(true);
-												setLoadingPhase("shifts");
-
-												// Add a slight delay to ensure assignments are completed before refresh
-												await new Promise((resolve) =>
-													setTimeout(resolve, 1000)
-												);
-
-												// Fetch all schedules
-												const allSchedules = await ShiftsAPI.getAllSchedules();
-												// Get all shifts from all schedules
-												const allShiftsPromises = allSchedules.map((schedule) =>
-													ShiftsAPI.getShiftsForSchedule(schedule.id)
-												);
-												const allShiftsArrays = await Promise.all(
-													allShiftsPromises
-												);
-												const allShifts = allShiftsArrays.flat();
-
-												// Filter for shifts at this location
-												const locationShifts = allShifts.filter(
-													(shift: Shift) => shift.location_id === locationId
-												);
-
-												// Separate shifts into upcoming and past
-												const now = new Date();
-												const upcomingShifts = locationShifts
-													.filter((shift) => new Date(shift.end_time) > now)
-													.sort(
-														(a, b) =>
-															new Date(a.start_time).getTime() -
-															new Date(b.start_time).getTime()
-													);
-
-												const pastShifts = locationShifts
-													.filter((shift) => new Date(shift.end_time) <= now)
-													.sort(
-														(a, b) =>
-															new Date(b.start_time).getTime() -
-															new Date(a.start_time).getTime()
-													);
-
-												// Also fetch the latest shift assignments
-												setLoadingPhase("shiftAssignments");
-												const locationShiftIds = locationShifts.map(
-													(shift) => shift.id
-												);
-												const allAssignments =
-													await ShiftAssignmentsAPI.getAll();
-												const locationShiftAssignments = allAssignments.filter(
-													(assignment) =>
-														locationShiftIds.includes(assignment.shift_id)
-												);
-
-												setShiftAssignments(locationShiftAssignments);
-												setShifts(locationShifts);
-												setUpcomingShifts(upcomingShifts);
-												setPastShifts(pastShifts);
-
-												toast.success("Shift created and data refreshed");
-											} catch (error) {
-												console.error("Error refreshing shifts data:", error);
-												toast.error("Failed to refresh shifts after creation");
-											} finally {
-												setLoading(false);
-												setLoadingPhase("");
-											}
-										};
-
-										refreshData();
-									}}
-									trigger={
-										<Button
-											variant="outline"
-											size="sm">
-											<Plus className="h-4 w-4 mr-2" />
-											Create a Shift
-										</Button>
-									}
-								/>
-							}
-						/>
-					) : (
-						<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-							{upcomingShifts.slice(0, 6).map((shift) => {
-								// Get all employees assigned to this shift
-								const shiftEmployees: Employee[] = [];
-
-								// Check direct assignment via user_id
-								const directEmployee = allEmployees.find(
-									(emp) => emp.id === shift.user_id
-								);
-								if (directEmployee) {
-									shiftEmployees.push(directEmployee);
-								}
-
-								// Check shift assignments table
-								const assignments = shiftAssignments.filter(
-									(assignment) => assignment.shift_id === shift.id
-								);
-
-								// Add employees from assignments
-								assignments.forEach((assignment) => {
-									const employee = allEmployees.find(
-										(emp) => emp.id === assignment.employee_id
-									);
-									// Only add if not already added and if found
-									if (
-										employee &&
-										!shiftEmployees.some((e) => e.id === employee.id)
-									) {
-										shiftEmployees.push(employee);
-									}
-								});
-
-								return (
-									<ShiftCard
-										key={shift.id}
-										shift={shift}
-										locationName={location.name}
-										assignedEmployees={shiftEmployees}
-										showLocationName={false}
-										isLoading={loading && loadingPhase === "shiftAssignments"}
-									/>
-								);
-							})}
-						</div>
-					)}
-				</ContentSection>
-
-				{/* Assigned Employees Section */}
-				<ContentSection
-					title="Assigned Employees"
-					description={`${assignedEmployees.length} employees assigned to this location`}
-					headerActions={
-						<EmployeeAssignmentSheet
-							locationId={locationId || ""}
-							locationName={location?.name || "Location"}
-							allEmployees={allEmployees}
-							assignedEmployees={assignedEmployees}
-							onEmployeesAssigned={(newlyAssignedEmployees) => {
-								setAssignedEmployees((prev) => [
-									...prev,
-									...newlyAssignedEmployees,
-								]);
-							}}
-							trigger={
-								<Button
-									variant="outline"
-									size="sm">
-									<UserPlus className="h-4 w-4 mr-2" />
-									Assign Employee
-								</Button>
-							}
-						/>
-					}>
-					{assignedEmployees.length === 0 ? (
-						<EmptyState
-							title="No assigned employees"
-							description="This location doesn't have any employees assigned to it."
-							icon={<Users className="h-6 w-6" />}
-							action={
-								<EmployeeAssignmentSheet
-									locationId={locationId || ""}
-									locationName={location?.name || "Location"}
-									allEmployees={allEmployees}
-									assignedEmployees={assignedEmployees}
-									onEmployeesAssigned={(newlyAssignedEmployees) => {
-										setAssignedEmployees((prev) => [
-											...prev,
-											...newlyAssignedEmployees,
-										]);
-									}}
-									trigger={
-										<Button
-											variant="outline"
-											size="sm">
-											<UserPlus className="h-4 w-4 mr-2" />
-											Assign Employee
-										</Button>
-									}
-								/>
-							}
-						/>
-					) : (
-						<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-							{assignedEmployees.map((employee) => (
-								<EmployeeCard
-									key={employee.id}
-									employee={employee}
-									locationCount={employeeLocationCounts[employee.id] || 1}
-									showLocationBadge
-									size="sm"
-									variant="standard"
-									showActions
-									onViewDetails={() => navigate(`/employees/${employee.id}`)}
-									onSelect={() => navigate(`/employees/${employee.id}`)}
-								/>
-							))}
-						</div>
-					)}
-				</ContentSection>
-
-				{/* Location Map Section */}
-				<ContentSection
-					title="Location Map"
-					description="View this location on the map and get directions">
-					{(location.address || location.latitude) && (
-						<div className="space-y-2">
-							<GoogleMap
-								latitude={location.latitude}
-								longitude={location.longitude}
-								address={
-									location.latitude ? undefined : getFullAddress(location)
-								}
-								height="300px"
-								className="w-full rounded-lg"
-								zoom={15}
-							/>
+						title="Upcoming Shifts"
+						description={`${upcomingShifts.length} shifts scheduled at this location`}
+						headerActions={
 							<Button
 								variant="outline"
-								className="w-full flex items-center justify-center gap-2"
-								onClick={() => {
-									const url =
-										location.latitude && location.longitude
-											? `https://www.google.com/maps/dir/?api=1&destination=${location.latitude},${location.longitude}`
-											: `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
-													getFullAddress(location)
-											  )}`;
-									window.open(url, "_blank");
-								}}>
-								<Navigation className="h-4 w-4" />
-								Get Directions
+								size="sm"
+								onClick={() => navigate(`/locations/${locationId}/shifts`)}>
+								View All Shifts
 							</Button>
-						</div>
-					)}
-				</ContentSection>
-			</div>
-		</ContentContainer>
+						}>
+						{upcomingShifts.length === 0 ? (
+							<EmptyState
+								title="No upcoming shifts"
+								description="There are no upcoming shifts scheduled at this location."
+								icon={<Calendar className="h-6 w-6" />}
+								action={
+									<ShiftCreationSheet
+										scheduleId={defaultScheduleId}
+										organizationId={organizationId}
+										initialLocationId={locationId}
+										onComplete={() => {
+											// Refresh shifts data after creating a new shift
+											// Replace the inefficient page reload with targeted data refresh
+											const refreshData = async () => {
+												try {
+													setLoading(true);
+													setLoadingPhase("shifts");
+
+													// Add a slight delay to ensure assignments are completed before refresh
+													await new Promise((resolve) =>
+														setTimeout(resolve, 1000)
+													);
+
+													// Fetch all schedules
+													const allSchedules =
+														await ShiftsAPI.getAllSchedules();
+													// Get all shifts from all schedules
+													const allShiftsPromises = allSchedules.map(
+														(schedule) =>
+															ShiftsAPI.getShiftsForSchedule(schedule.id)
+													);
+													const allShiftsArrays = await Promise.all(
+														allShiftsPromises
+													);
+													const allShifts = allShiftsArrays.flat();
+
+													// Filter for shifts at this location
+													const locationShifts = allShifts.filter(
+														(shift: Shift) => {
+															// Handle possible type mismatches
+															const shiftLocationId =
+																shift.location_id?.toString();
+															const currentLocationId = locationId?.toString();
+
+															return shiftLocationId === currentLocationId;
+														}
+													);
+
+													// Separate shifts into upcoming and past
+													const now = new Date();
+													const upcomingShifts = locationShifts
+														.filter((shift) => new Date(shift.end_time) > now)
+														.sort(
+															(a, b) =>
+																new Date(a.start_time).getTime() -
+																new Date(b.start_time).getTime()
+														);
+
+													const pastShifts = locationShifts
+														.filter((shift) => new Date(shift.end_time) <= now)
+														.sort(
+															(a, b) =>
+																new Date(b.start_time).getTime() -
+																new Date(a.start_time).getTime()
+														);
+
+													// Also fetch the latest shift assignments
+													setLoadingPhase("shiftAssignments");
+													const locationShiftIds = locationShifts.map(
+														(shift) => shift.id
+													);
+													const allAssignments =
+														await ShiftAssignmentsAPI.getAll();
+													const locationShiftAssignments =
+														allAssignments.filter((assignment) =>
+															locationShiftIds.includes(assignment.shift_id)
+														);
+
+													setShiftAssignments(locationShiftAssignments);
+													setShifts(locationShifts);
+													setUpcomingShifts(upcomingShifts);
+													setPastShifts(pastShifts);
+
+													toast.success("Shift created and data refreshed");
+												} catch (error) {
+													console.error("Error refreshing shifts data:", error);
+													toast.error(
+														"Failed to refresh shifts after creation"
+													);
+												} finally {
+													setLoading(false);
+													setLoadingPhase("");
+												}
+											};
+
+											refreshData();
+										}}
+										trigger={
+											<Button
+												variant="outline"
+												size="sm">
+												<Plus className="h-4 w-4 mr-2" />
+												Create a Shift
+											</Button>
+										}
+									/>
+								}
+							/>
+						) : (
+							<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+								{upcomingShifts.slice(0, 6).map((shift) => {
+									// Get all employees assigned to this shift
+									const shiftEmployees: Employee[] = [];
+
+									// Check direct assignment via user_id
+									const directEmployee = allEmployees.find(
+										(emp) => emp.id === shift.user_id
+									);
+									if (directEmployee) {
+										shiftEmployees.push(directEmployee);
+									}
+
+									// Check shift assignments table
+									const assignments = shiftAssignments.filter(
+										(assignment) => assignment.shift_id === shift.id
+									);
+
+									console.log(
+										`Shift ${shift.id} has ${assignments.length} assignments`
+									);
+
+									// Add employees from assignments
+									assignments.forEach((assignment) => {
+										const employee = allEmployees.find(
+											(emp) => emp.id === assignment.employee_id
+										);
+										// Only add if not already added and if found
+										if (
+											employee &&
+											!shiftEmployees.some((e) => e.id === employee.id)
+										) {
+											shiftEmployees.push(employee);
+										}
+									});
+
+									return (
+										<ShiftCard
+											key={shift.id}
+											shift={shift}
+											locationName={location.name}
+											assignedEmployees={shiftEmployees}
+											showLocationName={false}
+											isLoading={loading && loadingPhase === "shiftAssignments"}
+										/>
+									);
+								})}
+							</div>
+						)}
+					</ContentSection>
+
+					{/* Assigned Employees Section */}
+					<ContentSection
+						title="Assigned Employees"
+						description={`${assignedEmployees.length} employees assigned to this location`}
+						headerActions={
+							<EmployeeAssignmentSheet
+								locationId={locationId || ""}
+								locationName={location?.name || "Location"}
+								allEmployees={allEmployees}
+								assignedEmployees={assignedEmployees}
+								onEmployeesAssigned={(newlyAssignedEmployees) => {
+									setAssignedEmployees((prev) => [
+										...prev,
+										...newlyAssignedEmployees,
+									]);
+								}}
+								trigger={
+									<Button
+										variant="outline"
+										size="sm">
+										<UserPlus className="h-4 w-4 mr-2" />
+										Assign Employee
+									</Button>
+								}
+							/>
+						}>
+						{assignedEmployees.length === 0 ? (
+							<EmptyState
+								title="No assigned employees"
+								description="This location doesn't have any employees assigned to it."
+								icon={<Users className="h-6 w-6" />}
+								action={
+									<EmployeeAssignmentSheet
+										locationId={locationId || ""}
+										locationName={location?.name || "Location"}
+										allEmployees={allEmployees}
+										assignedEmployees={assignedEmployees}
+										onEmployeesAssigned={(newlyAssignedEmployees) => {
+											setAssignedEmployees((prev) => [
+												...prev,
+												...newlyAssignedEmployees,
+											]);
+										}}
+										trigger={
+											<Button
+												variant="outline"
+												size="sm">
+												<UserPlus className="h-4 w-4 mr-2" />
+												Assign Employee
+											</Button>
+										}
+									/>
+								}
+							/>
+						) : (
+							<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+								{assignedEmployees.map((employee) => (
+									<EmployeeCard
+										key={employee.id}
+										employee={employee}
+										locationCount={employeeLocationCounts[employee.id] || 1}
+										showLocationBadge
+										size="sm"
+										variant="standard"
+										showActions
+										onViewDetails={() => navigate(`/employees/${employee.id}`)}
+										onSelect={() => navigate(`/employees/${employee.id}`)}
+									/>
+								))}
+							</div>
+						)}
+					</ContentSection>
+
+					{/* Location Map Section */}
+					<ContentSection
+						title="Location Map"
+						description="View this location on the map and get directions">
+						{(location.address || location.latitude) && (
+							<div className="space-y-2">
+								<GoogleMap
+									latitude={location.latitude}
+									longitude={location.longitude}
+									address={
+										location.latitude ? undefined : getFullAddress(location)
+									}
+									height="300px"
+									className="w-full rounded-lg"
+									zoom={15}
+								/>
+								<Button
+									variant="outline"
+									className="w-full flex items-center justify-center gap-2"
+									onClick={() => {
+										const url =
+											location.latitude && location.longitude
+												? `https://www.google.com/maps/dir/?api=1&destination=${location.latitude},${location.longitude}`
+												: `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+														getFullAddress(location)
+												  )}`;
+										window.open(url, "_blank");
+									}}>
+									<Navigation className="h-4 w-4" />
+									Get Directions
+								</Button>
+							</div>
+						)}
+					</ContentSection>
+				</div>
+			</ContentContainer>
+		</>
 	);
 }

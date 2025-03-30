@@ -81,9 +81,7 @@ export function ContentSection({
 
 	if (flat) {
 		return (
-			<div className={cn("mb-6 space-y-4 px-4", className)}>
-				{sectionContent}
-			</div>
+			<div className={cn("mb-6 space-y-4", className)}>{sectionContent}</div>
 		);
 	}
 

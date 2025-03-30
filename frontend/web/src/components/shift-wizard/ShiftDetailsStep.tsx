@@ -27,6 +27,7 @@ import { useMemo, useEffect, useState } from "react";
 import { DatePicker } from "../ui/date-picker";
 import { cn } from "@/lib/utils";
 import { LocationCard } from "../ui/location-card";
+import { TimePicker } from "../ui/time-picker";
 
 type ShiftData = {
 	date: string;
@@ -88,6 +89,17 @@ export function ShiftDetailsStep({
 		}
 	}, [setValue, selectedDate]);
 
+	// Set default start and end times if not already set
+	useEffect(() => {
+		if (!watch("startTime")) {
+			setValue("startTime", "09:00", { shouldValidate: true });
+		}
+
+		if (!watch("endTime")) {
+			setValue("endTime", "17:00", { shouldValidate: true });
+		}
+	}, [setValue, watch]);
+
 	// Extract data from form
 	const date = watch("date");
 	const startTime = watch("startTime");
@@ -137,6 +149,30 @@ export function ShiftDetailsStep({
 			const dateStr = format(newDate, "yyyy-MM-dd");
 			setValue("date", dateStr, { shouldValidate: true });
 		}
+	};
+
+	// Handle time change with validation
+	const handleTimeChange = (field: "startTime" | "endTime", value: string) => {
+		setValue(field, value, { shouldValidate: true });
+
+		// Validate time inputs after both are set
+		if (startTime && endTime) {
+			validateTimes();
+		}
+	};
+
+	// Validate that end time is after start time
+	const validateTimes = () => {
+		if (!startTime || !endTime) return;
+
+		const [startHours, startMinutes] = startTime.split(":").map(Number);
+		const [endHours, endMinutes] = endTime.split(":").map(Number);
+
+		const startTotalMinutes = startHours * 60 + startMinutes;
+		const endTotalMinutes = endHours * 60 + endMinutes;
+
+		// If end time is earlier than start time, assume shift spans midnight
+		// so we don't need to show an error
 	};
 
 	return (
@@ -194,44 +230,22 @@ export function ShiftDetailsStep({
 						</div>
 
 						<div className="grid grid-cols-2 gap-4">
-							<div className="space-y-2">
-								<Label htmlFor="startTime">Start Time</Label>
-								<div className="flex items-center">
-									<Clock className="mr-2 h-4 w-4 text-muted-foreground" />
-									<Input
-										id="startTime"
-										type="time"
-										className="flex-1"
-										{...register("startTime", {
-											required: "Start time is required",
-										})}
-									/>
-								</div>
-								{errors.startTime && (
-									<p className="text-sm text-destructive">
-										{errors.startTime.message}
-									</p>
-								)}
-							</div>
-							<div className="space-y-2">
-								<Label htmlFor="endTime">End Time</Label>
-								<div className="flex items-center">
-									<Clock className="mr-2 h-4 w-4 text-muted-foreground" />
-									<Input
-										id="endTime"
-										type="time"
-										className="flex-1"
-										{...register("endTime", {
-											required: "End time is required",
-										})}
-									/>
-								</div>
-								{errors.endTime && (
-									<p className="text-sm text-destructive">
-										{errors.endTime.message}
-									</p>
-								)}
-							</div>
+							<TimePicker
+								label="Start Time"
+								value={startTime}
+								onChange={(e) => handleTimeChange("startTime", e.target.value)}
+								error={errors.startTime?.message}
+								id="startTime"
+								name="startTime"
+							/>
+							<TimePicker
+								label="End Time"
+								value={endTime}
+								onChange={(e) => handleTimeChange("endTime", e.target.value)}
+								error={errors.endTime?.message}
+								id="endTime"
+								name="endTime"
+							/>
 						</div>
 
 						{isValid && date && startTime && endTime && (

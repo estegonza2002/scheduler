@@ -1,12 +1,14 @@
-import { Plus, Edit, Trash } from "lucide-react";
+import { Plus, Edit, Trash, Lock } from "lucide-react";
 import { Button } from "../ui/button";
 import { Checkbox } from "../ui/checkbox";
-import { CheckInTask, CheckOutTask } from "../../api";
+import { ShiftTask } from "../../api";
 import { renderTaskDescription } from "../../utils/text-formatting";
+import { cn } from "../../lib/utils";
+import { Badge } from "../ui/badge";
 
 interface ShiftTasksProps {
-	checkInTasks: CheckInTask[];
-	checkOutTasks: CheckOutTask[];
+	checkInTasks: ShiftTask[];
+	checkOutTasks: ShiftTask[];
 	onCheckInTasksClick: () => void;
 	onCheckOutTasksClick: () => void;
 	onToggleTaskCompletion: (
@@ -29,7 +31,17 @@ export function ShiftTasks({
 	return (
 		<div className="mb-6">
 			<div className="flex items-center justify-between mb-4">
-				<h2 className="text-lg font-medium flex items-center">Shift Tasks</h2>
+				<h2 className="text-lg font-medium flex items-center">
+					Shift Tasks
+					{isCompleted && (
+						<Badge
+							variant="outline"
+							className="ml-2 bg-gray-100 text-gray-700">
+							<Lock className="h-3 w-3 mr-1" />
+							Locked
+						</Badge>
+					)}
+				</h2>
 			</div>
 
 			{/* Check-in Tasks Card */}
@@ -38,13 +50,15 @@ export function ShiftTasks({
 					<h3 className="text-base font-medium flex items-center">
 						Check-in Tasks
 					</h3>
-					<Button
-						variant="outline"
-						size="sm"
-						onClick={onCheckInTasksClick}
-						disabled={isCompleted}>
-						<Plus className="h-4 w-4 mr-1" /> Add Tasks
-					</Button>
+					{!isCompleted && (
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={onCheckInTasksClick}
+							disabled={isCompleted}>
+							<Plus className="h-4 w-4 mr-1" /> Add Tasks
+						</Button>
+					)}
 				</div>
 
 				{checkInTasks && checkInTasks.length > 0 ? (
@@ -70,33 +84,39 @@ export function ShiftTasks({
 													? "line-through text-muted-foreground"
 													: ""
 											}>
-											{renderTaskDescription(task.description)}
+											{renderTaskDescription(task.title)}
 										</span>
 									</div>
-									<div className="flex gap-1">
-										<Button
-											variant="ghost"
-											size="icon"
-											className="h-7 w-7 text-muted-foreground"
-											onClick={onCheckInTasksClick}
-											disabled={isCompleted}>
-											<Edit className="h-3.5 w-3.5" />
-										</Button>
-										<Button
-											variant="ghost"
-											size="icon"
-											className="h-7 w-7 text-muted-foreground hover:text-destructive"
-											onClick={() => onRemoveTask("checkIn", task.id)}
-											disabled={isCompleted}>
-											<Trash className="h-3.5 w-3.5" />
-										</Button>
-									</div>
+									{!isCompleted && (
+										<div className="flex gap-1">
+											<Button
+												variant="ghost"
+												size="icon"
+												className="h-7 w-7 text-muted-foreground"
+												onClick={onCheckInTasksClick}
+												disabled={isCompleted}>
+												<Edit className="h-3.5 w-3.5" />
+											</Button>
+											<Button
+												variant="ghost"
+												size="icon"
+												className="h-7 w-7 text-muted-foreground hover:text-destructive"
+												onClick={() => onRemoveTask("checkIn", task.id)}
+												disabled={isCompleted}>
+												<Trash className="h-3.5 w-3.5" />
+											</Button>
+										</div>
+									)}
 								</li>
 							))}
 						</ul>
 					</div>
 				) : (
-					<div className="bg-white border rounded-md p-6 text-center">
+					<div
+						className={cn(
+							"bg-white border rounded-md p-6 text-center",
+							isCompleted && "bg-gray-50"
+						)}>
 						<svg
 							xmlns="http://www.w3.org/2000/svg"
 							viewBox="0 0 24 24"
@@ -113,13 +133,17 @@ export function ShiftTasks({
 							No check-in tasks defined
 						</h3>
 						<p className="text-sm text-muted-foreground mb-4">
-							Add check-in tasks to track work needed at the start of a shift.
+							{isCompleted
+								? "This shift was completed without any check-in tasks."
+								: "Add check-in tasks to track work needed at the start of a shift."}
 						</p>
-						<Button
-							onClick={onCheckInTasksClick}
-							disabled={isCompleted}>
-							<Plus className="h-4 w-4 mr-2" /> Add check-in tasks
-						</Button>
+						{!isCompleted && (
+							<Button
+								onClick={onCheckInTasksClick}
+								disabled={isCompleted}>
+								<Plus className="h-4 w-4 mr-2" /> Add check-in tasks
+							</Button>
+						)}
 					</div>
 				)}
 			</div>
@@ -130,13 +154,15 @@ export function ShiftTasks({
 					<h3 className="text-base font-medium flex items-center">
 						Check-out Tasks
 					</h3>
-					<Button
-						variant="outline"
-						size="sm"
-						onClick={onCheckOutTasksClick}
-						disabled={isCompleted}>
-						<Plus className="h-4 w-4 mr-1" /> Add Tasks
-					</Button>
+					{!isCompleted && (
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={onCheckOutTasksClick}
+							disabled={isCompleted}>
+							<Plus className="h-4 w-4 mr-1" /> Add Tasks
+						</Button>
+					)}
 				</div>
 
 				{checkOutTasks && checkOutTasks.length > 0 ? (
@@ -162,33 +188,39 @@ export function ShiftTasks({
 													? "line-through text-muted-foreground"
 													: ""
 											}>
-											{renderTaskDescription(task.description)}
+											{renderTaskDescription(task.title)}
 										</span>
 									</div>
-									<div className="flex gap-1">
-										<Button
-											variant="ghost"
-											size="icon"
-											className="h-7 w-7 text-muted-foreground"
-											onClick={onCheckOutTasksClick}
-											disabled={isCompleted}>
-											<Edit className="h-3.5 w-3.5" />
-										</Button>
-										<Button
-											variant="ghost"
-											size="icon"
-											className="h-7 w-7 text-muted-foreground hover:text-destructive"
-											onClick={() => onRemoveTask("checkOut", task.id)}
-											disabled={isCompleted}>
-											<Trash className="h-3.5 w-3.5" />
-										</Button>
-									</div>
+									{!isCompleted && (
+										<div className="flex gap-1">
+											<Button
+												variant="ghost"
+												size="icon"
+												className="h-7 w-7 text-muted-foreground"
+												onClick={onCheckOutTasksClick}
+												disabled={isCompleted}>
+												<Edit className="h-3.5 w-3.5" />
+											</Button>
+											<Button
+												variant="ghost"
+												size="icon"
+												className="h-7 w-7 text-muted-foreground hover:text-destructive"
+												onClick={() => onRemoveTask("checkOut", task.id)}
+												disabled={isCompleted}>
+												<Trash className="h-3.5 w-3.5" />
+											</Button>
+										</div>
+									)}
 								</li>
 							))}
 						</ul>
 					</div>
 				) : (
-					<div className="bg-white border rounded-md p-6 text-center">
+					<div
+						className={cn(
+							"bg-white border rounded-md p-6 text-center",
+							isCompleted && "bg-gray-50"
+						)}>
 						<svg
 							xmlns="http://www.w3.org/2000/svg"
 							viewBox="0 0 24 24"
@@ -211,13 +243,17 @@ export function ShiftTasks({
 							No check-out tasks defined
 						</h3>
 						<p className="text-sm text-muted-foreground mb-4">
-							Add check-out tasks to track work needed at the end of a shift.
+							{isCompleted
+								? "This shift was completed without any check-out tasks."
+								: "Add check-out tasks to track work needed at the end of a shift."}
 						</p>
-						<Button
-							onClick={onCheckOutTasksClick}
-							disabled={isCompleted}>
-							<Plus className="h-4 w-4 mr-2" /> Add check-out tasks
-						</Button>
+						{!isCompleted && (
+							<Button
+								onClick={onCheckOutTasksClick}
+								disabled={isCompleted}>
+								<Plus className="h-4 w-4 mr-2" /> Add check-out tasks
+							</Button>
+						)}
 					</div>
 				)}
 			</div>

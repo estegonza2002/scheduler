@@ -254,201 +254,215 @@ export default function LocationShiftPage() {
 	}
 
 	return (
-		<ContentContainer>
+		<>
 			<LocationNav />
-			<div className="space-y-8 mt-6">
-				{/* Section to display upcoming shifts */}
-				<ContentSection
-					title="Upcoming Shifts"
-					description={`${upcomingShifts.length} shifts scheduled in the future`}>
-					{upcomingShifts.length > 0 ? (
-						<Card>
-							<Table>
-								<TableHeader>
-									<TableRow>
-										<TableHead>Date</TableHead>
-										<TableHead>Time</TableHead>
-										<TableHead>Employee</TableHead>
-										<TableHead>Hours</TableHead>
-										<TableHead>Status</TableHead>
-										<TableHead>Actions</TableHead>
-									</TableRow>
-								</TableHeader>
-								<TableBody>
-									{upcomingShifts.map((shift) => {
-										// Find employee for this shift
-										const employee = assignedEmployees.find(
-											(emp) => emp.id === shift.user_id
-										);
-
-										return (
-											<TableRow key={shift.id}>
-												<TableCell>
-													{format(parseISO(shift.start_time), "MMM dd, yyyy")}
-												</TableCell>
-												<TableCell>
-													{formatShiftTime(shift.start_time, shift.end_time)}
-												</TableCell>
-												<TableCell>{employee?.name || "Unassigned"}</TableCell>
-												<TableCell>
-													{calculateShiftHours(
-														shift.start_time,
-														shift.end_time
-													)}
-												</TableCell>
-												<TableCell>
-													<StatusBadge
-														status={
-															shift.status === "pending"
-																? "pending"
-																: shift.status === "completed"
-																? "success"
-																: "error"
-														}
-													/>
-												</TableCell>
-												<TableCell>
-													<Button
-														variant="outline"
-														size="sm"
-														onClick={() => navigate(`/shifts/${shift.id}`)}>
-														<Eye className="h-4 w-4 mr-2" /> View
-													</Button>
-												</TableCell>
-											</TableRow>
-										);
-									})}
-								</TableBody>
-							</Table>
-						</Card>
-					) : (
-						<Card className="text-center py-8 bg-muted/20">
-							<CardContent>
-								<p className="text-muted-foreground">
-									No upcoming shifts scheduled for this location.
-								</p>
-								<ShiftCreationSheet
-									scheduleId={locationId || ""}
-									organizationId="org-1"
-									initialLocationId={locationId || ""}
-									onComplete={() => {
-										// Refresh shifts after creation
-										ShiftsAPI.getAllSchedules().then((allShifts) => {
-											const locationShifts = allShifts.filter(
-												(shift) => shift.location_id === locationId
+			<ContentContainer>
+				<div className="space-y-8">
+					{/* Section to display upcoming shifts */}
+					<ContentSection
+						title="Upcoming Shifts"
+						description={`${upcomingShifts.length} shifts scheduled in the future`}>
+						{upcomingShifts.length > 0 ? (
+							<Card>
+								<Table>
+									<TableHeader>
+										<TableRow>
+											<TableHead>Date</TableHead>
+											<TableHead>Time</TableHead>
+											<TableHead>Employee</TableHead>
+											<TableHead>Hours</TableHead>
+											<TableHead>Status</TableHead>
+											<TableHead>Actions</TableHead>
+										</TableRow>
+									</TableHeader>
+									<TableBody>
+										{upcomingShifts.map((shift) => {
+											// Find employee for this shift
+											const employee = assignedEmployees.find(
+												(emp) => emp.id === shift.user_id
 											);
-											setShifts(locationShifts);
-											toast.success("Shift created successfully");
-										});
-									}}
-									trigger={
+
+											return (
+												<TableRow key={shift.id}>
+													<TableCell>
+														{format(parseISO(shift.start_time), "MMM dd, yyyy")}
+													</TableCell>
+													<TableCell>
+														{formatShiftTime(shift.start_time, shift.end_time)}
+													</TableCell>
+													<TableCell>
+														{employee?.name || "Unassigned"}
+													</TableCell>
+													<TableCell>
+														{calculateShiftHours(
+															shift.start_time,
+															shift.end_time
+														)}
+													</TableCell>
+													<TableCell>
+														<StatusBadge
+															status={
+																shift.status === "pending"
+																	? "pending"
+																	: shift.status === "completed"
+																	? "success"
+																	: "error"
+															}
+														/>
+													</TableCell>
+													<TableCell>
+														<Button
+															variant="outline"
+															size="sm"
+															onClick={() => navigate(`/shifts/${shift.id}`)}>
+															<Eye className="h-4 w-4 mr-2" /> View
+														</Button>
+													</TableCell>
+												</TableRow>
+											);
+										})}
+									</TableBody>
+								</Table>
+							</Card>
+						) : (
+							<Card className="text-center py-8 bg-muted/20">
+								<CardContent>
+									<p className="text-muted-foreground">
+										No upcoming shifts scheduled for this location.
+									</p>
+									<ShiftCreationSheet
+										scheduleId={locationId || ""}
+										organizationId="org-1"
+										initialLocationId={locationId || ""}
+										onComplete={() => {
+											// Refresh shifts after creation
+											ShiftsAPI.getAllSchedules().then((allShifts) => {
+												const locationShifts = allShifts.filter(
+													(shift) => shift.location_id === locationId
+												);
+												setShifts(locationShifts);
+												toast.success("Shift created successfully");
+											});
+										}}
+										trigger={
+											<Button
+												variant="outline"
+												className="mt-4">
+												<Calendar className="h-4 w-4 mr-2" /> Schedule a Shift
+											</Button>
+										}
+									/>
+								</CardContent>
+							</Card>
+						)}
+					</ContentSection>
+
+					{/* Past shifts section */}
+					<ContentSection
+						title="Past Shifts"
+						description={`${pastShifts.length} shifts completed or missed`}>
+						{pastShifts.length > 0 ? (
+							<Card>
+								<CardHeader className="p-4 pb-0">
+									<div className="relative mb-2">
+										<Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+										<Input
+											placeholder="Search past shifts..."
+											className="pl-8"
+											value={searchQuery}
+											onChange={(e) => setSearchQuery(e.target.value)}
+										/>
+									</div>
+								</CardHeader>
+								<Table>
+									<TableHeader>
+										<TableRow>
+											<TableHead>Date</TableHead>
+											<TableHead>Time</TableHead>
+											<TableHead>Employee</TableHead>
+											<TableHead>Hours</TableHead>
+											<TableHead>Status</TableHead>
+											<TableHead>Actions</TableHead>
+										</TableRow>
+									</TableHeader>
+									<TableBody>
+										{filteredPastShifts
+											.slice(0, pastShiftsLimit)
+											.map((shift) => {
+												// Find employee for this shift
+												const employee = assignedEmployees.find(
+													(emp) => emp.id === shift.user_id
+												);
+
+												return (
+													<TableRow key={shift.id}>
+														<TableCell>
+															{format(
+																parseISO(shift.start_time),
+																"MMM dd, yyyy"
+															)}
+														</TableCell>
+														<TableCell>
+															{formatShiftTime(
+																shift.start_time,
+																shift.end_time
+															)}
+														</TableCell>
+														<TableCell>
+															{employee?.name || "Unassigned"}
+														</TableCell>
+														<TableCell>
+															{calculateShiftHours(
+																shift.start_time,
+																shift.end_time
+															)}
+														</TableCell>
+														<TableCell>
+															<StatusBadge
+																status={
+																	shift.status === "pending"
+																		? "pending"
+																		: shift.status === "completed"
+																		? "success"
+																		: "error"
+																}
+															/>
+														</TableCell>
+														<TableCell>
+															<Button
+																variant="outline"
+																size="sm"
+																onClick={() => navigate(`/shifts/${shift.id}`)}>
+																<Eye className="h-4 w-4 mr-2" /> View
+															</Button>
+														</TableCell>
+													</TableRow>
+												);
+											})}
+									</TableBody>
+								</Table>
+								{filteredPastShifts.length > pastShiftsLimit && (
+									<div className="p-4 flex justify-center">
 										<Button
 											variant="outline"
-											className="mt-4">
-											<Calendar className="h-4 w-4 mr-2" /> Schedule a Shift
+											onClick={() => setPastShiftsLimit((prev) => prev + 10)}>
+											Load More Shifts
 										</Button>
-									}
-								/>
-							</CardContent>
-						</Card>
-					)}
-				</ContentSection>
-
-				{/* Past shifts section */}
-				<ContentSection
-					title="Past Shifts"
-					description={`${pastShifts.length} shifts completed or missed`}>
-					{pastShifts.length > 0 ? (
-						<Card>
-							<CardHeader className="p-4 pb-0">
-								<div className="relative mb-2">
-									<Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-									<Input
-										placeholder="Search past shifts..."
-										className="pl-8"
-										value={searchQuery}
-										onChange={(e) => setSearchQuery(e.target.value)}
-									/>
-								</div>
-							</CardHeader>
-							<Table>
-								<TableHeader>
-									<TableRow>
-										<TableHead>Date</TableHead>
-										<TableHead>Time</TableHead>
-										<TableHead>Employee</TableHead>
-										<TableHead>Hours</TableHead>
-										<TableHead>Status</TableHead>
-										<TableHead>Actions</TableHead>
-									</TableRow>
-								</TableHeader>
-								<TableBody>
-									{filteredPastShifts.slice(0, pastShiftsLimit).map((shift) => {
-										// Find employee for this shift
-										const employee = assignedEmployees.find(
-											(emp) => emp.id === shift.user_id
-										);
-
-										return (
-											<TableRow key={shift.id}>
-												<TableCell>
-													{format(parseISO(shift.start_time), "MMM dd, yyyy")}
-												</TableCell>
-												<TableCell>
-													{formatShiftTime(shift.start_time, shift.end_time)}
-												</TableCell>
-												<TableCell>{employee?.name || "Unassigned"}</TableCell>
-												<TableCell>
-													{calculateShiftHours(
-														shift.start_time,
-														shift.end_time
-													)}
-												</TableCell>
-												<TableCell>
-													<StatusBadge
-														status={
-															shift.status === "pending"
-																? "pending"
-																: shift.status === "completed"
-																? "success"
-																: "error"
-														}
-													/>
-												</TableCell>
-												<TableCell>
-													<Button
-														variant="outline"
-														size="sm"
-														onClick={() => navigate(`/shifts/${shift.id}`)}>
-														<Eye className="h-4 w-4 mr-2" /> View
-													</Button>
-												</TableCell>
-											</TableRow>
-										);
-									})}
-								</TableBody>
-							</Table>
-							{filteredPastShifts.length > pastShiftsLimit && (
-								<div className="p-4 flex justify-center">
-									<Button
-										variant="outline"
-										onClick={() => setPastShiftsLimit((prev) => prev + 10)}>
-										Load More Shifts
-									</Button>
-								</div>
-							)}
-						</Card>
-					) : (
-						<Card className="text-center py-8 bg-muted/20">
-							<CardContent>
-								<p className="text-muted-foreground">
-									No shift history available for this location.
-								</p>
-							</CardContent>
-						</Card>
-					)}
-				</ContentSection>
-			</div>
-		</ContentContainer>
+									</div>
+								)}
+							</Card>
+						) : (
+							<Card className="text-center py-8 bg-muted/20">
+								<CardContent>
+									<p className="text-muted-foreground">
+										No shift history available for this location.
+									</p>
+								</CardContent>
+							</Card>
+						)}
+					</ContentSection>
+				</div>
+			</ContentContainer>
+		</>
 	);
 }

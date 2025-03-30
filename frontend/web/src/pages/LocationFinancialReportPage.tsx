@@ -225,89 +225,93 @@ export default function LocationFinancialReportPage() {
 	}
 
 	return (
-		<ContentContainer>
+		<>
 			<LocationNav />
-			<div className="grid gap-8 mt-6">
-				{/* Financial Reports */}
-				<ContentSection
-					title="Financial Reports"
-					description="Select a financial report to view detailed information"
-					className="print:hidden">
-					<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-						<Card>
-							<CardHeader>
-								<CardTitle>Profit & Loss</CardTitle>
-								<CardDescription>
-									Detailed P&L statements with monthly comparison
-								</CardDescription>
-							</CardHeader>
-							<CardContent>
-								<Button
-									variant="default"
-									className="w-full"
-									onClick={() =>
-										navigate(`/locations/${locationId}/financial/profit-loss`)
-									}>
-									<FileBarChart className="h-5 w-5 mr-2" />
-									View Report
-								</Button>
-							</CardContent>
-						</Card>
+			<ContentContainer>
+				<div className="grid gap-8">
+					{/* Financial Reports */}
+					<ContentSection
+						title="Financial Reports"
+						description="Select a financial report to view detailed information"
+						className="print:hidden">
+						<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+							<Card>
+								<CardHeader>
+									<CardTitle>Profit & Loss</CardTitle>
+									<CardDescription>
+										Detailed P&L statements with monthly comparison
+									</CardDescription>
+								</CardHeader>
+								<CardContent>
+									<Button
+										variant="default"
+										className="w-full"
+										onClick={() =>
+											navigate(`/locations/${locationId}/financial/profit-loss`)
+										}>
+										<FileBarChart className="h-5 w-5 mr-2" />
+										View Report
+									</Button>
+								</CardContent>
+							</Card>
 
-						<Card>
-							<CardHeader>
-								<CardTitle>Cost vs Revenue</CardTitle>
-								<CardDescription>
-									Track all expenses against revenue streams
-								</CardDescription>
-							</CardHeader>
-							<CardContent>
-								<Button
-									variant="default"
-									className="w-full"
-									onClick={() =>
-										navigate(`/locations/${locationId}/financial/cost-revenue`)
-									}>
-									<FilePieChart className="h-5 w-5 mr-2" />
-									View Report
-								</Button>
-							</CardContent>
-						</Card>
+							<Card>
+								<CardHeader>
+									<CardTitle>Cost vs Revenue</CardTitle>
+									<CardDescription>
+										Track all expenses against revenue streams
+									</CardDescription>
+								</CardHeader>
+								<CardContent>
+									<Button
+										variant="default"
+										className="w-full"
+										onClick={() =>
+											navigate(
+												`/locations/${locationId}/financial/cost-revenue`
+											)
+										}>
+										<FilePieChart className="h-5 w-5 mr-2" />
+										View Report
+									</Button>
+								</CardContent>
+							</Card>
 
-						<Card>
-							<CardHeader>
-								<CardTitle>Financial Forecasting</CardTitle>
-								<CardDescription>
-									Predictive analytics and future projections
-								</CardDescription>
-							</CardHeader>
-							<CardContent>
-								<Button
-									variant="default"
-									className="w-full"
-									onClick={() =>
-										navigate(`/locations/${locationId}/financial/forecasting`)
-									}>
-									<DollarSign className="h-5 w-5 mr-2" />
-									View Report
-								</Button>
-							</CardContent>
-						</Card>
-					</div>
-				</ContentSection>
+							<Card>
+								<CardHeader>
+									<CardTitle>Financial Forecasting</CardTitle>
+									<CardDescription>
+										Predictive analytics and future projections
+									</CardDescription>
+								</CardHeader>
+								<CardContent>
+									<Button
+										variant="default"
+										className="w-full"
+										onClick={() =>
+											navigate(`/locations/${locationId}/financial/forecasting`)
+										}>
+										<DollarSign className="h-5 w-5 mr-2" />
+										View Report
+									</Button>
+								</CardContent>
+							</Card>
+						</div>
+					</ContentSection>
 
-				{/* Financial Summary */}
-				<ContentSection
-					title="Financial Summary"
-					description="Current financial metrics and performance data"
-					className="print:py-4">
-					<LocationFinancialReport
-						location={location}
-						shifts={shifts}
-						employees={assignedEmployees}
-					/>
-				</ContentSection>
-			</div>
-		</ContentContainer>
+					{/* Financial Summary */}
+					<ContentSection
+						title="Financial Summary"
+						description="Current financial metrics and performance data"
+						className="print:py-4">
+						<LocationFinancialReport
+							location={location}
+							shifts={shifts}
+							employees={assignedEmployees}
+						/>
+					</ContentSection>
+				</div>
+			</ContentContainer>
+		</>
 	);
 }

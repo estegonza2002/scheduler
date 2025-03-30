@@ -1,7 +1,9 @@
-import { Users, Plus } from "lucide-react";
+import { Users, Plus, Lock } from "lucide-react";
 import { Button } from "../ui/button";
 import { AssignedEmployee } from "../../types/shift-types";
 import { ShiftEmployeeCard } from "./ShiftEmployeeCard";
+import { cn } from "../../lib/utils";
+import { Badge } from "../ui/badge";
 
 interface EmployeesSectionProps {
 	assignedEmployees: AssignedEmployee[];
@@ -29,18 +31,32 @@ export function EmployeesSection({
 				<h2 className="text-lg font-medium flex items-center">
 					<Users className="mr-2 h-5 w-5 text-muted-foreground" />
 					Employees ({assignedEmployees.length})
+					{isCompleted && (
+						<Badge
+							variant="outline"
+							className="ml-2 bg-gray-100 text-gray-700">
+							<Lock className="h-3 w-3 mr-1" />
+							Locked
+						</Badge>
+					)}
 				</h2>
-				<Button
-					variant="default"
-					size="sm"
-					disabled={availableEmployees.length === 0}
-					onClick={onAssignClick}>
-					<Plus className="h-4 w-4 mr-1" /> Assign
-				</Button>
+				{!isCompleted && (
+					<Button
+						variant="default"
+						size="sm"
+						disabled={availableEmployees.length === 0}
+						onClick={onAssignClick}>
+						<Plus className="h-4 w-4 mr-1" /> Assign
+					</Button>
+				)}
 			</div>
 
 			{assignedEmployees.length === 0 ? (
-				<div className="bg-white border rounded-md p-6 text-center">
+				<div
+					className={cn(
+						"bg-white border rounded-md p-6 text-center",
+						isCompleted && "bg-gray-50"
+					)}>
 					<svg
 						xmlns="http://www.w3.org/2000/svg"
 						viewBox="0 0 24 24"
@@ -55,13 +71,17 @@ export function EmployeesSection({
 					</svg>
 					<h3 className="text-base font-medium mb-1">No employees assigned</h3>
 					<p className="text-sm text-muted-foreground mb-4">
-						Assign employees to this shift to manage staffing.
+						{isCompleted
+							? "This shift was completed without any assigned employees."
+							: "Assign employees to this shift to manage staffing."}
 					</p>
-					<Button
-						disabled={availableEmployees.length === 0}
-						onClick={onAssignClick}>
-						<Plus className="h-4 w-4 mr-2" /> Assign Employee
-					</Button>
+					{!isCompleted && (
+						<Button
+							disabled={availableEmployees.length === 0}
+							onClick={onAssignClick}>
+							<Plus className="h-4 w-4 mr-2" /> Assign Employee
+						</Button>
+					)}
 				</div>
 			) : (
 				<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
@@ -72,6 +92,7 @@ export function EmployeesSection({
 							onRemove={onRemoveEmployeeClick}
 							shiftStartTime={shift.start_time}
 							shiftEndTime={shift.end_time}
+							isCompleted={isCompleted}
 						/>
 					))}
 				</div>
