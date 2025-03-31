@@ -23,6 +23,7 @@ import {
 	Trash,
 	User,
 	PlusCircle,
+	Upload,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -44,7 +45,7 @@ import { ColumnDef } from "@tanstack/react-table";
 
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingState } from "@/components/ui/loading-state";
-import { LocationCreationSheet } from "@/components/LocationCreationSheet";
+import { LocationDialog } from "@/components/LocationDialog";
 import { useHeader } from "@/lib/header-context";
 
 import { ContentContainer } from "@/components/ui/content-container";
@@ -97,21 +98,29 @@ export default function LocationsPage() {
 			title: "Locations",
 			description: "Manage your organization's locations",
 			actions: (
-				<LocationCreationSheet
-					organizationId={organizationId}
-					onLocationCreated={(newLocation) =>
-						handleLocationsAdded([newLocation])
-					}
-					trigger={
-						<Button>
-							<PlusCircle className="h-4 w-4 mr-2" />
-							Add Location
-						</Button>
-					}
-				/>
+				<div className="flex space-x-2">
+					<Button
+						variant="outline"
+						onClick={() => navigate("/locations/bulk-import")}>
+						<Upload className="h-4 w-4 mr-2" />
+						Bulk Import
+					</Button>
+					<LocationDialog
+						organizationId={organizationId}
+						onLocationCreated={(newLocation) =>
+							handleLocationsAdded([newLocation])
+						}
+						trigger={
+							<Button>
+								<PlusCircle className="h-4 w-4 mr-2" />
+								Add Location
+							</Button>
+						}
+					/>
+				</div>
 			),
 		});
-	}, [updateHeader, organizationId, handleLocationsAdded]);
+	}, [updateHeader, organizationId, handleLocationsAdded, navigate]);
 
 	// Fetch data
 	const fetchData = async () => {
@@ -326,7 +335,7 @@ export default function LocationsPage() {
 							description="Start by adding locations to your organization"
 							icon={<MapPin className="h-10 w-10" />}
 							action={
-								<LocationCreationSheet
+								<LocationDialog
 									organizationId={organizationId}
 									onLocationCreated={(newLocation) =>
 										handleLocationsAdded([newLocation])

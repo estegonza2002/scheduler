@@ -24,13 +24,14 @@ import { ScrollArea } from "../ui/scroll-area";
 import { cn } from "../../lib/utils";
 import { useOnboarding, OnboardingStep } from "../../lib/onboarding-context";
 import { useAuth } from "../../lib/auth";
-import { LocationFormDialog } from "../LocationFormDialog";
+import { LocationDialog } from "../LocationDialog";
 import { EmployeeDialog } from "../EmployeeDialog";
 import { ShiftCreationSheet } from "../ShiftCreationSheet";
 import { Badge } from "../ui/badge";
 import React from "react";
 import { ShiftsAPI, SchedulesAPI, ScheduleCreateInput } from "@/api";
 import { useOrganizationId } from "@/hooks/useOrganizationId";
+import { EmployeesAPI } from "@/api";
 
 /**
  * Onboarding Modal to guide new operators through their initial setup
@@ -560,18 +561,31 @@ export function OnboardingModal() {
 			</Dialog>
 
 			{/* Additional UI components for each step, opened as needed */}
-			<LocationFormDialog
-				mode="add"
+			<LocationDialog
 				organizationId={organizationId || ""}
 				open={locationSheetOpen}
 				onOpenChange={setLocationSheetOpen}
-				onSuccess={handleLocationCreated}
+				onLocationCreated={handleLocationCreated}
 			/>
 
 			<EmployeeDialog
-				organizationId={organizationId || ""}
-				trigger={<></>}
-				onEmployeeUpdated={handleEmployeesAdded}
+				open={employeeDialogOpen}
+				onOpenChange={setEmployeeDialogOpen}
+				onSubmit={async (data) => {
+					try {
+						const newEmployee = await EmployeesAPI.create({
+							...data,
+							organizationId: organizationId || "",
+							position: data.position || "Employee",
+							status: "invited",
+							isOnline: false,
+							lastActive: new Date().toISOString(),
+						});
+						handleEmployeesAdded();
+					} catch (error) {
+						console.error("Error creating employee:", error);
+					}
+				}}
 			/>
 		</>
 	);

@@ -26,7 +26,7 @@ import { ContentContainer } from "@/components/ui/content-container";
 import { ContentSection } from "@/components/ui/content-section";
 import { EmployeeDialog } from "@/components/EmployeeDialog";
 import { ShiftCreationSheet } from "@/components/ShiftCreationSheet";
-import { LocationCreationSheet } from "@/components/LocationCreationSheet";
+import { LocationDialog } from "@/components/LocationDialog";
 import { useOnboarding } from "@/lib/onboarding-context";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -312,8 +312,8 @@ export default function AdminDashboardPage() {
 										const newEmployee = await EmployeesAPI.create({
 											...data,
 											organizationId: organization.id,
-											role: "employee",
-											status: "active",
+											position: data.position || "Employee",
+											status: "invited",
 											isOnline: false,
 											lastActive: new Date().toISOString(),
 										});
@@ -324,7 +324,7 @@ export default function AdminDashboardPage() {
 						</>
 					)}
 					{organization && (
-						<LocationCreationSheet
+						<LocationDialog
 							organizationId={organization.id}
 							onLocationCreated={handleLocationCreated}
 							trigger={

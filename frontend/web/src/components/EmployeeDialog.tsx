@@ -43,19 +43,6 @@ import {
 // Define available positions
 const POSITIONS = ["Manager", "Staff"];
 
-type WizardStep =
-	| "basic-information"
-	| "contact-information"
-	| "employment-details"
-	| "additional-information";
-
-const STEPS = [
-	{ title: "Basic Information", step: "basic-information" as const },
-	{ title: "Contact Information", step: "contact-information" as const },
-	{ title: "Employment Details", step: "employment-details" as const },
-	{ title: "Additional Information", step: "additional-information" as const },
-] as const;
-
 interface EmployeeDialogProps {
 	employee?: Employee;
 	open?: boolean;
@@ -69,11 +56,7 @@ export function EmployeeDialog({
 	employee,
 	onSubmit,
 }: EmployeeDialogProps) {
-	const [step, setStep] = useState<WizardStep>("basic-information");
 	const [isSubmitting, setIsSubmitting] = useState(false);
-	const currentStepIndex = STEPS.findIndex((s) => s.step === step);
-	const isFirstStep = currentStepIndex === 0;
-	const isLastStep = currentStepIndex === STEPS.length - 1;
 
 	const form = useForm<Employee>({
 		resolver: zodResolver(employeeSchema),
@@ -85,12 +68,12 @@ export function EmployeeDialog({
 			phone: employee?.phone || "",
 			address: employee?.address || "",
 			position: employee?.position || "",
-			hourlyRate: employee?.hourlyRate || 0,
+			hourlyRate: employee?.hourlyRate ?? 0,
 			hireDate: employee?.hireDate || "",
 			emergencyContact: employee?.emergencyContact || "",
 			notes: employee?.notes || "",
 			avatar: employee?.avatar,
-			status: employee?.status,
+			status: employee?.status || "invited",
 			isOnline: employee?.isOnline,
 			lastActive: employee?.lastActive,
 			custom_properties: employee?.custom_properties,
@@ -98,6 +81,8 @@ export function EmployeeDialog({
 	});
 
 	const handleSubmit = async (data: Employee) => {
+		console.log("Form submission with data:", data);
+
 		// Sanitize the data to prevent empty string date fields
 		const sanitizedData = {
 			...data,
@@ -105,231 +90,18 @@ export function EmployeeDialog({
 				data.hireDate && data.hireDate.trim() !== ""
 					? data.hireDate
 					: undefined,
+			// Ensure new employees have invited status
+			status: employee ? data.status : "invited",
 		};
 
-		if (isLastStep) {
-			setIsSubmitting(true);
-			try {
-				await onSubmit(sanitizedData);
-				onOpenChange?.(false);
-			} finally {
-				setIsSubmitting(false);
-			}
-		} else {
-			// Validate required fields for the current step
-			const errors = await form.trigger();
-			if (errors) {
-				setStep(STEPS[currentStepIndex + 1].step);
-			}
-			// If validation fails, the form will show error messages
-		}
-	};
-
-	const renderStepContent = () => {
-		switch (step) {
-			case "basic-information":
-				return (
-					<FormSection className="my-6">
-						<FormField
-							control={form.control}
-							name="name"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>
-										Full Name <span className="text-destructive">*</span>
-									</FormLabel>
-									<FormControl>
-										<Input
-											placeholder="John Doe"
-											{...field}
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-
-						<FormField
-							control={form.control}
-							name="email"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>
-										Email <span className="text-destructive">*</span>
-									</FormLabel>
-									<FormControl>
-										<Input
-											type="email"
-											placeholder="john@example.com"
-											{...field}
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-					</FormSection>
-				);
-
-			case "contact-information":
-				return (
-					<FormSection className="my-6">
-						<FormField
-							control={form.control}
-							name="phone"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Phone Number</FormLabel>
-									<FormControl>
-										<FormPhoneInput
-											placeholder="Enter phone number"
-											{...field}
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-
-						<FormField
-							control={form.control}
-							name="address"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Address</FormLabel>
-									<FormControl>
-										<Input
-											placeholder="123 Main St, City, State"
-											{...field}
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-					</FormSection>
-				);
-
-			case "employment-details":
-				return (
-					<FormSection className="my-6">
-						<FormField
-							control={form.control}
-							name="position"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Position</FormLabel>
-									<FormControl>
-										<Select
-											onValueChange={field.onChange}
-											value={field.value || ""}>
-											<SelectTrigger className="w-full">
-												<SelectValue placeholder="Select a position" />
-											</SelectTrigger>
-											<SelectContent>
-												{POSITIONS.map((position) => (
-													<SelectItem
-														key={position}
-														value={position}>
-														{position}
-													</SelectItem>
-												))}
-											</SelectContent>
-										</Select>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-
-						<FormField
-							control={form.control}
-							name="hourlyRate"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Hourly Rate ($)</FormLabel>
-									<FormControl>
-										<Input
-											type="number"
-											step="0.01"
-											min="0"
-											placeholder="15.50"
-											{...field}
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-
-						<FormField
-							control={form.control}
-							name="hireDate"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Hire Date</FormLabel>
-									<FormControl>
-										<Input
-											type="date"
-											{...field}
-											value={field.value || ""}
-										/>
-									</FormControl>
-									<FormDescription className="text-xs">
-										Leave blank if not applicable.
-									</FormDescription>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-					</FormSection>
-				);
-
-			case "additional-information":
-				return (
-					<FormSection className="my-6">
-						<FormField
-							control={form.control}
-							name="emergencyContact"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Emergency Contact</FormLabel>
-									<FormDescription>
-										Name, relationship, and phone number of emergency contact
-									</FormDescription>
-									<FormControl>
-										<Input
-											placeholder="Jane Doe (Spouse) - 555-789-1234"
-											{...field}
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-
-						<FormField
-							control={form.control}
-							name="notes"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Notes</FormLabel>
-									<FormDescription>
-										Any additional information about this employee
-									</FormDescription>
-									<FormControl>
-										<Textarea
-											placeholder="Additional information about this employee..."
-											className="h-24"
-											{...field}
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-					</FormSection>
-				);
+		setIsSubmitting(true);
+		try {
+			await onSubmit(sanitizedData);
+			onOpenChange?.(false);
+		} catch (error) {
+			console.error("Error submitting form:", error);
+		} finally {
+			setIsSubmitting(false);
 		}
 	};
 
@@ -338,49 +110,222 @@ export function EmployeeDialog({
 			open={open}
 			onOpenChange={onOpenChange}>
 			<DialogTrigger asChild>{/* Trigger content */}</DialogTrigger>
-			<DialogContent>
+			<DialogContent className="max-h-[90vh] overflow-y-auto">
 				<Form {...form}>
 					<form onSubmit={form.handleSubmit(handleSubmit)}>
 						<DialogHeader>
 							<DialogTitle>
 								{employee ? "Edit Employee" : "Add New Employee"}
 							</DialogTitle>
-							<UiDialogDescription>
-								{STEPS[currentStepIndex].title} - Step {currentStepIndex + 1} of{" "}
-								{STEPS.length}
-							</UiDialogDescription>
 						</DialogHeader>
 
-						{renderStepContent()}
+						{/* Basic Information */}
+						<FormSection className="mt-6 mb-4">
+							<FormField
+								control={form.control}
+								name="name"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>
+											Full Name <span className="text-destructive">*</span>
+										</FormLabel>
+										<FormControl>
+											<Input
+												placeholder="John Doe"
+												{...field}
+											/>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
 
-						<UiDialogFooter>
-							<div className="flex w-full justify-between">
-								<Button
-									type="button"
-									variant="outline"
-									onClick={() => {
-										if (!isFirstStep) {
-											setStep(STEPS[currentStepIndex - 1].step);
-										}
-									}}
-									disabled={isFirstStep}>
-									Back
-								</Button>
-								<div className="flex space-x-2">
-									{!isLastStep ? (
-										<Button type="submit">Next</Button>
-									) : (
-										<Button
-											type="submit"
-											disabled={isSubmitting}>
-											{isSubmitting && (
-												<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-											)}
-											{employee ? "Save Changes" : "Add Employee"}
-										</Button>
-									)}
-								</div>
-							</div>
+							<FormField
+								control={form.control}
+								name="email"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>
+											Email <span className="text-destructive">*</span>
+										</FormLabel>
+										<FormControl>
+											<Input
+												type="email"
+												placeholder="john@example.com"
+												{...field}
+											/>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						</FormSection>
+
+						{/* Contact Information */}
+						<FormSection className="mb-4">
+							<FormField
+								control={form.control}
+								name="phone"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Phone Number</FormLabel>
+										<FormControl>
+											<FormPhoneInput
+												placeholder="Enter phone number"
+												{...field}
+											/>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+
+							<FormField
+								control={form.control}
+								name="address"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Address</FormLabel>
+										<FormControl>
+											<Input
+												placeholder="123 Main St, City, State"
+												autoComplete="new-address"
+												{...field}
+											/>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						</FormSection>
+
+						{/* Employment Details */}
+						<FormSection className="mb-4">
+							<FormField
+								control={form.control}
+								name="position"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Position</FormLabel>
+										<FormControl>
+											<Select
+												onValueChange={field.onChange}
+												value={field.value || ""}>
+												<SelectTrigger className="w-full">
+													<SelectValue placeholder="Select a position" />
+												</SelectTrigger>
+												<SelectContent>
+													{POSITIONS.map((position) => (
+														<SelectItem
+															key={position}
+															value={position}>
+															{position}
+														</SelectItem>
+													))}
+												</SelectContent>
+											</Select>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+
+							<FormField
+								control={form.control}
+								name="hourlyRate"
+								render={({ field: { onChange, value, ...fieldProps } }) => (
+									<FormItem>
+										<FormLabel>Hourly Rate ($)</FormLabel>
+										<FormControl>
+											<Input
+												type="number"
+												step="0.01"
+												min="0"
+												placeholder="15.50"
+												onChange={(e) => {
+													const val = e.target.value;
+													onChange(val === "" ? 0 : parseFloat(val));
+												}}
+												value={value === 0 ? "" : value}
+												{...fieldProps}
+											/>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+
+							<FormField
+								control={form.control}
+								name="hireDate"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Hire Date</FormLabel>
+										<FormControl>
+											<Input
+												type="date"
+												{...field}
+												value={field.value || ""}
+											/>
+										</FormControl>
+										<FormDescription className="text-xs">
+											Leave blank if not applicable.
+										</FormDescription>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						</FormSection>
+
+						{/* Additional Information */}
+						<FormSection className="mb-4">
+							<FormField
+								control={form.control}
+								name="emergencyContact"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Emergency Contact</FormLabel>
+
+										<FormControl>
+											<Input
+												placeholder="Jane Doe (Spouse) - 555-789-1234"
+												{...field}
+											/>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+
+							<FormField
+								control={form.control}
+								name="notes"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Notes</FormLabel>
+
+										<FormControl>
+											<Textarea
+												placeholder="Additional information about this employee..."
+												className="h-24"
+												{...field}
+											/>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						</FormSection>
+
+						<UiDialogFooter className="mt-6">
+							<Button
+								type="submit"
+								disabled={isSubmitting}>
+								{isSubmitting && (
+									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+								)}
+								{employee ? "Save Changes" : "Add Employee"}
+							</Button>
 						</UiDialogFooter>
 					</form>
 				</Form>

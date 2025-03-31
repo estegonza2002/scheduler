@@ -197,22 +197,59 @@ export function LocationFormDialog({
 	};
 
 	const handlePlaceSelect = (place: GooglePlaceResult) => {
-		form.setValue("address", place.address);
-		form.setValue("city", place.city);
-		form.setValue("state", place.state);
-		form.setValue("zipCode", place.zipCode);
+		// First save the current form values
+		const currentValues = form.getValues();
 
-		// Store coordinates
+		// Update form with address information
+		const formData = {
+			...currentValues,
+			address: place.address || "",
+			city: place.city || "",
+			state: place.state || "",
+			zipCode: place.zipCode || "",
+		};
+
+		// Build a display string for the address to compare with name
+		let addressDisplay = place.address || "";
+		if (place.city)
+			addressDisplay += place.address ? `, ${place.city}` : place.city;
+		if (place.state) addressDisplay += `, ${place.state}`;
+		if (place.zipCode) addressDisplay += ` ${place.zipCode}`;
+
+		// Better business name detection
+		const placeName = place.name || "";
+		const placeAddress = place.address || "";
+		const isLikelyBusinessName =
+			!!placeName &&
+			placeName !== placeAddress &&
+			placeName !== addressDisplay &&
+			// Sometimes the name might be just part of the address (like the street name)
+			// So check if the name is not contained in the address
+			!placeAddress.includes(placeName) &&
+			!addressDisplay.includes(placeName);
+
+		console.log("Place selected:", {
+			name: place.name,
+			address: place.address,
+			addressDisplay,
+			isLikelyBusinessName,
+		});
+
+		// Only prepopulate the name field if it's likely a business name and name field is empty
+		if (isLikelyBusinessName && !currentValues.name) {
+			console.log("Using business name for location name:", placeName);
+			formData.name = placeName;
+		}
+
+		// Add coordinates if available
 		if (place.latitude && place.longitude) {
-			form.setValue("latitude", place.latitude);
-			form.setValue("longitude", place.longitude);
+			formData.latitude = place.latitude;
+			formData.longitude = place.longitude;
 			setShowMap(true);
 		}
 
-		// If no name is set yet and we're in add mode, use the address as the name
-		if (mode === "add" && !form.getValues("name") && place.address) {
-			form.setValue("name", place.address);
-		}
+		// Update the form with all values at once
+		form.reset(formData);
 	};
 
 	// Generate a default value for Google Places Autocomplete

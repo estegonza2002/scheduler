@@ -1,0 +1,554 @@
+import { useState, useCallback, useEffect } from "react";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Location, LocationsAPI } from "@/api";
+import {
+	Form,
+	FormControl,
+	FormDescription,
+	FormField,
+	FormItem,
+	FormLabel,
+	FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "sonner";
+import {
+	GooglePlacesAutocomplete,
+	GooglePlaceResult,
+} from "./GooglePlacesAutocomplete";
+import { isValidPhoneNumber } from "react-phone-number-input";
+import { FormPhoneInput } from "@/components/ui/form-phone-input";
+import { GoogleMap } from "@/components/ui/google-map";
+import { X } from "lucide-react";
+
+// Extended Location type to include optional fields
+interface ExtendedLocation extends Location {
+	phone?: string;
+	email?: string;
+	country?: string;
+	latitude?: number;
+	longitude?: number;
+	imageUrl?: string;
+}
+
+// Extend GooglePlaceResult to include country if needed
+interface ExtendedGooglePlaceResult extends GooglePlaceResult {
+	country?: string;
+	latitude?: number;
+	longitude?: number;
+	name?: string;
+	hasValidAddress?: boolean;
+}
+
+// Form schema
+const formSchema = z.object({
+	name: z.string().min(1, "Location name is required"),
+	address: z.string().optional(),
+	city: z.string().optional(),
+	state: z.string().optional(),
+	zipCode: z.string().optional(),
+	country: z.string().optional(),
+	latitude: z.number().optional(),
+	longitude: z.number().optional(),
+	isActive: z.boolean().default(true),
+	phone: z
+		.string()
+		.optional()
+		.refine(
+			(val) => !val || isValidPhoneNumber(val),
+			"Please enter a valid phone number"
+		),
+	email: z.string().optional().or(z.literal("")),
+	imageUrl: z.string().optional(),
+});
+
+type FormValues = z.infer<typeof formSchema>;
+
+/**
+ * Props for the LocationDialog component
+ */
+interface LocationDialogProps {
+	/**
+	 * The organization ID to create the location in
+	 */
+	organizationId: string;
+	/**
+	 * Callback fired when location is created
+	 */
+	onLocationCreated?: (location: ExtendedLocation) => void;
+	/**
+	 * Optional custom trigger element
+	 */
+	trigger?: React.ReactNode;
+	/**
+	 * Controls whether the dialog is open
+	 */
+	open?: boolean;
+	/**
+	 * Callback fired when the open state changes
+	 */
+	onOpenChange?: (open: boolean) => void;
+	/**
+	 * Optional additional className for the dialog content
+	 */
+	className?: string;
+}
+
+/**
+ * Dialog component for creating a new location
+ */
+export function LocationDialog({
+	organizationId,
+	onLocationCreated,
+	trigger,
+	open: controlledOpen,
+	onOpenChange: setControlledOpen,
+	className,
+}: LocationDialogProps) {
+	const [open, setOpen] = useState(false);
+	const [isComplete, setIsComplete] = useState(false);
+	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [showManualAddress, setShowManualAddress] = useState(false);
+	const [selectedAddress, setSelectedAddress] = useState<string | null>(null);
+
+	// Determine if we're using controlled or uncontrolled open state
+	const isControlled =
+		controlledOpen !== undefined && setControlledOpen !== undefined;
+	const isOpen = isControlled ? controlledOpen : open;
+
+	const form = useForm<FormValues>({
+		resolver: zodResolver(formSchema),
+		defaultValues: {
+			name: "",
+			address: "",
+			city: "",
+			state: "",
+			zipCode: "",
+			country: "",
+			latitude: undefined,
+			longitude: undefined,
+			isActive: true,
+			phone: "",
+			email: "",
+			imageUrl: "",
+		},
+	});
+
+	const handleOpenChange = (newOpenState: boolean) => {
+		if (!newOpenState) {
+			// Reset state when dialog closes
+			setTimeout(() => {
+				if (!isOpen) {
+					setIsComplete(false);
+					setSelectedAddress(null);
+					setShowManualAddress(false);
+					form.reset();
+				}
+			}, 300); // Wait for dialog close animation
+		}
+
+		if (isControlled) {
+			setControlledOpen(newOpenState);
+		} else {
+			setOpen(newOpenState);
+		}
+	};
+
+	const handleLocationCreated = (newLocation: ExtendedLocation) => {
+		setIsComplete(true);
+		if (onLocationCreated) {
+			onLocationCreated(newLocation);
+		}
+	};
+
+	// Memoize the submit function to avoid recreating it on every render
+	const onSubmit = useCallback(
+		async (data: FormValues) => {
+			try {
+				setIsSubmitting(true);
+
+				// Create new location
+				const locationToCreate = {
+					...data,
+					organizationId,
+				};
+
+				// Ensure name is defined as it's required by the API
+				if (!locationToCreate.name) {
+					toast.error("Location name is required");
+					return;
+				}
+
+				// Only include properties that exist in the Location interface
+				const newLocation = await LocationsAPI.create({
+					name: locationToCreate.name,
+					address: locationToCreate.address,
+					city: locationToCreate.city,
+					state: locationToCreate.state,
+					zipCode: locationToCreate.zipCode,
+					latitude: locationToCreate.latitude,
+					longitude: locationToCreate.longitude,
+					isActive: locationToCreate.isActive,
+					imageUrl: locationToCreate.imageUrl,
+					organizationId,
+					// country, phone, and email are used locally but not sent to API
+				});
+
+				// Store the extended properties locally
+				const extendedLocation: ExtendedLocation = {
+					...newLocation,
+					phone: locationToCreate.phone,
+					email: locationToCreate.email,
+					country: locationToCreate.country,
+				};
+
+				handleLocationCreated(extendedLocation);
+				toast.success(`${newLocation.name} created successfully`);
+			} catch (error) {
+				console.error("Error creating location:", error);
+				toast.error("Failed to create location");
+			} finally {
+				setIsSubmitting(false);
+			}
+		},
+		[organizationId]
+	);
+
+	// Modified place select handler to set selected address
+	const handlePlaceSelect = useCallback(
+		(place: ExtendedGooglePlaceResult) => {
+			// Verify that the place has at least some address information
+			if (!place.address && !place.city) {
+				toast.error("Please select a location with an address");
+				return;
+			}
+
+			// Build a display string for the selected address
+			let addressDisplay = place.address || "";
+			if (place.city)
+				addressDisplay += place.address ? `, ${place.city}` : place.city;
+			if (place.state) addressDisplay += `, ${place.state}`;
+			if (place.zipCode) addressDisplay += ` ${place.zipCode}`;
+
+			// If we still don't have a valid address, reject the selection
+			if (!addressDisplay.trim()) {
+				toast.error("Please select a location with a valid address");
+				return;
+			}
+
+			setSelectedAddress(addressDisplay);
+			setShowManualAddress(false);
+
+			// Only prepopulate the name field if the place has a specific name (like a business)
+			// This will NOT prepopulate for generic addresses
+			if (
+				place.name &&
+				place.name !== addressDisplay &&
+				!form.getValues("name")
+			) {
+				form.setValue("name", place.name, { shouldDirty: true });
+			}
+
+			// Set form values for submission with shouldDirty flag
+			form.setValue("address", place.address || "", { shouldDirty: true });
+			form.setValue("city", place.city || "", { shouldDirty: true });
+			form.setValue("state", place.state || "", { shouldDirty: true });
+			form.setValue("zipCode", place.zipCode || "", { shouldDirty: true });
+
+			if (place.country) {
+				form.setValue("country", place.country, { shouldDirty: true });
+			}
+
+			if (place.latitude !== undefined && place.longitude !== undefined) {
+				form.setValue("latitude", place.latitude, { shouldDirty: true });
+				form.setValue("longitude", place.longitude, { shouldDirty: true });
+			}
+
+			// Trigger validation to update form state
+			form.trigger();
+		},
+		[form]
+	);
+
+	const clearSelectedAddress = () => {
+		setSelectedAddress(null);
+		form.setValue("address", "", { shouldDirty: true });
+		form.setValue("city", "", { shouldDirty: true });
+		form.setValue("state", "", { shouldDirty: true });
+		form.setValue("zipCode", "", { shouldDirty: true });
+		form.setValue("country", "", { shouldDirty: true });
+		form.setValue("latitude", undefined, { shouldDirty: true });
+		form.setValue("longitude", undefined, { shouldDirty: true });
+
+		// Trigger validation to update form state
+		form.trigger();
+	};
+
+	return (
+		<Dialog
+			open={isOpen}
+			onOpenChange={handleOpenChange}>
+			<DialogTrigger asChild>
+				{trigger || <Button>Add Location</Button>}
+			</DialogTrigger>
+
+			<DialogContent>
+				{isComplete ? (
+					<>
+						<h3 className="text-xl font-semibold mb-2">Location Created</h3>
+						<p className="text-muted-foreground mb-4">
+							Your new location has been created successfully.
+						</p>
+						<Button onClick={() => handleOpenChange(false)}>Close</Button>
+					</>
+				) : (
+					<>
+						<h2 className="text-lg font-semibold mb-4">Add New Location</h2>
+
+						<Form {...form}>
+							<form
+								onSubmit={form.handleSubmit(onSubmit)}
+								className="space-y-6">
+								<FormItem>
+									<FormLabel>Location Name or Address</FormLabel>
+
+									{!selectedAddress ? (
+										<>
+											<GooglePlacesAutocomplete
+												onPlaceSelect={handlePlaceSelect}
+												placeholder="Search for an address using Google..."
+											/>
+											<FormDescription>
+												Find a location or business on Google Maps. Locations
+												without addresses cannot be selected. Business names
+												will be auto-filled in the name field.
+											</FormDescription>
+											<button
+												type="button"
+												className="text-primary text-sm mt-2"
+												onClick={() => setShowManualAddress(true)}>
+												Enter address manually instead
+											</button>
+										</>
+									) : (
+										<div className="flex items-center justify-between p-3 rounded border bg-muted/30 mt-1">
+											<span>{selectedAddress}</span>
+											<button
+												type="button"
+												onClick={clearSelectedAddress}
+												className="ml-2 text-muted-foreground hover:text-foreground">
+												<X className="h-4 w-4" />
+											</button>
+										</div>
+									)}
+								</FormItem>
+
+								<FormField
+									control={form.control}
+									name="name"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>
+												Name <span className="text-destructive">*</span>
+											</FormLabel>
+											<FormControl>
+												<Input
+													placeholder="Location name"
+													{...field}
+													aria-required="true"
+													aria-invalid={!!form.formState.errors.name}
+													required
+												/>
+											</FormControl>
+											<FormDescription>
+												Will be pre-filled only if the selected location is a
+												business or named place (not for generic addresses)
+											</FormDescription>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								{form.watch("latitude") && form.watch("longitude") && (
+									<GoogleMap
+										latitude={form.watch("latitude") || 0}
+										longitude={form.watch("longitude") || 0}
+										height="180px"
+									/>
+								)}
+
+								{showManualAddress && (
+									<div className="space-y-4">
+										<div className="flex items-center justify-between">
+											<h3 className="text-sm font-medium">
+												Manual Address Entry
+											</h3>
+											<button
+												type="button"
+												className="text-primary text-sm"
+												onClick={() => setShowManualAddress(false)}>
+												Cancel manual entry
+											</button>
+										</div>
+
+										<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+											<FormField
+												control={form.control}
+												name="address"
+												render={({ field }) => (
+													<FormItem>
+														<FormLabel>Street Address</FormLabel>
+														<FormControl>
+															<Input
+																placeholder="Street address"
+																{...field}
+																aria-invalid={!!form.formState.errors.address}
+															/>
+														</FormControl>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
+
+											<FormField
+												control={form.control}
+												name="city"
+												render={({ field }) => (
+													<FormItem>
+														<FormLabel>City</FormLabel>
+														<FormControl>
+															<Input
+																placeholder="City"
+																{...field}
+																aria-invalid={!!form.formState.errors.city}
+															/>
+														</FormControl>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
+
+											<FormField
+												control={form.control}
+												name="state"
+												render={({ field }) => (
+													<FormItem>
+														<FormLabel>State/Province</FormLabel>
+														<FormControl>
+															<Input
+																placeholder="State or province"
+																{...field}
+																aria-invalid={!!form.formState.errors.state}
+															/>
+														</FormControl>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
+
+											<FormField
+												control={form.control}
+												name="zipCode"
+												render={({ field }) => (
+													<FormItem>
+														<FormLabel>Postal Code</FormLabel>
+														<FormControl>
+															<Input
+																placeholder="Postal code"
+																{...field}
+																aria-invalid={!!form.formState.errors.zipCode}
+															/>
+														</FormControl>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
+										</div>
+									</div>
+								)}
+
+								<FormField
+									control={form.control}
+									name="phone"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Phone Number</FormLabel>
+											<FormControl>
+												<FormPhoneInput
+													placeholder="Phone number"
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name="email"
+									render={({ field }) => (
+										<FormItem>
+											<FormLabel>Email Address</FormLabel>
+											<FormControl>
+												<Input
+													type="email"
+													placeholder="Email address"
+													{...field}
+												/>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+								/>
+
+								<FormField
+									control={form.control}
+									name="isActive"
+									render={({ field }) => (
+										<FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+											<FormControl>
+												<Checkbox
+													checked={field.value}
+													onCheckedChange={field.onChange}
+												/>
+											</FormControl>
+											<div className="space-y-1 leading-none">
+												<FormLabel>Active Location</FormLabel>
+												<FormDescription>
+													This location will be available for scheduling if
+													active.
+												</FormDescription>
+											</div>
+										</FormItem>
+									)}
+								/>
+							</form>
+						</Form>
+
+						<div className="flex justify-end gap-2 mt-6">
+							<Button
+								type="button"
+								variant="outline"
+								onClick={() => handleOpenChange(false)}
+								disabled={isSubmitting}>
+								Cancel
+							</Button>
+							<Button
+								type="button"
+								disabled={isSubmitting || !form.formState.isValid}
+								onClick={form.handleSubmit(onSubmit)}>
+								{isSubmitting ? "Saving..." : "Save Location"}
+							</Button>
+						</div>
+					</>
+				)}
+			</DialogContent>
+		</Dialog>
+	);
+}

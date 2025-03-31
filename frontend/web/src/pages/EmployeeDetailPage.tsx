@@ -73,6 +73,7 @@ import {
 	DialogContent,
 	DialogHeader,
 	DialogTitle,
+	DialogTrigger,
 } from "@/components/ui/dialog";
 import {
 	Table,
@@ -1226,25 +1227,16 @@ export default function EmployeeDetailPage() {
 						</Button>
 					)}
 
-					<EmployeeDialog
-						employee={employee}
-						organizationId={employee.organizationId || ""}
-						open={editSheetOpen}
-						onOpenChange={setEditSheetOpen}
-						trigger={
-							<Button
-								id="edit-employee-trigger"
-								variant="outline"
-								size="sm"
-								className="h-9 mr-2">
-								<Edit className="h-4 w-4 mr-1" />
-								Edit
-							</Button>
-						}
-						onEmployeeUpdated={(updatedEmployee: Employee) => {
-							setEmployee(updatedEmployee);
-						}}
-					/>
+					{/* Replace nested Dialog with a direct button that calls openEditSheet */}
+					<Button
+						id="edit-employee-trigger"
+						variant="outline"
+						size="sm"
+						className="h-9 mr-2"
+						onClick={openEditSheet}>
+						<Edit className="h-4 w-4 mr-1" />
+						Edit
+					</Button>
 
 					<AlertDialog
 						open={deleteDialogOpen}
@@ -1601,25 +1593,16 @@ export default function EmployeeDetailPage() {
 				</Button>
 			)}
 
-			<EmployeeDialog
-				employee={employee}
-				organizationId={employee.organizationId || ""}
-				open={editSheetOpen}
-				onOpenChange={setEditSheetOpen}
-				trigger={
-					<Button
-						id="edit-employee-trigger"
-						variant="outline"
-						size="sm"
-						className="h-9 mr-2">
-						<Edit className="h-4 w-4 mr-1" />
-						Edit
-					</Button>
-				}
-				onEmployeeUpdated={(updatedEmployee: Employee) => {
-					setEmployee(updatedEmployee);
-				}}
-			/>
+			{/* Replace nested Dialog with a direct edit button */}
+			<Button
+				id="edit-employee-trigger"
+				variant="outline"
+				size="sm"
+				className="h-9 mr-2"
+				onClick={openEditSheet}>
+				<Edit className="h-4 w-4 mr-1" />
+				Edit
+			</Button>
 		</div>
 	) : null;
 
@@ -1677,21 +1660,38 @@ export default function EmployeeDetailPage() {
 			{/* Use the new EmployeeNav component with tab change callback */}
 			<EmployeeNav onTabChange={(tabId) => setActiveTab(tabId as any)} />
 
+			{/* Add a single EmployeeDialog component outside of the rest of the UI */}
+			{employee && (
+				<EmployeeDialog
+					employee={employee}
+					open={editSheetOpen}
+					onOpenChange={setEditSheetOpen}
+					onSubmit={async (data) => {
+						const updatedEmployee = await EmployeesAPI.update(
+							employee.id,
+							data
+						);
+						if (updatedEmployee) {
+							setEmployee(updatedEmployee);
+						}
+					}}
+				/>
+			)}
+
 			{/* Notification Banners - moved to top outside content container */}
 			{(employee.status !== "invited" ||
 				getProfileCompletionStatus(employee).missingCount > 0) && (
 				<div className="w-full bg-background py-4 px-6">
-					{employee && employee.status !== "invited" && (
-						<ProfileCompletionAlert
-							employee={employee}
-							onEdit={openEditSheet}
-						/>
-					)}
+					{/* Show profile completion alert for ALL users, even invited ones */}
+					<ProfileCompletionAlert
+						employee={employee}
+						onEdit={openEditSheet}
+					/>
 
 					{employee.status === "invited" && (
 						<Alert
 							variant="destructive"
-							className="bg-red-50 border-red-200">
+							className="bg-red-50 border-red-200 mt-4">
 							<MailWarning className="h-4 w-4" />
 							<AlertTitle>Pending Account Setup</AlertTitle>
 							<AlertDescription>

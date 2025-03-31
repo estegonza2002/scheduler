@@ -31,7 +31,6 @@ import {
 	GooglePlaceResult,
 } from "./GooglePlacesAutocomplete";
 import { cn } from "@/lib/utils";
-import { BulkLocationImport } from "./BulkLocationImport";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
 	Accordion,
@@ -145,11 +144,6 @@ export function LocationCreationSheet({
 }: LocationCreationSheetProps) {
 	const [open, setOpen] = useState(false);
 	const [isComplete, setIsComplete] = useState(false);
-	const [activeTab, setActiveTab] = useState<"single" | "bulk">("single");
-	const [bulkImportComplete, setBulkImportComplete] = useState(false);
-	const [bulkImportedLocations, setBulkImportedLocations] = useState<
-		Location[]
-	>([]);
 	const [formState, setFormState] = useState<{
 		isDirty: boolean;
 		isValid: boolean;
@@ -173,8 +167,6 @@ export function LocationCreationSheet({
 			setTimeout(() => {
 				if (!isOpen) {
 					setIsComplete(false);
-					setBulkImportComplete(false);
-					setActiveTab("single");
 				}
 			}, 300); // Wait for sheet close animation
 		}
@@ -193,16 +185,6 @@ export function LocationCreationSheet({
 		}
 	};
 
-	const handleBulkLocationsCreated = (locations: Location[]) => {
-		setBulkImportedLocations(locations);
-		setBulkImportComplete(true);
-
-		if (locations.length > 0 && onLocationCreated) {
-			// Pass the first location to the callback
-			onLocationCreated(locations[0] as ExtendedLocation);
-		}
-	};
-
 	const handleFormReady = (state: {
 		isDirty: boolean;
 		isValid: boolean;
@@ -213,23 +195,8 @@ export function LocationCreationSheet({
 		setFormState(state);
 	};
 
-	// Success state content for bulk import
-	const renderBulkSuccess = () => (
-		<div className="flex flex-col items-center py-4 text-center">
-			<div className="rounded-full bg-primary/10 p-3 mb-4">
-				<CheckCircle className="h-8 w-8 text-primary" />
-			</div>
-			<h3 className="text-xl font-semibold mb-2">
-				{bulkImportedLocations.length} Locations Imported
-			</h3>
-			<p className="text-muted-foreground mb-4">
-				Your locations have been successfully imported and are ready to use.
-			</p>
-		</div>
-	);
-
 	// Success state content for single location
-	const renderSingleSuccess = () => (
+	const renderSuccess = () => (
 		<div className="flex flex-col items-center py-4 text-center">
 			<div className="rounded-full bg-primary/10 p-3 mb-4">
 				<CheckCircle className="h-8 w-8 text-primary" />
@@ -264,53 +231,22 @@ export function LocationCreationSheet({
 							<Building className="h-5 w-5 text-primary" />
 							<SheetTitle>Add New Location</SheetTitle>
 						</div>
-						<SheetDescription>
-							Enter location details or import locations in bulk
-						</SheetDescription>
+						<SheetDescription>Enter location details</SheetDescription>
 					</SheetHeader>
 				</div>
 
 				<div className="flex-1 px-6 my-4">
-					<Tabs
-						value={activeTab}
-						onValueChange={(v) => setActiveTab(v as "single" | "bulk")}
-						className="w-full">
-						<TabsList className="grid w-full grid-cols-2 mb-4">
-							<TabsTrigger value="single">Single Location</TabsTrigger>
-							<TabsTrigger value="bulk">Bulk Import</TabsTrigger>
-						</TabsList>
-
-						<TabsContent
-							value="single"
-							className="space-y-4">
-							{isComplete ? (
-								renderSingleSuccess()
-							) : (
-								<ScrollArea className="h-[calc(100vh-245px)]">
-									<LocationForm
-										organizationId={organizationId}
-										onSuccess={handleLocationCreated}
-										onFormReady={handleFormReady}
-									/>
-								</ScrollArea>
-							)}
-						</TabsContent>
-
-						<TabsContent
-							value="bulk"
-							className="space-y-4">
-							{bulkImportComplete ? (
-								renderBulkSuccess()
-							) : (
-								<ScrollArea className="h-[calc(100vh-245px)]">
-									<BulkLocationImport
-										organizationId={organizationId}
-										onLocationsCreated={handleBulkLocationsCreated}
-									/>
-								</ScrollArea>
-							)}
-						</TabsContent>
-					</Tabs>
+					{isComplete ? (
+						renderSuccess()
+					) : (
+						<ScrollArea className="h-[calc(100vh-245px)]">
+							<LocationForm
+								organizationId={organizationId}
+								onSuccess={handleLocationCreated}
+								onFormReady={handleFormReady}
+							/>
+						</ScrollArea>
+					)}
 				</div>
 
 				{isComplete && (
@@ -323,17 +259,7 @@ export function LocationCreationSheet({
 					</SheetFooter>
 				)}
 
-				{bulkImportComplete && (
-					<SheetFooter className="px-6 py-4">
-						<Button
-							variant="outline"
-							onClick={() => handleOpenChange(false)}>
-							Close
-						</Button>
-					</SheetFooter>
-				)}
-
-				{!isComplete && !bulkImportComplete && activeTab === "single" && (
+				{!isComplete && (
 					<SheetFooter className="px-6 py-4">
 						<Button
 							variant="outline"

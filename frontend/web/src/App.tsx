@@ -41,6 +41,7 @@ import EmployeesPage from "./pages/EmployeesPage";
 import ShiftDetailsPage from "./pages/ShiftDetailsPage";
 import EditShiftPage from "./pages/EditShiftPage";
 import LocationsPage from "./pages/LocationsPage";
+import BulkLocationImportPage from "./pages/BulkLocationImportPage";
 import EmployeeDetailPage from "./pages/EmployeeDetailPage";
 import LocationDetailPage from "./pages/LocationDetailPage";
 import LocationFinancialReportPage from "./pages/LocationFinancialReportPage";
@@ -358,6 +359,10 @@ function App() {
 															<Route
 																path="/locations"
 																element={<LocationsPage />}
+															/>
+															<Route
+																path="/locations/bulk-import"
+																element={<BulkLocationImportPage />}
 															/>
 															<Route
 																path="/locations/:locationId"

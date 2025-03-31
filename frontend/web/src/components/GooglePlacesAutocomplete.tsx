@@ -47,6 +47,7 @@ interface PlaceDetails {
 	}>;
 	formatted_address: string;
 	place_id: string;
+	name?: string;
 	geometry?: {
 		location?: {
 			lat: () => number;
@@ -67,6 +68,9 @@ export interface GooglePlaceResult {
 	longitude?: number;
 	locationSelected?: boolean;
 	placeId?: string;
+	name?: string;
+	hasValidAddress?: boolean;
+	isBusinessPlace?: boolean;
 }
 
 interface GooglePlacesAutocompleteProps {
@@ -285,6 +289,33 @@ export function GooglePlacesAutocomplete({
 		let country = "";
 		let latitude: number | undefined = undefined;
 		let longitude: number | undefined = undefined;
+		let name: string | undefined = undefined;
+		let hasValidAddress = false;
+		let isBusinessPlace = false;
+
+		// Check if this is a business/POI from place types
+		if (placeDetails.types) {
+			isBusinessPlace = placeDetails.types.some(
+				(type) =>
+					type === "establishment" ||
+					type === "point_of_interest" ||
+					type === "food" ||
+					type === "store" ||
+					type === "restaurant"
+			);
+		}
+
+		// Extract name from place details if available
+		// If it's a business place, we'll use the name
+		if (placeDetails.name) {
+			name = placeDetails.name;
+			console.log(
+				"Extracted place name:",
+				name,
+				"Is business:",
+				isBusinessPlace
+			);
+		}
 
 		// Extract coordinates if available
 		if (placeDetails.geometry && placeDetails.geometry.location) {
@@ -309,8 +340,10 @@ export function GooglePlacesAutocomplete({
 
 		if (streetNumber && route) {
 			address = `${streetNumber.long_name} ${route.long_name}`;
+			hasValidAddress = true;
 		} else if (route) {
 			address = route.long_name;
+			hasValidAddress = true;
 		}
 
 		// Extract city, state, zip, and country
@@ -318,6 +351,11 @@ export function GooglePlacesAutocomplete({
 			placeDetails.address_components.find((component) =>
 				component.types.includes("locality")
 			)?.long_name || "";
+
+		// If we have a city but no street address, it's potentially valid
+		if (city && !hasValidAddress) {
+			hasValidAddress = true;
+		}
 
 		state =
 			placeDetails.address_components.find((component) =>
@@ -335,7 +373,16 @@ export function GooglePlacesAutocomplete({
 			)?.long_name || "";
 
 		// Log for debugging
-		console.log("Extracted country:", country);
+		console.log("Extracted address components:", {
+			address,
+			city,
+			state,
+			zipCode,
+			country,
+			name,
+			isBusinessPlace,
+			hasValidAddress,
+		});
 
 		return {
 			address,
@@ -348,6 +395,9 @@ export function GooglePlacesAutocomplete({
 			fullAddress: placeDetails.formatted_address,
 			locationSelected: true,
 			placeId: placeDetails.place_id,
+			name: name,
+			hasValidAddress: hasValidAddress,
+			isBusinessPlace: isBusinessPlace,
 		};
 	};
 
@@ -380,11 +430,23 @@ export function GooglePlacesAutocomplete({
 				// Use main text for display when available, otherwise fall back to full address
 				const displayName =
 					place.structured_formatting.main_text || place.description;
-				setSelectedPlace(displayName);
-				setSearchQuery(displayName);
+
 				const addressComponents = extractAddressComponents(
 					placeDetails as PlaceDetails
 				);
+
+				// Add name from place details if available, or use display name
+				addressComponents.name = placeDetails.name || displayName;
+
+				// Check if the place has a valid address
+				if (!addressComponents.hasValidAddress) {
+					setServiceError("Please select a location with a valid address");
+					return;
+				}
+
+				// Only update UI and call onPlaceSelect if we have a valid address
+				setSelectedPlace(displayName);
+				setSearchQuery(displayName);
 				onPlaceSelect(addressComponents);
 				setShowSuggestions(false);
 
@@ -411,6 +473,8 @@ export function GooglePlacesAutocomplete({
 			fullAddress: "",
 			locationSelected: false,
 			placeId: undefined,
+			hasValidAddress: false,
+			isBusinessPlace: false,
 		});
 
 		// Clear map marker if it exists
