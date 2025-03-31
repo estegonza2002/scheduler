@@ -9,6 +9,7 @@ import { ContentSection } from "@/components/ui/content-section";
 import { LoadingState } from "@/components/ui/loading-state";
 import { Badge } from "@/components/ui/badge";
 import { useHeader } from "@/lib/header-context";
+import { LocationCard } from "@/components/ui/location-card";
 
 export default function MyLocationsPage() {
 	const { user } = useAuth();
@@ -107,48 +108,6 @@ export default function MyLocationsPage() {
 		fetchUserLocations();
 	}, [userId]);
 
-	// Helper function to render a location card
-	const renderLocationCard = (
-		location: Location,
-		isPrimary: boolean = false
-	) => {
-		return (
-			<Card
-				key={location.id}
-				className="mb-3 hover:shadow-sm transition-all">
-				<CardContent className="p-4">
-					<div className="flex justify-between items-start">
-						<div>
-							<div className="flex items-center gap-2">
-								<h4 className="font-medium">{location.name}</h4>
-								{isPrimary && (
-									<Badge
-										variant="outline"
-										className="text-xs">
-										Primary
-									</Badge>
-								)}
-							</div>
-							{location.address && (
-								<p className="text-sm text-muted-foreground">
-									{location.address}
-									{location.city && `, ${location.city}`}
-									{location.state && `, ${location.state}`}
-									{location.zipCode && ` ${location.zipCode}`}
-								</p>
-							)}
-						</div>
-					</div>
-					{location.phone && (
-						<div className="mt-2 text-xs flex items-center text-muted-foreground">
-							<span>Phone: {location.phone}</span>
-						</div>
-					)}
-				</CardContent>
-			</Card>
-		);
-	};
-
 	if (isLoading) {
 		return (
 			<ContentContainer>
@@ -172,7 +131,14 @@ export default function MyLocationsPage() {
 								<MapPin className="h-5 w-5 mr-2 text-muted-foreground" />
 								Primary Location
 							</h3>
-							{renderLocationCard(primaryLocation, true)}
+							<LocationCard
+								key={primaryLocation.id}
+								location={primaryLocation}
+								showBadge={true}
+								badgeText="Primary"
+								variant="detailed"
+								className="mb-3"
+							/>
 						</div>
 					)}
 
@@ -187,7 +153,14 @@ export default function MyLocationsPage() {
 								.filter(
 									(loc) => !primaryLocation || loc.id !== primaryLocation.id
 								)
-								.map((location) => renderLocationCard(location))}
+								.map((location) => (
+									<LocationCard
+										key={location.id}
+										location={location}
+										variant="detailed"
+										className="mb-3"
+									/>
+								))}
 							{locations.length === 1 && primaryLocation && (
 								<p className="text-sm text-muted-foreground">
 									You are currently only assigned to your primary location.

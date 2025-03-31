@@ -19,6 +19,7 @@ import { Badge } from "../ui/badge";
 import { cn } from "../../lib/utils";
 import Link from "next/link";
 import { Alert, AlertDescription } from "../ui/alert";
+import { LocationCard } from "../ui/location-card";
 
 interface LocationData {
 	locationId: string;
@@ -36,60 +37,6 @@ export interface LocationSelectionStepProps {
 	clearLocationSearch: () => void;
 	onCancel?: () => void;
 	organizationId: string;
-}
-
-// Location card component
-interface LocationCardProps {
-	location: Location;
-	selected: boolean;
-	onClick: () => void;
-}
-
-function LocationCard({ location, selected, onClick }: LocationCardProps) {
-	return (
-		<Card
-			className={cn(
-				"cursor-pointer transition-colors hover:bg-accent/50",
-				selected && "bg-accent/50 border-primary"
-			)}
-			onClick={onClick}>
-			<CardContent className="p-4">
-				<div className="flex items-center justify-between">
-					<div>
-						<p className="font-medium">{location.name}</p>
-						<p className="text-sm text-muted-foreground">
-							{location.address}
-							{location.city && `, ${location.city}`}
-							{location.state && ` ${location.state}`}
-						</p>
-					</div>
-					{selected && <Check className="h-5 w-5 text-primary" />}
-				</div>
-			</CardContent>
-		</Card>
-	);
-}
-
-interface LocationItemProps {
-	location: Location;
-	selected: boolean;
-	onSelect: () => void;
-}
-
-// Simple location item component for selection
-function LocationItem({ location, selected, onSelect }: LocationItemProps) {
-	return (
-		<div
-			className={`p-3 rounded-md cursor-pointer hover:bg-accent ${
-				selected ? "bg-accent" : ""
-			}`}
-			onClick={onSelect}>
-			<div className="font-medium">{location.name}</div>
-			{location.address && (
-				<div className="text-sm text-muted-foreground">{location.address}</div>
-			)}
-		</div>
-	);
 }
 
 export function LocationSelectionStep({
@@ -169,21 +116,24 @@ export function LocationSelectionStep({
 
 				<div className="border rounded-md">
 					<ScrollArea className="h-[280px] rounded-md">
-						<div className="p-3 space-y-0.5">
+						<div className="p-3 space-y-2">
 							{filteredLocations.length === 0 ? (
 								<div className="py-6 text-center text-muted-foreground text-sm">
 									No locations found matching "{locationSearchTerm}"
 								</div>
 							) : (
 								filteredLocations.map((location) => (
-									<LocationItem
+									<LocationCard
 										key={location.id}
 										location={location}
 										selected={locationId === location.id}
-										onSelect={() => {
+										onClick={() => {
 											handleLocationSelect(location.id);
 											handleLocationChange(location.id);
 										}}
+										interactive={true}
+										variant="compact"
+										size="sm"
 									/>
 								))
 							)}

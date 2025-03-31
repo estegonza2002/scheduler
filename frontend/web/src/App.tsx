@@ -68,6 +68,13 @@ import BlogPage from "./pages/BlogPage";
 import BlogPostPage from "./pages/BlogPostPage";
 import AboutPage from "./pages/AboutPage";
 import DevelopersPage from "./pages/DevelopersPage";
+import AllFeaturesPage from "./pages/AllFeaturesPage";
+import ShiftSchedulingPage from "./pages/ShiftSchedulingPage";
+import LeaveManagementPage from "./pages/LeaveManagementPage";
+import AutoSchedulingPage from "./pages/AutoSchedulingPage";
+import TaskManagementPage from "./pages/TaskManagementPage";
+import ClockInOutPage from "./pages/ClockInOutPage";
+import IntegrationsPage from "./pages/IntegrationsPage";
 
 // Root redirect component that checks user role
 function RootRedirect() {
@@ -174,6 +181,34 @@ function App() {
 														<Route
 															path="/features"
 															element={<FeaturesPage />}
+														/>
+														<Route
+															path="/features/all"
+															element={<AllFeaturesPage />}
+														/>
+														<Route
+															path="/features/shift-scheduling"
+															element={<ShiftSchedulingPage />}
+														/>
+														<Route
+															path="/features/leave-management"
+															element={<LeaveManagementPage />}
+														/>
+														<Route
+															path="/features/auto-scheduling"
+															element={<AutoSchedulingPage />}
+														/>
+														<Route
+															path="/features/task-management"
+															element={<TaskManagementPage />}
+														/>
+														<Route
+															path="/features/clock-in-out"
+															element={<ClockInOutPage />}
+														/>
+														<Route
+															path="/integrations"
+															element={<IntegrationsPage />}
 														/>
 														<Route
 															path="/pricing"

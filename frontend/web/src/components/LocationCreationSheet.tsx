@@ -270,7 +270,7 @@ export function LocationCreationSheet({
 					</SheetHeader>
 				</div>
 
-				<div className="flex-1 px-6 my-4 overflow-auto">
+				<div className="flex-1 px-6 my-4">
 					<Tabs
 						value={activeTab}
 						onValueChange={(v) => setActiveTab(v as "single" | "bulk")}
@@ -286,11 +286,13 @@ export function LocationCreationSheet({
 							{isComplete ? (
 								renderSingleSuccess()
 							) : (
-								<LocationForm
-									organizationId={organizationId}
-									onSuccess={handleLocationCreated}
-									onFormReady={handleFormReady}
-								/>
+								<ScrollArea className="h-[calc(100vh-245px)]">
+									<LocationForm
+										organizationId={organizationId}
+										onSuccess={handleLocationCreated}
+										onFormReady={handleFormReady}
+									/>
+								</ScrollArea>
 							)}
 						</TabsContent>
 
@@ -300,10 +302,12 @@ export function LocationCreationSheet({
 							{bulkImportComplete ? (
 								renderBulkSuccess()
 							) : (
-								<BulkLocationImport
-									organizationId={organizationId}
-									onLocationsCreated={handleBulkLocationsCreated}
-								/>
+								<ScrollArea className="h-[calc(100vh-245px)]">
+									<BulkLocationImport
+										organizationId={organizationId}
+										onLocationsCreated={handleBulkLocationsCreated}
+									/>
+								</ScrollArea>
 							)}
 						</TabsContent>
 					</Tabs>

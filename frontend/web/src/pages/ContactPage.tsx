@@ -1,17 +1,7 @@
 import { Helmet } from "react-helmet";
 import { AppContent } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
-import {
-	Mail,
-	Phone,
-	MessageSquare,
-	Twitter,
-	Facebook,
-	Instagram,
-	Linkedin,
-	HelpCircle,
-	FileText,
-} from "lucide-react";
+import { Mail, Phone, FileText, HelpCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -42,6 +32,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { useAuth } from "@/lib/auth";
+import { useOrganization } from "@/lib/organization";
+import { useEffect, useState } from "react";
 
 const contactFormSchema = z.object({
 	name: z.string().min(2, {
@@ -52,15 +45,32 @@ const contactFormSchema = z.object({
 	}),
 	company: z.string().optional(),
 	phone: z.string().optional(),
-	topic: z.string().min(1, {
-		message: "Please select a topic",
-	}),
+	topic: z
+		.string({
+			required_error: "Please select a topic",
+		})
+		.min(1, {
+			message: "Please select a topic",
+		}),
 	message: z.string().min(10, {
 		message: "Message must be at least 10 characters",
 	}),
 });
 
 export default function ContactPage() {
+	const { user } = useAuth();
+	const { organization } = useOrganization();
+	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [formInitialized, setFormInitialized] = useState(false);
+
+	// Added state for user information display
+	const [userDisplayInfo, setUserDisplayInfo] = useState({
+		name: "",
+		email: "",
+		company: "",
+		phone: "",
+	});
+
 	const form = useForm<z.infer<typeof contactFormSchema>>({
 		resolver: zodResolver(contactFormSchema),
 		defaultValues: {
@@ -71,13 +81,120 @@ export default function ContactPage() {
 			topic: "",
 			message: "",
 		},
+		// Only validate on touch and submit, not on initial render
+		mode: "onTouched",
 	});
 
+	// Watch form values to reactively update UI
+	const watchedName = form.watch("name");
+	const watchedEmail = form.watch("email");
+	const watchedCompany = form.watch("company");
+	const watchedPhone = form.watch("phone");
+
+	// Prefill form with user data if logged in
+	useEffect(() => {
+		console.log("Auth user data:", user);
+		console.log("Organization data:", organization);
+
+		if (user && !formInitialized) {
+			const firstName = user.user_metadata?.firstName || "";
+			const lastName = user.user_metadata?.lastName || "";
+			const fullName =
+				`${firstName} ${lastName}`.trim() ||
+				user.user_metadata?.full_name ||
+				"";
+
+			const companyName =
+				organization?.name ||
+				user.user_metadata?.company ||
+				user.user_metadata?.organization_name ||
+				"";
+
+			const phoneNumber = user.user_metadata?.phone || "";
+
+			console.log("Setting form values:", {
+				name: fullName,
+				email: user.email,
+				company: companyName,
+				phone: phoneNumber,
+			});
+
+			// Update display info state
+			setUserDisplayInfo({
+				name: fullName,
+				email: user.email || "",
+				company: companyName,
+				phone: phoneNumber,
+			});
+
+			// Set form values without triggering validation
+			form.setValue("name", fullName, { shouldValidate: false });
+			if (user.email)
+				form.setValue("email", user.email, { shouldValidate: false });
+			if (phoneNumber)
+				form.setValue("phone", phoneNumber, { shouldValidate: false });
+			if (companyName)
+				form.setValue("company", companyName, { shouldValidate: false });
+
+			setFormInitialized(true);
+
+			// Log form values after setting
+			console.log("Form values after setting:", {
+				name: form.getValues("name"),
+				email: form.getValues("email"),
+				company: form.getValues("company"),
+				phone: form.getValues("phone"),
+			});
+		}
+	}, [user, organization, form, formInitialized]);
+
+	// Secondary effect to ensure values are set if they're missing
+	useEffect(() => {
+		// If we have a user but the form name is empty, try to set it again
+		if (user && formInitialized && !watchedName) {
+			console.log("Form values missing, reapplying user data");
+
+			const firstName = user.user_metadata?.firstName || "";
+			const lastName = user.user_metadata?.lastName || "";
+			const fullName =
+				`${firstName} ${lastName}`.trim() ||
+				user.user_metadata?.full_name ||
+				"";
+
+			// Use reset to set all values at once without validation
+			form.reset(
+				{
+					name: fullName,
+					email: user.email || "",
+					company:
+						organization?.name ||
+						user.user_metadata?.company ||
+						user.user_metadata?.organization_name ||
+						"",
+					phone: user.user_metadata?.phone || "",
+					topic: form.getValues("topic"),
+					message: form.getValues("message"),
+				},
+				{
+					keepValues: false,
+					keepDirty: false,
+					keepIsSubmitted: false,
+					keepTouched: false,
+				}
+			);
+		}
+	}, [user, watchedName, formInitialized, form, organization]);
+
 	function onSubmit(values: z.infer<typeof contactFormSchema>) {
+		setIsSubmitting(true);
+
 		console.log(values);
 		// Here you would handle the form submission
-		alert("Thank you for your message! We'll get back to you soon.");
-		form.reset();
+		setTimeout(() => {
+			alert("Thank you for your message! We'll get back to you soon.");
+			form.reset();
+			setIsSubmitting(false);
+		}, 1000);
 	}
 
 	return (
@@ -145,77 +262,6 @@ export default function ContactPage() {
 															</p>
 														</div>
 													</div>
-													<div className="flex items-start">
-														<MessageSquare className="h-5 w-5 mr-3 text-primary flex-shrink-0" />
-														<div>
-															<h3 className="font-medium">Live Chat</h3>
-															<p className="text-sm text-muted-foreground">
-																Available 9am-5pm EST, Monday-Friday
-															</p>
-														</div>
-													</div>
-												</CardContent>
-											</Card>
-
-											{/* Social Media */}
-											<Card>
-												<CardHeader>
-													<CardTitle>Follow Us</CardTitle>
-													<CardDescription>
-														Connect with us on social media
-													</CardDescription>
-												</CardHeader>
-												<CardContent>
-													<div className="flex space-x-4">
-														<Button
-															variant="outline"
-															size="icon"
-															asChild
-															className="rounded-full">
-															<a
-																href="https://twitter.com/scheduler"
-																target="_blank"
-																rel="noopener noreferrer">
-																<Twitter className="h-4 w-4" />
-															</a>
-														</Button>
-														<Button
-															variant="outline"
-															size="icon"
-															asChild
-															className="rounded-full">
-															<a
-																href="https://facebook.com/scheduler"
-																target="_blank"
-																rel="noopener noreferrer">
-																<Facebook className="h-4 w-4" />
-															</a>
-														</Button>
-														<Button
-															variant="outline"
-															size="icon"
-															asChild
-															className="rounded-full">
-															<a
-																href="https://instagram.com/scheduler"
-																target="_blank"
-																rel="noopener noreferrer">
-																<Instagram className="h-4 w-4" />
-															</a>
-														</Button>
-														<Button
-															variant="outline"
-															size="icon"
-															asChild
-															className="rounded-full">
-															<a
-																href="https://linkedin.com/company/scheduler"
-																target="_blank"
-																rel="noopener noreferrer">
-																<Linkedin className="h-4 w-4" />
-															</a>
-														</Button>
-													</div>
 												</CardContent>
 											</Card>
 										</div>
@@ -232,79 +278,182 @@ export default function ContactPage() {
 											<CardContent>
 												<Form {...form}>
 													<form
-														onSubmit={form.handleSubmit(onSubmit)}
+														onSubmit={form.handleSubmit(onSubmit, (errors) => {
+															console.log("Validation errors:", errors);
+															// Check specifically for topic error
+															if (errors.topic) {
+																const topicElement =
+																	document.querySelector('[name="topic"]');
+																if (topicElement) {
+																	topicElement.scrollIntoView({
+																		behavior: "smooth",
+																		block: "center",
+																	});
+																}
+															}
+															// Focus on the first field with an error
+															else if (Object.keys(errors).length > 0) {
+																const firstErrorField = Object.keys(errors)[0];
+																const element = document.querySelector(
+																	`[name="${firstErrorField}"]`
+																);
+																if (element) {
+																	element.scrollIntoView({
+																		behavior: "smooth",
+																		block: "center",
+																	});
+																}
+															}
+														})}
 														className="space-y-6">
-														<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-															<FormField
-																control={form.control}
-																name="name"
-																render={({ field }) => (
-																	<FormItem>
-																		<FormLabel>Full Name</FormLabel>
-																		<FormControl>
-																			<Input
-																				placeholder="Your name"
-																				{...field}
-																			/>
-																		</FormControl>
-																		<FormMessage />
-																	</FormItem>
-																)}
-															/>
-															<FormField
-																control={form.control}
-																name="email"
-																render={({ field }) => (
-																	<FormItem>
-																		<FormLabel>Email</FormLabel>
-																		<FormControl>
-																			<Input
-																				type="email"
-																				placeholder="Your email"
-																				{...field}
-																			/>
-																		</FormControl>
-																		<FormMessage />
-																	</FormItem>
-																)}
-															/>
-														</div>
+														{/* Show user info summary if logged in */}
+														{user && (
+															<>
+																<div className="bg-muted/30 rounded-lg p-4 mb-2">
+																	<div className="grid gap-2 text-sm">
+																		<div className="flex justify-between">
+																			<span className="text-muted-foreground">
+																				Name:
+																			</span>
+																			<span className="font-medium">
+																				{userDisplayInfo.name ||
+																					"Not available"}
+																			</span>
+																		</div>
+																		<div className="flex justify-between">
+																			<span className="text-muted-foreground">
+																				Email:
+																			</span>
+																			<span className="font-medium">
+																				{userDisplayInfo.email ||
+																					"Not available"}
+																			</span>
+																		</div>
+																		{userDisplayInfo.company && (
+																			<div className="flex justify-between">
+																				<span className="text-muted-foreground">
+																					Company:
+																				</span>
+																				<span className="font-medium">
+																					{userDisplayInfo.company}
+																				</span>
+																			</div>
+																		)}
+																		{userDisplayInfo.phone && (
+																			<div className="flex justify-between">
+																				<span className="text-muted-foreground">
+																					Phone:
+																				</span>
+																				<span className="font-medium">
+																					{userDisplayInfo.phone}
+																				</span>
+																			</div>
+																		)}
+																	</div>
+																</div>
+															</>
+														)}
 
-														<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-															<FormField
-																control={form.control}
-																name="company"
-																render={({ field }) => (
-																	<FormItem>
-																		<FormLabel>Company (Optional)</FormLabel>
-																		<FormControl>
-																			<Input
-																				placeholder="Your company name"
-																				{...field}
-																			/>
-																		</FormControl>
-																		<FormMessage />
-																	</FormItem>
-																)}
-															/>
-															<FormField
-																control={form.control}
-																name="phone"
-																render={({ field }) => (
-																	<FormItem>
-																		<FormLabel>Phone (Optional)</FormLabel>
-																		<FormControl>
-																			<Input
-																				type="tel"
-																				placeholder="Your phone number"
-																				{...field}
-																			/>
-																		</FormControl>
-																		<FormMessage />
-																	</FormItem>
-																)}
-															/>
-														</div>
+														{!user ? (
+															<>
+																<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+																	<FormField
+																		control={form.control}
+																		name="name"
+																		render={({ field }) => (
+																			<FormItem>
+																				<FormLabel>Full Name</FormLabel>
+																				<FormControl>
+																					<Input
+																						placeholder="Your name"
+																						{...field}
+																					/>
+																				</FormControl>
+																				<FormMessage />
+																			</FormItem>
+																		)}
+																	/>
+																	<FormField
+																		control={form.control}
+																		name="email"
+																		render={({ field }) => (
+																			<FormItem>
+																				<FormLabel>Email</FormLabel>
+																				<FormControl>
+																					<Input
+																						type="email"
+																						placeholder="Your email"
+																						{...field}
+																					/>
+																				</FormControl>
+																				<FormMessage />
+																			</FormItem>
+																		)}
+																	/>
+																</div>
+
+																<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+																	<FormField
+																		control={form.control}
+																		name="company"
+																		render={({ field }) => (
+																			<FormItem>
+																				<FormLabel>
+																					Company (Optional)
+																				</FormLabel>
+																				<FormControl>
+																					<Input
+																						placeholder="Your company name"
+																						{...field}
+																					/>
+																				</FormControl>
+																				<FormMessage />
+																			</FormItem>
+																		)}
+																	/>
+																	<FormField
+																		control={form.control}
+																		name="phone"
+																		render={({ field }) => (
+																			<FormItem>
+																				<FormLabel>Phone (Optional)</FormLabel>
+																				<FormControl>
+																					<Input
+																						type="tel"
+																						placeholder="Your phone number"
+																						{...field}
+																					/>
+																				</FormControl>
+																				<FormMessage />
+																			</FormItem>
+																		)}
+																	/>
+																</div>
+															</>
+														) : (
+															<>
+																<input
+																	type="hidden"
+																	{...form.register("name")}
+																	value={userDisplayInfo.name}
+																/>
+																<input
+																	type="hidden"
+																	{...form.register("email")}
+																	value={userDisplayInfo.email}
+																/>
+																<input
+																	type="hidden"
+																	{...form.register("company")}
+																	value={userDisplayInfo.company || ""}
+																/>
+																<input
+																	type="hidden"
+																	{...form.register("phone")}
+																	value={userDisplayInfo.phone || ""}
+																/>
+															</>
+														)}
 
 														<FormField
 															control={form.control}
@@ -314,7 +463,7 @@ export default function ContactPage() {
 																	<FormLabel>Topic</FormLabel>
 																	<Select
 																		onValueChange={field.onChange}
-																		defaultValue={field.value}>
+																		value={field.value}>
 																		<FormControl>
 																			<SelectTrigger>
 																				<SelectValue placeholder="Select a topic" />
@@ -363,8 +512,9 @@ export default function ContactPage() {
 
 														<Button
 															type="submit"
-															className="w-full">
-															Send Message
+															className="w-full"
+															disabled={isSubmitting}>
+															{isSubmitting ? "Sending..." : "Send Message"}
 														</Button>
 													</form>
 												</Form>
@@ -401,18 +551,6 @@ export default function ContactPage() {
 															"Send us an email and our team will get back to you within 24 hours on business days.",
 														link: "mailto:support@schedulerapp.com",
 														linkText: "Email Support",
-													},
-													{
-														title: "Live Chat",
-														icon: (
-															<MessageSquare className="h-8 w-8 text-primary" />
-														),
-														description:
-															"Chat with our support team in real-time during business hours (9am-5pm EST, Monday-Friday).",
-														link: "#",
-														linkText: "Start Chat",
-														onClick: () =>
-															alert("Chat functionality would open here"),
 													},
 													{
 														title: "Phone Support",
@@ -454,8 +592,7 @@ export default function ContactPage() {
 															) : (
 																<Button
 																	variant="default"
-																	asChild
-																	onClick={option.onClick}>
+																	asChild>
 																	<Link to={option.link}>
 																		{option.linkText}
 																	</Link>

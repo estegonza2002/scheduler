@@ -139,7 +139,7 @@ export default function ForgotPasswordPage() {
 					</CardContent>
 				</Card>
 				<div className="text-balance text-center text-xs text-muted-foreground mt-6 [&_a]:underline [&_a]:underline-offset-4 [&_a]:hover:text-primary">
-					Need help? <a href="#">Contact support</a>
+					Need help? <Link to="/contact">Contact support</Link>
 				</div>
 			</div>
 		</div>

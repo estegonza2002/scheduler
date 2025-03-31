@@ -8,6 +8,8 @@ import {
 	MapPin,
 	Calendar,
 	DollarSign,
+	UserMinus,
+	Clock,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { Badge } from "./ui/badge";
@@ -17,9 +19,11 @@ import { Card, CardContent, CardFooter } from "./ui/card";
 import { ReactNode } from "react";
 import { Checkbox } from "./ui/checkbox";
 import { Separator } from "./ui/separator";
+import { AssignedEmployee } from "@/types/shift-types";
+import { calculateEmployeeCost } from "@/utils/time-calculations";
 
 export interface EmployeeCardProps {
-	employee: Employee;
+	employee: Employee | AssignedEmployee;
 	selected?: boolean;
 	onSelect?: () => void;
 	selectable?: boolean;
@@ -28,7 +32,7 @@ export interface EmployeeCardProps {
 	showLocationBadge?: boolean;
 	className?: string;
 	size?: "sm" | "md" | "lg";
-	variant?: "compact" | "standard" | "detailed" | "profile";
+	variant?: "compact" | "standard" | "detailed" | "profile" | "shift";
 	onViewDetails?: () => void;
 	showActions?: boolean;
 	actions?: ReactNode;
@@ -36,6 +40,11 @@ export interface EmployeeCardProps {
 	bottomRightContent?: ReactNode;
 	hideStatus?: boolean;
 	checkboxPosition?: "left" | "right";
+	// Shift-specific props
+	shiftStartTime?: string;
+	shiftEndTime?: string;
+	onRemove?: (employeeId: string, assignmentId: string) => void;
+	isCompleted?: boolean;
 }
 
 export function EmployeeCard({
@@ -56,6 +65,11 @@ export function EmployeeCard({
 	bottomRightContent,
 	hideStatus = false,
 	checkboxPosition = "right",
+	// Shift-specific props
+	shiftStartTime,
+	shiftEndTime,
+	onRemove,
+	isCompleted = false,
 }: EmployeeCardProps) {
 	// Determine avatar size based on the size prop
 	const avatarSizes = {
@@ -105,6 +119,7 @@ export function EmployeeCard({
 	// Status indicator as simple text instead of a badge
 	const StatusText = () => {
 		if (!employee.status || hideStatus) return null;
+
 		return (
 			<span
 				className={cn(
@@ -117,6 +132,22 @@ export function EmployeeCard({
 				)}>
 				{employee.status.charAt(0).toUpperCase() + employee.status.slice(1)}
 			</span>
+		);
+	};
+
+	// Online status indicator component - to show on avatars
+	const OnlineStatusIndicator = () => {
+		if (hideStatus) return null;
+
+		const isEmployeeOnline = employee.isOnline === true;
+
+		return (
+			<div
+				className={`absolute -top-0.5 -right-0.5 h-3.5 w-3.5 ${
+					isEmployeeOnline ? "bg-green-500" : "bg-gray-400"
+				} ${
+					isEmployeeOnline ? "animate-pulse" : ""
+				} rounded-full border-2 border-white z-10`}></div>
 		);
 	};
 
@@ -191,6 +222,75 @@ export function EmployeeCard({
 		}
 	};
 
+	// Calculate shift cost if in shift variant
+	const cost =
+		variant === "shift" && shiftStartTime && shiftEndTime
+			? calculateEmployeeCost(
+					shiftStartTime,
+					shiftEndTime,
+					employee as AssignedEmployee
+			  )
+			: undefined;
+
+	// Common Employee Header Component
+	const EmployeeHeader = ({
+		showRole = true,
+		showStatus = true,
+		avatarSize = "h-16 w-16",
+		centeredText = true,
+	}: {
+		showRole?: boolean;
+		showStatus?: boolean;
+		avatarSize?: string;
+		centeredText?: boolean;
+	}) => {
+		return (
+			<div
+				className={`flex flex-col ${
+					centeredText ? "items-center text-center" : ""
+				} mb-4`}>
+				<div className="relative">
+					<Avatar className={avatarSize}>
+						<AvatarFallback className="text-lg font-medium bg-primary/10 text-primary">
+							{initials}
+						</AvatarFallback>
+					</Avatar>
+					<OnlineStatusIndicator />
+				</div>
+				<div className={centeredText ? "text-center" : ""}>
+					<h3 className="font-medium text-sm">
+						{employee.name
+							.split(" ")
+							.map(
+								(word) =>
+									word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+							)
+							.join(" ")}
+					</h3>
+					{showRole && employee.role && (
+						<p className="text-xs text-muted-foreground">
+							{employee.role || "Employee"}
+						</p>
+					)}
+					{showStatus && employee.status && !hideStatus && (
+						<span
+							className={cn(
+								"text-xs mt-1",
+								employee.status === "active"
+									? "text-green-600"
+									: employee.status === "invited"
+									? "text-blue-600"
+									: "text-gray-600"
+							)}>
+							{employee.status.charAt(0).toUpperCase() +
+								employee.status.slice(1)}
+						</span>
+					)}
+				</div>
+			</div>
+		);
+	};
+
 	// Profile variant - combines employee info and contact details in one card
 	if (variant === "profile") {
 		return (
@@ -205,18 +305,10 @@ export function EmployeeCard({
 
 					{/* Top section with avatar and name */}
 					<div className="p-6 flex flex-col items-center text-center">
-						<Avatar className={avatarSizes.lg}>
-							<AvatarFallback className="text-xl font-medium">
-								{initials}
-							</AvatarFallback>
-						</Avatar>
-
-						<div className="mt-4 space-y-1">
-							<h2 className="text-xl font-semibold">{employee.name}</h2>
-							<p className="text-muted-foreground">
-								{employee.role || "Employee"}
-							</p>
-						</div>
+						<EmployeeHeader
+							avatarSize={avatarSizes.lg}
+							showStatus={false}
+						/>
 
 						{employee.status === "invited" && (
 							<Badge
@@ -330,29 +422,10 @@ export function EmployeeCard({
 				{/* Checkbox for selection */}
 				{selectionMode === "checkbox" && <CheckboxSelection />}
 
-				<div className="relative mb-2 mt-2">
-					<Avatar className={avatarSize}>
-						<AvatarFallback className="text-lg">{initials}</AvatarFallback>
-					</Avatar>
-					{(selected || selectable) && selectionMode !== "checkbox" && (
-						<SelectionIndicator />
-					)}
-				</div>
-				<div className="w-full">
-					<div className="font-medium text-sm truncate max-w-full">
-						{employee.name}
-					</div>
-					{employee.role && (
-						<div className="text-xs text-muted-foreground truncate max-w-full">
-							{employee.role}
-						</div>
-					)}
-					{showLocationBadge && locationCount > 0 && (
-						<div className="mt-1 flex justify-center">
-							<LocationBadge />
-						</div>
-					)}
-				</div>
+				<EmployeeHeader
+					avatarSize={avatarSize}
+					showStatus={false}
+				/>
 
 				{/* Display custom actions */}
 				{showActions && actions && <div className="mt-2 w-full">{actions}</div>}
@@ -364,6 +437,63 @@ export function EmployeeCard({
 					</div>
 				)}
 			</div>
+		);
+	}
+
+	// Shift variant - specific layout for shift employee cards
+	if (variant === "shift") {
+		return (
+			<Card
+				className={cn(
+					"relative overflow-hidden group h-full transition-all hover:border-primary/50 hover:shadow-sm",
+					isCompleted && "opacity-90",
+					className
+				)}>
+				<CardContent className="p-4">
+					{/* Employee avatar and status */}
+					<EmployeeHeader />
+
+					{/* Cost information */}
+					<div className="grid grid-cols-2 gap-3 mt-3">
+						<div className="bg-muted/30 rounded-md p-2 flex flex-col items-center">
+							<div className="flex items-center mb-1 text-xs text-muted-foreground">
+								<DollarSign className="h-3 w-3 mr-1" />
+								Hourly Rate
+							</div>
+							<div className="font-medium text-sm">
+								{employee.hourlyRate
+									? `$${employee.hourlyRate.toFixed(2)}/hr`
+									: "--"}
+							</div>
+						</div>
+						<div className="bg-muted/30 rounded-md p-2 flex flex-col items-center">
+							<div className="flex items-center mb-1 text-xs text-muted-foreground">
+								<Clock className="h-3 w-3 mr-1" />
+								Total Cost
+							</div>
+							<div className="font-medium text-sm">
+								{cost && cost !== "0.00" ? `$${cost}` : "--"}
+							</div>
+						</div>
+					</div>
+				</CardContent>
+
+				{/* Action button overlay - only show if not completed */}
+				{!isCompleted && onRemove && "assignmentId" in employee && (
+					<div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+						<div className="bg-white/80 backdrop-blur-sm rounded-md p-0.5 shadow-sm">
+							<Button
+								variant="ghost"
+								size="sm"
+								className="h-7 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+								onClick={() => onRemove(employee.id, employee.assignmentId)}>
+								<UserMinus className="h-3.5 w-3.5 mr-1" />
+								Remove
+							</Button>
+						</div>
+					</div>
+				)}
+			</Card>
 		);
 	}
 
@@ -418,41 +548,17 @@ export function EmployeeCard({
 			<CardContent
 				className={cn("p-0", variant === "detailed" ? "pt-4" : "pt-4 pb-0")}>
 				<div className="flex flex-col items-center">
-					<div className="relative mb-3">
-						<Avatar className={avatarSize}>
-							<AvatarFallback className="text-lg font-medium">
-								{initials}
-							</AvatarFallback>
-						</Avatar>
-						{selected &&
-							selectionMode !== "checkbox" &&
-							selectionMode !== "highlight" && (
-								<div
-									className={`absolute -top-1 ${
-										checkboxPosition === "left" ? "-left-1" : "-right-1"
-									} bg-primary text-white rounded-full p-1`}>
-									<Check className="h-3 w-3" />
-								</div>
-							)}
-					</div>
+					<EmployeeHeader
+						showStatus={false}
+						avatarSize={avatarSize}
+					/>
 
-					<div className="text-center w-full px-3">
-						<h3 className="font-medium text-sm mb-0.5 truncate">
-							{employee.name}
-						</h3>
-						{employee.role && (
-							<p className="text-xs text-muted-foreground mb-2 truncate">
-								{employee.role}
-							</p>
-						)}
-
-						{/* Location count badge */}
-						{showLocationBadge && locationCount > 0 && (
-							<div className="flex items-center justify-center mt-2 mb-3">
-								<LocationBadge />
-							</div>
-						)}
-					</div>
+					{/* Location count badge */}
+					{showLocationBadge && locationCount > 0 && (
+						<div className="flex items-center justify-center mt-2 mb-3">
+							<LocationBadge />
+						</div>
+					)}
 				</div>
 
 				{/* Detailed information for the detailed variant */}

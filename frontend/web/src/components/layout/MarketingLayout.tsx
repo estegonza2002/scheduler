@@ -1,38 +1,91 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
-import { Input } from "../ui/input";
 import {
 	NavigationMenu,
 	NavigationMenuItem,
-	NavigationMenuLink,
 	NavigationMenuList,
+	NavigationMenuContent,
+	NavigationMenuTrigger,
+	NavigationMenuLink,
 } from "../ui/navigation-menu";
 import {
 	Menu,
 	X,
-	Facebook,
-	Twitter,
-	Linkedin,
-	Instagram,
-	Github,
-	Mail,
+	Calendar,
+	FileCheck,
+	Zap,
+	ListChecks,
+	Clock,
+	BarChart2,
+	MessageSquare,
 } from "lucide-react";
 import { useState } from "react";
 import { RequestDemo } from "../marketing";
 import { COMPANY_NAME, COMPANY_LEGAL_NAME } from "../../constants";
+import { useAuth } from "../../lib/auth";
 
-// Marketing navigation items - removed Enterprise, Resources, Blog, and Contact
+// Marketing navigation items (keep Home and Pricing as direct links)
 const marketingLinks = [
 	{ title: "Home", href: "/" },
-	{ title: "Features", href: "/features" },
+	{ title: "Integrations", href: "/integrations" },
 	{ title: "Pricing", href: "/pricing" },
+];
+
+// Features sub-menu items
+const featureSubmenuItems = [
+	{
+		title: "Shift Scheduling Software",
+		description:
+			"Create and share your schedule in minutes, keeping your team updated on any changes.",
+		href: "/features/shift-scheduling",
+		icon: <Calendar className="h-5 w-5 text-primary" />,
+	},
+	{
+		title: "Leave Management Software",
+		description: "Manage time off and annual leave requests all in one place.",
+		href: "/features/leave-management",
+		icon: <FileCheck className="h-5 w-5 text-primary" />,
+	},
+	{
+		title: "Auto Scheduling Software",
+		description:
+			"Save hours managing your team with our automatic rota schedule maker.",
+		href: "/features/auto-scheduling",
+		icon: <Zap className="h-5 w-5 text-primary" />,
+	},
+	{
+		title: "Task Management Software",
+		description:
+			"Monitor, create and manage your teams one-off or recurring tasks in one place.",
+		href: "/features/task-management",
+		icon: <ListChecks className="h-5 w-5 text-primary" />,
+	},
+	{
+		title: "Clock-In/Out Software",
+		description:
+			"Easy time tracking for precise payroll and effective workforce management.",
+		href: "/features/clock-in-out",
+		icon: <Clock className="h-5 w-5 text-primary" />,
+	},
+];
+
+// Additional features
+const additionalFeatures = [
+	{
+		title: "Reports & Analytics",
+		href: "/features/all",
+		icon: <BarChart2 className="h-5 w-5 text-primary" />,
+	},
+	{
+		title: "Team Communication",
+		href: "/features/all",
+		icon: <MessageSquare className="h-5 w-5 text-primary" />,
+	},
 ];
 
 // Primary footer links
 const primaryFooterLinks = [
-	{ title: "Features", href: "/features" },
-	{ title: "Pricing", href: "/pricing" },
 	{ title: "Enterprise", href: "/enterprise" },
 	{ title: "About", href: "/about" },
 ];
@@ -41,6 +94,7 @@ const primaryFooterLinks = [
 const secondaryFooterLinks = [
 	{ title: "Resources", href: "/resources" },
 	{ title: "Blog", href: "/blog" },
+	{ title: "Integrations", href: "/integrations" },
 	{ title: "Contact", href: "/contact" },
 	{ title: "Developers", href: "/developers" },
 ];
@@ -54,6 +108,16 @@ const legalLinks = [
 export default function MarketingLayout() {
 	const location = useLocation();
 	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+	const { user, signOut } = useAuth();
+
+	// Determine the appropriate dashboard link based on user role
+	const getDashboardLink = () => {
+		if (!user) return "/login";
+
+		// Check if user is an admin
+		const isAdmin = user.user_metadata?.role === "admin";
+		return isAdmin ? "/admin-dashboard" : "/dashboard";
+	};
 
 	const toggleMobileMenu = () => {
 		setMobileMenuOpen(!mobileMenuOpen);
@@ -85,6 +149,67 @@ export default function MarketingLayout() {
 										</Link>
 									</NavigationMenuItem>
 								))}
+
+								{/* Features Dropdown Menu */}
+								<NavigationMenuItem>
+									<NavigationMenuTrigger
+										className={cn(
+											"group inline-flex h-9 w-max items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50",
+											location.pathname.includes("/features") &&
+												"bg-accent text-accent-foreground"
+										)}>
+										Features
+									</NavigationMenuTrigger>
+									<NavigationMenuContent>
+										<div className="w-[600px] p-4 md:grid md:grid-cols-2 gap-3">
+											<div className="p-3 space-y-3">
+												{featureSubmenuItems.map((item) => (
+													<Link
+														key={item.href}
+														to={item.href}
+														className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
+														<div className="flex items-center gap-2">
+															{item.icon}
+															<div className="text-sm font-medium leading-none">
+																{item.title}
+															</div>
+														</div>
+														<p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+															{item.description}
+														</p>
+													</Link>
+												))}
+											</div>
+											<div className="p-3 space-y-4">
+												<div className="bg-muted rounded-lg p-3">
+													<div className="text-sm font-medium mb-2">
+														More Features
+													</div>
+													<div className="space-y-2">
+														{additionalFeatures.map((item) => (
+															<Link
+																key={item.href}
+																to={item.href}
+																className="block select-none rounded-md p-2 text-sm leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
+																<div className="flex items-center gap-2">
+																	{item.icon}
+																	<span>{item.title}</span>
+																</div>
+															</Link>
+														))}
+													</div>
+												</div>
+												<div>
+													<Link
+														to="/features/all"
+														className="block select-none rounded-md p-2 text-sm font-medium leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
+														View all features →
+													</Link>
+												</div>
+											</div>
+										</div>
+									</NavigationMenuContent>
+								</NavigationMenuItem>
 							</NavigationMenuList>
 						</NavigationMenu>
 					</div>
@@ -93,14 +218,31 @@ export default function MarketingLayout() {
 							<RequestDemo>
 								<Button variant="outline">Request Demo</Button>
 							</RequestDemo>
-							<Button
-								asChild
-								variant="outline">
-								<Link to="/login">Log In</Link>
-							</Button>
-							<Button asChild>
-								<Link to="/pricing">Get Started</Link>
-							</Button>
+							{user ? (
+								<>
+									<Button
+										asChild
+										variant="outline">
+										<Link to={getDashboardLink()}>Dashboard</Link>
+									</Button>
+									<Button
+										variant="outline"
+										onClick={() => signOut()}>
+										Log Out
+									</Button>
+								</>
+							) : (
+								<>
+									<Button
+										asChild
+										variant="outline">
+										<Link to="/login">Log In</Link>
+									</Button>
+									<Button asChild>
+										<Link to="/pricing">Get Started</Link>
+									</Button>
+								</>
+							)}
 						</div>
 						<button
 							onClick={toggleMobileMenu}
@@ -119,7 +261,7 @@ export default function MarketingLayout() {
 				{mobileMenuOpen && (
 					<div className="md:hidden border-t bg-background">
 						<nav className="container mx-auto py-4 px-4">
-							<ul className="space-y-4">
+							<ul className="space-y-2">
 								{marketingLinks.map((link) => (
 									<li key={link.href}>
 										<Link
@@ -135,6 +277,33 @@ export default function MarketingLayout() {
 										</Link>
 									</li>
 								))}
+								{/* Mobile Features Menu */}
+								<li>
+									<div className="py-2 px-3 font-medium">Features</div>
+									<ul className="pl-4 space-y-1 mt-1">
+										{featureSubmenuItems.map((item) => (
+											<li key={item.href}>
+												<Link
+													to={item.href}
+													onClick={() => setMobileMenuOpen(false)}
+													className="block py-2 px-3 rounded-md text-sm transition-colors hover:bg-accent/50">
+													<div className="flex items-center gap-2">
+														{item.icon}
+														<span>{item.title}</span>
+													</div>
+												</Link>
+											</li>
+										))}
+										<li className="pt-1">
+											<Link
+												to="/features/all"
+												onClick={() => setMobileMenuOpen(false)}
+												className="block py-2 px-3 rounded-md text-sm font-medium transition-colors hover:bg-accent/50">
+												View all features
+											</Link>
+										</li>
+									</ul>
+								</li>
 							</ul>
 
 							<div className="mt-4 pt-4 border-t">
@@ -154,32 +323,57 @@ export default function MarketingLayout() {
 							</div>
 
 							<div className="flex flex-col gap-3 mt-6">
-								<Button
-									asChild
-									className="w-full">
-									<Link
-										to="/pricing"
-										onClick={() => setMobileMenuOpen(false)}>
-										Get Started
-									</Link>
-								</Button>
-								<RequestDemo>
-									<Button
-										variant="outline"
-										className="w-full">
-										Request Demo
-									</Button>
-								</RequestDemo>
-								<Button
-									asChild
-									variant="outline"
-									className="w-full">
-									<Link
-										to="/login"
-										onClick={() => setMobileMenuOpen(false)}>
-										Log In
-									</Link>
-								</Button>
+								{user ? (
+									<>
+										<Button
+											asChild
+											className="w-full">
+											<Link
+												to={getDashboardLink()}
+												onClick={() => setMobileMenuOpen(false)}>
+												Dashboard
+											</Link>
+										</Button>
+										<Button
+											variant="outline"
+											className="w-full"
+											onClick={() => {
+												signOut();
+												setMobileMenuOpen(false);
+											}}>
+											Log Out
+										</Button>
+									</>
+								) : (
+									<>
+										<Button
+											asChild
+											className="w-full">
+											<Link
+												to="/pricing"
+												onClick={() => setMobileMenuOpen(false)}>
+												Get Started
+											</Link>
+										</Button>
+										<RequestDemo>
+											<Button
+												variant="outline"
+												className="w-full">
+												Request Demo
+											</Button>
+										</RequestDemo>
+										<Button
+											asChild
+											variant="outline"
+											className="w-full">
+											<Link
+												to="/login"
+												onClick={() => setMobileMenuOpen(false)}>
+												Log In
+											</Link>
+										</Button>
+									</>
+								)}
 							</div>
 						</nav>
 					</div>
@@ -190,132 +384,42 @@ export default function MarketingLayout() {
 				<Outlet />
 			</main>
 
-			<footer className="w-full border-t bg-muted/40 py-12">
+			<footer className="w-full border-t bg-muted/40 py-6">
 				<div className="container mx-auto px-4">
-					<div className="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-6xl mx-auto">
-						{/* Company info column */}
-						<div className="md:col-span-1">
-							<Link
-								to="/"
-								className="flex items-center gap-2 font-bold text-xl mb-4">
-								{COMPANY_NAME}
-							</Link>
-							<p className="text-muted-foreground text-sm mb-6">
-								Simplify team scheduling with our intuitive platform. Plan
-								shifts, manage time off, and optimize your workforce.
-							</p>
-							<div className="flex space-x-3 mb-6">
+					{/* Compact footer with all elements in one row */}
+					<div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+						{/* Left side: Company name and links */}
+						<div className="flex flex-wrap justify-center sm:justify-start gap-x-6 gap-y-2">
+							{primaryFooterLinks.map((link) => (
 								<Link
-									to="#"
-									className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors"
-									aria-label="Facebook">
-									<Facebook className="h-4 w-4" />
+									key={link.href}
+									to={link.href}
+									className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+									{link.title}
 								</Link>
+							))}
+							{secondaryFooterLinks.map((link) => (
 								<Link
-									to="#"
-									className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors"
-									aria-label="Twitter">
-									<Twitter className="h-4 w-4" />
+									key={link.href}
+									to={link.href}
+									className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+									{link.title}
 								</Link>
-								<Link
-									to="#"
-									className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors"
-									aria-label="LinkedIn">
-									<Linkedin className="h-4 w-4" />
-								</Link>
-								<Link
-									to="#"
-									className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors"
-									aria-label="Instagram">
-									<Instagram className="h-4 w-4" />
-								</Link>
-							</div>
-						</div>
-
-						{/* Links columns */}
-						<div className="md:col-span-2 grid grid-cols-2 gap-8">
-							{/* Primary Links */}
-							<div>
-								<h3 className="font-medium text-base mb-4">Product</h3>
-								<ul className="space-y-3">
-									{primaryFooterLinks.map((link) => (
-										<li key={link.href}>
-											<Link
-												to={link.href}
-												className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-												{link.title}
-											</Link>
-										</li>
-									))}
-								</ul>
-							</div>
-
-							{/* Secondary Links */}
-							<div>
-								<h3 className="font-medium text-base mb-4">Resources</h3>
-								<ul className="space-y-3">
-									{secondaryFooterLinks.map((link) => (
-										<li key={link.href}>
-											<Link
-												to={link.href}
-												className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-												{link.title}
-											</Link>
-										</li>
-									))}
-								</ul>
-							</div>
-						</div>
-
-						{/* Newsletter column */}
-						<div className="md:col-span-1">
-							<h3 className="font-medium text-base mb-4">Stay Updated</h3>
-							<div className="mb-6">
-								<p className="text-sm text-muted-foreground mb-3">
-									Get our latest features and news directly to your inbox.
-								</p>
-								<div className="flex gap-2">
-									<div className="relative flex-1">
-										<Mail className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-										<Input
-											type="email"
-											placeholder="Enter your email"
-											className="pl-8 h-9 text-sm"
-										/>
-									</div>
-									<Button size="sm">Subscribe</Button>
-								</div>
-							</div>
-
-							<div className="mb-6">
-								<RequestDemo>
-									<Button
-										variant="outline"
-										size="sm"
-										className="w-full">
-										Request Demo
-									</Button>
-								</RequestDemo>
-							</div>
-						</div>
-					</div>
-
-					{/* Bottom bar with copyright and legal links */}
-					<div className="border-t border-border/40 mt-10 pt-6 flex flex-col md:flex-row justify-between items-center max-w-6xl mx-auto">
-						<p className="text-sm text-muted-foreground order-2 md:order-1 mt-4 md:mt-0">
-							© {new Date().getFullYear()} {COMPANY_LEGAL_NAME}. All rights
-							reserved.
-						</p>
-						<div className="flex gap-6 order-1 md:order-2">
+							))}
 							{legalLinks.map((link) => (
 								<Link
 									key={link.href}
 									to={link.href}
-									className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+									className="text-xs text-muted-foreground hover:text-foreground transition-colors">
 									{link.title}
 								</Link>
 							))}
 						</div>
+
+						{/* Right side: Copyright */}
+						<p className="text-xs text-muted-foreground text-center sm:text-right">
+							© {new Date().getFullYear()} {COMPANY_LEGAL_NAME}
+						</p>
 					</div>
 				</div>
 			</footer>

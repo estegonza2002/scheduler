@@ -430,7 +430,7 @@ function EmployeeShiftsSection({ employeeId }: { employeeId: string }) {
 						<Clock className="h-5 w-5 mr-2 text-muted-foreground" />
 						<h3 className="text-lg font-medium">Current Shift</h3>
 					</div>
-					<div className="space-y-4">
+					<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 						{currentShifts.map((shift) => (
 							<ShiftCard
 								key={shift.id}
@@ -450,7 +450,7 @@ function EmployeeShiftsSection({ employeeId }: { employeeId: string }) {
 					<h3 className="text-lg font-medium">Upcoming Shifts</h3>
 				</div>
 				{upcomingShifts.length > 0 ? (
-					<div className="space-y-4">
+					<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 						{upcomingShifts.map((shift) => (
 							<ShiftCard
 								key={shift.id}
@@ -477,7 +477,7 @@ function EmployeeShiftsSection({ employeeId }: { employeeId: string }) {
 					<h3 className="text-lg font-medium">Previous Shifts</h3>
 				</div>
 				{previousShifts.length > 0 ? (
-					<div className="space-y-4">
+					<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 						{previousShifts.map((shift) => (
 							<ShiftCard
 								key={shift.id}
@@ -1280,7 +1280,7 @@ export default function EmployeeDetailPage() {
 			});
 		} else {
 			updateHeader({
-				title: "Employee Details",
+				title: `${employee.name}`,
 				description: employee.role || "Employee",
 				actions: createActionButtons(),
 				showBackButton: true,
@@ -1486,39 +1486,6 @@ export default function EmployeeDetailPage() {
 		}
 	};
 
-	// Function to set a location as primary
-	const setPrimaryLocation = async (locationId: string) => {
-		try {
-			// If the location is already primary, do nothing
-			if (assignedLocationIds[0] === locationId) return;
-
-			// Create a new array with the selected location as the first element
-			const reorderedIds = [
-				locationId,
-				...assignedLocationIds.filter((id) => id !== locationId),
-			];
-
-			// Update the database
-			const success = await EmployeeLocationsAPI.assignLocations(
-				employeeId || "",
-				reorderedIds
-			);
-
-			if (!success) {
-				toast.error("Failed to update primary location. Please try again.");
-				return;
-			}
-
-			// Update local state
-			setAssignedLocationIds(reorderedIds);
-			toast.success("Primary location updated successfully");
-		} catch (error) {
-			console.error("Error setting primary location:", error);
-			toast.error("An error occurred. Please try again.");
-		}
-	};
-
-	// Function to remove a location from assigned locations
 	const removeLocation = async (locationId: string) => {
 		try {
 			// Create a new array without the location to remove
@@ -1544,7 +1511,6 @@ export default function EmployeeDetailPage() {
 		}
 	};
 
-	// Generate user initials for the avatar
 	const getInitials = (name: string) => {
 		return name
 			.split(" ")
@@ -1719,118 +1685,27 @@ export default function EmployeeDetailPage() {
 			)}
 
 			<ContentContainer>
-				<div className="flex flex-col md:flex-row gap-6">
-					{/* Secondary Sidebar */}
-					<div className="md:w-80 shrink-0">
-						<div className="sticky top-6 space-y-6">
-							{/* Employee Profile Card with Contact Information */}
-							<EmployeeCard
-								employee={{
-									...employee,
-									phone: employee.phone
-										? formatPhoneNumber(employee.phone)
-										: undefined,
-								}}
-								variant="profile"
-								hideStatus={false}
-								className="shadow-sm"
-							/>
-
-							{/* Assigned Locations Card */}
-							<Card>
-								<CardHeader className="pb-2 flex flex-row items-center justify-between">
-									<CardTitle className="text-md">Assigned Locations</CardTitle>
-									<LocationAssignmentSheet
-										employeeId={employee.id}
-										employeeName={employee.name}
-										allLocations={allLocations}
-										assignedLocationIds={assignedLocationIds}
-										onLocationsAssigned={handleLocationsAssigned}
-										open={locationSheetOpen}
-										onOpenChange={setLocationSheetOpen}
-										trigger={
-											<Button
-												variant="ghost"
-												size="icon"
-												className="h-8 w-8">
-												<Plus className="h-4 w-4" />
-											</Button>
-										}
-									/>
-								</CardHeader>
-								<CardContent>
-									{locationsLoading ? (
-										<LoadingState
-											type="spinner"
-											message="Loading locations..."
-										/>
-									) : assignedLocationIds.length === 0 ? (
-										<div className="text-sm text-muted-foreground">
-											No locations assigned
-										</div>
-									) : (
-										<div className="space-y-2">
-											{assignedLocationIds.map((locationId, index) => {
-												const location = locations[locationId];
-												if (!location) return null;
-
-												return (
-													<div
-														key={locationId}
-														className="flex items-center justify-between">
-														<div className="flex items-center gap-2">
-															{index === 0 && (
-																<Badge
-																	variant="outline"
-																	className="text-xs font-normal border-primary/50 text-primary bg-primary/10 rounded-sm">
-																	Primary
-																</Badge>
-															)}
-															<span
-																className={
-																	index === 0
-																		? "font-medium"
-																		: "text-muted-foreground"
-																}>
-																{location.name}
-															</span>
-														</div>
-														<div className="flex items-center gap-1">
-															{index !== 0 && (
-																<Button
-																	variant="ghost"
-																	size="icon"
-																	className="h-7 w-7"
-																	onClick={() =>
-																		setPrimaryLocation(locationId)
-																	}>
-																	<MapPinIcon className="h-3.5 w-3.5" />
-																</Button>
-															)}
-															<Button
-																variant="ghost"
-																size="icon"
-																className="h-7 w-7 text-destructive"
-																onClick={() => removeLocation(locationId)}>
-																<X className="h-3.5 w-3.5" />
-															</Button>
-														</div>
-													</div>
-												);
-											})}
-										</div>
-									)}
-								</CardContent>
-							</Card>
-						</div>
-					</div>
-
+				<div className="w-full">
 					{/* Main Content Area */}
-					<div className="flex-1">
+					<div className="w-full">
 						{/* Tab Content */}
 						{activeTab === "overview" && !shiftsLoading && (
 							<>
 								<ContentSection title="Employee Overview">
+									<div className="mb-6">
+										<EmployeeCard
+											employee={{
+												...employee,
+												phone: employee.phone
+													? formatPhoneNumber(employee.phone)
+													: undefined,
+											}}
+											variant="profile"
+											hideStatus={false}
+											className="shadow-sm mb-6"
+										/>
+									</div>
+
 									<EmployeeStats
 										employee={employee}
 										shifts={shifts}
@@ -1856,7 +1731,27 @@ export default function EmployeeDetailPage() {
 						)}
 
 						{activeTab === "locations" && (
-							<ContentSection title="Assigned Locations">
+							<ContentSection
+								title="Assigned Locations"
+								headerActions={
+									<LocationAssignmentSheet
+										employeeId={employee.id}
+										employeeName={employee.name}
+										allLocations={allLocations}
+										assignedLocationIds={assignedLocationIds}
+										onLocationsAssigned={handleLocationsAssigned}
+										open={locationSheetOpen}
+										onOpenChange={setLocationSheetOpen}
+										trigger={
+											<Button
+												variant="outline"
+												size="sm">
+												<Plus className="h-4 w-4 mr-2" />
+												Assign Location
+											</Button>
+										}
+									/>
+								}>
 								{locationsLoading ? (
 									<LoadingState
 										type="spinner"
@@ -1875,7 +1770,7 @@ export default function EmployeeDetailPage() {
 										icon={<Building2 className="h-8 w-8" />}
 									/>
 								) : (
-									<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+									<div className="grid grid-cols-1 md:grid-cols-4 gap-4">
 										{assignedLocationIds.map((locationId, index) => {
 											const location = locations[locationId];
 											if (!location) return null;
@@ -1885,18 +1780,29 @@ export default function EmployeeDetailPage() {
 													key={locationId}
 													location={location}
 													interactive={true}
-													showBadge={index === 0}
-													badgeText="Primary"
 													variant="standard">
-													<Button
-														variant="outline"
-														size="sm"
-														className="w-full mt-2"
-														onClick={() =>
-															navigate(`/locations/${location.id}`)
-														}>
-														View Location
-													</Button>
+													<div>
+														<Button
+															variant="outline"
+															size="sm"
+															className="w-full mt-2 mb-2"
+															onClick={() =>
+																navigate(`/locations/${location.id}`)
+															}>
+															View Location
+														</Button>
+
+														<div className="flex gap-2 w-full">
+															<Button
+																variant="destructive"
+																size="sm"
+																className="w-full"
+																onClick={() => removeLocation(locationId)}>
+																<X className="h-4 w-4 mr-2" />
+																Remove
+															</Button>
+														</div>
+													</div>
 												</LocationCard>
 											);
 										})}

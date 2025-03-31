@@ -3,6 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { Building2, MapPin, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
+import Image from "next/image";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export interface LocationCardProps {
 	/**
@@ -16,17 +20,8 @@ export interface LocationCardProps {
 	selected?: boolean;
 
 	/**
-	 * Whether to show the location badge (e.g., "Primary")
-	 */
-	showBadge?: boolean;
-
-	/**
-	 * Text to display in the badge
-	 */
-	badgeText?: string;
-
-	/**
 	 * Callback for when the card is clicked
+	 * If not provided, will navigate to the location detail page by default
 	 */
 	onClick?: () => void;
 
@@ -54,6 +49,12 @@ export interface LocationCardProps {
 	 * Optional children to render at the bottom of the card
 	 */
 	children?: React.ReactNode;
+
+	/**
+	 * Whether to navigate to location detail page when clicked
+	 * Default is true. Set to false to disable navigation.
+	 */
+	navigable?: boolean;
 }
 
 /**
@@ -62,15 +63,17 @@ export interface LocationCardProps {
 export function LocationCard({
 	location,
 	selected = false,
-	showBadge = false,
-	badgeText = "Primary",
 	onClick,
-	interactive = false,
+	interactive = true,
 	className,
 	size = "md",
 	variant = "standard",
 	children,
+	navigable = true,
 }: LocationCardProps) {
+	const [imgError, setImgError] = useState(false);
+	const navigate = useNavigate();
+
 	// Helper to format address parts into a single string
 	const getFullAddress = () => {
 		const parts = [];
@@ -89,6 +92,15 @@ export function LocationCard({
 	};
 
 	const fullAddress = getFullAddress();
+
+	// Handle click event - either use provided onClick or navigate to location detail
+	const handleClick = () => {
+		if (onClick) {
+			onClick();
+		} else if (navigable) {
+			navigate(`/locations/${location.id}`);
+		}
+	};
 
 	// Determine styles based on size
 	const getIconSize = () => {
@@ -124,46 +136,94 @@ export function LocationCard({
 		}
 	};
 
+	// Using a data URI for the placeholder to avoid loading issues
+	const placeholderImage =
+		"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 667'%3E%3Crect width='1000' height='667' fill='%23e6e6e6'/%3E%3Cpath d='M500 250 Q 550 200, 600 250 T 700 250 T 800 250 T 900 250 T 1000 250 V 667 H 0 V 250 Q 100 300, 200 250 T 300 250 T 400 250 T 500 250' fill='%23cccccc'/%3E%3Cpath d='M500,180 L530,220 L570,120 L610,220 L640,180 L500,180 Z' fill='%23ffcc88'/%3E%3C/svg%3E";
+
+	// If we have a location image and no error loading it, show that
+	// Otherwise default to our placeholder
+	const imageSource =
+		location.imageUrl && !imgError ? location.imageUrl : placeholderImage;
+
+	// Background color as fallback if image can't load
+	const imageFallbackStyle = {
+		backgroundColor: "#e2e8f0",
+		display: "flex",
+		alignItems: "center",
+		justifyContent: "center",
+	};
+
 	// Render the card based on variant
 	const renderContent = () => {
 		switch (variant) {
 			case "compact":
 				return (
-					<CardContent className="p-3">
-						<div className="flex items-center justify-between">
-							<div className="min-w-0">
-								<div className="flex items-center">
-									<span className={cn(getTitleSize(), "truncate")}>
-										{location.name}
-									</span>
-									{showBadge && (
-										<Badge
-											variant="outline"
-											className="ml-2 text-xs">
-											{badgeText}
-										</Badge>
-									)}
-									{selected && (
-										<Check className={cn("ml-2 text-primary", getIconSize())} />
+					<>
+						<div className="relative w-full">
+							<AspectRatio ratio={16 / 9}>
+								<div
+									style={imageFallbackStyle}
+									className="absolute inset-0">
+									<Building2 className="h-10 w-10 text-gray-400" />
+								</div>
+								<Image
+									src={imageSource}
+									alt={location.name}
+									fill
+									unoptimized
+									onError={() => setImgError(true)}
+									className="object-cover rounded-t-md"
+								/>
+							</AspectRatio>
+						</div>
+						<CardContent className="p-3">
+							<div className="flex items-center justify-between">
+								<div className="min-w-0">
+									<div className="flex items-center">
+										<span className={cn(getTitleSize(), "truncate")}>
+											{location.name}
+										</span>
+										{selected && (
+											<Check
+												className={cn("ml-2 text-primary", getIconSize())}
+											/>
+										)}
+									</div>
+									{fullAddress && (
+										<p
+											className={cn(
+												"text-muted-foreground truncate",
+												getAddressSize()
+											)}>
+											{fullAddress}
+										</p>
 									)}
 								</div>
-								{fullAddress && (
-									<p
-										className={cn(
-											"text-muted-foreground truncate",
-											getAddressSize()
-										)}>
-										{fullAddress}
-									</p>
-								)}
 							</div>
-						</div>
-					</CardContent>
+						</CardContent>
+					</>
 				);
 
 			case "detailed":
 				return (
 					<>
+						<div className="relative w-full">
+							<AspectRatio ratio={16 / 9}>
+								<div
+									style={imageFallbackStyle}
+									className="absolute inset-0">
+									<Building2 className="h-10 w-10 text-gray-400" />
+								</div>
+								<Image
+									src={imageSource}
+									alt={location.name}
+									fill
+									unoptimized
+									onError={() => setImgError(true)}
+									className="object-cover rounded-t-md"
+								/>
+							</AspectRatio>
+						</div>
 						<CardHeader className="p-4 pb-2">
 							<div className="flex items-center">
 								<Building2
@@ -171,17 +231,10 @@ export function LocationCard({
 								/>
 								<CardTitle className={getTitleSize()}>
 									{location.name}
-									{showBadge && (
-										<Badge
-											variant="outline"
-											className="ml-2 text-xs">
-											{badgeText}
-										</Badge>
+									{selected && (
+										<Check className={cn("ml-2 text-primary", getIconSize())} />
 									)}
 								</CardTitle>
-								{selected && (
-									<Check className={cn("ml-2 text-primary", getIconSize())} />
-								)}
 							</div>
 						</CardHeader>
 						<CardContent className="p-4 pt-2">
@@ -204,31 +257,46 @@ export function LocationCard({
 
 			default: // standard
 				return (
-					<CardContent className="p-4">
-						<div className="flex justify-between items-start">
-							<div className="min-w-0">
-								<div className="flex items-center">
-									<span className={getTitleSize()}>{location.name}</span>
-									{showBadge && (
-										<Badge
-											variant="outline"
-											className="ml-2 text-xs">
-											{badgeText}
-										</Badge>
-									)}
-									{selected && (
-										<Check className={cn("ml-2 text-primary", getIconSize())} />
+					<>
+						<div className="relative w-full">
+							<AspectRatio ratio={16 / 9}>
+								<div
+									style={imageFallbackStyle}
+									className="absolute inset-0">
+									<Building2 className="h-10 w-10 text-gray-400" />
+								</div>
+								<Image
+									src={imageSource}
+									alt={location.name}
+									fill
+									unoptimized
+									onError={() => setImgError(true)}
+									className="object-cover rounded-t-md"
+								/>
+							</AspectRatio>
+						</div>
+						<CardContent className="p-4">
+							<div className="flex justify-between items-start">
+								<div className="min-w-0">
+									<div className="flex items-center">
+										<span className={getTitleSize()}>{location.name}</span>
+										{selected && (
+											<Check
+												className={cn("ml-2 text-primary", getIconSize())}
+											/>
+										)}
+									</div>
+									{fullAddress && (
+										<p
+											className={cn("text-muted-foreground", getAddressSize())}>
+											{fullAddress}
+										</p>
 									)}
 								</div>
-								{fullAddress && (
-									<p className={cn("text-muted-foreground", getAddressSize())}>
-										{fullAddress}
-									</p>
-								)}
 							</div>
-						</div>
-						{children && <div className="mt-3">{children}</div>}
-					</CardContent>
+							{children && <div className="mt-3">{children}</div>}
+						</CardContent>
+					</>
 				);
 		}
 	};
@@ -236,11 +304,12 @@ export function LocationCard({
 	return (
 		<Card
 			className={cn(
+				"overflow-hidden",
 				interactive && "transition-all hover:bg-accent/50 cursor-pointer",
 				selected && "bg-accent/50 border-primary",
 				className
 			)}
-			onClick={interactive ? onClick : undefined}>
+			onClick={interactive ? handleClick : undefined}>
 			{renderContent()}
 		</Card>
 	);

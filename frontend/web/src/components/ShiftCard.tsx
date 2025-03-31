@@ -172,15 +172,15 @@ export function ShiftCard({
 
 							<div className="flex items-center gap-1">
 								{isToday && (
-									<Badge className="bg-green-500 hover:bg-green-600">
+									<span className="text-sm text-green-600 font-medium">
 										Today
-									</Badge>
+									</span>
 								)}
 
 								{isTomorrow && (
-									<Badge className="bg-yellow-500 hover:bg-yellow-600 text-white">
+									<span className="text-sm text-amber-600 font-medium">
 										Tomorrow
-									</Badge>
+									</span>
 								)}
 							</div>
 						</div>

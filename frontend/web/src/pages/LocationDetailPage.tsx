@@ -832,7 +832,8 @@ export default function LocationDetailPage() {
 										key={employee.id}
 										employee={employee}
 										locationCount={employeeLocationCounts[employee.id] || 1}
-										showLocationBadge
+										showLocationBadge={false}
+										hideStatus={false}
 										size="sm"
 										variant="standard"
 										showActions

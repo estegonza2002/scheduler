@@ -1,7 +1,7 @@
 import { Users, Plus, Lock } from "lucide-react";
 import { Button } from "../ui/button";
 import { AssignedEmployee } from "../../types/shift-types";
-import { ShiftEmployeeCard } from "./ShiftEmployeeCard";
+import { EmployeeCard } from "../EmployeeCard";
 import { cn } from "../../lib/utils";
 import { Badge } from "../ui/badge";
 
@@ -86,13 +86,14 @@ export function EmployeesSection({
 			) : (
 				<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
 					{assignedEmployees.map((employee) => (
-						<ShiftEmployeeCard
+						<EmployeeCard
 							key={employee.id}
 							employee={employee}
 							onRemove={onRemoveEmployeeClick}
 							shiftStartTime={shift.start_time}
 							shiftEndTime={shift.end_time}
 							isCompleted={isCompleted}
+							variant="shift"
 						/>
 					))}
 				</div>
