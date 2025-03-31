@@ -99,17 +99,17 @@ Currently, new test employees are incorrectly created with "active" status by de
 
 ## Progress Tracking
 
-| Task                                     | Status   | Owner | Target Date | Completion Date | Notes |
-| ---------------------------------------- | -------- | ----- | ----------- | --------------- | ----- |
-| Update EmployeeForm.tsx default status   | ⬜ To Do |       |             |                 |       |
-| Update EmployeesPage.tsx default status  | ⬜ To Do |       |             |                 |       |
-| Update API implementation default status | ⬜ To Do |       |             |                 |       |
-| Add status toggle in UI (optional)       | ⬜ To Do |       |             |                 |       |
-| Audit existing employee data             | ⬜ To Do |       |             |                 |       |
-| Batch update incorrect statuses          | ⬜ To Do |       |             |                 |       |
-| Manual testing of changes                | ⬜ To Do |       |             |                 |       |
-| Edge case testing                        | ⬜ To Do |       |             |                 |       |
-| Update documentation                     | ⬜ To Do |       |             |                 |       |
+| Task                                     | Status   | Owner | Target Date | Completion Date | Notes                                      |
+| ---------------------------------------- | -------- | ----- | ----------- | --------------- | ------------------------------------------ |
+| Update EmployeeForm.tsx default status   | ✅ Done  |       |             |                 | Changed default from "active" to "invited" |
+| Update EmployeesPage.tsx default status  | ✅ Done  |       |             |                 | Changed default in dialog and fixed import |
+| Update API implementation default status | ✅ Done  |       |             |                 | Changed default in API create method       |
+| Add status toggle in UI (optional)       | ⬜ To Do |       |             |                 |                                            |
+| Audit existing employee data             | ⬜ To Do |       |             |                 |                                            |
+| Batch update incorrect statuses          | ⬜ To Do |       |             |                 |                                            |
+| Manual testing of changes                | ⬜ To Do |       |             |                 |                                            |
+| Edge case testing                        | ⬜ To Do |       |             |                 |                                            |
+| Update documentation                     | ⬜ To Do |       |             |                 |                                            |
 
 ## Implementation Priority
 

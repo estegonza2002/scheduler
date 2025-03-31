@@ -41,15 +41,7 @@ import {
 } from "@/components/ui/dialog";
 
 // Define available positions
-const POSITIONS = [
-	"Manager",
-	"Supervisor",
-	"Team Lead",
-	"Developer",
-	"Designer",
-	"Analyst",
-	"Other",
-];
+const POSITIONS = ["Manager", "Staff"];
 
 type WizardStep =
 	| "basic-information"
@@ -137,213 +129,205 @@ export function EmployeeDialog({
 		switch (step) {
 			case "basic-information":
 				return (
-					<FormSection>
-						<div className="grid grid-cols-1 gap-6">
-							<FormField
-								control={form.control}
-								name="name"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>
-											Full Name <span className="text-destructive">*</span>
-										</FormLabel>
-										<FormControl>
-											<Input
-												placeholder="John Doe"
-												{...field}
-											/>
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
+					<FormSection className="my-6">
+						<FormField
+							control={form.control}
+							name="name"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>
+										Full Name <span className="text-destructive">*</span>
+									</FormLabel>
+									<FormControl>
+										<Input
+											placeholder="John Doe"
+											{...field}
+										/>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 
-							<FormField
-								control={form.control}
-								name="email"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>
-											Email <span className="text-destructive">*</span>
-										</FormLabel>
-										<FormControl>
-											<Input
-												type="email"
-												placeholder="john@example.com"
-												{...field}
-											/>
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-						</div>
+						<FormField
+							control={form.control}
+							name="email"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>
+										Email <span className="text-destructive">*</span>
+									</FormLabel>
+									<FormControl>
+										<Input
+											type="email"
+											placeholder="john@example.com"
+											{...field}
+										/>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 					</FormSection>
 				);
 
 			case "contact-information":
 				return (
-					<FormSection>
-						<div className="grid grid-cols-1 gap-6">
-							<FormField
-								control={form.control}
-								name="phone"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Phone Number</FormLabel>
-										<FormControl>
-											<FormPhoneInput
-												placeholder="Enter phone number"
-												{...field}
-											/>
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
+					<FormSection className="my-6">
+						<FormField
+							control={form.control}
+							name="phone"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Phone Number</FormLabel>
+									<FormControl>
+										<FormPhoneInput
+											placeholder="Enter phone number"
+											{...field}
+										/>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 
-							<FormField
-								control={form.control}
-								name="address"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Address</FormLabel>
-										<FormControl>
-											<Input
-												placeholder="123 Main St, City, State"
-												{...field}
-											/>
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-						</div>
+						<FormField
+							control={form.control}
+							name="address"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Address</FormLabel>
+									<FormControl>
+										<Input
+											placeholder="123 Main St, City, State"
+											{...field}
+										/>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 					</FormSection>
 				);
 
 			case "employment-details":
 				return (
-					<FormSection>
-						<div className="grid grid-cols-1 gap-6">
-							<FormField
-								control={form.control}
-								name="position"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Position</FormLabel>
-										<FormControl>
-											<Select
-												onValueChange={field.onChange}
-												value={field.value || ""}>
-												<SelectTrigger className="w-full">
-													<SelectValue placeholder="Select a position" />
-												</SelectTrigger>
-												<SelectContent>
-													{POSITIONS.map((position) => (
-														<SelectItem
-															key={position}
-															value={position}>
-															{position}
-														</SelectItem>
-													))}
-												</SelectContent>
-											</Select>
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
+					<FormSection className="my-6">
+						<FormField
+							control={form.control}
+							name="position"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Position</FormLabel>
+									<FormControl>
+										<Select
+											onValueChange={field.onChange}
+											value={field.value || ""}>
+											<SelectTrigger className="w-full">
+												<SelectValue placeholder="Select a position" />
+											</SelectTrigger>
+											<SelectContent>
+												{POSITIONS.map((position) => (
+													<SelectItem
+														key={position}
+														value={position}>
+														{position}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 
-							<FormField
-								control={form.control}
-								name="hourlyRate"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Hourly Rate ($)</FormLabel>
-										<FormControl>
-											<Input
-												type="number"
-												step="0.01"
-												min="0"
-												placeholder="15.50"
-												{...field}
-											/>
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
+						<FormField
+							control={form.control}
+							name="hourlyRate"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Hourly Rate ($)</FormLabel>
+									<FormControl>
+										<Input
+											type="number"
+											step="0.01"
+											min="0"
+											placeholder="15.50"
+											{...field}
+										/>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 
-							<FormField
-								control={form.control}
-								name="hireDate"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Hire Date</FormLabel>
-										<FormControl>
-											<Input
-												type="date"
-												{...field}
-												value={field.value || ""}
-											/>
-										</FormControl>
-										<FormDescription className="text-xs">
-											Leave blank if not applicable.
-										</FormDescription>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-						</div>
+						<FormField
+							control={form.control}
+							name="hireDate"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Hire Date</FormLabel>
+									<FormControl>
+										<Input
+											type="date"
+											{...field}
+											value={field.value || ""}
+										/>
+									</FormControl>
+									<FormDescription className="text-xs">
+										Leave blank if not applicable.
+									</FormDescription>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 					</FormSection>
 				);
 
 			case "additional-information":
 				return (
-					<FormSection>
-						<div className="grid grid-cols-1 gap-6">
-							<FormField
-								control={form.control}
-								name="emergencyContact"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Emergency Contact</FormLabel>
-										<FormDescription>
-											Name, relationship, and phone number of emergency contact
-										</FormDescription>
-										<FormControl>
-											<Input
-												placeholder="Jane Doe (Spouse) - 555-789-1234"
-												{...field}
-											/>
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
+					<FormSection className="my-6">
+						<FormField
+							control={form.control}
+							name="emergencyContact"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Emergency Contact</FormLabel>
+									<FormDescription>
+										Name, relationship, and phone number of emergency contact
+									</FormDescription>
+									<FormControl>
+										<Input
+											placeholder="Jane Doe (Spouse) - 555-789-1234"
+											{...field}
+										/>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 
-							<FormField
-								control={form.control}
-								name="notes"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Notes</FormLabel>
-										<FormDescription>
-											Any additional information about this employee
-										</FormDescription>
-										<FormControl>
-											<Textarea
-												placeholder="Additional information about this employee..."
-												className="h-24"
-												{...field}
-											/>
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-						</div>
+						<FormField
+							control={form.control}
+							name="notes"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Notes</FormLabel>
+									<FormDescription>
+										Any additional information about this employee
+									</FormDescription>
+									<FormControl>
+										<Textarea
+											placeholder="Additional information about this employee..."
+											className="h-24"
+											{...field}
+										/>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 					</FormSection>
 				);
 		}
@@ -354,7 +338,7 @@ export function EmployeeDialog({
 			open={open}
 			onOpenChange={onOpenChange}>
 			<DialogTrigger asChild>{/* Trigger content */}</DialogTrigger>
-			<DialogContent className={cn("sm:max-w-[600px]")}>
+			<DialogContent>
 				<Form {...form}>
 					<form onSubmit={form.handleSubmit(handleSubmit)}>
 						<DialogHeader>
