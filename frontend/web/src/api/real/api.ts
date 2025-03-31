@@ -581,7 +581,7 @@ export const EmployeesAPI = {
 				organizationId: employee.organization_id,
 				name: employee.name,
 				email: employee.email,
-				role: employee.role,
+				position: employee.position,
 				phone: employee.phone,
 				hireDate: employee.hire_date,
 				address: employee.address,
@@ -627,7 +627,7 @@ export const EmployeesAPI = {
 			organizationId: data.organization_id,
 			name: data.name,
 			email: data.email,
-			role: data.role,
+			position: data.position,
 			phone: data.phone,
 			hireDate: data.hire_date,
 			address: data.address,
@@ -648,7 +648,7 @@ export const EmployeesAPI = {
 			organization_id: data.organizationId,
 			name: data.name,
 			email: data.email,
-			role: data.role || "Employee",
+			position: data.position || "Employee",
 			phone: data.phone,
 			hire_date: data.hireDate,
 			address: data.address,
@@ -656,7 +656,7 @@ export const EmployeesAPI = {
 			notes: data.notes,
 			avatar: data.avatar,
 			hourly_rate: data.hourlyRate,
-			status: data.status || "active",
+			status: data.status || "invited",
 			is_online: data.isOnline || false,
 			last_active: data.lastActive || new Date().toISOString(),
 		};
@@ -679,7 +679,7 @@ export const EmployeesAPI = {
 			organizationId: newEmployee.organization_id,
 			name: newEmployee.name,
 			email: newEmployee.email,
-			role: newEmployee.role,
+			position: newEmployee.position,
 			phone: newEmployee.phone,
 			hireDate: newEmployee.hire_date,
 			address: newEmployee.address,
@@ -710,7 +710,7 @@ export const EmployeesAPI = {
 			snakeCaseData.organization_id = data.organizationId;
 		if (data.name !== undefined) snakeCaseData.name = data.name;
 		if (data.email !== undefined) snakeCaseData.email = data.email;
-		if (data.role !== undefined) snakeCaseData.role = data.role;
+		if (data.position !== undefined) snakeCaseData.position = data.position;
 		if (data.phone !== undefined) snakeCaseData.phone = data.phone;
 		if (data.hireDate !== undefined) snakeCaseData.hire_date = data.hireDate;
 		if (data.address !== undefined) snakeCaseData.address = data.address;
@@ -744,7 +744,7 @@ export const EmployeesAPI = {
 			organizationId: updated.organization_id,
 			name: updated.name,
 			email: updated.email,
-			role: updated.role,
+			position: updated.position,
 			phone: updated.phone,
 			hireDate: updated.hire_date,
 			address: updated.address,
@@ -774,6 +774,45 @@ export const EmployeesAPI = {
 		}
 
 		toast.success("Employee deleted successfully!");
+	},
+
+	resendInvite: async (id: string): Promise<boolean> => {
+		try {
+			// Get the employee to verify they exist and are in invited status
+			const { data: employee, error: employeeError } = await supabase
+				.from("employees")
+				.select("*")
+				.eq("id", id)
+				.single();
+
+			if (employeeError || !employee) {
+				console.error("Error fetching employee:", employeeError);
+				return false;
+			}
+
+			if (employee.status !== "invited") {
+				console.error("Employee is not in invited status");
+				return false;
+			}
+
+			// Update the employee's last_invite_sent timestamp to trigger the email resend
+			const { error: updateError } = await supabase
+				.from("employees")
+				.update({
+					last_invite_sent: new Date().toISOString(),
+				})
+				.eq("id", id);
+
+			if (updateError) {
+				console.error("Error updating employee:", updateError);
+				return false;
+			}
+
+			return true;
+		} catch (error) {
+			console.error("Error in resendInvite:", error);
+			return false;
+		}
 	},
 };
 

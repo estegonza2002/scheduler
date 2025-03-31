@@ -106,7 +106,7 @@ export function EmployeeForm({
 			email: initialData?.email || "",
 			phone: initialData?.phone || "",
 			address: initialData?.address || "",
-			position: initialData?.role || "", // Map role to position
+			position: initialData?.position || "",
 			hourlyRate:
 				initialData?.hourlyRate !== undefined
 					? initialData.hourlyRate.toString()
@@ -136,14 +136,14 @@ export function EmployeeForm({
 				organizationId,
 				name: data.name,
 				email: data.email,
-				role: data.position || "Employee",
+				position: data.position || "Employee",
 				phone: data.phone || undefined,
 				hireDate: data.hireDate || undefined,
 				address: data.address || undefined,
 				emergencyContact: data.emergencyContact || undefined,
 				notes: data.notes || undefined,
 				hourlyRate,
-				status: initialData?.status || "active",
+				status: initialData?.status || "invited",
 				isOnline: initialData?.isOnline || false,
 				lastActive: initialData?.lastActive || new Date().toISOString(),
 			};
@@ -230,11 +230,11 @@ export function EmployeeForm({
 		<Form {...form}>
 			<form
 				onSubmit={form.handleSubmit(onSubmit)}
-				className="space-y-6">
+				className="space-y-12">
 				<FormSection
 					title="Basic Information"
 					description="Enter the employee's name and primary contact details">
-					<div className="grid grid-cols-1 gap-4">
+					<div className="grid grid-cols-1 gap-6">
 						<FormField
 							control={form.control}
 							name="name"
@@ -244,16 +244,10 @@ export function EmployeeForm({
 										Full Name <span className="text-destructive">*</span>
 									</FormLabel>
 									<FormControl>
-										<div className="flex items-center">
-											<User className="w-4 h-4 mr-2 text-muted-foreground" />
-											<Input
-												placeholder="John Doe"
-												{...field}
-												aria-required="true"
-												aria-invalid={!!form.formState.errors.name}
-												required
-											/>
-										</div>
+										<Input
+											placeholder="John Doe"
+											{...field}
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -269,22 +263,12 @@ export function EmployeeForm({
 										Email <span className="text-destructive">*</span>
 									</FormLabel>
 									<FormControl>
-										<div className="flex items-center">
-											<Mail className="w-4 h-4 mr-2 text-muted-foreground" />
-											<Input
-												placeholder="john@example.com"
-												type="email"
-												{...field}
-												aria-required="true"
-												aria-invalid={!!form.formState.errors.email}
-												required
-											/>
-										</div>
+										<Input
+											type="email"
+											placeholder="john@example.com"
+											{...field}
+										/>
 									</FormControl>
-									<FormDescription className="text-xs">
-										The employee will use this email to log in and receive
-										notifications.
-									</FormDescription>
 									<FormMessage />
 								</FormItem>
 							)}
@@ -295,12 +279,22 @@ export function EmployeeForm({
 				<FormSection
 					title="Contact Information"
 					description="Add contact details for communication and record-keeping">
-					<div className="grid grid-cols-1 gap-4">
-						<FormPhoneInput
+					<div className="grid grid-cols-1 gap-6">
+						<FormField
 							control={form.control}
 							name="phone"
-							label="Phone Number"
-							placeholder="Enter international phone number"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Phone Number</FormLabel>
+									<FormControl>
+										<FormPhoneInput
+											placeholder="Enter phone number"
+											{...field}
+										/>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
 						/>
 
 						<FormField
@@ -310,13 +304,10 @@ export function EmployeeForm({
 								<FormItem>
 									<FormLabel>Address</FormLabel>
 									<FormControl>
-										<div className="flex items-center">
-											<MapPin className="w-4 h-4 mr-2 text-muted-foreground" />
-											<Input
-												placeholder="123 Main St, Anytown, ST"
-												{...field}
-											/>
-										</div>
+										<Input
+											placeholder="123 Main St, City, State"
+											{...field}
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -327,8 +318,8 @@ export function EmployeeForm({
 
 				<FormSection
 					title="Employment Details"
-					description="Provide information about the employee's role and employment terms">
-					<div className="grid grid-cols-1 gap-4">
+					description="Provide information about the employee's position and employment terms">
+					<div className="grid grid-cols-1 gap-6">
 						<FormField
 							control={form.control}
 							name="position"
@@ -336,25 +327,22 @@ export function EmployeeForm({
 								<FormItem>
 									<FormLabel>Position</FormLabel>
 									<FormControl>
-										<div className="flex items-center">
-											<BadgeAlert className="w-4 h-4 mr-2 text-muted-foreground" />
-											<Select
-												onValueChange={field.onChange}
-												value={field.value || ""}>
-												<SelectTrigger className="w-full">
-													<SelectValue placeholder="Select a position" />
-												</SelectTrigger>
-												<SelectContent>
-													{POSITIONS.map((position) => (
-														<SelectItem
-															key={position}
-															value={position}>
-															{position}
-														</SelectItem>
-													))}
-												</SelectContent>
-											</Select>
-										</div>
+										<Select
+											onValueChange={field.onChange}
+											value={field.value || ""}>
+											<SelectTrigger className="w-full">
+												<SelectValue placeholder="Select a position" />
+											</SelectTrigger>
+											<SelectContent>
+												{POSITIONS.map((position) => (
+													<SelectItem
+														key={position}
+														value={position}>
+														{position}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -368,16 +356,13 @@ export function EmployeeForm({
 								<FormItem>
 									<FormLabel>Hourly Rate ($)</FormLabel>
 									<FormControl>
-										<div className="flex items-center">
-											<DollarSign className="w-4 h-4 mr-2 text-muted-foreground" />
-											<Input
-												type="number"
-												step="0.01"
-												min="0"
-												placeholder="15.50"
-												{...field}
-											/>
-										</div>
+										<Input
+											type="number"
+											step="0.01"
+											min="0"
+											placeholder="15.50"
+											{...field}
+										/>
 									</FormControl>
 									<FormMessage />
 								</FormItem>
@@ -391,36 +376,33 @@ export function EmployeeForm({
 								<FormItem>
 									<FormLabel>Hire Date</FormLabel>
 									<FormControl>
-										<div className="flex items-center">
-											<Calendar className="w-4 h-4 mr-2 text-muted-foreground" />
-											<Input
-												type="date"
-												{...field}
-												value={field.value || ""}
-												onChange={(e) => {
-													// Ensure valid date format
-													if (e.target.value === "") {
-														field.onChange("");
-													} else {
-														try {
-															// Validate that it's a proper date
-															const date = new Date(e.target.value);
-															if (!isNaN(date.getTime())) {
-																// Format as YYYY-MM-DD for database compatibility
-																const formattedDate = date
-																	.toISOString()
-																	.split("T")[0];
-																field.onChange(formattedDate);
-															} else {
-																field.onChange("");
-															}
-														} catch (error) {
+										<Input
+											type="date"
+											{...field}
+											value={field.value || ""}
+											onChange={(e) => {
+												// Ensure valid date format
+												if (e.target.value === "") {
+													field.onChange("");
+												} else {
+													try {
+														// Validate that it's a proper date
+														const date = new Date(e.target.value);
+														if (!isNaN(date.getTime())) {
+															// Format as YYYY-MM-DD for database compatibility
+															const formattedDate = date
+																.toISOString()
+																.split("T")[0];
+															field.onChange(formattedDate);
+														} else {
 															field.onChange("");
 														}
+													} catch (error) {
+														field.onChange("");
 													}
-												}}
-											/>
-										</div>
+												}
+											}}
+										/>
 									</FormControl>
 									<FormDescription className="text-xs">
 										Leave blank if not applicable.
@@ -435,52 +417,48 @@ export function EmployeeForm({
 				<FormSection
 					title="Additional Information"
 					description="Include emergency contact details and other relevant notes">
-					<FormField
-						control={form.control}
-						name="emergencyContact"
-						render={({ field }) => (
-							<FormItem>
-								<FormLabel>Emergency Contact</FormLabel>
-								<FormDescription>
-									Name, relationship, and phone number of emergency contact
-								</FormDescription>
-								<FormControl>
-									<div className="flex items-center">
-										<Phone className="w-4 h-4 mr-2 text-muted-foreground" />
+					<div className="grid grid-cols-1 gap-6">
+						<FormField
+							control={form.control}
+							name="emergencyContact"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Emergency Contact</FormLabel>
+									<FormDescription>
+										Name, relationship, and phone number of emergency contact
+									</FormDescription>
+									<FormControl>
 										<Input
 											placeholder="Jane Doe (Spouse) - 555-789-1234"
 											{...field}
 										/>
-									</div>
-								</FormControl>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 
-					<FormField
-						control={form.control}
-						name="notes"
-						render={({ field }) => (
-							<FormItem className="mt-4">
-								<FormLabel>Notes</FormLabel>
-								<FormDescription>
-									Any additional information about this employee
-								</FormDescription>
-								<FormControl>
-									<div className="flex items-start">
-										<StickyNote className="w-4 h-4 mr-2 mt-2 text-muted-foreground" />
+						<FormField
+							control={form.control}
+							name="notes"
+							render={({ field }) => (
+								<FormItem className="mt-4">
+									<FormLabel>Notes</FormLabel>
+									<FormDescription>
+										Any additional information about this employee
+									</FormDescription>
+									<FormControl>
 										<Textarea
 											placeholder="Additional information about this employee..."
 											className="h-24"
 											{...field}
 										/>
-									</div>
-								</FormControl>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+					</div>
 				</FormSection>
 			</form>
 		</Form>

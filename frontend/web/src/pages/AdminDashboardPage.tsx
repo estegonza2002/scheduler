@@ -24,7 +24,7 @@ import {
 } from "@/api";
 import { ContentContainer } from "@/components/ui/content-container";
 import { ContentSection } from "@/components/ui/content-section";
-import { EmployeeSheet } from "@/components/EmployeeSheet";
+import { EmployeeDialog } from "@/components/EmployeeDialog";
 import { ShiftCreationSheet } from "@/components/ShiftCreationSheet";
 import { LocationCreationSheet } from "@/components/LocationCreationSheet";
 import { useOnboarding } from "@/lib/onboarding-context";
@@ -40,6 +40,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { DollarSign, Users, Calendar } from "lucide-react";
 import { FragmentFix } from "@/components/ui/fragment-fix";
+import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 
 // Extended organization type for UI display purposes
 interface ExtendedOrganization extends Organization {
@@ -76,6 +77,7 @@ export default function AdminDashboardPage() {
 	const [upcomingShifts, setUpcomingShifts] = useState(0);
 	const [totalLocations, setTotalLocations] = useState(0);
 	const [currentSchedule, setCurrentSchedule] = useState<string>(""); // For shift creation
+	const [isEmployeeDialogOpen, setIsEmployeeDialogOpen] = useState(false);
 	const [weeklyStats, setWeeklyStats] = useState<WeeklyStats>({
 		revenue: [],
 		staffing: [],
@@ -268,10 +270,6 @@ export default function AdminDashboardPage() {
 						<Settings className="h-4 w-4 mr-2" />
 						Setup Guide ({getCompletedStepsCount()}/{getTotalStepsCount()})
 					</Button>
-					<Button onClick={() => navigate("/schedule/create")}>
-						<Plus className="h-4 w-4 mr-2" />
-						Create Schedule
-					</Button>
 				</div>
 			);
 
@@ -298,18 +296,32 @@ export default function AdminDashboardPage() {
 				className="mb-6 mt-6">
 				<div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
 					{organization && (
-						<EmployeeSheet
-							organizationId={organization.id}
-							onEmployeeUpdated={handleEmployeeAdded}
-							trigger={
-								<Button
-									variant="outline"
-									className="h-24 flex flex-col items-center justify-center w-full gap-2 text-sm hover:border-primary hover:text-primary">
-									<UserPlus className="h-6 w-6" />
-									<span>Add Employee</span>
-								</Button>
-							}
-						/>
+						<>
+							<Button
+								variant="outline"
+								className="h-24 flex flex-col items-center justify-center w-full gap-2 text-sm hover:border-primary hover:text-primary"
+								onClick={() => setIsEmployeeDialogOpen(true)}>
+								<UserPlus className="h-6 w-6" />
+								<span>Add Employee</span>
+							</Button>
+							<EmployeeDialog
+								open={isEmployeeDialogOpen}
+								onOpenChange={setIsEmployeeDialogOpen}
+								onSubmit={async (data) => {
+									if (organization) {
+										const newEmployee = await EmployeesAPI.create({
+											...data,
+											organizationId: organization.id,
+											role: "employee",
+											status: "active",
+											isOnline: false,
+											lastActive: new Date().toISOString(),
+										});
+										handleEmployeeAdded(newEmployee);
+									}
+								}}
+							/>
+						</>
 					)}
 					{organization && (
 						<LocationCreationSheet

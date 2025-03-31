@@ -250,3 +250,32 @@ export const useEmployeePresence = (organizationId: string) => {
 			employeePresence[employeeId]?.lastActive,
 	};
 };
+
+// Hook that extends useEmployeePresence with notification toggles
+export const useEmployeePresenceWithNotifications = (
+	organizationId: string
+) => {
+	const presenceService = useEmployeePresence(organizationId);
+	const [initialized, setInitialized] = useState(false);
+	const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+
+	useEffect(() => {
+		// If not loading anymore, we're initialized
+		if (!presenceService.isLoading) {
+			setInitialized(true);
+		}
+	}, [presenceService.isLoading]);
+
+	const toggleNotifications = () => {
+		const newState = !notificationsEnabled;
+		setNotificationsEnabled(newState);
+		setStatusChangeNotifications(newState);
+	};
+
+	return {
+		...presenceService,
+		initialized,
+		notificationsEnabled,
+		toggleNotifications,
+	};
+};

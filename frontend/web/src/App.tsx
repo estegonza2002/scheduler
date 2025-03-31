@@ -77,7 +77,11 @@ import ClockInOutPage from "./pages/ClockInOutPage";
 import IntegrationsPage from "./pages/IntegrationsPage";
 
 // Root redirect component that checks user role
-function RootRedirect() {
+interface RootRedirectProps {
+	fallbackComponent: React.ReactNode;
+}
+
+function RootRedirect({ fallbackComponent }: RootRedirectProps) {
 	const { user, isLoading } = useAuth();
 	const [showBusinessSetup, setShowBusinessSetup] = useState(false);
 	const [loadingTimeout, setLoadingTimeout] = useState(false);
@@ -151,7 +155,7 @@ function RootRedirect() {
 	}
 
 	if (!user) {
-		return <Navigate to="/login" />;
+		return fallbackComponent;
 	}
 
 	// Check if user is an admin
@@ -176,7 +180,11 @@ function App() {
 													<Route element={<MarketingLayout />}>
 														<Route
 															path="/"
-															element={<HomePage />}
+															element={
+																<RootRedirect
+																	fallbackComponent={<HomePage />}
+																/>
+															}
 														/>
 														<Route
 															path="/features"

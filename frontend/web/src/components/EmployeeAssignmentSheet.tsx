@@ -321,28 +321,26 @@ export function EmployeeAssignmentSheet({
 							</SheetDescription>
 						</SheetHeader>
 
-						<div className="flex-1 py-4">
-							<EmployeeSelectionComponent
-								searchTerm={searchTerm}
-								setSearchTerm={setSearchTerm}
-								filteredEmployees={getFilteredEmployeesForAssignment()}
-								allEmployees={allEmployees}
-								loadingEmployees={isLoading}
-								selectedEmployees={selectedEmployeeObjects}
-								onSelectedEmployeesChange={setSelectedEmployeeObjects}
-								title="Select Employees"
-								subtitle={`Choose employees to assign to ${locationName}`}
-								showLocationInfo={true}
-								locationData={{ locationId }}
-								getLocationName={() => locationName}
-								showSelectedEmployees={true}
-								submitButtonText="Assign to Location"
-								onFormSubmit={handleAssignEmployees}
-								loading={isSubmitting}
-								filterByLocation={false}
-								onBack={() => handleOpenChange(false)}
-							/>
-						</div>
+						<EmployeeSelectionComponent
+							searchTerm={searchTerm}
+							setSearchTerm={setSearchTerm}
+							filteredEmployees={getFilteredEmployeesForAssignment()}
+							allEmployees={allEmployees}
+							loadingEmployees={isLoading}
+							selectedEmployees={selectedEmployeeObjects}
+							onSelectedEmployeesChange={setSelectedEmployeeObjects}
+							title="Select Employees"
+							subtitle={`Choose employees to assign to ${locationName}`}
+							showLocationInfo={true}
+							locationData={{ locationId }}
+							getLocationName={() => locationName}
+							showSelectedEmployees={true}
+							submitButtonText="Assign to Location"
+							onFormSubmit={handleAssignEmployees}
+							loading={isSubmitting}
+							filterByLocation={false}
+							onBack={() => handleOpenChange(false)}
+						/>
 					</>
 				)}
 			</SheetContent>

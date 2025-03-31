@@ -91,8 +91,8 @@ export function EmployeeDetailDialog({
 	const headerActions = (
 		<Badge
 			className="ml-2"
-			variant={employee.role === "admin" ? "default" : "outline"}>
-			{employee.role || "Staff"}
+			variant={employee.position === "admin" ? "default" : "outline"}>
+			{employee.position || "Staff"}
 		</Badge>
 	);
 
@@ -147,7 +147,7 @@ export function EmployeeDetailDialog({
 							</Avatar>
 							<div className="min-w-0">
 								<h2 className="text-xl font-semibold">{employee.name}</h2>
-								<p className="text-muted-foreground">{employee.role}</p>
+								<p className="text-muted-foreground">{employee.position}</p>
 								{employee.hourlyRate !== undefined && (
 									<div className="flex items-center gap-1 mt-1 text-sm text-muted-foreground">
 										<DollarSign className="h-3.5 w-3.5" />
@@ -205,7 +205,7 @@ export function EmployeeDetailDialog({
 										<div className="flex items-center justify-between">
 											<span className="text-muted-foreground">Role:</span>
 											<span className="font-medium">
-												{employee.role || "N/A"}
+												{employee.position || "N/A"}
 											</span>
 										</div>
 										{employee.hireDate && (

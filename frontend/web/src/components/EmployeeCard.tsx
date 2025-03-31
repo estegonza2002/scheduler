@@ -267,10 +267,10 @@ export function EmployeeCard({
 							)
 							.join(" ")}
 					</h3>
-					{showRole && employee.role && (
-						<p className="text-xs text-muted-foreground">
-							{employee.role || "Employee"}
-						</p>
+					{showRole && employee.position && (
+						<div className="text-sm text-muted-foreground whitespace-nowrap flex-1 truncate">
+							{employee.position || "Employee"}
+						</div>
 					)}
 					{showStatus && employee.status && !hideStatus && (
 						<span

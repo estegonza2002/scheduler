@@ -81,7 +81,7 @@ export function EditEmployeeAssignmentDialog({
 								{employee.email}
 							</div>
 							<div className="text-sm text-muted-foreground">
-								{employee.role}
+								{employee.position}
 							</div>
 						</div>
 					</div>

@@ -90,7 +90,7 @@ import { useHeader } from "@/lib/header-context";
 import { LocationCard } from "@/components/ui/location-card";
 import { EmployeeNav } from "@/components/EmployeeNav";
 import { useEffect as useNavigationEffect } from "react";
-import { EmployeeSheet as EmployeeEditSheet } from "@/components/EmployeeSheet";
+import { EmployeeDialog } from "@/components/EmployeeDialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -1214,21 +1214,36 @@ export default function EmployeeDetailPage() {
 
 			return (
 				<>
-					<EmployeeEditSheet
+					{/* Show Resend Invite button if employee hasn't signed up */}
+					{employee.status === "invited" && (
+						<Button
+							variant="outline"
+							size="sm"
+							className="bg-red-50 border-red-200 text-red-800 hover:bg-red-100 hover:text-red-900 gap-1.5 font-medium"
+							onClick={resendWelcomeEmail}>
+							<UserX className="h-3.5 w-3.5" />
+							<span>Resend Invite</span>
+						</Button>
+					)}
+
+					<EmployeeDialog
 						employee={employee}
-						organizationId={employee.organizationId || "org-1"}
-						onEmployeeUpdated={(updatedEmployee) => {
-							setEmployee((prev) => ({ ...prev!, ...updatedEmployee }));
-						}}
+						organizationId={employee.organizationId || ""}
+						open={editSheetOpen}
+						onOpenChange={setEditSheetOpen}
 						trigger={
 							<Button
 								id="edit-employee-trigger"
 								variant="outline"
-								size="sm">
-								<Edit className="h-4 w-4 mr-2" />
+								size="sm"
+								className="h-9 mr-2">
+								<Edit className="h-4 w-4 mr-1" />
 								Edit
 							</Button>
 						}
+						onEmployeeUpdated={(updatedEmployee: Employee) => {
+							setEmployee(updatedEmployee);
+						}}
 					/>
 
 					<AlertDialog
@@ -1281,7 +1296,7 @@ export default function EmployeeDetailPage() {
 		} else {
 			updateHeader({
 				title: `${employee.name}`,
-				description: employee.role || "Employee",
+				description: employee.position || "Employee",
 				actions: createActionButtons(),
 				showBackButton: true,
 			});
@@ -1535,8 +1550,13 @@ export default function EmployeeDetailPage() {
 		if (!employee) return;
 
 		try {
-			// Here you would implement the actual API call to resend the welcome email
-			toast.success("Invitation email has been resent to " + employee.email);
+			const success = await EmployeesAPI.resendInvite(employee.id);
+
+			if (success) {
+				toast.success("Invitation email has been resent to " + employee.email);
+			} else {
+				throw new Error("Failed to resend invitation");
+			}
 		} catch (error) {
 			console.error("Error resending invite:", error);
 			toast.error("Failed to resend invitation email");
@@ -1581,7 +1601,7 @@ export default function EmployeeDetailPage() {
 				</Button>
 			)}
 
-			<EmployeeEditSheet
+			<EmployeeDialog
 				employee={employee}
 				organizationId={employee.organizationId || ""}
 				open={editSheetOpen}
@@ -1596,7 +1616,7 @@ export default function EmployeeDetailPage() {
 						Edit
 					</Button>
 				}
-				onEmployeeUpdated={(updatedEmployee) => {
+				onEmployeeUpdated={(updatedEmployee: Employee) => {
 					setEmployee(updatedEmployee);
 				}}
 			/>

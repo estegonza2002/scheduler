@@ -32,7 +32,7 @@ type User = {
 	id: string;
 	name: string;
 	avatar: string;
-	role: string;
+	position: string;
 };
 
 type Group = {
@@ -83,7 +83,7 @@ export function NewConversationModal({
 					id: employee.id,
 					name: employee.name,
 					avatar: employee.avatar || "",
-					role: employee.position || employee.role || "Employee",
+					position: employee.position || "Employee",
 				}));
 
 				setUsers(mappedUsers);
@@ -104,7 +104,7 @@ export function NewConversationModal({
 	const filteredUsers = users.filter(
 		(user) =>
 			user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-			user.role.toLowerCase().includes(searchQuery.toLowerCase())
+			user.position.toLowerCase().includes(searchQuery.toLowerCase())
 	);
 
 	const handleStartOneOnOne = (userId: string) => {
@@ -206,7 +206,7 @@ export function NewConversationModal({
 													<div className="flex flex-col items-start">
 														<span className="font-medium">{user.name}</span>
 														<span className="text-xs text-muted-foreground">
-															{user.role}
+															{user.position}
 														</span>
 													</div>
 												</Button>
@@ -299,7 +299,7 @@ export function NewConversationModal({
 															<div className="flex flex-col items-start">
 																<span className="font-medium">{user.name}</span>
 																<span className="text-xs text-muted-foreground">
-																	{user.role}
+																	{user.position}
 																</span>
 															</div>
 															{selectedUsers.includes(user.id) && (

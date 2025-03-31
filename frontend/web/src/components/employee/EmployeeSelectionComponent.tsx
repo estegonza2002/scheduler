@@ -26,7 +26,7 @@ import { LucideIcon } from "lucide-react";
 export type SelectedEmployee = {
 	id: string;
 	name: string;
-	role?: string;
+	position?: string;
 };
 
 // Common data types
@@ -291,7 +291,7 @@ export function EmployeeSelectionComponent({
 					{
 						id: employee.id,
 						name: employee.name,
-						role: employee.role,
+						position: employee.position,
 					},
 				]);
 			}
@@ -313,7 +313,7 @@ export function EmployeeSelectionComponent({
 				updatedSelection.push({
 					id: employee.id,
 					name: employee.name,
-					role: employee.role,
+					position: employee.position,
 				});
 			}
 		});

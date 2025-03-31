@@ -30,10 +30,11 @@ import {
 	Briefcase,
 	Upload,
 	UserX,
+	UserPlus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { DeleteEmployeeDialog } from "@/components/DeleteEmployeeDialog";
-import { EmployeeSheet } from "@/components/EmployeeSheet";
+import { EmployeeDialog } from "@/components/EmployeeDialog";
 import { EmployeeCard } from "@/components/EmployeeCard";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import {
@@ -67,7 +68,7 @@ import { FilterGroup } from "@/components/ui/filter-group";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingState } from "@/components/ui/loading-state";
 import { EmployeeStatusBadge } from "@/components/ui/employee-status-badge";
-import { useEmployeePresence } from "@/lib/presence";
+import { useEmployeePresenceWithNotifications } from "@/lib/presence";
 import {
 	Tooltip,
 	TooltipContent,
@@ -88,6 +89,7 @@ import {
 } from "@/components/layout/AppLayout";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useHeader } from "@/lib/header-context";
+import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 
 export default function EmployeesPage() {
 	const { updateHeader } = useHeader();
@@ -98,17 +100,15 @@ export default function EmployeesPage() {
 		"organization" | "employees"
 	>("organization");
 	const [viewMode, setViewMode] = useState<"table" | "cards">("table");
-
-	// Add pagination state for card view
 	const [currentPage, setCurrentPage] = useState(1);
-	const [pageSize, setPageSize] = useState(25);
+	const [pageSize, setPageSize] = useState(10);
+	const [employeeDialogOpen, setEmployeeDialogOpen] = useState(false);
 
 	const {
-		employeePresence,
 		initialized: presenceInitialized,
 		toggleNotifications,
 		notificationsEnabled,
-	} = useEmployeePresence(organization?.id || "");
+	} = useEmployeePresenceWithNotifications(organization?.id || "");
 	const navigate = useNavigate();
 	const [searchParams, setSearchParams] = useSearchParams();
 
@@ -253,17 +253,26 @@ export default function EmployeesPage() {
 						</TooltipContent>
 					</Tooltip>
 
-					<EmployeeSheet
-						organizationId={organization?.id || getDefaultOrganizationId()}
-						onEmployeeUpdated={(newEmployee: Employee) => {
+					<Button
+						className="bg-primary text-primary-foreground"
+						onClick={() => setEmployeeDialogOpen(true)}>
+						<Plus className="h-4 w-4 mr-2" />
+						Add Employee
+					</Button>
+					<EmployeeDialog
+						open={employeeDialogOpen}
+						onOpenChange={setEmployeeDialogOpen}
+						onSubmit={async (data) => {
+							const newEmployee = await EmployeesAPI.create({
+								...data,
+								organizationId: organization?.id || getDefaultOrganizationId(),
+								position: data.position || "Employee",
+								status: "invited",
+								isOnline: false,
+								lastActive: new Date().toISOString(),
+							});
 							setEmployees((prev) => [...prev, newEmployee]);
 						}}
-						trigger={
-							<Button className="bg-primary text-primary-foreground">
-								<Plus className="h-4 w-4 mr-2" />
-								Add Employee
-							</Button>
-						}
 					/>
 				</>
 			),
@@ -277,6 +286,7 @@ export default function EmployeesPage() {
 		notificationsEnabled,
 		organization?.id,
 		organization?.name,
+		setSearchParams,
 	]);
 
 	const columns = useMemo<ColumnDef<Employee>[]>(
@@ -331,7 +341,7 @@ export default function EmployeesPage() {
 										)}
 								</div>
 								<span className="text-xs text-muted-foreground">
-									{employee.position || employee.role || "Employee"}
+									{employee.position || "Employee"}
 								</span>
 							</div>
 						</div>
@@ -530,20 +540,30 @@ export default function EmployeesPage() {
 								title="No employees yet"
 								description="Add your first employee to get started"
 								action={
-									<EmployeeSheet
-										organizationId={
-											organization?.id || getDefaultOrganizationId()
-										}
-										onEmployeeUpdated={(newEmployee: Employee) => {
-											setEmployees((prev) => [...prev, newEmployee]);
-										}}
-										trigger={
-											<Button className="bg-primary text-primary-foreground">
-												<Plus className="h-4 w-4 mr-2" />
+									<Dialog>
+										<DialogTrigger asChild>
+											<Button
+												variant="outline"
+												className="h-9 px-4 flex items-center gap-2">
+												<UserPlus className="h-4 w-4" />
 												Add Employee
 											</Button>
-										}
-									/>
+										</DialogTrigger>
+										<EmployeeDialog
+											onSubmit={async (data) => {
+												const newEmployee = await EmployeesAPI.create({
+													...data,
+													organizationId:
+														organization?.id || getDefaultOrganizationId(),
+													position: data.position || "Employee",
+													status: "invited",
+													isOnline: false,
+													lastActive: new Date().toISOString(),
+												});
+												setEmployees((prev) => [...prev, newEmployee]);
+											}}
+										/>
+									</Dialog>
 								}
 							/>
 						)}
@@ -592,24 +612,34 @@ export default function EmployeesPage() {
 																e.stopPropagation();
 															}}
 															asChild>
-															<EmployeeSheet
-																employee={employee}
-																organizationId={
-																	employee.organizationId ||
-																	organization?.id ||
-																	""
-																}
-																onEmployeeUpdated={(updatedEmployee) => {
-																	// Remove the direct state update in favor of the event-based approach
-																	// which we've now set up in the EmployeeSheet component
-																}}
-																trigger={
+															<Dialog>
+																<DialogTrigger asChild>
 																	<button className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full">
 																		<Edit className="mr-2 h-4 w-4" />
 																		Edit
 																	</button>
-																}
-															/>
+																</DialogTrigger>
+																<EmployeeDialog
+																	employee={employee}
+																	onSubmit={async (data) => {
+																		const updatedEmployee =
+																			await EmployeesAPI.update(employee.id, {
+																				...data,
+																				organizationId:
+																					employee.organizationId ||
+																					organization?.id ||
+																					getDefaultOrganizationId(),
+																				position: data.position || "Employee",
+																				status: employee.status || "active",
+																				isOnline: employee.isOnline || false,
+																				lastActive:
+																					employee.lastActive ||
+																					new Date().toISOString(),
+																			});
+																		// The event-based approach will handle the state update
+																	}}
+																/>
+															</Dialog>
 														</DropdownMenuItem>
 													</DropdownMenuContent>
 												</DropdownMenu>

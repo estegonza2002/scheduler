@@ -76,7 +76,7 @@ export default function FeaturesPage() {
 									icon: <Users className="h-6 w-6 text-primary" />,
 									title: "Team Management",
 									description:
-										"Manage employee profiles, availability, time-off requests, and roles all in one place.",
+										"Manage employee profiles, availability, time-off requests, and positions all in one place.",
 								},
 								{
 									icon: <MessageSquare className="h-6 w-6 text-primary" />,
@@ -100,7 +100,7 @@ export default function FeaturesPage() {
 									icon: <Globe className="h-6 w-6 text-primary" />,
 									title: "Multiple Locations",
 									description:
-										"Manage schedules across multiple locations or departments with role-based permissions.",
+										"Manage schedules across multiple locations or departments with position-based permissions.",
 								},
 								{
 									icon: <ShieldCheck className="h-6 w-6 text-primary" />,

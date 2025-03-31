@@ -25,7 +25,7 @@ import { cn } from "../../lib/utils";
 import { useOnboarding, OnboardingStep } from "../../lib/onboarding-context";
 import { useAuth } from "../../lib/auth";
 import { LocationFormDialog } from "../LocationFormDialog";
-import { AddEmployeeDialog } from "../AddEmployeeDialog";
+import { EmployeeDialog } from "../EmployeeDialog";
 import { ShiftCreationSheet } from "../ShiftCreationSheet";
 import { Badge } from "../ui/badge";
 import React from "react";
@@ -568,10 +568,10 @@ export function OnboardingModal() {
 				onSuccess={handleLocationCreated}
 			/>
 
-			<AddEmployeeDialog
+			<EmployeeDialog
 				organizationId={organizationId || ""}
 				trigger={<></>}
-				onEmployeesAdded={handleEmployeesAdded}
+				onEmployeeUpdated={handleEmployeesAdded}
 			/>
 		</>
 	);

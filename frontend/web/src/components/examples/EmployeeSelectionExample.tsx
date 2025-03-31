@@ -6,74 +6,74 @@ import { Employee } from "../../api";
 // Example component to demonstrate how to use EmployeeCard for selection
 export function EmployeeSelectionExample() {
 	// Sample employee data
-	const sampleEmployees: Employee[] = [
-		{
+	const employees = {
+		"1": {
 			id: "1",
+			name: "John Smith",
+			position: "Manager",
+			email: "john@example.com",
+			phone: "555-1234",
 			organizationId: "org1",
-			name: "Jane Smith",
-			email: "jane.smith@example.com",
-			role: "Manager",
 			status: "active",
 			isOnline: true,
 			lastActive: new Date().toISOString(),
-			hourlyRate: 25,
 		},
-		{
+		"2": {
 			id: "2",
+			name: "Sarah Johnson",
+			position: "Supervisor",
+			email: "sarah@example.com",
+			phone: "555-5678",
 			organizationId: "org1",
-			name: "John Doe",
-			email: "john.doe@example.com",
-			role: "Bartender",
 			status: "active",
 			isOnline: false,
 			lastActive: new Date().toISOString(),
-			hourlyRate: 18,
 		},
-		{
+		"3": {
 			id: "3",
+			name: "Michael Brown",
+			position: "Team Lead",
+			email: "michael@example.com",
+			phone: "555-9012",
 			organizationId: "org1",
-			name: "Alice Johnson",
-			email: "alice.j@example.com",
-			role: "Server",
-			status: "active",
-			isOnline: false,
-			lastActive: new Date().toISOString(),
-			hourlyRate: 15.5,
-		},
-		{
-			id: "4",
-			organizationId: "org1",
-			name: "Robert Williams",
-			email: "robert.w@example.com",
-			role: "Host",
 			status: "active",
 			isOnline: true,
 			lastActive: new Date().toISOString(),
-			hourlyRate: 16,
 		},
-		{
-			id: "5",
+		"4": {
+			id: "4",
+			name: "Jessica Davis",
+			position: "Associate",
+			email: "jessica@example.com",
+			phone: "555-3456",
 			organizationId: "org1",
-			name: "Emily Davis",
-			email: "emily.d@example.com",
-			role: "Kitchen Staff",
-			status: "invited",
-			isOnline: false,
-			lastActive: new Date().toISOString(),
-			hourlyRate: 17.25,
-		},
-		{
-			id: "6",
-			organizationId: "org1",
-			name: "Michael Brown",
-			email: "michael.b@example.com",
-			role: "Dishwasher",
 			status: "active",
 			isOnline: false,
 			lastActive: new Date().toISOString(),
-			hourlyRate: 14,
 		},
-	];
+		"5": {
+			id: "5",
+			name: "David Wilson",
+			position: "Developer",
+			email: "david@example.com",
+			phone: "555-7890",
+			organizationId: "org1",
+			status: "active",
+			isOnline: true,
+			lastActive: new Date().toISOString(),
+		},
+		"6": {
+			id: "6",
+			name: "Emily Martinez",
+			position: "Designer",
+			email: "emily@example.com",
+			phone: "555-2345",
+			organizationId: "org1",
+			status: "active",
+			isOnline: false,
+			lastActive: new Date().toISOString(),
+		},
+	} as Record<string, Employee>;
 
 	// State for selected employees
 	const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
@@ -139,9 +139,7 @@ export function EmployeeSelectionExample() {
 						<Button
 							variant="outline"
 							size="sm"
-							onClick={() =>
-								setSelectedEmployees(sampleEmployees.map((e) => e.id))
-							}>
+							onClick={() => setSelectedEmployees(Object.keys(employees))}>
 							Select All
 						</Button>
 					</div>
@@ -149,7 +147,7 @@ export function EmployeeSelectionExample() {
 			</div>
 
 			<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-				{sampleEmployees.map((employee) => (
+				{Object.values(employees).map((employee) => (
 					<EmployeeCard
 						key={employee.id}
 						employee={employee}
@@ -184,10 +182,10 @@ export function EmployeeSelectionExample() {
 				{selectedEmployees.length > 0 ? (
 					<ul className="list-disc list-inside">
 						{selectedEmployees.map((id) => {
-							const employee = sampleEmployees.find((e) => e.id === id);
+							const employee = employees[id];
 							return employee ? (
 								<li key={id}>
-									{employee.name} - {employee.role}
+									{employee.name} - {employee.position}
 								</li>
 							) : null;
 						})}

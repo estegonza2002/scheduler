@@ -22,7 +22,6 @@ import {
 } from "./employee/EmployeeSelectionComponent";
 import { Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -336,9 +335,9 @@ export function ShiftCreationWizard({
 				return true;
 			}
 
-			// Also search by role if available
-			const role = employee.role || "";
-			if (role.toLowerCase().includes(lowerCaseSearch)) {
+			// Also search by position if available
+			const position = employee.position || "";
+			if (position.toLowerCase().includes(lowerCaseSearch)) {
 				return true;
 			}
 
@@ -403,7 +402,7 @@ export function ShiftCreationWizard({
 					{
 						id: selectedEmployee.id,
 						name: selectedEmployee.name,
-						role: selectedEmployee.role,
+						position: selectedEmployee.position,
 					},
 				];
 				console.log("Added employee manually:", selectedEmployees[0]);
@@ -648,8 +647,7 @@ export function ShiftCreationWizard({
 	};
 
 	return (
-		<div className={cn("h-full flex flex-col", className)}>
-			{/* Progress bar at the top of the wizard */}
+		<div className={className}>
 			<WizardProgressBar
 				currentStep={step}
 				hasLocationData={!!locationData}
@@ -658,81 +656,78 @@ export function ShiftCreationWizard({
 			/>
 
 			{error && (
-				<Alert
-					variant="destructive"
-					className="mx-6 mb-4">
+				<Alert variant="destructive">
 					<AlertDescription>{error}</AlertDescription>
 				</Alert>
 			)}
 
-			<div className="flex-1 overflow-auto">
-				{/* Step 1: Select Location */}
-				{step === "select-location" && (
-					<LocationSelectionStep
-						locationForm={locationForm}
-						locations={locations}
-						filteredLocations={filteredLocations}
-						locationSearchTerm={locationSearchTerm}
-						loadingLocations={loadingLocations}
-						setLocationSearchTerm={setLocationSearchTerm}
-						handleLocationSelect={handleLocationSelect}
-						handleLocationChange={handleLocationChange}
-						clearLocationSearch={clearLocationSearch}
-						onCancel={onCancel}
-						organizationId={organizationId}
-					/>
-				)}
+			{/* Step 1: Select Location */}
+			{step === "select-location" && (
+				<LocationSelectionStep
+					locationForm={locationForm}
+					locations={locations}
+					filteredLocations={filteredLocations}
+					locationSearchTerm={locationSearchTerm}
+					loadingLocations={loadingLocations}
+					setLocationSearchTerm={setLocationSearchTerm}
+					handleLocationSelect={handleLocationSelect}
+					handleLocationChange={handleLocationChange}
+					clearLocationSearch={clearLocationSearch}
+					onCancel={onCancel}
+					organizationId={organizationId}
+				/>
+			)}
 
-				{/* Step 2: Shift Details */}
-				{step === "shift-details" && locationData && (
-					<>
-						<ShiftDetailsStep
-							shiftForm={shiftForm}
-							locationData={locationData}
-							getLocationById={getLocationById}
-							handleShiftDetailsSubmit={handleShiftDetailsSubmit}
-							onBack={resetLocation}
-						/>
-						<Button
-							id="shift-details-back-button"
-							className="hidden"
-							onClick={resetLocation}>
-							Back to Location Selection
-						</Button>
-					</>
-				)}
-
-				{/* Step 3: Assign Employee */}
-				{step === "assign-employees" && locationData && shiftData && (
-					<EmployeeSelectionComponent
-						employeeForm={employeeForm}
-						locationData={locationData || { locationId: "" }}
-						shiftData={shiftData || { date: "", startTime: "", endTime: "" }}
-						searchTerm={searchTerm}
-						setSearchTerm={setSearchTerm}
-						filteredEmployees={filteredEmployees}
-						loadingEmployees={loadingEmployees}
-						getLocationName={getLocationName}
-						onFormSubmit={() =>
-							handleEmployeeAssignSubmit(
-								employeeForm.getValues(),
-								selectedEmployees
-							)
-						}
-						onBack={() => setStep("shift-details")}
-						onResetLocation={resetLocation}
-						loading={loading}
-						selectedEmployees={selectedEmployees}
-						onSelectedEmployeesChange={handleSelectedEmployeesChange}
-						allEmployees={employees}
-						title="Assign Employees"
-						subtitle="Select employees to assign to this shift"
-						showShiftInfo={true}
-						filterByLocation={true}
-						submitButtonText="Create Shift"
+			{/* Step 2: Shift Details */}
+			{step === "shift-details" && locationData && (
+				<>
+					<ShiftDetailsStep
+						shiftForm={shiftForm}
+						locationData={locationData}
+						getLocationById={getLocationById}
+						handleShiftDetailsSubmit={handleShiftDetailsSubmit}
+						onBack={resetLocation}
 					/>
-				)}
-			</div>
+					<Button
+						id="shift-details-back-button"
+						variant="ghost"
+						className="hidden"
+						onClick={resetLocation}>
+						Back to Location Selection
+					</Button>
+				</>
+			)}
+
+			{/* Step 3: Assign Employee */}
+			{step === "assign-employees" && locationData && shiftData && (
+				<EmployeeSelectionComponent
+					employeeForm={employeeForm}
+					locationData={locationData}
+					shiftData={shiftData}
+					searchTerm={searchTerm}
+					setSearchTerm={setSearchTerm}
+					filteredEmployees={filteredEmployees}
+					loadingEmployees={loadingEmployees}
+					getLocationName={getLocationName}
+					onFormSubmit={() =>
+						handleEmployeeAssignSubmit(
+							employeeForm.getValues(),
+							selectedEmployees
+						)
+					}
+					onBack={() => setStep("shift-details")}
+					onResetLocation={resetLocation}
+					loading={loading}
+					selectedEmployees={selectedEmployees}
+					onSelectedEmployeesChange={handleSelectedEmployeesChange}
+					allEmployees={employees}
+					title="Assign Employees"
+					subtitle="Select employees to assign to this shift"
+					showShiftInfo={true}
+					filterByLocation={true}
+					submitButtonText="Create Shift"
+				/>
+			)}
 		</div>
 	);
 }

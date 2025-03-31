@@ -5,7 +5,7 @@ interface FormSectionProps {
 	/**
 	 * The title of the form section
 	 */
-	title: string;
+	title?: string;
 	/**
 	 * Optional description text to display under the title
 	 */
@@ -53,20 +53,22 @@ export function FormSection({
 		<div
 			className={cn("space-y-6", className)}
 			id={id}>
-			<div>
-				<h3 className={cn("text-lg font-medium leading-6", titleClassName)}>
-					{title}
-				</h3>
-				{description && (
-					<p
-						className={cn(
-							"mt-1 text-sm text-muted-foreground",
-							descriptionClassName
-						)}>
-						{description}
-					</p>
-				)}
-			</div>
+			{title && (
+				<div>
+					<h3 className={cn("text-lg font-medium leading-6", titleClassName)}>
+						{title}
+					</h3>
+					{description && (
+						<p
+							className={cn(
+								"mt-1 text-sm text-muted-foreground",
+								descriptionClassName
+							)}>
+							{description}
+						</p>
+					)}
+				</div>
+			)}
 			<div className={cn("space-y-6", contentClassName)}>{children}</div>
 		</div>
 	);

@@ -108,7 +108,7 @@ export interface Employee {
 	organizationId: string;
 	name: string;
 	email: string;
-	role: string;
+	position: string;
 	phone?: string;
 	hireDate?: string;
 	address?: string;
