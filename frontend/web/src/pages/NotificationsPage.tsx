@@ -456,125 +456,67 @@ export default function NotificationsPage() {
 		</div>
 	);
 
-	// Set page header
-	useEffect(() => {
-		updateHeader({
-			title: "Notifications",
-			description: "Manage and view your notifications",
-			actions: (
-				<Button
-					onClick={markAllAsRead}
-					variant="outline"
-					className="flex items-center">
-					<Check className="mr-2 h-4 w-4" />
-					Mark All as Read
-				</Button>
-			),
-		});
-	}, [updateHeader, markAllAsRead]);
-
 	return (
-		<>
-			<div className="sticky top-0 flex h-16 shrink-0 items-center border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 z-40">
-				<div className="flex flex-1 items-center">
-					<div className="mx-4">
-						<h1 className="text-lg font-semibold">Notifications</h1>
-						<p className="text-xs text-muted-foreground">
-							Manage and view all your notifications
-						</p>
-					</div>
+		<ContentContainer>
+			<ContentSection title="Notification Management">
+				{/* Notification count */}
+				<div className="mt-4">
+					<p className="text-sm text-muted-foreground">
+						{filteredNotifications.length === 0
+							? "No notifications found"
+							: `Showing ${filteredNotifications.length} notification${
+									filteredNotifications.length !== 1 ? "s" : ""
+							  }`}
+					</p>
 				</div>
-				<div className="flex items-center justify-end gap-3">
-					{headerActions}
-				</div>
-			</div>
 
-			<ContentContainer>
-				<ContentSection title="Notification Management">
-					{/* Read status filter */}
-					<div className="flex items-center gap-2 mt-4">
-						<Select
-							value={readFilter || "all"}
-							onValueChange={(value) => {
-								setReadFilter(value === "all" ? null : value);
-								setCurrentPage(1);
-							}}>
-							<SelectTrigger className="w-[180px]">
-								<SelectValue placeholder="Filter by status" />
-							</SelectTrigger>
-							<SelectContent>
-								{readStatusOptions.map((option) => (
-									<SelectItem
-										key={option.value}
-										value={option.value}>
-										{option.label}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-					</div>
-
-					{/* Notification count */}
-					<div className="mt-4">
-						<p className="text-sm text-muted-foreground">
-							{filteredNotifications.length === 0
-								? "No notifications found"
-								: `Showing ${filteredNotifications.length} notification${
-										filteredNotifications.length !== 1 ? "s" : ""
-								  }`}
-						</p>
-					</div>
-
-					{/* Notifications content */}
-					<div className="mt-6">
-						{loading ? (
-							<div className="flex flex-col items-center justify-center p-8">
-								<RefreshCw className="h-8 w-8 animate-spin text-primary mb-2" />
-								<p className="text-muted-foreground">
-									Loading notifications...
-								</p>
-							</div>
-						) : filteredNotifications.length === 0 ? (
-							<EmptyState
-								icon={<Bell className="h-10 w-10" />}
-								title="No notifications found"
-								description={
-									notifications.length > 0
-										? "Try changing your filters to see more notifications"
-										: "You don't have any notifications yet. They'll appear here when you receive them."
-								}
-								action={
-									hasActiveFilters ? (
-										<Button
-											variant="outline"
-											onClick={handleClearFilters}>
-											Clear filters
-										</Button>
-									) : undefined
-								}
+				{/* Notifications content */}
+				<div className="mt-6">
+					{loading ? (
+						<div className="flex flex-col items-center justify-center p-8">
+							<RefreshCw className="h-8 w-8 animate-spin text-primary mb-2" />
+							<p className="text-muted-foreground">Loading notifications...</p>
+						</div>
+					) : filteredNotifications.length === 0 ? (
+						<EmptyState
+							icon={<Bell className="h-10 w-10" />}
+							title="No notifications found"
+							description={
+								notifications.length > 0
+									? "Try changing your filters to see more notifications"
+									: "You don't have any notifications yet. They'll appear here when you receive them."
+							}
+							action={
+								hasActiveFilters ? (
+									<Button
+										variant="outline"
+										onClick={handleClearFilters}>
+										Clear filters
+									</Button>
+								) : undefined
+							}
+						/>
+					) : viewMode === "table" ? (
+						<>
+							<DataTable
+								columns={columns}
+								data={paginatedNotifications}
 							/>
-						) : viewMode === "table" ? (
-							<>
-								<DataTable
-									columns={columns}
-									data={paginatedNotifications}
-								/>
-							</>
-						) : (
-							<>
-								<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-									{paginatedNotifications.map((notification) => (
-										<NotificationCard
-											key={notification.id}
-											notification={notification}
-										/>
-									))}
-								</div>
-							</>
-						)}
-					</div>
-				</ContentSection>
-			</ContentContainer>
-		</>
+						</>
+					) : (
+						<>
+							<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+								{paginatedNotifications.map((notification) => (
+									<NotificationCard
+										key={notification.id}
+										notification={notification}
+									/>
+								))}
+							</div>
+						</>
+					)}
+				</div>
+			</ContentSection>
+		</ContentContainer>
 	);
 }

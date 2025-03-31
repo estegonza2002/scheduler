@@ -48,22 +48,24 @@ export function LocationNav({ className }: LocationNavProps) {
 	];
 
 	return (
-		<div className={cn("mb-6 border-b", className)}>
-			<div className="flex overflow-auto scrollbar-none">
-				{navItems.map((item) => (
-					<Button
-						key={item.path}
-						variant="ghost"
-						size="sm"
-						className={cn(
-							"flex items-center gap-2 rounded-none border-b-2 border-transparent px-4 py-2",
-							item.active && "border-primary font-medium text-foreground"
-						)}
-						onClick={() => navigate(item.path)}>
-						{item.icon}
-						{item.label}
-					</Button>
-				))}
+		<div className={cn("border-b w-full", className)}>
+			<div className="flex justify-center overflow-auto scrollbar-none">
+				<div className="flex">
+					{navItems.map((item) => (
+						<Button
+							key={item.path}
+							variant="ghost"
+							size="sm"
+							className={cn(
+								"flex items-center gap-2 rounded-none border-b-2 border-transparent px-4 py-2",
+								item.active && "border-primary font-medium text-foreground"
+							)}
+							onClick={() => navigate(item.path)}>
+							{item.icon}
+							{item.label}
+						</Button>
+					))}
+				</div>
 			</div>
 		</div>
 	);

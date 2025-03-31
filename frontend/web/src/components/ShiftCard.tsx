@@ -34,11 +34,31 @@ export function ShiftCard({
 	const navigate = useNavigate();
 
 	console.log(
-		"ShiftCard rendering with shift:",
-		shift,
-		"and employees:",
-		assignedEmployees
+		"[ShiftCard] rendering with shift:",
+		shift.id,
+		"start_time:",
+		shift.start_time,
+		"assigned employees:",
+		assignedEmployees.length > 0
+			? assignedEmployees.map((e) => ({ id: e.id, name: e.name }))
+			: "None"
 	);
+
+	// Double check that we have actual employees
+	if (assignedEmployees && assignedEmployees.length > 0) {
+		// Validate each employee has an id and name
+		console.log("[ShiftCard] Employee details:");
+		assignedEmployees.forEach((emp, index) => {
+			console.log(
+				`Employee ${index + 1}:`,
+				emp
+					? `id=${emp.id || "missing"}, name=${emp.name || "missing"}`
+					: "undefined employee"
+			);
+		});
+	} else {
+		console.log("[ShiftCard] No employees assigned to this shift:", shift.id);
+	}
 
 	// Format times for display
 	try {
@@ -83,6 +103,8 @@ export function ShiftCard({
 		if (status === "scheduled" && timeBasedStatus !== "scheduled") {
 			status = timeBasedStatus;
 		}
+
+		const isCompleted = status === "completed";
 
 		// Get status badge styling
 		const getStatusBadge = () => {
@@ -130,6 +152,9 @@ export function ShiftCard({
 
 		// Get first letter of employee name for avatar
 		const getInitial = (name: string) => {
+			if (!name || typeof name !== "string") {
+				return "?";
+			}
 			return name.charAt(0).toUpperCase();
 		};
 
@@ -246,39 +271,8 @@ export function ShiftCard({
 			<Card className="cursor-pointer hover:bg-muted/50 transition-all">
 				<CardContent className="p-4">
 					<div className="space-y-3">
-						{/* Status and Today/Tomorrow Badge */}
-						<div className="flex justify-between items-center mb-1">
-							<Badge className="bg-red-500 hover:bg-red-600 text-white">
-								Error
-							</Badge>
-						</div>
-
-						{/* Time information */}
-						<div className="flex items-center gap-2">
-							<Clock className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-							<div>
-								<div className="text-lg font-medium">
-									Error parsing shift data
-								</div>
-							</div>
-						</div>
-
-						{/* Date */}
-						<div className="flex items-center gap-2 text-sm text-muted-foreground">
-							<Calendar className="h-4 w-4 flex-shrink-0" />
-							<span>Error</span>
-						</div>
-
-						{/* Status and Assignment */}
-						<div className="flex justify-between items-center mt-2">
-							<div className="flex items-center">
-								<div className="h-8 w-8 rounded-full bg-gray-100 border-2 border-white flex items-center justify-center">
-									<User className="h-4 w-4 text-gray-400" />
-								</div>
-								<span className="ml-2 text-sm text-muted-foreground">
-									Error
-								</span>
-							</div>
+						<div className="text-sm text-muted-foreground">
+							Error rendering shift
 						</div>
 					</div>
 				</CardContent>

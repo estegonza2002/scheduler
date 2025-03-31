@@ -156,26 +156,6 @@ export default function LocationInsightsPage() {
 			<LocationNav />
 			<ContentContainer>
 				<div className="grid gap-8">
-					{/* General Location Insights */}
-					<ContentSection
-						title="Overview Metrics"
-						description="Key performance metrics for this location">
-						<div className="mb-4">
-							<p className="text-muted-foreground">
-								These high-level metrics provide a snapshot of your location's
-								overall performance. They help you quickly assess productivity,
-								employee utilization, and financial health at a glance. Monitor
-								these trends over time to identify opportunities for
-								improvement.
-							</p>
-						</div>
-						<LocationInsights
-							location={location}
-							shifts={shifts}
-							employees={assignedEmployees}
-						/>
-					</ContentSection>
-
 					{/* Employee Insights */}
 					<ContentSection
 						title="Employee Analytics"

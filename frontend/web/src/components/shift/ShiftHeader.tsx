@@ -14,8 +14,16 @@ import {
 	AlertDialogTitle,
 	AlertDialogTrigger,
 } from "../ui/alert-dialog";
-import { ChevronRight, ArrowLeft, Edit, Trash, LockIcon } from "lucide-react";
+import {
+	ChevronRight,
+	ArrowLeft,
+	Edit,
+	Trash,
+	LockIcon,
+	ClipboardCheck,
+} from "lucide-react";
 import { ShiftStatus } from "./ShiftStatus";
+import { Alert, AlertTitle, AlertDescription } from "../ui/alert";
 
 interface ShiftHeaderProps {
 	shift: Shift;
@@ -47,6 +55,18 @@ export function ShiftHeader({
 
 	return (
 		<>
+			{/* Completed Shift Banner */}
+			{shiftCompleted && (
+				<Alert className="mb-4 bg-blue-50 border-blue-200 text-blue-800">
+					<ClipboardCheck className="h-4 w-4" />
+					<AlertTitle>Completed Shift Report</AlertTitle>
+					<AlertDescription>
+						This shift has been completed and is now locked. You are viewing the
+						final report.
+					</AlertDescription>
+				</Alert>
+			)}
+
 			{/* Header Section */}
 			<div className="bg-white rounded-lg shadow-sm border mb-6">
 				<div className="border-b p-4">

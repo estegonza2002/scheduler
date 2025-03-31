@@ -1,80 +1,73 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+	Card,
+	CardContent,
+	CardFooter,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+	MailWarning,
+	Mail,
+	Phone,
+	MapPin,
+	Building2,
+	Calendar,
+	Clock,
+	ChevronLeft,
+	DollarSign,
+	AlertTriangle,
+	UserPlus,
+	BarChart,
+	X,
+	Edit,
+	Trash,
+	Plus,
+	FileText,
+	Download,
+	ArrowDownUp,
+	TrendingUp,
+	BarChart3,
+	ClipboardList,
+	User,
+	Calendar as CalendarIcon,
+	Clock as ClockIcon,
+	CheckCircle,
+	Briefcase,
+	AlertCircle,
+	UserX,
+	MapPin as MapPinIcon,
+} from "lucide-react";
+import { ContentContainer } from "@/components/ui/content-container";
+import { ContentSection } from "@/components/ui/content-section";
 import {
 	Employee,
 	EmployeesAPI,
 	Shift,
 	ShiftsAPI,
-	LocationsAPI,
 	Location,
+	LocationsAPI,
+	Schedule,
 	EmployeeLocationsAPI,
 	ShiftAssignmentsAPI,
 } from "@/api";
-import {
-	Mail,
-	Phone,
-	Calendar,
-	MapPin,
-	User,
-	Info,
-	ClipboardList,
-	AlertCircle,
-	DollarSign,
-	ArrowLeft,
-	Edit,
-	Trash,
-	ChevronLeft,
-	Loader2,
-	Clock,
-	Briefcase,
-	Send,
-	BarChart,
-	CheckCircle,
-	X,
-	Calendar as CalendarIcon,
-	Clock as ClockIcon,
-	TrendingUp,
-	MapPinIcon,
-	Plus,
-	Building2,
-	UserX,
-	MailWarning,
-} from "lucide-react";
-import { toast } from "sonner";
-import {
-	AlertDialog,
-	AlertDialogAction,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-	AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { ContentContainer } from "@/components/ui/content-container";
-import { ContentSection } from "@/components/ui/content-section";
 import { LoadingState } from "@/components/ui/loading-state";
-import { EmployeeSheet } from "@/components/EmployeeSheet";
-import { EmployeeStatusBadge } from "@/components/ui/employee-status-badge";
+import { calculateHours } from "@/utils/time-calculations";
 import { useEmployeePresence } from "@/lib/presence";
 import { AvatarWithStatus } from "@/components/ui/avatar-with-status";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { StatusBadge } from "@/components/ui/status-badge";
-import {
-	format,
-	parseISO,
-	isAfter,
-	isBefore,
-	differenceInDays,
-} from "date-fns";
-import { calculateHours } from "@/utils/time-calculations";
-import { LocationAssignmentSheet } from "@/components/LocationAssignmentSheet";
-import { useHeader } from "@/lib/header-context";
-
+import { EmployeeStatusBadge } from "@/components/ui/employee-status-badge";
+import { EmployeeAssignmentSheet } from "@/components/EmployeeAssignmentSheet";
+import { getProfileCompletionStatus } from "@/utils/profile-completion";
+import { ShiftCard } from "@/components/ShiftCard";
 import {
 	Dialog,
 	DialogContent,
@@ -92,8 +85,73 @@ import {
 import { EmptyState } from "@/components/ui/empty-state";
 import { ProfileCompletionAlert } from "@/components/ProfileCompletionAlert";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { getProfileCompletionStatus } from "@/utils/profile-completion";
-import { ShiftCard } from "@/components/ShiftCard";
+import { LocationAssignmentSheet } from "@/components/LocationAssignmentSheet";
+import { useHeader } from "@/lib/header-context";
+import { LocationCard } from "@/components/ui/location-card";
+import { EmployeeNav } from "@/components/EmployeeNav";
+import { useEffect as useNavigationEffect } from "react";
+import { EmployeeSheet as EmployeeEditSheet } from "@/components/EmployeeSheet";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@/components/ui/popover";
+import { exportToCSV, exportToExcel } from "@/utils/export-utils";
+import {
+	format,
+	parseISO,
+	isWithinInterval,
+	startOfDay,
+	endOfDay,
+	addMonths,
+	startOfMonth,
+	endOfMonth,
+	isBefore,
+	differenceInDays,
+} from "date-fns";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Badge } from "@/components/ui/badge";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+	AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { EmployeeCard } from "@/components/EmployeeCard";
+
+// Define the DateRange interface
+interface DateRange {
+	from: Date | undefined;
+	to: Date | undefined;
+}
+
+// Define the EarningsReportItem interface
+interface EarningsReportItem {
+	date: string;
+	locationName: string;
+	scheduledHours: number;
+	actualHours: number | null;
+	scheduledEarnings: number;
+	actualEarnings: number | null;
+	hours: number;
+	earnings: number;
+	startTime: string;
+	endTime: string;
+	shiftId: string;
+	hourlyRate: number;
+	status: string | undefined;
+}
 
 // Default placeholder image for locations
 const LOCATION_PLACEHOLDER_IMAGE =
@@ -359,7 +417,6 @@ function EmployeeShiftsSection({ employeeId }: { employeeId: string }) {
 			<LoadingState
 				type="spinner"
 				message="Loading shift information..."
-				className="py-4"
 			/>
 		);
 	}
@@ -369,10 +426,10 @@ function EmployeeShiftsSection({ employeeId }: { employeeId: string }) {
 			{/* Current Shifts Section */}
 			{currentShifts.length > 0 && (
 				<div>
-					<h3 className="text-lg font-medium mb-4 flex items-center">
+					<div className="flex items-center mb-4">
 						<Clock className="h-5 w-5 mr-2 text-muted-foreground" />
-						Current Shift
-					</h3>
+						<h3 className="text-lg font-medium">Current Shift</h3>
+					</div>
 					<div className="space-y-4">
 						{currentShifts.map((shift) => (
 							<ShiftCard
@@ -388,10 +445,10 @@ function EmployeeShiftsSection({ employeeId }: { employeeId: string }) {
 
 			{/* Upcoming Shifts Section */}
 			<div>
-				<h3 className="text-lg font-medium mb-4 flex items-center">
+				<div className="flex items-center mb-4">
 					<Calendar className="h-5 w-5 mr-2 text-muted-foreground" />
-					Upcoming Shifts
-				</h3>
+					<h3 className="text-lg font-medium">Upcoming Shifts</h3>
+				</div>
 				{upcomingShifts.length > 0 ? (
 					<div className="space-y-4">
 						{upcomingShifts.map((shift) => (
@@ -415,10 +472,10 @@ function EmployeeShiftsSection({ employeeId }: { employeeId: string }) {
 
 			{/* Previous Shifts Section */}
 			<div>
-				<h3 className="text-lg font-medium mb-4 flex items-center">
+				<div className="flex items-center mb-4">
 					<Briefcase className="h-5 w-5 mr-2 text-muted-foreground" />
-					Previous Shifts
-				</h3>
+					<h3 className="text-lg font-medium">Previous Shifts</h3>
+				</div>
 				{previousShifts.length > 0 ? (
 					<div className="space-y-4">
 						{previousShifts.map((shift) => (
@@ -443,111 +500,281 @@ function EmployeeShiftsSection({ employeeId }: { employeeId: string }) {
 	);
 }
 
-// Add a new Earnings component to display in the main content area
-function EmployeeEarningsSection({ employeeId }: { employeeId: string }) {
-	const [earnings, setEarnings] = useState<any[]>([]);
+// Enhanced Employee Earnings Section
+function EnhancedEmployeeEarningsSection({
+	employeeId,
+}: {
+	employeeId: string;
+}) {
+	const [shifts, setShifts] = useState<Shift[]>([]);
+	const [locations, setLocations] = useState<Record<string, Location>>({});
 	const [loading, setLoading] = useState(true);
+	const [reportData, setReportData] = useState<EarningsReportItem[]>([]);
+	const [dateRange, setDateRange] = useState<DateRange>({
+		from: startOfMonth(new Date()),
+		to: endOfMonth(new Date()),
+	});
+	const [activeTab, setActiveTab] = useState("current-month");
+	const [employee, setEmployee] = useState<Employee | null>(null);
 	const navigate = useNavigate();
 
-	useEffect(() => {
-		const fetchEarningsData = async () => {
-			try {
-				setLoading(true);
-				// For now, get all shifts and filter by user_id
-				const allShifts = await ShiftsAPI.getAllSchedules();
-				const allIndividualShifts = [];
+	// Calculate summary values
+	const totalScheduledHours = reportData.reduce(
+		(total, item) => total + item.hours,
+		0
+	);
+	const totalActualHours = reportData.reduce(
+		(total, item) => total + (item.actualHours || item.hours),
+		0
+	);
+	const totalScheduledEarnings = reportData.reduce(
+		(total, item) => total + item.earnings,
+		0
+	);
+	const totalActualEarnings = reportData.reduce(
+		(total, item) => total + (item.actualEarnings || item.earnings),
+		0
+	);
 
-				// For each schedule, get its individual shifts
-				for (const schedule of allShifts) {
-					const scheduleShifts = await ShiftsAPI.getShiftsForSchedule(
-						schedule.id
-					);
-					allIndividualShifts.push(...scheduleShifts);
-				}
+	// Format data for export
+	const getExportData = () => {
+		return reportData.map((item) => ({
+			Date: format(parseISO(item.startTime), "MMM d, yyyy"),
+			"Shift ID": item.shiftId,
+			"Start Time": format(parseISO(item.startTime), "h:mm a"),
+			"End Time": format(parseISO(item.endTime), "h:mm a"),
+			"Scheduled Hours": item.hours.toFixed(2),
+			"Actual Hours": item.actualHours ? item.actualHours.toFixed(2) : "N/A",
+			"Hourly Rate": `$${item.hourlyRate.toFixed(2)}`,
+			"Scheduled Earnings": `$${item.earnings.toFixed(2)}`,
+			"Actual Earnings": item.actualEarnings
+				? `$${item.actualEarnings.toFixed(2)}`
+				: "N/A",
+			Location: item.locationName,
+			Status: item.status
+				? item.status.charAt(0).toUpperCase() + item.status.slice(1)
+				: "N/A",
+		}));
+	};
 
-				// Filter for this specific employee's shifts
-				const employeeShifts = allIndividualShifts.filter(
-					(shift: Shift) => shift.user_id === employeeId
-				);
+	// Function to handle export
+	const handleExportReport = (formatType: "csv" | "excel") => {
+		const data = getExportData();
+		const filename = `${employee?.email || "employee"}_earnings_report`;
 
-				// Get employee for hourly rate
-				const employee = await EmployeesAPI.getById(employeeId);
-				if (!employee || employee.hourlyRate === undefined) {
-					setEarnings([]);
-					return;
-				}
+		if (formatType === "csv") {
+			exportToCSV(data, filename);
+			toast.success("CSV report generated successfully");
+		} else {
+			exportToExcel(data, filename);
+			toast.success("Excel report generated successfully");
+		}
+	};
 
-				// Calculate earnings data for completed shifts
-				const now = new Date();
-				const completedShifts = employeeShifts.filter(
-					(shift: Shift) =>
-						new Date(shift.end_time) < now && shift.status !== "canceled"
-				);
+	// Function to render variance
+	const renderVariance = (scheduled: number, actual: number | null) => {
+		if (actual === null) return null;
 
-				// Group by month
-				const earningsByMonth: Record<string, number> = {};
+		const diff = actual - scheduled;
+		const isPositive = diff > 0;
+		const formattedDiff = Math.abs(diff).toFixed(2);
 
-				completedShifts.forEach((shift: Shift) => {
-					const date = new Date(shift.end_time);
-					const monthKey = `${date.getFullYear()}-${date.getMonth() + 1}`;
-					const monthName = date.toLocaleString("default", {
-						month: "long",
-						year: "numeric",
-					});
+		return (
+			<span
+				className={`text-xs ml-2 ${
+					isPositive ? "text-green-600" : "text-red-600"
+				}`}>
+				{isPositive ? "+" : "-"}
+				{formattedDiff} ({((Math.abs(diff) / scheduled) * 100).toFixed(1)}%)
+			</span>
+		);
+	};
 
-					const hours = parseFloat(
-						calculateHours(shift.start_time, shift.end_time)
-					);
-					const shiftEarnings = hours * employee.hourlyRate!;
+	// Get predefined date ranges
+	const getPredefinedRange = (type: string): DateRange => {
+		const now = new Date();
+		switch (type) {
+			case "current-month":
+				return {
+					from: startOfMonth(now),
+					to: endOfMonth(now),
+				};
+			case "previous-month":
+				const prevMonth = addMonths(now, -1);
+				return {
+					from: startOfMonth(prevMonth),
+					to: endOfMonth(prevMonth),
+				};
+			case "last-3-months":
+				return {
+					from: startOfMonth(addMonths(now, -2)),
+					to: endOfMonth(now),
+				};
+			case "year-to-date":
+				return {
+					from: new Date(now.getFullYear(), 0, 1),
+					to: now,
+				};
+			case "custom":
+			default:
+				return dateRange;
+		}
+	};
 
-					if (!earningsByMonth[monthKey]) {
-						earningsByMonth[monthKey] = 0;
-					}
+	// Handle date range changes
+	const handleDateRangeChange = (newRange: DateRange) => {
+		setDateRange(newRange);
+		generateReportData(shifts, employee, newRange);
+	};
 
-					earningsByMonth[monthKey] += shiftEarnings;
+	// Handle tab changes
+	const handleTabChange = (value: string) => {
+		setActiveTab(value);
+		if (value !== "custom") {
+			const range = getPredefinedRange(value);
+			setDateRange(range);
+			generateReportData(shifts, employee, range);
+		}
+	};
+
+	// Generate report data when shifts, employee, or date range changes
+	const generateReportData = (
+		shifts: Shift[],
+		employee: Employee | null,
+		range: DateRange
+	) => {
+		if (!employee || !shifts.length) return [];
+
+		// Filter shifts by date range and employee
+		const filteredShifts = shifts.filter((shift) => {
+			const shiftDate = parseISO(shift.start_time);
+			const belongsToEmployee = shift.user_id === employee.id;
+			const inDateRange =
+				range.from &&
+				range.to &&
+				isWithinInterval(shiftDate, {
+					start: startOfDay(range.from),
+					end: endOfDay(range.to),
 				});
 
-				// Convert to array for display
-				const earningsData = Object.entries(earningsByMonth)
-					.map(([key, value]) => {
-						const [year, month] = key.split("-");
-						const date = new Date(parseInt(year), parseInt(month) - 1, 1);
-						return {
-							month: date.toLocaleString("default", {
-								month: "long",
-								year: "numeric",
-							}),
-							amount: value,
-							hours: completedShifts
-								.filter((shift: Shift) => {
-									const shiftDate = new Date(shift.end_time);
-									return (
-										shiftDate.getFullYear() === parseInt(year) &&
-										shiftDate.getMonth() === parseInt(month) - 1
-									);
-								})
-								.reduce((total, shift: Shift) => {
-									return (
-										total +
-										parseFloat(calculateHours(shift.start_time, shift.end_time))
-									);
-								}, 0),
-						};
-					})
-					.sort((a, b) => {
-						// Sort by date descending (newest first)
-						return new Date(b.month).getTime() - new Date(a.month).getTime();
-					});
+			return belongsToEmployee && inDateRange;
+		});
 
-				setEarnings(earningsData);
-			} catch (error) {
-				console.error("Error fetching earnings data:", error);
-			} finally {
-				setLoading(false);
+		// Process shifts for earnings data
+		const data = filteredShifts.map((shift) => {
+			const hours = parseFloat(
+				calculateHours(shift.start_time, shift.end_time)
+			);
+
+			// Get hourly rate
+			const hourlyRate = employee?.hourlyRate || 0;
+
+			// Calculate earnings
+			const earnings = hours * hourlyRate;
+
+			// For completed shifts, we'll simulate actual hours
+			// In a real app, this would come from clock-in/out data
+			let actualHours = null;
+			let actualEarnings = null;
+
+			if (shift.status === "completed") {
+				// For demo purposes, use the scheduled hours as actual hours
+				actualHours = hours;
+				actualEarnings = earnings;
 			}
-		};
 
-		fetchEarningsData();
+			return {
+				date: format(parseISO(shift.start_time), "yyyy-MM-dd"),
+				shiftId: shift.id,
+				startTime: shift.start_time,
+				endTime: shift.end_time,
+				hours: hours,
+				actualHours: actualHours,
+				hourlyRate: hourlyRate,
+				earnings: earnings,
+				actualEarnings: actualEarnings,
+				scheduledHours: hours,
+				scheduledEarnings: earnings,
+				locationName: locations[shift.location_id || ""]
+					? locations[shift.location_id || ""].name
+					: "Unknown",
+				status: shift.status,
+			};
+		});
+
+		return data;
+	};
+
+	// Fetch data
+	const fetchData = async () => {
+		try {
+			setLoading(true);
+
+			// Get employee details
+			const employeeData = await EmployeesAPI.getById(employeeId);
+			if (employeeData) {
+				console.log(`Successfully retrieved employee:`, employeeData);
+				setEmployee(employeeData);
+			} else {
+				console.error(`Employee with ID ${employeeId} not found in database`);
+				setEmployee(null);
+				toast.error(
+					"Employee not found. The employee may have been deleted or doesn't exist."
+				);
+			}
+
+			// Get all schedules
+			const schedules = await ShiftsAPI.getAllSchedules();
+
+			// Fetch shifts for each schedule
+			const allShiftsPromises = schedules.map((schedule: Schedule) =>
+				ShiftsAPI.getShiftsForSchedule(schedule.id)
+			);
+
+			const allShiftsArrays = await Promise.all(allShiftsPromises);
+			const allShifts = allShiftsArrays.flat();
+
+			// Filter for this employee's shifts
+			const employeeShifts = allShifts.filter(
+				(shift: Shift) => shift.user_id === employeeId
+			);
+			setShifts(employeeShifts);
+
+			// Get all locations used in shifts
+			const locationIds = new Set<string>();
+			employeeShifts.forEach((shift: Shift) => {
+				if (shift.location_id) {
+					locationIds.add(shift.location_id);
+				}
+			});
+
+			// Fetch location details
+			const locationsMap: Record<string, Location> = {};
+			for (const locationId of locationIds) {
+				const location = await LocationsAPI.getById(locationId);
+				if (location) {
+					locationsMap[locationId] = location;
+				}
+			}
+			setLocations(locationsMap);
+
+			// Generate initial report data
+			const reportData = generateReportData(
+				employeeShifts,
+				employeeData,
+				dateRange
+			);
+			setReportData(reportData);
+		} catch (error) {
+			console.error("Error fetching data:", error);
+			toast.error("Failed to load employee earnings data");
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	useEffect(() => {
+		fetchData();
 	}, [employeeId]);
 
 	if (loading) {
@@ -555,75 +782,385 @@ function EmployeeEarningsSection({ employeeId }: { employeeId: string }) {
 			<LoadingState
 				type="spinner"
 				message="Loading earnings information..."
-				className="py-4"
 			/>
 		);
 	}
 
-	if (earnings.length === 0) {
+	if (!employee || !employee.hourlyRate) {
 		return (
 			<EmptyState
 				title="No Earnings Data"
-				description="There are no completed shifts with earnings data available."
+				description="This employee doesn't have an hourly rate set."
 				icon={<DollarSign className="h-6 w-6" />}
 				size="default"
 			/>
 		);
 	}
 
-	// Calculate total earnings
-	const totalEarnings = earnings.reduce(
-		(total, item) => total + item.amount,
-		0
-	);
+	if (reportData.length === 0) {
+		return (
+			<EmptyState
+				title="No Earnings Data"
+				description="There are no completed shifts with earnings data available for the selected period."
+				icon={<DollarSign className="h-6 w-6" />}
+				size="default"
+			/>
+		);
+	}
 
 	return (
 		<div className="space-y-6">
-			{/* Earnings Summary Card */}
+			{/* Date Filter Section */}
+			<Tabs
+				defaultValue={activeTab}
+				onValueChange={handleTabChange}
+				className="w-full mb-6">
+				<TabsList className="grid grid-cols-5">
+					<TabsTrigger value="current-month">Current Month</TabsTrigger>
+					<TabsTrigger value="previous-month">Previous Month</TabsTrigger>
+					<TabsTrigger value="last-3-months">Last 3 Months</TabsTrigger>
+					<TabsTrigger value="year-to-date">Year to Date</TabsTrigger>
+					<TabsTrigger value="custom">Custom Range</TabsTrigger>
+				</TabsList>
+
+				<TabsContent
+					value="custom"
+					className="mt-4">
+					<div className="flex flex-col sm:flex-row gap-4">
+						<div className="grid gap-2">
+							<Label htmlFor="from">From Date</Label>
+							<Popover>
+								<PopoverTrigger asChild>
+									<Button
+										variant="outline"
+										className={cn(
+											"w-full justify-start text-left font-normal",
+											!dateRange.from && "text-muted-foreground"
+										)}>
+										<CalendarIcon className="mr-2 h-4 w-4" />
+										{dateRange.from ? (
+											format(dateRange.from, "PPP")
+										) : (
+											<span>Pick a date</span>
+										)}
+									</Button>
+								</PopoverTrigger>
+								<PopoverContent className="w-auto p-0">
+									<CalendarComponent
+										mode="single"
+										selected={dateRange.from}
+										onSelect={(date) =>
+											handleDateRangeChange({
+												...dateRange,
+												from: date,
+											})
+										}
+										initialFocus
+									/>
+								</PopoverContent>
+							</Popover>
+						</div>
+						<div className="grid gap-2">
+							<Label htmlFor="to">To Date</Label>
+							<Popover>
+								<PopoverTrigger asChild>
+									<Button
+										variant="outline"
+										className={cn(
+											"w-full justify-start text-left font-normal",
+											!dateRange.to && "text-muted-foreground"
+										)}>
+										<CalendarIcon className="mr-2 h-4 w-4" />
+										{dateRange.to ? (
+											format(dateRange.to, "PPP")
+										) : (
+											<span>Pick a date</span>
+										)}
+									</Button>
+								</PopoverTrigger>
+								<PopoverContent className="w-auto p-0">
+									<CalendarComponent
+										mode="single"
+										selected={dateRange.to}
+										onSelect={(date) =>
+											handleDateRangeChange({
+												...dateRange,
+												to: date,
+											})
+										}
+										initialFocus
+									/>
+								</PopoverContent>
+							</Popover>
+						</div>
+					</div>
+				</TabsContent>
+			</Tabs>
+
+			{/* Earnings Summary Section */}
 			<ContentSection
-				title="Total Earnings"
-				flat
-				className="bg-primary/5">
-				<div className="flex justify-between items-center">
-					<div>
-						<h3 className="text-3xl font-bold">${totalEarnings.toFixed(2)}</h3>
-						<p className="text-muted-foreground">All-time earnings</p>
+				title="Earnings Summary"
+				description="Overview of hours worked and earnings"
+				headerActions={
+					<div className="flex gap-2">
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={() => handleExportReport("csv")}>
+							<FileText className="h-4 w-4 mr-2" />
+							Export CSV
+						</Button>
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={() => handleExportReport("excel")}>
+							<Download className="h-4 w-4 mr-2" />
+							Export Excel
+						</Button>
 					</div>
-					<div className="h-12 w-12 bg-primary/10 rounded-full flex items-center justify-center">
-						<DollarSign className="h-6 w-6 text-primary" />
-					</div>
+				}>
+				{/* Summary Cards */}
+				<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+					<Card>
+						<CardHeader className="pb-2">
+							<CardTitle className="text-base font-medium">
+								Total Scheduled Hours
+							</CardTitle>
+						</CardHeader>
+						<CardContent>
+							<div className="flex items-center">
+								<ClockIcon className="h-5 w-5 mr-2 text-muted-foreground" />
+								<span className="text-2xl font-bold">
+									{totalScheduledHours.toFixed(1)}
+								</span>
+							</div>
+							<p className="text-xs text-muted-foreground mt-1">
+								{dateRange.from &&
+									dateRange.to &&
+									`${format(dateRange.from, "MMM d")} - ${format(
+										dateRange.to,
+										"MMM d, yyyy"
+									)}`}
+							</p>
+						</CardContent>
+					</Card>
+
+					<Card>
+						<CardHeader className="pb-2">
+							<CardTitle className="text-base font-medium">
+								Total Actual Hours
+							</CardTitle>
+						</CardHeader>
+						<CardContent>
+							<div className="flex items-center">
+								<ClockIcon className="h-5 w-5 mr-2 text-muted-foreground" />
+								<span className="text-2xl font-bold">
+									{totalActualHours.toFixed(1)}
+								</span>
+							</div>
+							<p className="text-xs text-muted-foreground mt-1">
+								{dateRange.from &&
+									dateRange.to &&
+									`${format(dateRange.from, "MMM d")} - ${format(
+										dateRange.to,
+										"MMM d, yyyy"
+									)}`}
+							</p>
+						</CardContent>
+					</Card>
+
+					<Card>
+						<CardHeader className="pb-2">
+							<CardTitle className="text-base font-medium">
+								Total Earnings
+							</CardTitle>
+						</CardHeader>
+						<CardContent>
+							<div className="flex items-center">
+								<DollarSign className="h-5 w-5 mr-2 text-muted-foreground" />
+								<span className="text-2xl font-bold">
+									${totalActualEarnings.toFixed(2)}
+								</span>
+							</div>
+							<p className="text-xs text-muted-foreground mt-1">
+								{reportData.length} shifts
+							</p>
+						</CardContent>
+					</Card>
 				</div>
 			</ContentSection>
 
-			{/* Monthly Earnings Table */}
-			<div>
-				<h3 className="text-lg font-medium mb-4">Monthly Breakdown</h3>
-				<div className="border rounded-md overflow-hidden">
+			{/* Detailed Earnings Table */}
+			<ContentSection
+				title="Detailed Earnings"
+				description="Shift-by-shift breakdown of hours and earnings">
+				<Card>
 					<Table>
 						<TableHeader>
 							<TableRow>
-								<TableHead>Month</TableHead>
-								<TableHead>Hours</TableHead>
-								<TableHead className="text-right">Earnings</TableHead>
+								<TableHead>Date</TableHead>
+								<TableHead>Shift</TableHead>
+								<TableHead>Time</TableHead>
+								<TableHead>Scheduled Hours</TableHead>
+								<TableHead>Actual Hours</TableHead>
+								<TableHead>Rate</TableHead>
+								<TableHead>Scheduled Earnings</TableHead>
+								<TableHead>Actual Earnings</TableHead>
+								<TableHead>Location</TableHead>
+								<TableHead>Status</TableHead>
 							</TableRow>
 						</TableHeader>
 						<TableBody>
-							{earnings.map((item, index) => (
-								<TableRow key={index}>
-									<TableCell className="font-medium">{item.month}</TableCell>
-									<TableCell>{item.hours.toFixed(1)} hrs</TableCell>
-									<TableCell className="text-right">
-										${item.amount.toFixed(2)}
+							{reportData.length > 0 ? (
+								reportData.map((item) => (
+									<TableRow
+										key={item.shiftId}
+										className="cursor-pointer hover:bg-muted/50"
+										onClick={() => navigate(`/shifts/${item.shiftId}`)}>
+										<TableCell>
+											{format(parseISO(item.startTime), "MMM d, yyyy")}
+										</TableCell>
+										<TableCell>{item.shiftId}</TableCell>
+										<TableCell>
+											{format(parseISO(item.startTime), "h:mm a")} -{" "}
+											{format(parseISO(item.endTime), "h:mm a")}
+										</TableCell>
+										<TableCell>{item.hours.toFixed(2)}</TableCell>
+										<TableCell>
+											{item.actualHours ? (
+												<div className="flex items-center">
+													{item.actualHours.toFixed(2)}
+													{renderVariance(item.hours, item.actualHours)}
+												</div>
+											) : (
+												"N/A"
+											)}
+										</TableCell>
+										<TableCell>${item.hourlyRate.toFixed(2)}</TableCell>
+										<TableCell className="font-medium">
+											${item.earnings.toFixed(2)}
+										</TableCell>
+										<TableCell className="font-medium">
+											{item.actualEarnings ? (
+												<div className="flex items-center">
+													${item.actualEarnings.toFixed(2)}
+													{renderVariance(item.earnings, item.actualEarnings)}
+												</div>
+											) : (
+												"N/A"
+											)}
+										</TableCell>
+										<TableCell>{item.locationName}</TableCell>
+										<TableCell>
+											<Badge
+												variant={
+													item.status === "completed"
+														? "default"
+														: item.status === "pending"
+														? "secondary"
+														: "outline"
+												}
+												className={
+													item.status === "completed"
+														? "bg-green-100 hover:bg-green-100 text-green-800 border-green-200"
+														: item.status === "pending"
+														? "bg-yellow-100 hover:bg-yellow-100 text-yellow-800 border-yellow-200"
+														: ""
+												}>
+												{item.status
+													? item.status.charAt(0).toUpperCase() +
+													  item.status.slice(1)
+													: "N/A"}
+											</Badge>
+										</TableCell>
+									</TableRow>
+								))
+							) : (
+								<TableRow>
+									<TableCell
+										colSpan={10}
+										className="text-center py-8">
+										No earnings data available for the selected period.
 									</TableCell>
 								</TableRow>
-							))}
+							)}
 						</TableBody>
 					</Table>
-				</div>
-			</div>
+				</Card>
+			</ContentSection>
+
+			{/* Earnings Analysis */}
+			{reportData.length > 0 && (
+				<ContentSection
+					title="Earnings Analysis"
+					description="Detailed financial breakdown and analysis">
+					<Card>
+						<CardContent className="pt-6">
+							<div className="space-y-2">
+								<div className="flex justify-between items-center">
+									<span className="text-sm">Base Hourly Earnings</span>
+									<span className="font-medium">
+										${totalScheduledEarnings.toFixed(2)}
+									</span>
+								</div>
+								<Separator />
+								<div className="flex justify-between items-center">
+									<span className="text-sm">Total Scheduled Hours</span>
+									<span className="font-medium">
+										{totalScheduledHours.toFixed(2)} hours
+									</span>
+								</div>
+								<Separator />
+								<div className="flex justify-between items-center">
+									<span className="text-sm">Total Actual Hours</span>
+									<span className="font-medium">
+										{totalActualHours.toFixed(2)} hours
+									</span>
+								</div>
+								<Separator />
+								<div className="flex justify-between items-center">
+									<span className="text-sm">Total Shifts</span>
+									<span className="font-medium">
+										{reportData.length} shifts
+									</span>
+								</div>
+								<Separator />
+								<div className="flex justify-between items-center font-bold pt-2">
+									<span>Total Scheduled Earnings</span>
+									<span>${totalScheduledEarnings.toFixed(2)}</span>
+								</div>
+								<div className="flex justify-between items-center font-bold pt-2">
+									<span>Total Actual Earnings</span>
+									<span>${totalActualEarnings.toFixed(2)}</span>
+								</div>
+							</div>
+						</CardContent>
+					</Card>
+				</ContentSection>
+			)}
 		</div>
 	);
 }
+
+// Add this formatPhoneNumber helper function before the EmployeeDetailPage component
+// Format phone number to display in a readable format
+const formatPhoneNumber = (phone?: string) => {
+	if (!phone) return "";
+	// Basic formatting for US phone numbers
+	const cleaned = phone.replace(/\D/g, "");
+	if (cleaned.length === 10) {
+		return `+1 (${cleaned.substring(0, 3)}) ${cleaned.substring(
+			3,
+			6
+		)}-${cleaned.substring(6, 10)}`;
+	} else if (cleaned.length === 11 && cleaned.startsWith("1")) {
+		return `+1 (${cleaned.substring(1, 4)}) ${cleaned.substring(
+			4,
+			7
+		)}-${cleaned.substring(7, 11)}`;
+	}
+	return phone; // Return as is if not standard format
+};
 
 export default function EmployeeDetailPage() {
 	const { employeeId } = useParams();
@@ -643,6 +1180,15 @@ export default function EmployeeDetailPage() {
 	>("overview");
 	const [locationSheetOpen, setLocationSheetOpen] = useState(false);
 	const [editSheetOpen, setEditSheetOpen] = useState(false);
+	const location = useLocation();
+
+	// Handle tab switching based on URL path or navigation
+	useNavigationEffect(() => {
+		// If we're returning from the earnings page or have a tab in location state
+		if (location.state?.activeTab) {
+			setActiveTab(location.state.activeTab);
+		}
+	}, [location]);
 
 	// Initialize the presence service when we have an employee
 	const { presenceState, isLoading: presenceIsLoading } = useEmployeePresence(
@@ -668,7 +1214,7 @@ export default function EmployeeDetailPage() {
 
 			return (
 				<>
-					<EmployeeSheet
+					<EmployeeEditSheet
 						employee={employee}
 						organizationId={employee.organizationId || "org-1"}
 						onEmployeeUpdated={(updatedEmployee) => {
@@ -1069,7 +1615,7 @@ export default function EmployeeDetailPage() {
 				</Button>
 			)}
 
-			<EmployeeSheet
+			<EmployeeEditSheet
 				employee={employee}
 				organizationId={employee.organizationId || ""}
 				open={editSheetOpen}
@@ -1097,7 +1643,6 @@ export default function EmployeeDetailPage() {
 				<LoadingState
 					type="spinner"
 					message="Loading employee information..."
-					className="py-12"
 				/>
 			</ContentContainer>
 		);
@@ -1142,269 +1687,21 @@ export default function EmployeeDetailPage() {
 
 	// Ensure we have complete data before rendering
 	return (
-		<ContentContainer>
-			{/* Keep the ProfileCompletionAlert but only if it's not an invited employee */}
-			{employee && employee.status !== "invited" && (
-				<ProfileCompletionAlert
-					employee={employee}
-					onEdit={openEditSheet}
-				/>
-			)}
+		<>
+			{/* Use the new EmployeeNav component with tab change callback */}
+			<EmployeeNav onTabChange={(tabId) => setActiveTab(tabId as any)} />
 
-			<div className="flex flex-col md:flex-row gap-6">
-				{/* Secondary Sidebar */}
-				<div className="md:w-80 shrink-0 p-4">
-					<div className="sticky top-6 space-y-6">
-						{/* Employee Profile Card */}
-						<Card className="overflow-hidden">
-							<CardContent className="p-6">
-								<div className="flex flex-col items-center text-center">
-									<AvatarWithStatus
-										className="h-24 w-24 mb-4"
-										src={employee.avatar}
-										alt={employee.name}
-										fallback={initials}
-										isOnline={employeeWithPresence?.isOnline || false}
-										status={
-											employee.status as "invited" | "active" | "disabled"
-										}
-									/>
-									<h2 className="text-xl font-semibold">{employee.name}</h2>
-									<p className="text-muted-foreground">
-										{employee.role || "Employee"}
-									</p>
+			{/* Notification Banners - moved to top outside content container */}
+			{(employee.status !== "invited" ||
+				getProfileCompletionStatus(employee).missingCount > 0) && (
+				<div className="w-full bg-background py-4 px-6">
+					{employee && employee.status !== "invited" && (
+						<ProfileCompletionAlert
+							employee={employee}
+							onEdit={openEditSheet}
+						/>
+					)}
 
-									{/* Employee Status Badge */}
-									<div className="mt-2">
-										<EmployeeStatusBadge
-											status={
-												employee.status === "invited" ||
-												employee.status === "active" ||
-												employee.status === "disabled"
-													? employee.status
-													: "active"
-											}
-										/>
-									</div>
-
-									{/* Only show earnings link if hourly rate is set */}
-									{employee.hourlyRate && (
-										<Button
-											variant="outline"
-											size="sm"
-											className="mt-4 w-full"
-											onClick={() =>
-												navigate(`/employees/${employee.id}/earnings`)
-											}>
-											<DollarSign className="h-4 w-4 mr-2" />
-											View Earnings
-										</Button>
-									)}
-								</div>
-							</CardContent>
-						</Card>
-
-						{/* Contact Information */}
-						<Card>
-							<CardHeader className="pb-2">
-								<CardTitle className="text-md">Contact Information</CardTitle>
-							</CardHeader>
-							<CardContent className="space-y-2">
-								{employee.email && (
-									<div className="flex items-start gap-2">
-										<Mail className="h-4 w-4 text-muted-foreground mt-0.5" />
-										<div className="space-y-0.5">
-											<p className="text-sm font-medium">Email</p>
-											<p className="text-sm text-muted-foreground break-all">
-												{employee.email}
-											</p>
-										</div>
-									</div>
-								)}
-
-								{employee.phone && (
-									<div className="flex items-start gap-2">
-										<Phone className="h-4 w-4 text-muted-foreground mt-0.5" />
-										<div className="space-y-0.5">
-											<p className="text-sm font-medium">Phone</p>
-											<p className="text-sm text-muted-foreground">
-												{employee.phone}
-											</p>
-										</div>
-									</div>
-								)}
-
-								{employee.address && (
-									<div className="flex items-start gap-2">
-										<MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-										<div className="space-y-0.5">
-											<p className="text-sm font-medium">Address</p>
-											<p className="text-sm text-muted-foreground">
-												{employee.address}
-											</p>
-										</div>
-									</div>
-								)}
-
-								{employee.hireDate && (
-									<div className="flex items-start gap-2">
-										<Calendar className="h-4 w-4 text-muted-foreground mt-0.5" />
-										<div className="space-y-0.5">
-											<p className="text-sm font-medium">Hire Date</p>
-											<p className="text-sm text-muted-foreground">
-												{new Date(employee.hireDate).toLocaleDateString()}
-											</p>
-										</div>
-									</div>
-								)}
-
-								{employee.hourlyRate && (
-									<div className="flex items-start gap-2">
-										<DollarSign className="h-4 w-4 text-muted-foreground mt-0.5" />
-										<div className="space-y-0.5">
-											<p className="text-sm font-medium">Hourly Rate</p>
-											<p className="text-sm text-muted-foreground">
-												${employee.hourlyRate}/hr
-											</p>
-										</div>
-									</div>
-								)}
-							</CardContent>
-						</Card>
-
-						{/* Assigned Locations */}
-						<Card>
-							<CardHeader className="pb-2 flex items-center justify-between">
-								<CardTitle className="text-md">Assigned Locations</CardTitle>
-								<LocationAssignmentSheet
-									employeeId={employee.id}
-									employeeName={employee.name}
-									allLocations={allLocations}
-									assignedLocationIds={assignedLocationIds}
-									onLocationsAssigned={handleLocationsAssigned}
-									open={locationSheetOpen}
-									onOpenChange={setLocationSheetOpen}
-									trigger={
-										<Button
-											variant="ghost"
-											size="icon"
-											className="h-8 w-8">
-											<Plus className="h-4 w-4" />
-										</Button>
-									}
-								/>
-							</CardHeader>
-							<CardContent>
-								{locationsLoading ? (
-									<LoadingState
-										type="spinner"
-										message="Loading locations..."
-										className="py-2"
-									/>
-								) : assignedLocationIds.length === 0 ? (
-									<div className="text-sm text-muted-foreground py-2">
-										No locations assigned
-									</div>
-								) : (
-									<div className="space-y-2">
-										{assignedLocationIds.map((locationId, index) => {
-											const location = locations[locationId];
-											if (!location) return null;
-
-											return (
-												<div
-													key={locationId}
-													className="flex items-center justify-between">
-													<div className="flex items-center gap-2">
-														{index === 0 && (
-															<Badge
-																variant="outline"
-																className="text-xs font-normal border-primary/50 text-primary bg-primary/10 rounded-sm">
-																Primary
-															</Badge>
-														)}
-														<span
-															className={
-																index === 0
-																	? "font-medium"
-																	: "text-muted-foreground"
-															}>
-															{location.name}
-														</span>
-													</div>
-													<div className="flex items-center gap-1">
-														{index !== 0 && (
-															<Button
-																variant="ghost"
-																size="icon"
-																className="h-7 w-7"
-																onClick={() => setPrimaryLocation(locationId)}>
-																<MapPinIcon className="h-3.5 w-3.5" />
-															</Button>
-														)}
-														<Button
-															variant="ghost"
-															size="icon"
-															className="h-7 w-7 text-destructive"
-															onClick={() => removeLocation(locationId)}>
-															<X className="h-3.5 w-3.5" />
-														</Button>
-													</div>
-												</div>
-											);
-										})}
-									</div>
-								)}
-							</CardContent>
-						</Card>
-					</div>
-				</div>
-
-				{/* Main Content Area */}
-				<div className="flex-1 space-y-6">
-					{/* Main Content Tabs */}
-					<div className="flex border-b">
-						<button
-							onClick={() => setActiveTab("overview")}
-							className={`pb-2 px-4 text-sm font-medium ${
-								activeTab === "overview"
-									? "border-b-2 border-primary text-primary"
-									: "text-muted-foreground"
-							}`}>
-							Overview
-						</button>
-						<button
-							onClick={() => setActiveTab("shifts")}
-							className={`pb-2 px-4 text-sm font-medium ${
-								activeTab === "shifts"
-									? "border-b-2 border-primary text-primary"
-									: "text-muted-foreground"
-							}`}>
-							Shifts
-						</button>
-						<button
-							onClick={() => setActiveTab("locations")}
-							className={`pb-2 px-4 text-sm font-medium ${
-								activeTab === "locations"
-									? "border-b-2 border-primary text-primary"
-									: "text-muted-foreground"
-							}`}>
-							Locations
-						</button>
-						{employee.hourlyRate && (
-							<button
-								onClick={() => setActiveTab("earnings")}
-								className={`pb-2 px-4 text-sm font-medium ${
-									activeTab === "earnings"
-										? "border-b-2 border-primary text-primary"
-										: "text-muted-foreground"
-								}`}>
-								Earnings
-							</button>
-						)}
-					</div>
-
-					{/* Invited Employee Alert */}
 					{employee.status === "invited" && (
 						<Alert
 							variant="destructive"
@@ -1418,106 +1715,204 @@ export default function EmployeeDetailPage() {
 							</AlertDescription>
 						</Alert>
 					)}
+				</div>
+			)}
 
-					{/* Tab Content */}
-					{activeTab === "overview" && !shiftsLoading && (
-						<>
-							<ContentSection title="Employee Overview">
-								<EmployeeStats
-									employee={employee}
-									shifts={shifts}
-								/>
-							</ContentSection>
+			<ContentContainer>
+				<div className="flex flex-col md:flex-row gap-6">
+					{/* Secondary Sidebar */}
+					<div className="md:w-80 shrink-0">
+						<div className="sticky top-6 space-y-6">
+							{/* Employee Profile Card with Contact Information */}
+							<EmployeeCard
+								employee={{
+									...employee,
+									phone: employee.phone
+										? formatPhoneNumber(employee.phone)
+										: undefined,
+								}}
+								variant="profile"
+								hideStatus={false}
+								className="shadow-sm"
+							/>
 
-							<ContentSection title="Notes">
-								{employee.notes ? (
-									<p>{employee.notes}</p>
-								) : (
-									<p className="text-muted-foreground">No notes available</p>
-								)}
-							</ContentSection>
-						</>
-					)}
+							{/* Assigned Locations Card */}
+							<Card>
+								<CardHeader className="pb-2 flex flex-row items-center justify-between">
+									<CardTitle className="text-md">Assigned Locations</CardTitle>
+									<LocationAssignmentSheet
+										employeeId={employee.id}
+										employeeName={employee.name}
+										allLocations={allLocations}
+										assignedLocationIds={assignedLocationIds}
+										onLocationsAssigned={handleLocationsAssigned}
+										open={locationSheetOpen}
+										onOpenChange={setLocationSheetOpen}
+										trigger={
+											<Button
+												variant="ghost"
+												size="icon"
+												className="h-8 w-8">
+												<Plus className="h-4 w-4" />
+											</Button>
+										}
+									/>
+								</CardHeader>
+								<CardContent>
+									{locationsLoading ? (
+										<LoadingState
+											type="spinner"
+											message="Loading locations..."
+										/>
+									) : assignedLocationIds.length === 0 ? (
+										<div className="text-sm text-muted-foreground">
+											No locations assigned
+										</div>
+									) : (
+										<div className="space-y-2">
+											{assignedLocationIds.map((locationId, index) => {
+												const location = locations[locationId];
+												if (!location) return null;
 
-					{activeTab === "shifts" && (
-						<ContentSection title="Shift History">
-							<EmployeeShiftsSection employeeId={employee.id} />
-						</ContentSection>
-					)}
-
-					{activeTab === "locations" && (
-						<ContentSection title="Assigned Locations">
-							{locationsLoading ? (
-								<LoadingState
-									type="spinner"
-									message="Loading locations..."
-									className="py-4"
-								/>
-							) : assignedLocationIds.length === 0 ? (
-								<EmptyState
-									title="No Locations Assigned"
-									description="This employee hasn't been assigned to any locations yet."
-									action={
-										<Button onClick={() => setLocationSheetOpen(true)}>
-											<Plus className="h-4 w-4 mr-2" />
-											Assign Locations
-										</Button>
-									}
-									icon={<Building2 className="h-8 w-8" />}
-								/>
-							) : (
-								<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-									{assignedLocationIds.map((locationId) => {
-										const location = locations[locationId];
-										if (!location) return null;
-
-										return (
-											<Card
-												key={locationId}
-												className="overflow-hidden">
-												<div className="h-32 bg-muted">
-													{location.imageUrl ? (
-														<img
-															src={location.imageUrl}
-															alt={location.name}
-															className="w-full h-full object-cover"
-														/>
-													) : (
-														<div className="w-full h-full flex items-center justify-center bg-primary/10">
-															<Building2 className="h-8 w-8 text-primary" />
+												return (
+													<div
+														key={locationId}
+														className="flex items-center justify-between">
+														<div className="flex items-center gap-2">
+															{index === 0 && (
+																<Badge
+																	variant="outline"
+																	className="text-xs font-normal border-primary/50 text-primary bg-primary/10 rounded-sm">
+																	Primary
+																</Badge>
+															)}
+															<span
+																className={
+																	index === 0
+																		? "font-medium"
+																		: "text-muted-foreground"
+																}>
+																{location.name}
+															</span>
 														</div>
-													)}
-												</div>
-												<CardContent className="p-4">
-													<h3 className="font-medium mb-1">{location.name}</h3>
-													<p className="text-sm text-muted-foreground mb-2">
-														{location.address}
-													</p>
+														<div className="flex items-center gap-1">
+															{index !== 0 && (
+																<Button
+																	variant="ghost"
+																	size="icon"
+																	className="h-7 w-7"
+																	onClick={() =>
+																		setPrimaryLocation(locationId)
+																	}>
+																	<MapPinIcon className="h-3.5 w-3.5" />
+																</Button>
+															)}
+															<Button
+																variant="ghost"
+																size="icon"
+																className="h-7 w-7 text-destructive"
+																onClick={() => removeLocation(locationId)}>
+																<X className="h-3.5 w-3.5" />
+															</Button>
+														</div>
+													</div>
+												);
+											})}
+										</div>
+									)}
+								</CardContent>
+							</Card>
+						</div>
+					</div>
+
+					{/* Main Content Area */}
+					<div className="flex-1">
+						{/* Tab Content */}
+						{activeTab === "overview" && !shiftsLoading && (
+							<>
+								<ContentSection title="Employee Overview">
+									<EmployeeStats
+										employee={employee}
+										shifts={shifts}
+									/>
+								</ContentSection>
+
+								<ContentSection
+									title="Notes"
+									className="mt-6">
+									{employee.notes ? (
+										<p>{employee.notes}</p>
+									) : (
+										<p className="text-muted-foreground">No notes available</p>
+									)}
+								</ContentSection>
+							</>
+						)}
+
+						{activeTab === "shifts" && (
+							<ContentSection title="Shift History">
+								<EmployeeShiftsSection employeeId={employee.id} />
+							</ContentSection>
+						)}
+
+						{activeTab === "locations" && (
+							<ContentSection title="Assigned Locations">
+								{locationsLoading ? (
+									<LoadingState
+										type="spinner"
+										message="Loading locations..."
+									/>
+								) : assignedLocationIds.length === 0 ? (
+									<EmptyState
+										title="No Locations Assigned"
+										description="This employee hasn't been assigned to any locations yet."
+										action={
+											<Button onClick={() => setLocationSheetOpen(true)}>
+												<Plus className="h-4 w-4 mr-2" />
+												Assign Locations
+											</Button>
+										}
+										icon={<Building2 className="h-8 w-8" />}
+									/>
+								) : (
+									<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+										{assignedLocationIds.map((locationId, index) => {
+											const location = locations[locationId];
+											if (!location) return null;
+
+											return (
+												<LocationCard
+													key={locationId}
+													location={location}
+													interactive={true}
+													showBadge={index === 0}
+													badgeText="Primary"
+													variant="standard">
 													<Button
 														variant="outline"
 														size="sm"
-														className="w-full"
+														className="w-full mt-2"
 														onClick={() =>
 															navigate(`/locations/${location.id}`)
 														}>
 														View Location
 													</Button>
-												</CardContent>
-											</Card>
-										);
-									})}
-								</div>
-							)}
-						</ContentSection>
-					)}
+												</LocationCard>
+											);
+										})}
+									</div>
+								)}
+							</ContentSection>
+						)}
 
-					{activeTab === "earnings" && (
-						<ContentSection title="Earnings Overview">
-							<EmployeeEarningsSection employeeId={employee.id} />
-						</ContentSection>
-					)}
+						{activeTab === "earnings" && (
+							<ContentSection title="Earnings">
+								<EnhancedEmployeeEarningsSection employeeId={employee.id} />
+							</ContentSection>
+						)}
+					</div>
 				</div>
-			</div>
-		</ContentContainer>
+			</ContentContainer>
+		</>
 	);
 }

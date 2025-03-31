@@ -301,6 +301,22 @@ export const ShiftsAPI = {
 		toast.success("Shift deleted successfully!");
 	},
 
+	// Get all shifts for a specific location
+	getShiftsByLocationId: async (locationId: string): Promise<Shift[]> => {
+		const { data, error } = await supabase
+			.from("shifts")
+			.select("*")
+			.eq("location_id", locationId)
+			.eq("is_schedule", false); // Get only actual shifts, not schedules
+
+		if (error) {
+			console.error("Error fetching shifts for location:", error);
+			return [];
+		}
+
+		return data as Shift[];
+	},
+
 	// Additional methods as needed...
 };
 

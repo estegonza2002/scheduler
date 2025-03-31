@@ -84,6 +84,8 @@ import { useHeader } from "@/lib/header-context";
 import { Input } from "@/components/ui/input";
 import { ShiftCard } from "@/components/ShiftCard";
 import { toast } from "sonner";
+import { ContentContainer } from "@/components/ui/content-container";
+import { LoadingState } from "@/components/ui/loading-state";
 
 export default function SchedulePage() {
 	const [searchParams, setSearchParams] = useSearchParams();
@@ -104,13 +106,13 @@ export default function SchedulePage() {
 	const [isScheduleLoading, setIsScheduleLoading] = useState(!scheduleIdParam);
 	const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-	// Function to fetch or create a valid schedule
-	const fetchOrCreateSchedule = async () => {
+	// Function to fetch a valid schedule
+	const fetchSchedule = async () => {
 		if (!organizationId) return;
 
 		try {
 			setIsScheduleLoading(true);
-			// First try to find existing schedules
+			// Only find existing schedules
 			const schedules = await ShiftsAPI.getAllSchedules(organizationId);
 
 			if (schedules && schedules.length > 0) {
@@ -127,33 +129,13 @@ export default function SchedulePage() {
 
 				console.log("Using existing schedule:", validScheduleId);
 			} else {
-				// Create a default schedule if none exists
-				const newSchedule: ScheduleCreateInput = {
-					organization_id: organizationId,
-					name: "Default Schedule",
-					description: "Default schedule created automatically",
-					start_time: new Date().toISOString(),
-					end_time: new Date(
-						new Date().setMonth(new Date().getMonth() + 1)
-					).toISOString(),
-					is_schedule: true,
-				};
-
-				const createdSchedule = await ShiftsAPI.createSchedule(newSchedule);
-				const newScheduleId = createdSchedule.id;
-				setScheduleId(newScheduleId);
-
-				// Update URL to include the new schedule ID
-				setSearchParams((prev) => {
-					const newParams = new URLSearchParams(prev);
-					newParams.set("scheduleId", newScheduleId);
-					return newParams;
-				});
-
-				console.log("Created new schedule:", newScheduleId);
+				// No schedules found - just set null state
+				setScheduleId(null);
+				console.log("No schedules found");
 			}
 		} catch (error) {
-			console.error("Error fetching/creating schedule:", error);
+			console.error("Error fetching schedules:", error);
+			setScheduleId(null);
 		} finally {
 			setIsScheduleLoading(false);
 		}
@@ -162,7 +144,7 @@ export default function SchedulePage() {
 	// Call the function when component mounts if no valid schedule ID
 	useEffect(() => {
 		if (!scheduleIdParam || scheduleIdParam === "sch-4") {
-			fetchOrCreateSchedule();
+			fetchSchedule();
 		}
 	}, [organizationId, scheduleIdParam]);
 
@@ -212,7 +194,16 @@ export default function SchedulePage() {
 	// Fetch shifts, locations, and employees
 	useEffect(() => {
 		const fetchData = async () => {
-			if (!scheduleId) return; // Don't fetch if no valid schedule ID
+			// Don't fetch if no valid schedule ID or if it's a known bad ID
+			if (
+				!scheduleId ||
+				scheduleId === "sch-4" ||
+				scheduleId === "temp-schedule-id"
+			) {
+				console.log("Skipping data fetch - no valid schedule ID");
+				setLoading(false);
+				return;
+			}
 
 			try {
 				setLoading(true);
@@ -382,111 +373,109 @@ export default function SchedulePage() {
 	};
 
 	return (
-		<Card className="shadow-sm border-border/40 flex flex-col h-[calc(100vh-120px)]">
-			<CardContent className="flex-grow p-6 overflow-y-auto">
-				{/* Search Section */}
-				<div className="mb-6">
-					<div className="relative">
-						<Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-						<Input
-							placeholder="Search shifts by employee, location, or time..."
-							className="pl-10"
-							value={searchQuery}
-							onChange={(e) => setSearchQuery(e.target.value)}
-						/>
-					</div>
+		<ContentContainer>
+			{/* Search Section */}
+			<div className="mb-6">
+				<div className="relative">
+					<Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+					<Input
+						placeholder="Search shifts by employee, location, or time..."
+						className="pl-10"
+						value={searchQuery}
+						onChange={(e) => setSearchQuery(e.target.value)}
+					/>
 				</div>
+			</div>
 
-				{loading ? (
-					<div className="flex items-center justify-center h-40">
-						<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+			{loading ? (
+				<LoadingState
+					message="Loading shifts..."
+					type="spinner"
+					className="py-12"
+				/>
+			) : (
+				<>
+					{/* Today's Shifts Section */}
+					<div className="mb-8">
+						<h2 className="text-lg font-semibold mb-4 flex items-center">
+							<Badge
+								variant="outline"
+								className="mr-2">
+								{todayShifts.length}
+							</Badge>
+							Today's Shifts
+						</h2>
+
+						{todayShifts.length > 0 ? (
+							<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+								{todayShifts.map((shift) => {
+									const assignedEmployees = getShiftEmployees(shift);
+									const locationName = getLocationName(shift.location_id);
+
+									return (
+										<ShiftCard
+											key={shift.id}
+											shift={shift}
+											assignedEmployees={assignedEmployees}
+											locationName={locationName}
+										/>
+									);
+								})}
+							</div>
+						) : (
+							<Card className="bg-muted/30">
+								<CardContent className="p-8 flex flex-col items-center justify-center text-center">
+									<Calendar className="h-10 w-10 text-muted-foreground mb-3" />
+									<h3 className="font-medium">No shifts scheduled today</h3>
+									<p className="text-sm text-muted-foreground mt-1">
+										Use the Create Shift button to add new shifts
+									</p>
+								</CardContent>
+							</Card>
+						)}
 					</div>
-				) : (
-					<>
-						{/* Today's Shifts Section */}
-						<div className="mb-8">
-							<h2 className="text-lg font-semibold mb-4 flex items-center">
-								<Badge
-									variant="outline"
-									className="mr-2">
-									{todayShifts.length}
-								</Badge>
-								Today's Shifts
-							</h2>
 
-							{todayShifts.length > 0 ? (
-								<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-									{todayShifts.map((shift) => {
-										const assignedEmployees = getShiftEmployees(shift);
-										const locationName = getLocationName(shift.location_id);
+					{/* Upcoming Shifts Section */}
+					<div>
+						<h2 className="text-lg font-semibold mb-4 flex items-center">
+							<Badge
+								variant="outline"
+								className="mr-2">
+								{upcomingShifts.length}
+							</Badge>
+							Upcoming Shifts
+						</h2>
 
-										return (
-											<ShiftCard
-												key={shift.id}
-												shift={shift}
-												assignedEmployees={assignedEmployees}
-												locationName={locationName}
-											/>
-										);
-									})}
-								</div>
-							) : (
-								<Card className="bg-muted/30">
-									<CardContent className="p-8 flex flex-col items-center justify-center text-center">
-										<Calendar className="h-10 w-10 text-muted-foreground mb-3" />
-										<h3 className="font-medium">No shifts scheduled today</h3>
-										<p className="text-sm text-muted-foreground mt-1">
-											Use the Create Shift button to add new shifts
-										</p>
-									</CardContent>
-								</Card>
-							)}
-						</div>
+						{upcomingShifts.length > 0 ? (
+							<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+								{upcomingShifts.map((shift) => {
+									const assignedEmployees = getShiftEmployees(shift);
+									const locationName = getLocationName(shift.location_id);
 
-						{/* Upcoming Shifts Section */}
-						<div>
-							<h2 className="text-lg font-semibold mb-4 flex items-center">
-								<Badge
-									variant="outline"
-									className="mr-2">
-									{upcomingShifts.length}
-								</Badge>
-								Upcoming Shifts
-							</h2>
-
-							{upcomingShifts.length > 0 ? (
-								<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-									{upcomingShifts.map((shift) => {
-										const assignedEmployees = getShiftEmployees(shift);
-										const locationName = getLocationName(shift.location_id);
-
-										return (
-											<ShiftCard
-												key={shift.id}
-												shift={shift}
-												assignedEmployees={assignedEmployees}
-												locationName={locationName}
-											/>
-										);
-									})}
-								</div>
-							) : (
-								<Card className="bg-muted/30">
-									<CardContent className="p-8 flex flex-col items-center justify-center text-center">
-										<Calendar className="h-10 w-10 text-muted-foreground mb-3" />
-										<h3 className="font-medium">
-											No upcoming shifts scheduled
-										</h3>
-										<p className="text-sm text-muted-foreground mt-1">
-											Plan ahead by scheduling future shifts
-										</p>
-									</CardContent>
-								</Card>
-							)}
-						</div>
-					</>
-				)}
-			</CardContent>
-		</Card>
+									return (
+										<ShiftCard
+											key={shift.id}
+											shift={shift}
+											assignedEmployees={assignedEmployees}
+											locationName={locationName}
+										/>
+									);
+								})}
+							</div>
+						) : (
+							<Card className="bg-muted/30">
+								<CardContent className="p-8 flex flex-col items-center justify-center text-center">
+									<Calendar className="h-10 w-10 text-muted-foreground mb-3" />
+									<h3 className="font-medium">No upcoming shifts scheduled</h3>
+									<p className="text-sm text-muted-foreground mt-1">
+										Plan ahead by scheduling future shifts
+									</p>
+								</CardContent>
+							</Card>
+						)}
+					</div>
+				</>
+			)}
+		</ContentContainer>
 	);
 }

@@ -17,6 +17,7 @@ import {
 	X,
 	Sparkles,
 	AlertCircle,
+	AlertTriangle,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { ScrollArea } from "../ui/scroll-area";
@@ -61,16 +62,16 @@ export function OnboardingModal() {
 	const completedCount = onboardingState.completedSteps.length;
 	const progressPercentage = Math.floor((completedCount / totalSteps) * 100);
 
-	// Fetch or create a default schedule when organization ID is available
+	// Fetch schedules when organization ID is available
 	useEffect(() => {
-		const fetchOrCreateDefaultSchedule = async () => {
+		const fetchExistingSchedules = async () => {
 			if (!organizationId) return;
 
 			try {
 				setIsCreatingSchedule(true);
 				setScheduleError(null);
 
-				// First try to find existing schedules
+				// Only try to find existing schedules, don't create new ones
 				const schedules = await ShiftsAPI.getAllSchedules(organizationId);
 
 				if (schedules && schedules.length > 0) {
@@ -78,35 +79,22 @@ export function OnboardingModal() {
 					setDefaultScheduleId(schedules[0].id);
 					console.log("Using existing schedule:", schedules[0].id);
 				} else {
-					// Create a default schedule if none exists
-					const newSchedule: ScheduleCreateInput = {
-						organization_id: organizationId,
-						name: "Default Schedule",
-						description: "Default schedule created during onboarding",
-						start_time: new Date().toISOString(),
-						end_time: new Date(
-							new Date().setHours(23, 59, 59, 999)
-						).toISOString(),
-						is_schedule: true,
-					};
-
-					const createdSchedule = await ShiftsAPI.createSchedule(newSchedule);
-					setDefaultScheduleId(createdSchedule.id);
-					console.log("Created new default schedule:", createdSchedule.id);
+					// Just set to null if no schedules found
+					setDefaultScheduleId(null);
+					console.log("No schedules found during onboarding");
 				}
 			} catch (error) {
-				console.error("Error fetching/creating default schedule:", error);
+				console.error("Error fetching schedules:", error);
 				setScheduleError(
-					"Failed to prepare schedule. You may need to create one manually later."
+					"Failed to fetch schedules. You can create one manually later."
 				);
-				// Set a temporary ID to allow the onboarding to continue
-				setDefaultScheduleId("temp-schedule-id");
+				setDefaultScheduleId(null);
 			} finally {
 				setIsCreatingSchedule(false);
 			}
 		};
 
-		fetchOrCreateDefaultSchedule();
+		fetchExistingSchedules();
 	}, [organizationId]);
 
 	const handleSkipOnboarding = async () => {
@@ -248,13 +236,23 @@ export function OnboardingModal() {
 		// Create temporary button ref to programmatically click
 		const buttonRef = React.useRef<HTMLButtonElement>(null);
 
-		// Effect to trigger sheet when state changes
 		useEffect(() => {
-			if (shiftSheetOpen && buttonRef.current) {
-				buttonRef.current.click();
-				setShiftSheetOpen(false); // Reset state after triggering
+			// Check if we should automatically trigger open
+			if (
+				onboardingState.currentStep === "create_shift" &&
+				!onboardingState.shiftCreated &&
+				buttonRef.current
+			) {
+				// Focus the button first
+				buttonRef.current.focus();
+				// Then click it
+				setTimeout(() => {
+					if (buttonRef.current) {
+						buttonRef.current.click();
+					}
+				}, 500);
 			}
-		}, [shiftSheetOpen]);
+		}, [onboardingState.currentStep, onboardingState.shiftCreated]);
 
 		return (
 			<div className="py-6">
@@ -263,57 +261,66 @@ export function OnboardingModal() {
 					<h3 className="text-xl font-semibold">Create Your First Shift</h3>
 				</div>
 				<p className="text-muted-foreground mb-6">
-					Schedule your first shift by assigning employees to work at your
-					location.
+					Now that you have a location and employees, let's create your first
+					shift. This will be visible on your schedule.
 				</p>
 
-				{isCreatingSchedule ? (
-					<div className="flex justify-center">
-						<div
-							role="status"
-							className="flex items-center gap-2">
-							<svg
-								aria-hidden="true"
-								className="w-6 h-6 text-muted-foreground animate-spin dark:text-muted fill-primary"
-								viewBox="0 0 100 101"
-								fill="none"
-								xmlns="http://www.w3.org/2000/svg">
-								<path
-									d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
-									fill="currentColor"
-								/>
-								<path
-									d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
-									fill="currentFill"
-								/>
-							</svg>
-							<span>Preparing schedule...</span>
-						</div>
-					</div>
-				) : scheduleError ? (
-					<div className="mb-4 bg-yellow-50 p-3 rounded-md border border-yellow-200">
+				{scheduleError ? (
+					<div className="p-4 bg-red-50 border border-red-200 rounded-md mb-4">
 						<div className="flex items-start">
-							<AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5 mr-2" />
+							<AlertCircle className="h-5 w-5 text-red-500 mt-0.5 mr-2" />
 							<div>
-								<p className="text-sm text-yellow-700">{scheduleError}</p>
+								<p className="text-sm font-medium text-red-800">
+									Error loading schedule
+								</p>
+								<p className="text-sm text-red-700 mt-1">{scheduleError}</p>
 								<Button
 									variant="outline"
 									size="sm"
 									className="mt-2"
-									onClick={() => fetchOrCreateDefaultSchedule()}>
+									onClick={() => fetchExistingSchedules()}>
 									Try Again
 								</Button>
 							</div>
 						</div>
 					</div>
-				) : null}
-
-				<Button
-					onClick={() => setShiftSheetOpen(true)}
-					className="w-full"
-					disabled={isCreatingSchedule || !defaultScheduleId}>
-					Create Shift <ChevronRight className="ml-2 h-4 w-4" />
-				</Button>
+				) : isCreatingSchedule ? (
+					<div className="flex items-center justify-center py-4">
+						<div className="animate-spin rounded-full h-5 w-5 border-2 border-primary border-t-transparent mr-2"></div>
+						<span className="text-sm">Preparing schedule...</span>
+					</div>
+				) : (
+					<>
+						{defaultScheduleId ? (
+							<ShiftCreationSheet
+								scheduleId={defaultScheduleId}
+								organizationId={organizationId || ""}
+								onComplete={handleShiftCreated}
+								trigger={
+									<Button
+										className="w-full"
+										ref={buttonRef}>
+										Create Shift <ChevronRight className="ml-2 h-4 w-4" />
+									</Button>
+								}
+							/>
+						) : (
+							<div className="p-4 bg-amber-50 border border-amber-200 rounded-md">
+								<div className="flex items-start">
+									<AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 mr-2" />
+									<div>
+										<p className="text-sm font-medium text-amber-800">
+											No schedule found
+										</p>
+										<p className="text-sm text-amber-700 mt-1">
+											You need to create a schedule first before adding shifts.
+										</p>
+									</div>
+								</div>
+							</div>
+						)}
+					</>
+				)}
 
 				{onboardingState.shiftCreated && (
 					<div className="mt-4 flex items-center text-sm text-green-600">
@@ -321,34 +328,19 @@ export function OnboardingModal() {
 						Shift created successfully
 					</div>
 				)}
-
-				{/* Add the ShiftCreationSheet here with hidden trigger */}
-				{defaultScheduleId && (
-					<ShiftCreationSheet
-						scheduleId={defaultScheduleId}
-						organizationId={organizationId || ""}
-						onShiftCreated={handleShiftCreated}
-						trigger={
-							<button
-								ref={buttonRef}
-								className="hidden"
-							/>
-						}
-					/>
-				)}
 			</div>
 		);
 	};
 
 	// Function to fetch or create default schedule
-	const fetchOrCreateDefaultSchedule = async () => {
+	const fetchExistingSchedules = async () => {
 		if (!organizationId) return;
 
 		try {
 			setIsCreatingSchedule(true);
 			setScheduleError(null);
 
-			// First try to find existing schedules
+			// Only try to find existing schedules, don't create new ones
 			const schedules = await ShiftsAPI.getAllSchedules(organizationId);
 
 			if (schedules && schedules.length > 0) {
@@ -356,29 +348,16 @@ export function OnboardingModal() {
 				setDefaultScheduleId(schedules[0].id);
 				console.log("Using existing schedule:", schedules[0].id);
 			} else {
-				// Create a default schedule if none exists
-				const newSchedule: ScheduleCreateInput = {
-					organization_id: organizationId,
-					name: "Default Schedule",
-					description: "Default schedule created during onboarding",
-					start_time: new Date().toISOString(),
-					end_time: new Date(
-						new Date().setHours(23, 59, 59, 999)
-					).toISOString(),
-					is_schedule: true,
-				};
-
-				const createdSchedule = await ShiftsAPI.createSchedule(newSchedule);
-				setDefaultScheduleId(createdSchedule.id);
-				console.log("Created new default schedule:", createdSchedule.id);
+				// Just set to null if no schedules found
+				setDefaultScheduleId(null);
+				console.log("No schedules found during onboarding");
 			}
 		} catch (error) {
-			console.error("Error fetching/creating default schedule:", error);
+			console.error("Error fetching schedules:", error);
 			setScheduleError(
-				"Failed to prepare schedule. You may need to create one manually later."
+				"Failed to fetch schedules. You can create one manually later."
 			);
-			// Set a temporary ID to allow the onboarding to continue
-			setDefaultScheduleId("temp-schedule-id");
+			setDefaultScheduleId(null);
 		} finally {
 			setIsCreatingSchedule(false);
 		}

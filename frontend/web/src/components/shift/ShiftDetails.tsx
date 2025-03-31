@@ -27,7 +27,16 @@ import {
 	calculateHours,
 } from "../../utils/time-calculations";
 import { cn } from "../../lib/utils";
-import { Loader2, ArrowLeft, Edit, Trash } from "lucide-react";
+import {
+	Loader2,
+	ArrowLeft,
+	Edit,
+	Trash,
+	CheckCircle2,
+	Clock,
+	AlertTriangle,
+	Info,
+} from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { Button } from "../ui/button";
 import { Switch } from "../ui/switch";
@@ -48,6 +57,7 @@ import { useHeader } from "../../lib/header-context";
 import { Badge } from "../ui/badge";
 import { ShiftStatus } from "./ShiftStatus";
 import { Link } from "react-router-dom";
+import { Alert, AlertTitle, AlertDescription } from "../ui/alert";
 
 // Define API access functions
 const getShift = async (shiftId: string): Promise<Shift | null> => {
@@ -105,6 +115,28 @@ const deleteShiftAssignment = async (assignmentId: string): Promise<void> => {
 interface ShiftDetailsProps {
 	hideHeader?: boolean;
 }
+
+// Function to determine if shift is completed (end time is in the past)
+const isShiftCompleted = (shift: Shift): boolean => {
+	const endTime = new Date(shift.end_time);
+	const now = new Date();
+	return now > endTime;
+};
+
+// Function to determine if shift is in progress
+const isShiftInProgress = (shift: Shift): boolean => {
+	const startTime = new Date(shift.start_time);
+	const endTime = new Date(shift.end_time);
+	const now = new Date();
+	return now >= startTime && now <= endTime;
+};
+
+// Function to determine if shift is upcoming
+const isShiftUpcoming = (shift: Shift): boolean => {
+	const startTime = new Date(shift.start_time);
+	const now = new Date();
+	return now < startTime;
+};
 
 export function ShiftDetails({ hideHeader = false }: ShiftDetailsProps) {
 	const { shiftId } = useParams<{ shiftId: string }>();
@@ -562,6 +594,175 @@ export function ShiftDetails({ hideHeader = false }: ShiftDetailsProps) {
 		updateHeader,
 	]);
 
+	// Check if shift is in progress
+	const isInProgress = useCallback(() => {
+		if (!shift) return false;
+		const startTime = new Date(shift.start_time);
+		const endTime = new Date(shift.end_time);
+		const now = new Date();
+		return now >= startTime && now <= endTime;
+	}, [shift]);
+
+	// Check if shift is upcoming
+	const isUpcoming = useCallback(() => {
+		if (!shift) return false;
+		const startTime = new Date(shift.start_time);
+		const now = new Date();
+		return now < startTime;
+	}, [shift]);
+
+	// Render status banner based on shift status
+	const renderStatusBanner = () => {
+		if (!shift) return null;
+
+		if (hasShiftEnded()) {
+			return (
+				<Alert className="bg-green-50 border-green-200 text-green-800 mb-6">
+					<CheckCircle2 className="h-4 w-4" />
+					<AlertTitle>Completed Shift</AlertTitle>
+					<AlertDescription>
+						This shift has been completed. You are viewing the final report.
+					</AlertDescription>
+				</Alert>
+			);
+		} else if (isInProgress()) {
+			return (
+				<Alert className="bg-blue-50 border-blue-200 text-blue-800 mb-6">
+					<Clock className="h-4 w-4" />
+					<AlertTitle>In Progress</AlertTitle>
+					<AlertDescription>
+						This shift is currently in progress.
+					</AlertDescription>
+				</Alert>
+			);
+		} else if (isUpcoming()) {
+			return (
+				<Alert className="bg-amber-50 border-amber-200 text-amber-800 mb-6">
+					<Info className="h-4 w-4" />
+					<AlertTitle>Upcoming Shift</AlertTitle>
+					<AlertDescription>
+						This shift is scheduled to start on{" "}
+						{format(
+							parseISO(shift.start_time),
+							"EEEE, MMMM d, yyyy 'at' h:mm a"
+						)}
+						.
+					</AlertDescription>
+				</Alert>
+			);
+		}
+
+		return null;
+	};
+
+	// Render main content based on loading state
+	const renderContent = () => {
+		if (loading) {
+			return (
+				<div className="flex items-center justify-center h-64">
+					<div className="flex flex-col items-center gap-4">
+						<Loader2 className="h-8 w-8 animate-spin text-primary" />
+						<p className="text-muted-foreground">Loading shift details...</p>
+					</div>
+				</div>
+			);
+		}
+
+		if (!shift) {
+			return (
+				<div className="flex items-center justify-center h-64">
+					<div className="text-center">
+						<p className="text-lg font-medium">Shift not found</p>
+						<p className="text-muted-foreground">
+							The requested shift does not exist or has been deleted.
+						</p>
+					</div>
+				</div>
+			);
+		}
+
+		return (
+			<>
+				{/* Status Banner */}
+				{renderStatusBanner()}
+
+				{/* Shift Header */}
+				{!hideHeader && (
+					<ShiftHeader
+						shift={shift}
+						assignedEmployeesCount={assignedEmployees.length}
+						onDeleteClick={handleDeleteShift}
+						onEditClick={() => {
+							if (shift?.id) {
+								navigate(`/shifts/${shift.id}/edit`);
+							}
+						}}
+						deleteAlertOpen={deleteAlertOpen}
+						setDeleteAlertOpen={setDeleteAlertOpen}
+						formatDateParam={formatDateParam}
+					/>
+				)}
+
+				{/* Show location, time, and cost information first */}
+				<ShiftInformation
+					shift={shift}
+					location={location}
+					assignedEmployees={assignedEmployees}
+					calculateTotalCost={calculateShiftCost}
+				/>
+
+				{/* If shift has ended, show the report after information */}
+				{hasShiftEnded() && (
+					<div className="my-6">
+						<ShiftReport
+							shift={shift}
+							assignedEmployees={assignedEmployees}
+						/>
+					</div>
+				)}
+
+				<EmployeesSection
+					assignedEmployees={assignedEmployees}
+					availableEmployees={availableEmployees.filter(
+						(employee) =>
+							!assignedEmployees.some((assigned) => assigned.id === employee.id)
+					)}
+					shift={{
+						start_time: shift?.start_time || "",
+						end_time: shift?.end_time || "",
+					}}
+					onRemoveEmployeeClick={handleRemoveEmployee}
+					onAssignClick={handleAssignEmployeeDialogOpen}
+					isCompleted={hasShiftEnded()}
+				/>
+
+				<ShiftNotes
+					notes={localNotes}
+					onEditClick={handleNotesDialogOpen}
+					onClearClick={() => {
+						if (hasShiftEnded()) {
+							toast.error("Cannot modify a completed shift");
+							return;
+						}
+						setLocalNotes("");
+						saveShift({ description: "" });
+					}}
+					isCompleted={hasShiftEnded()}
+				/>
+
+				<ShiftTasks
+					checkInTasks={localCheckInTasks}
+					checkOutTasks={localCheckOutTasks}
+					onCheckInTasksClick={handleCheckInTasksDialogOpen}
+					onCheckOutTasksClick={handleCheckOutTasksDialogOpen}
+					onToggleTaskCompletion={handleToggleTaskCompletion}
+					onRemoveTask={handleRemoveTask}
+					isCompleted={hasShiftEnded()}
+				/>
+			</>
+		);
+	};
+
 	if (loading) {
 		return (
 			<div className="flex justify-center items-center h-[50vh]">
@@ -592,84 +793,7 @@ export function ShiftDetails({ hideHeader = false }: ShiftDetailsProps) {
 
 	return (
 		<div className="pb-12">
-			{!hideHeader && (
-				<ShiftHeader
-					shift={shift}
-					assignedEmployeesCount={assignedEmployees.length}
-					onDeleteClick={handleDeleteShift}
-					onEditClick={() => navigate(`/edit-shift/${shiftId}`)}
-					deleteAlertOpen={deleteAlertOpen}
-					setDeleteAlertOpen={setDeleteAlertOpen}
-					formatDateParam={formatDateParam}
-				/>
-			)}
-
-			{loading ? (
-				<div className="bg-white border rounded-md p-8 my-6 flex justify-center">
-					<Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-				</div>
-			) : (
-				<>
-					{/* Show location, time, and cost information first */}
-					<ShiftInformation
-						shift={shift}
-						location={location}
-						assignedEmployees={assignedEmployees}
-						calculateTotalCost={calculateShiftCost}
-					/>
-
-					{/* If shift has ended, show the report after information */}
-					{hasShiftEnded() && (
-						<div className="my-6">
-							<ShiftReport
-								shift={shift}
-								assignedEmployees={assignedEmployees}
-							/>
-						</div>
-					)}
-
-					<EmployeesSection
-						assignedEmployees={assignedEmployees}
-						availableEmployees={availableEmployees.filter(
-							(employee) =>
-								!assignedEmployees.some(
-									(assigned) => assigned.id === employee.id
-								)
-						)}
-						shift={{
-							start_time: shift?.start_time || "",
-							end_time: shift?.end_time || "",
-						}}
-						onRemoveEmployeeClick={handleRemoveEmployee}
-						onAssignClick={handleAssignEmployeeDialogOpen}
-						isCompleted={hasShiftEnded()}
-					/>
-
-					<ShiftNotes
-						notes={localNotes}
-						onEditClick={handleNotesDialogOpen}
-						onClearClick={() => {
-							if (hasShiftEnded()) {
-								toast.error("Cannot modify a completed shift");
-								return;
-							}
-							setLocalNotes("");
-							saveShift({ description: "" });
-						}}
-						isCompleted={hasShiftEnded()}
-					/>
-
-					<ShiftTasks
-						checkInTasks={localCheckInTasks}
-						checkOutTasks={localCheckOutTasks}
-						onCheckInTasksClick={handleCheckInTasksDialogOpen}
-						onCheckOutTasksClick={handleCheckOutTasksDialogOpen}
-						onToggleTaskCompletion={handleToggleTaskCompletion}
-						onRemoveTask={handleRemoveTask}
-						isCompleted={hasShiftEnded()}
-					/>
-				</>
-			)}
+			{renderContent()}
 
 			{/* Dialogs */}
 			<AssignEmployeeDialog

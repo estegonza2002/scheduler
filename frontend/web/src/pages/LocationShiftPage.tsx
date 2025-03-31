@@ -8,6 +8,8 @@ import {
 	EmployeesAPI,
 	Employee,
 	EmployeeLocationsAPI,
+	ShiftAssignmentsAPI,
+	ShiftAssignment,
 } from "@/api";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +30,7 @@ import { ContentSection } from "@/components/ui/content-section";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ShiftCreationSheet } from "@/components/ShiftCreationSheet";
 import { Input } from "@/components/ui/input";
+import { ShiftCard } from "@/components/ShiftCard";
 import {
 	Table,
 	TableBody,
@@ -52,6 +55,9 @@ export default function LocationShiftPage() {
 	const [loadingPhase, setLoadingPhase] = useState<string>("location");
 	const [searchQuery, setSearchQuery] = useState<string>("");
 	const [pastShiftsLimit, setPastShiftsLimit] = useState<number>(10);
+	const [shiftAssignments, setShiftAssignments] = useState<ShiftAssignment[]>(
+		[]
+	);
 
 	// Update the header content based on loading state and location data
 	useEffect(() => {
@@ -109,9 +115,15 @@ export default function LocationShiftPage() {
 
 				// Fetch shifts for this location
 				setLoadingPhase("shifts");
-				const allShifts = await ShiftsAPI.getAllSchedules();
-				const locationShifts = allShifts.filter(
-					(shift: Shift) => shift.location_id === locationId
+				// Use the direct method to fetch shifts for this location
+				const locationShifts = await ShiftsAPI.getShiftsByLocationId(
+					locationId
+				);
+				console.log(
+					"Shifts for this location:",
+					locationShifts,
+					"Location ID:",
+					locationId
 				);
 
 				// Sort shifts by date (most recent first)
@@ -125,7 +137,7 @@ export default function LocationShiftPage() {
 				// Fetch employees assigned to this location
 				setLoadingPhase("employees");
 				const organizationId = "org-1"; // Default organization ID
-				const employees = await EmployeesAPI.getAll(organizationId);
+				const allEmployees = await EmployeesAPI.getAll(organizationId);
 
 				// Get employee IDs assigned to this location using the proper API
 				const assignedEmployeeIds = await EmployeeLocationsAPI.getByLocationId(
@@ -133,11 +145,74 @@ export default function LocationShiftPage() {
 				);
 
 				// Filter employees to those assigned to this location
-				const assignedEmployeesList = employees.filter((employee) =>
+				const assignedEmployeesList = allEmployees.filter((employee) =>
 					assignedEmployeeIds.includes(employee.id)
 				);
 
 				setAssignedEmployees(assignedEmployeesList);
+
+				// Fetch shift assignments for this location
+				setLoadingPhase("shift-assignments");
+				const allShiftAssignments = await ShiftAssignmentsAPI.getAll();
+				console.log("All shift assignments:", allShiftAssignments);
+
+				// Get all shift IDs for this location
+				const locationShiftIds = locationShifts.map((shift) => shift.id);
+
+				// Filter to only include assignments for shifts at this location
+				const locationShiftAssignments = allShiftAssignments.filter(
+					(assignment) => locationShiftIds.includes(assignment.shift_id)
+				);
+
+				console.log(
+					"Shift assignments for this location:",
+					locationShiftAssignments,
+					"Total count:",
+					locationShiftAssignments.length,
+					"Location ID:",
+					locationId
+				);
+
+				// Ensure we have all employees who are assigned to shifts at this location
+				// Get unique employee IDs from shift assignments
+				const shiftAssignmentEmployeeIds = [
+					...new Set(
+						locationShiftAssignments.map((assignment) => assignment.employee_id)
+					),
+				];
+
+				console.log(
+					"Employee IDs from shift assignments:",
+					shiftAssignmentEmployeeIds
+				);
+
+				// Find any employees who are assigned to shifts but not to the location directly
+				const additionalEmployeeIds = shiftAssignmentEmployeeIds.filter(
+					(id) => !assignedEmployeeIds.includes(id)
+				);
+
+				if (additionalEmployeeIds.length > 0) {
+					console.log(
+						"Found additional employees assigned to shifts but not location:",
+						additionalEmployeeIds
+					);
+
+					// Get these additional employees from allEmployees
+					const additionalEmployees = allEmployees.filter((employee) =>
+						additionalEmployeeIds.includes(employee.id)
+					);
+
+					// Add them to assignedEmployeesList
+					const updatedEmployeesList = [
+						...assignedEmployeesList,
+						...additionalEmployees,
+					];
+					setAssignedEmployees(updatedEmployeesList);
+
+					console.log("Updated employee list:", updatedEmployeesList);
+				}
+
+				setShiftAssignments(locationShiftAssignments);
 			} catch (error) {
 				console.error("Error fetching data:", error);
 				toast.error("Failed to load shift data");
@@ -263,67 +338,72 @@ export default function LocationShiftPage() {
 						title="Upcoming Shifts"
 						description={`${upcomingShifts.length} shifts scheduled in the future`}>
 						{upcomingShifts.length > 0 ? (
-							<Card>
-								<Table>
-									<TableHeader>
-										<TableRow>
-											<TableHead>Date</TableHead>
-											<TableHead>Time</TableHead>
-											<TableHead>Employee</TableHead>
-											<TableHead>Hours</TableHead>
-											<TableHead>Status</TableHead>
-											<TableHead>Actions</TableHead>
-										</TableRow>
-									</TableHeader>
-									<TableBody>
-										{upcomingShifts.map((shift) => {
-											// Find employee for this shift
-											const employee = assignedEmployees.find(
-												(emp) => emp.id === shift.user_id
-											);
+							<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+								{upcomingShifts.map((shift) => {
+									// Get all employees assigned to this shift
+									const shiftEmployees: Employee[] = [];
 
-											return (
-												<TableRow key={shift.id}>
-													<TableCell>
-														{format(parseISO(shift.start_time), "MMM dd, yyyy")}
-													</TableCell>
-													<TableCell>
-														{formatShiftTime(shift.start_time, shift.end_time)}
-													</TableCell>
-													<TableCell>
-														{employee?.name || "Unassigned"}
-													</TableCell>
-													<TableCell>
-														{calculateShiftHours(
-															shift.start_time,
-															shift.end_time
-														)}
-													</TableCell>
-													<TableCell>
-														<StatusBadge
-															status={
-																shift.status === "pending"
-																	? "pending"
-																	: shift.status === "completed"
-																	? "success"
-																	: "error"
-															}
-														/>
-													</TableCell>
-													<TableCell>
-														<Button
-															variant="outline"
-															size="sm"
-															onClick={() => navigate(`/shifts/${shift.id}`)}>
-															<Eye className="h-4 w-4 mr-2" /> View
-														</Button>
-													</TableCell>
-												</TableRow>
+									// Check direct assignment via user_id
+									if (shift.user_id) {
+										const directEmployee = assignedEmployees.find(
+											(emp) => emp.id === shift.user_id
+										);
+										if (directEmployee) {
+											shiftEmployees.push(directEmployee);
+										}
+									}
+
+									// Get shift assignments for this specific shift
+									const assignments = shiftAssignments.filter(
+										(assignment) => assignment.shift_id === shift.id
+									);
+
+									console.log(
+										`Shift ${shift.id} has ${assignments.length} assignments`
+									);
+
+									// Process each assignment
+									for (const assignment of assignments) {
+										// Find the employee object
+										const employee = assignedEmployees.find(
+											(emp) => emp.id === assignment.employee_id
+										);
+
+										// If employee is found and not already in the list, add them
+										if (
+											employee &&
+											!shiftEmployees.some((e) => e.id === employee.id)
+										) {
+											console.log(
+												`Adding employee ${employee.name} (${employee.id}) to shift ${shift.id}`
 											);
-										})}
-									</TableBody>
-								</Table>
-							</Card>
+											shiftEmployees.push(employee);
+										} else if (!employee) {
+											console.log(
+												`Warning: Employee ${assignment.employee_id} not found in available employees for shift ${shift.id}`
+											);
+										}
+									}
+
+									console.log(
+										`Final: Shift ${shift.id} has ${shiftEmployees.length} employees assigned`,
+										shiftEmployees
+									);
+
+									return (
+										<ShiftCard
+											key={shift.id}
+											shift={shift}
+											locationName={location.name}
+											assignedEmployees={shiftEmployees}
+											showLocationName={false}
+											isLoading={
+												loading && loadingPhase === "shift-assignments"
+											}
+										/>
+									);
+								})}
+							</div>
 						) : (
 							<Card className="text-center py-8 bg-muted/20">
 								<CardContent>

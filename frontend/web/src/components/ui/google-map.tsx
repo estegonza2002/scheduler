@@ -10,6 +10,7 @@ interface GoogleMapProps {
 	className?: string;
 	zoom?: number;
 	popupContent?: React.ReactNode;
+	mapStyle?: "standard" | "monochrome";
 }
 
 /**
@@ -25,6 +26,7 @@ export function GoogleMap({
 	className,
 	zoom = 15,
 	popupContent,
+	mapStyle = "standard",
 }: GoogleMapProps) {
 	const apiKey = import.meta.env.VITE_GOOGLE_PLACES_API_KEY as string;
 	const [hasError, setHasError] = useState(false);
@@ -47,16 +49,22 @@ export function GoogleMap({
 		);
 	}
 
+	// Define style parameter based on mapStyle
+	const styleParam =
+		mapStyle === "monochrome"
+			? "&style=feature:all|element:all|saturation:-100|lightness:10&style=feature:road|element:all|saturation:-100&style=feature:water|element:all|saturation:-100|lightness:-10"
+			: "";
+
 	// Construct the Google Static Maps URL (using either coordinates or address)
 	let mapUrl;
 	if (latitude && longitude) {
-		mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${latitude},${longitude}&zoom=${zoom}&size=600x400&scale=2&markers=color:red%7C${latitude},${longitude}&key=${apiKey}`;
+		mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${latitude},${longitude}&zoom=${zoom}&size=600x400&scale=2&markers=color:red%7C${latitude},${longitude}${styleParam}&key=${apiKey}`;
 	} else if (address) {
 		mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(
 			address
 		)}&zoom=${zoom}&size=600x400&scale=2&markers=color:red%7C${encodeURIComponent(
 			address
-		)}&key=${apiKey}`;
+		)}${styleParam}&key=${apiKey}`;
 	}
 
 	return (

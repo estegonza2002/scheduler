@@ -1,10 +1,12 @@
 import { format, parseISO } from "date-fns";
 import { Shift, Location } from "../../api";
-import { Clock, MapPin, DollarSign } from "lucide-react";
+import { Clock, MapPin, DollarSign, Navigation } from "lucide-react";
 import { Separator } from "../ui/separator";
 import { calculateHours } from "../../utils/time-calculations";
 import { AssignedEmployee } from "../../types/shift-types";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Button } from "../ui/button";
+import { Badge } from "../ui/badge";
 
 interface ShiftInformationProps {
 	shift: Shift;
@@ -19,6 +21,17 @@ export function ShiftInformation({
 	assignedEmployees,
 	calculateTotalCost,
 }: ShiftInformationProps) {
+	// Function to open Google Maps directions
+	const openDirections = () => {
+		if (location?.address) {
+			const encodedAddress = encodeURIComponent(location.address);
+			window.open(
+				`https://www.google.com/maps/dir/?api=1&destination=${encodedAddress}`,
+				"_blank"
+			);
+		}
+	};
+
 	return (
 		<div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
 			{/* Location Card */}
@@ -36,9 +49,19 @@ export function ShiftInformation({
 						<div>
 							<div className="text-sm font-medium">{location.name}</div>
 							{location.address && (
-								<div className="text-xs text-muted-foreground mt-1">
+								<div className="text-xs text-muted-foreground mt-1 mb-3">
 									{location.address}
 								</div>
+							)}
+							{location.address && (
+								<Button
+									variant="outline"
+									size="sm"
+									className="w-full mt-2 text-green-700 border-green-200 hover:bg-green-50"
+									onClick={openDirections}>
+									<Navigation className="h-4 w-4 mr-2" />
+									Directions
+								</Button>
 							)}
 						</div>
 					) : (
@@ -61,12 +84,16 @@ export function ShiftInformation({
 				</CardHeader>
 				<CardContent className="p-4 pt-3">
 					<div>
-						<div className="text-sm font-medium">
+						<div className="text-sm font-medium mb-1">
 							{format(parseISO(shift.start_time), "h:mm a")} -{" "}
 							{format(parseISO(shift.end_time), "h:mm a")}
 						</div>
-						<div className="text-xs text-muted-foreground mt-1">
+						<div className="text-xs text-muted-foreground mb-2">
 							{calculateHours(shift.start_time, shift.end_time)} hours
+						</div>
+						<Separator className="my-2 bg-blue-100" />
+						<div className="text-xs font-medium mt-2">
+							Date: {format(parseISO(shift.start_time), "EEEE, MMMM d, yyyy")}
 						</div>
 					</div>
 				</CardContent>
@@ -87,7 +114,14 @@ export function ShiftInformation({
 					assignedEmployees.some((e) => e.hourlyRate) ? (
 						<div>
 							<div className="flex justify-between font-medium items-center">
-								<span>Total Cost:</span>
+								<span className="flex items-center">
+									Total Cost:
+									<Badge
+										variant="outline"
+										className="ml-2 text-xs bg-amber-50 text-amber-700 border-amber-200">
+										Estimated
+									</Badge>
+								</span>
 								<span className="text-xl font-semibold text-amber-600">
 									${calculateTotalCost()}
 								</span>

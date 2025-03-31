@@ -49,6 +49,7 @@ import { useHeader } from "@/lib/header-context";
 
 import { ContentContainer } from "@/components/ui/content-container";
 import { ContentSection } from "@/components/ui/content-section";
+import { LocationCard } from "@/components/ui/location-card";
 
 import { useOrganizationId } from "@/hooks/useOrganizationId";
 import { LocationFormDialog } from "@/components/LocationFormDialog";
@@ -350,84 +351,60 @@ export default function LocationsPage() {
 								defaultView: viewMode,
 								onViewChange: setViewMode,
 								renderCard: (location: Location) => (
-									<Card
-										className="cursor-pointer hover:shadow-sm transition-all border hover:border-primary"
-										onClick={() => navigate(`/locations/${location.id}`)}>
-										<div className="aspect-video w-full bg-muted/30 relative overflow-hidden">
-											<div className="absolute inset-0 flex items-center justify-center">
-												<Building2 className="h-12 w-12 text-muted" />
+									<div className="relative">
+										<LocationCard
+											location={location}
+											interactive={true}
+											variant="detailed"
+											onClick={() => navigate(`/locations/${location.id}`)}
+											className="cursor-pointer hover:shadow-sm transition-all hover:border-primary">
+											<div className="flex justify-end mt-4">
+												<Button
+													variant="outline"
+													size="sm"
+													className="w-full"
+													onClick={(e) => {
+														e.stopPropagation();
+														navigate(`/locations/${location.id}`);
+													}}>
+													<Eye className="h-4 w-4 mr-2" />
+													View Details
+												</Button>
 											</div>
-											{location.imageUrl && (
-												<img
-													src={location.imageUrl}
-													alt={location.name}
-													className="w-full h-full object-cover"
-												/>
-											)}
+										</LocationCard>
+										<div className="absolute top-2 right-2">
+											<DropdownMenu>
+												<DropdownMenuTrigger asChild>
+													<Button
+														variant="ghost"
+														size="sm"
+														className="h-8 w-8 p-0 hover:bg-accent/80"
+														onClick={(e) => e.stopPropagation()}>
+														<MoreHorizontal className="h-4 w-4" />
+													</Button>
+												</DropdownMenuTrigger>
+												<DropdownMenuContent align="end">
+													<DropdownMenuItem
+														onClick={(e) => {
+															e.stopPropagation();
+															handleOpenEditDialog(location);
+														}}>
+														<Edit className="h-4 w-4 mr-2" />
+														Edit
+													</DropdownMenuItem>
+													<DropdownMenuItem
+														onClick={(e) => {
+															e.stopPropagation();
+															handleOpenDeleteDialog(location);
+														}}
+														className="text-destructive hover:text-destructive">
+														<Trash className="h-4 w-4 mr-2" />
+														Delete
+													</DropdownMenuItem>
+												</DropdownMenuContent>
+											</DropdownMenu>
 										</div>
-										<CardHeader>
-											<div className="flex items-center justify-between">
-												<div className="flex items-center gap-3">
-													<div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-														<MapPin className="h-4 w-4 text-primary" />
-													</div>
-													<CardTitle>{location.name}</CardTitle>
-												</div>
-												<DropdownMenu>
-													<DropdownMenuTrigger asChild>
-														<Button
-															variant="ghost"
-															size="sm"
-															className="h-8 w-8 p-0">
-															<MoreHorizontal className="h-4 w-4" />
-														</Button>
-													</DropdownMenuTrigger>
-													<DropdownMenuContent align="end">
-														<DropdownMenuItem
-															onClick={(e) => {
-																e.stopPropagation();
-																handleOpenEditDialog(location);
-															}}>
-															<Edit className="h-4 w-4 mr-2" />
-															Edit
-														</DropdownMenuItem>
-														<DropdownMenuItem
-															onClick={(e) => {
-																e.stopPropagation();
-																handleOpenDeleteDialog(location);
-															}}>
-															<Trash className="h-4 w-4 mr-2" />
-															Delete
-														</DropdownMenuItem>
-													</DropdownMenuContent>
-												</DropdownMenu>
-											</div>
-										</CardHeader>
-										<CardContent>
-											<div className="space-y-2">
-												{location.address && (
-													<div className="text-sm">
-														{location.address}, {location.city},{" "}
-														{location.state} {location.zipCode}
-													</div>
-												)}
-												{!location.address && (
-													<div className="text-sm text-muted-foreground">
-														No address information
-													</div>
-												)}
-											</div>
-										</CardContent>
-										<CardFooter className="border-t pt-4">
-											<Button
-												variant="outline"
-												size="sm"
-												className="ml-auto">
-												<Eye className="h-4 w-4 mr-2" />
-												View Details
-											</Button>
-										</CardFooter>
-									</Card>
+									</div>
 								),
 							}}
 						/>

@@ -34,6 +34,7 @@ import {
 import { toast } from "sonner";
 import { DeleteEmployeeDialog } from "@/components/DeleteEmployeeDialog";
 import { EmployeeSheet } from "@/components/EmployeeSheet";
+import { EmployeeCard } from "@/components/EmployeeCard";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import {
 	DropdownMenu,
@@ -559,99 +560,61 @@ export default function EmployeesPage() {
 									defaultView: viewMode,
 									onViewChange: setViewMode,
 									renderCard: (employee: Employee) => (
-										<Card
-											className="cursor-pointer hover:shadow-sm transition-all border hover:border-primary"
-											onClick={() => navigate(`/employees/${employee.id}`)}>
-											<CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-												<div className="flex flex-row items-center space-x-2">
-													<Avatar>
-														<AvatarImage
-															src={employee.avatar}
-															alt={employee.name}
-														/>
-														<AvatarFallback>
-															{employee.name
-																.split(" ")
-																.map((n) => n[0])
-																.join("")}
-														</AvatarFallback>
-													</Avatar>
-													<CardTitle className="text-base font-medium">
-														{employee.name}
-														{employee.status === "invited" && (
-															<Badge
-																variant="destructive"
-																className="ml-2 bg-red-500 text-white font-normal text-xs">
-																<UserX className="h-3 w-3 mr-1" />
-																Pending Signup
-															</Badge>
-														)}
-													</CardTitle>
-												</div>
-												<div>
-													<DropdownMenu>
-														<DropdownMenuTrigger asChild>
-															<Button
-																variant="ghost"
-																className="h-8 w-8 p-0">
-																<span className="sr-only">Open menu</span>
-																<MoreHorizontal className="h-4 w-4" />
-															</Button>
-														</DropdownMenuTrigger>
-														<DropdownMenuContent align="end">
-															<DropdownMenuItem
-																onClick={(e) => {
-																	e.stopPropagation();
-																	navigate(`/employees/${employee.id}`);
-																}}>
-																<Edit className="mr-2 h-4 w-4" />
-																View Profile
-															</DropdownMenuItem>
-															<DropdownMenuItem
-																onClick={(e) => {
-																	e.stopPropagation();
+										<EmployeeCard
+											employee={employee}
+											variant="standard"
+											size="md"
+											onViewDetails={() =>
+												navigate(`/employees/${employee.id}`)
+											}
+											showActions={true}
+											actions={
+												<DropdownMenu>
+													<DropdownMenuTrigger asChild>
+														<Button
+															variant="ghost"
+															className="h-8 w-8 p-0">
+															<span className="sr-only">Open menu</span>
+															<MoreHorizontal className="h-4 w-4" />
+														</Button>
+													</DropdownMenuTrigger>
+													<DropdownMenuContent align="end">
+														<DropdownMenuItem
+															onClick={(e) => {
+																e.stopPropagation();
+																navigate(`/employees/${employee.id}`);
+															}}>
+															<Edit className="mr-2 h-4 w-4" />
+															View Profile
+														</DropdownMenuItem>
+														<DropdownMenuItem
+															onClick={(e) => {
+																e.stopPropagation();
+															}}
+															asChild>
+															<EmployeeSheet
+																employee={employee}
+																organizationId={
+																	employee.organizationId ||
+																	organization?.id ||
+																	""
+																}
+																onEmployeeUpdated={(updatedEmployee) => {
+																	// Remove the direct state update in favor of the event-based approach
+																	// which we've now set up in the EmployeeSheet component
 																}}
-																asChild>
-																<EmployeeSheet
-																	employee={employee}
-																	organizationId={
-																		employee.organizationId ||
-																		organization?.id ||
-																		""
-																	}
-																	onEmployeeUpdated={(updatedEmployee) => {
-																		// Remove the direct state update in favor of the event-based approach
-																		// which we've now set up in the EmployeeSheet component
-																	}}
-																	trigger={
-																		<button className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full">
-																			<Edit className="mr-2 h-4 w-4" />
-																			Edit
-																		</button>
-																	}
-																/>
-															</DropdownMenuItem>
-														</DropdownMenuContent>
-													</DropdownMenu>
-												</div>
-											</CardHeader>
-											<CardContent>
-												<div className="flex items-center text-sm text-muted-foreground mb-1">
-													<Mail className="h-3.5 w-3.5 mr-1 flex-shrink-0" />
-													<span className="truncate">{employee.email}</span>
-												</div>
-												{employee.phone && (
-													<div className="flex items-center text-sm text-muted-foreground mb-1">
-														<Phone className="h-3.5 w-3.5 mr-1 flex-shrink-0" />
-														<span>{employee.phone}</span>
-													</div>
-												)}
-												<div className="flex items-center text-sm text-muted-foreground">
-													<Briefcase className="h-3.5 w-3.5 mr-1 flex-shrink-0" />
-													<span>{employee.position || employee.role}</span>
-												</div>
-											</CardContent>
-										</Card>
+																trigger={
+																	<button className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full">
+																		<Edit className="mr-2 h-4 w-4" />
+																		Edit
+																	</button>
+																}
+															/>
+														</DropdownMenuItem>
+													</DropdownMenuContent>
+												</DropdownMenu>
+											}
+										/>
 									),
 									enableFullscreen: true,
 								}}

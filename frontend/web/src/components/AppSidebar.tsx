@@ -182,9 +182,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 		{
 			icon: <Calendar className="h-5 w-5" />,
 			label: "Schedule",
-			href: `/schedule?organizationId=${
-				organization?.id || "org-1"
-			}&scheduleId=sch-4`,
+			href: `/schedule?organizationId=${organization?.id || "org-1"}`,
 			isActive:
 				isRouteActive("/schedule") ||
 				isRouteActive("/schedule/monthly") ||
@@ -208,6 +206,13 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 				isRouteActive("/locations") ||
 				isRouteActive("/location-") ||
 				isRouteActive("/location/"),
+			adminOnly: true,
+		},
+		{
+			icon: <BarChart3 className="h-5 w-5" />,
+			label: "Reports",
+			href: "/reports",
+			isActive: isRouteActive("/reports"),
 			adminOnly: true,
 		},
 	];
@@ -403,13 +408,6 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 				<SidebarGroup>
 					<SidebarGroupLabel>Main</SidebarGroupLabel>
 					<SidebarMenu>{renderMenuItems(mainNavItems)}</SidebarMenu>
-				</SidebarGroup>
-
-				<SidebarSeparator />
-
-				<SidebarGroup>
-					<SidebarGroupLabel>Reports</SidebarGroupLabel>
-					<SidebarMenu>{renderMenuItems(reportsNavItems)}</SidebarMenu>
 				</SidebarGroup>
 
 				<SidebarSeparator />

@@ -41,7 +41,6 @@ import ShiftDetailsPage from "./pages/ShiftDetailsPage";
 import EditShiftPage from "./pages/EditShiftPage";
 import LocationsPage from "./pages/LocationsPage";
 import EmployeeDetailPage from "./pages/EmployeeDetailPage";
-import EmployeeEarningsPage from "./pages/EmployeeEarningsPage";
 import LocationDetailPage from "./pages/LocationDetailPage";
 import LocationFinancialReportPage from "./pages/LocationFinancialReportPage";
 import LocationShiftPage from "./pages/LocationShiftPage";
@@ -288,10 +287,6 @@ function App() {
 															<Route
 																path="/employees/:employeeId"
 																element={<EmployeeDetailPage />}
-															/>
-															<Route
-																path="/employees/:employeeId/earnings"
-																element={<EmployeeEarningsPage />}
 															/>
 															<Route
 																path="/shifts/new"

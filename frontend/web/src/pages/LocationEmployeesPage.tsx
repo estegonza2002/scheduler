@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useHeader } from "@/lib/header-context";
 import { LocationNav } from "@/components/LocationNav";
+import { EmployeeCard } from "@/components/EmployeeCard";
 
 export default function LocationEmployeesPage() {
 	const { locationId } = useParams<{ locationId: string }>();
@@ -109,6 +110,8 @@ export default function LocationEmployeesPage() {
 				setLoading(true);
 				setLoadingPhase("location");
 
+				console.log(`Fetching data for location: ${locationId}`);
+
 				// Fetch location data
 				const locationData = await LocationsAPI.getById(locationId);
 				if (!locationData) {
@@ -117,20 +120,34 @@ export default function LocationEmployeesPage() {
 					return;
 				}
 				setLocation(locationData);
+				console.log("Location data retrieved:", locationData.name);
 
 				// Fetch employees assigned to this location
 				setLoadingPhase("employees");
-				const organizationId = "org-1"; // Default organization ID
+				const organizationId = locationData.organizationId || "org-1"; // Use the location's org ID
+				console.log(`Fetching employees for organization: ${organizationId}`);
+
 				const employees = await EmployeesAPI.getAll(organizationId);
+				console.log(
+					`Retrieved ${employees.length} total employees for the organization`
+				);
 
 				// Get employee IDs assigned to this location using the proper API
+				console.log(`Getting employees assigned to location: ${locationId}`);
 				const assignedEmployeeIds = await EmployeeLocationsAPI.getByLocationId(
 					locationId
+				);
+				console.log(
+					`Found ${assignedEmployeeIds.length} assigned employee IDs:`,
+					assignedEmployeeIds
 				);
 
 				// Filter employees to those assigned to this location
 				const assignedEmployeesList = employees.filter((employee) =>
 					assignedEmployeeIds.includes(employee.id)
+				);
+				console.log(
+					`Filtered to ${assignedEmployeesList.length} assigned employees`
 				);
 
 				setAssignedEmployees(assignedEmployeesList);
@@ -160,24 +177,37 @@ export default function LocationEmployeesPage() {
 		if (!removeEmployeeId) return;
 
 		try {
-			// Get the employee to update
+			// Get the employee for display purposes
 			const employee = assignedEmployees.find(
 				(emp) => emp.id === removeEmployeeId
 			);
-			if (employee) {
-				// Remove the location assignment
-				await EmployeesAPI.update(removeEmployeeId, {
-					...employee,
-					// @ts-ignore - locationAssignment is a custom property for demo
-					locationAssignment: null, // Clear the location
-				});
 
-				// Update the UI
-				setAssignedEmployees((prev) =>
-					prev.filter((emp) => emp.id !== removeEmployeeId)
+			if (employee) {
+				// Get the current location assignments for this employee
+				const currentAssignedLocations =
+					await EmployeeLocationsAPI.getByEmployeeId(removeEmployeeId);
+
+				// Filter out this location
+				const updatedLocations = currentAssignedLocations.filter(
+					(locId) => locId !== locationId
 				);
 
-				toast.success("Employee removed from this location");
+				// Update the employee's location assignments
+				const success = await EmployeeLocationsAPI.assignLocations(
+					removeEmployeeId,
+					updatedLocations
+				);
+
+				if (success) {
+					// Update the UI
+					setAssignedEmployees((prev) =>
+						prev.filter((emp) => emp.id !== removeEmployeeId)
+					);
+
+					toast.success("Employee removed from this location");
+				} else {
+					toast.error("Failed to remove employee from location");
+				}
 			}
 			setRemoveEmployeeDialogOpen(false);
 		} catch (error) {
@@ -231,35 +261,31 @@ export default function LocationEmployeesPage() {
 						title="Assigned Employees"
 						description="Employees assigned to this location">
 						{assignedEmployees.length > 0 ? (
-							<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+							<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
 								{assignedEmployees.map((employee) => (
-									<div
+									<EmployeeCard
 										key={employee.id}
-										className="flex items-center gap-3 p-3 border rounded-lg hover:bg-accent/5">
-										<Avatar className="h-10 w-10">
-											<AvatarImage
-												src={employee.avatar}
-												alt={employee.name}
-											/>
-											<AvatarFallback>{employee.name.charAt(0)}</AvatarFallback>
-										</Avatar>
-										<div className="flex-1">
-											<div className="font-medium">{employee.name}</div>
-											<div className="text-sm text-muted-foreground">
-												{employee.role || "Staff"}
-											</div>
-										</div>
-										<Button
-											variant="ghost"
-											size="icon"
-											className="text-muted-foreground hover:text-destructive"
-											onClick={() => {
-												setRemoveEmployeeId(employee.id);
-												setRemoveEmployeeDialogOpen(true);
-											}}>
-											<X className="h-4 w-4" />
-										</Button>
-									</div>
+										employee={employee}
+										size="sm"
+										variant="standard"
+										showActions
+										showLocationBadge={false}
+										onViewDetails={() => navigate(`/employees/${employee.id}`)}
+										onSelect={() => navigate(`/employees/${employee.id}`)}
+										actions={
+											<Button
+												variant="ghost"
+												size="sm"
+												className="w-full text-xs h-8 text-muted-foreground hover:text-destructive"
+												onClick={() => {
+													setRemoveEmployeeId(employee.id);
+													setRemoveEmployeeDialogOpen(true);
+												}}>
+												<X className="h-3.5 w-3.5 mr-1.5" />
+												Remove
+											</Button>
+										}
+									/>
 								))}
 							</div>
 						) : (

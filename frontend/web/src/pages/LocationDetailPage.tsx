@@ -28,6 +28,7 @@ import {
 	Navigation,
 	BarChart,
 	DollarSign,
+	AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -78,7 +79,6 @@ const isUUID = (id: string): boolean => {
 
 export default function LocationDetailPage() {
 	const { locationId } = useParams<{ locationId: string }>();
-	console.log("LocationDetailPage: Rendering with locationId:", locationId);
 	const navigate = useNavigate();
 	const { updateHeader } = useHeader();
 	const [location, setLocation] = useState<ExtendedLocation | null>(null);
@@ -92,6 +92,7 @@ export default function LocationDetailPage() {
 	);
 	const [loading, setLoading] = useState<boolean>(true);
 	const [loadingPhase, setLoadingPhase] = useState<string>("location");
+	const [loadingAssignments, setLoadingAssignments] = useState<boolean>(false);
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
 	const [defaultScheduleId, setDefaultScheduleId] = useState<string>("");
 	const { user } = useAuth();
@@ -101,12 +102,6 @@ export default function LocationDetailPage() {
 	>({});
 	const [hasError, setHasError] = useState<boolean>(false);
 	const [errorMessage, setErrorMessage] = useState<string>("");
-
-	// For debugging purposes
-	useEffect(() => {
-		console.log("Current state - upcomingShifts:", upcomingShifts);
-		console.log("Current state - pastShifts:", pastShifts);
-	}, [upcomingShifts, pastShifts]);
 
 	// Function to get the full address string
 	const getFullAddress = (loc: ExtendedLocation | null): string => {
@@ -209,11 +204,9 @@ export default function LocationDetailPage() {
 				setHasError(false);
 				setLoadingPhase("location");
 
-				console.log("Fetching location with ID:", locationId);
 				const locationData = await LocationsAPI.getById(locationId);
 
 				if (!locationData) {
-					console.error("Location not found for ID:", locationId);
 					setErrorMessage("Location not found");
 					setHasError(true);
 					setLoading(false);
@@ -231,18 +224,9 @@ export default function LocationDetailPage() {
 					(schedule) => schedule.is_schedule === true
 				);
 				if (defaultSchedule) {
-					console.log("Setting default schedule ID:", defaultSchedule.id);
 					setDefaultScheduleId(defaultSchedule.id);
-				} else {
-					console.error(
-						"No default schedule found! Using first schedule if available"
-					);
-					if (allSchedules.length > 0) {
-						console.log("Using first available schedule:", allSchedules[0].id);
-						setDefaultScheduleId(allSchedules[0].id);
-					} else {
-						console.error("No schedules found at all!");
-					}
+				} else if (allSchedules.length > 0) {
+					setDefaultScheduleId(allSchedules[0].id);
 				}
 
 				// Get all shifts from all schedules
@@ -252,8 +236,6 @@ export default function LocationDetailPage() {
 				const allShiftsArrays = await Promise.all(allShiftsPromises);
 				const allShifts = allShiftsArrays.flat();
 
-				console.log("All shifts fetched:", allShifts);
-
 				// Filter for shifts at this location
 				const locationShifts = allShifts.filter((shift: Shift) => {
 					// Handle possible type mismatches
@@ -262,13 +244,6 @@ export default function LocationDetailPage() {
 
 					return shiftLocationId === currentLocationId;
 				});
-
-				console.log(
-					"Filtered shifts for this location:",
-					locationShifts,
-					"Location ID:",
-					locationId
-				);
 
 				// Separate shifts into upcoming and past
 				const now = new Date();
@@ -292,47 +267,23 @@ export default function LocationDetailPage() {
 				setUpcomingShifts(upcomingShifts);
 				setPastShifts(pastShifts);
 
-				// Fetch all employees
+				// Fetch employees assigned to this location
 				setLoadingPhase("employees");
 				const employees = await EmployeesAPI.getAll(organizationId);
 				setAllEmployees(employees);
 
 				// Get assigned employees
 				const assignedEmployeeIds = await EmployeeLocationsAPI.getByLocationId(
-					locationId
+					locationId || ""
 				);
-				const assignedEmployeesList = employees.filter((employee) =>
+				let assignedEmployeesList = employees.filter((employee) =>
 					assignedEmployeeIds.includes(employee.id)
 				);
-				setAssignedEmployees(assignedEmployeesList);
-
-				// Fetch location counts for each employee
-				const locationCountsMap: Record<string, number> = {};
-
-				// Process each assigned employee to get their location counts
-				for (const employee of assignedEmployeesList) {
-					try {
-						// Get all locations this employee is assigned to
-						const employeeLocations =
-							await EmployeeLocationsAPI.getByEmployeeId(employee.id);
-
-						// If the employee is assigned to this location but not in the returned list,
-						// ensure we count at least this location
-						locationCountsMap[employee.id] =
-							employeeLocations.length > 0 ? employeeLocations.length : 1; // Ensure at least 1 location (current one)
-					} catch (error) {
-						console.error(
-							`Failed to get locations for employee ${employee.id}:`,
-							error
-						);
-						locationCountsMap[employee.id] = 1; // Default to at least 1 location (current one)
-					}
-				}
-
-				setEmployeeLocationCounts(locationCountsMap);
 
 				// Fetch shift assignments for all the shifts at this location
 				setLoadingPhase("shiftAssignments");
+				setLoadingAssignments(true);
+
 				// Get all shift IDs for this location
 				const locationShiftIds = locationShifts.map((shift) => shift.id);
 
@@ -344,15 +295,59 @@ export default function LocationDetailPage() {
 					locationShiftIds.includes(assignment.shift_id)
 				);
 
+				// Get unique employee IDs from shift assignments
+				const shiftAssignmentEmployeeIds = [
+					...new Set(
+						locationShiftAssignments.map((assignment) => assignment.employee_id)
+					),
+				];
+
+				// Find any employees who are assigned to shifts but not to the location directly
+				const additionalEmployees = employees.filter(
+					(employee) =>
+						shiftAssignmentEmployeeIds.includes(employee.id) &&
+						!assignedEmployeeIds.includes(employee.id)
+				);
+
+				if (additionalEmployees.length > 0) {
+					// Add them to assignedEmployeesList and update state
+					assignedEmployeesList = [
+						...assignedEmployeesList,
+						...additionalEmployees,
+					];
+				}
+
+				// Get location counts
+				const locationCountsMap: Record<string, number> = {};
+				for (const employee of assignedEmployeesList) {
+					try {
+						const locations = await EmployeeLocationsAPI.getByEmployeeId(
+							employee.id
+						);
+						locationCountsMap[employee.id] = locations.length || 1;
+					} catch (error) {
+						locationCountsMap[employee.id] = 1;
+					}
+				}
+
+				setEmployeeLocationCounts(locationCountsMap);
+
+				// Set state with fresh data
 				setShiftAssignments(locationShiftAssignments);
+				setAllEmployees(employees);
+				setAssignedEmployees(assignedEmployeesList);
+				setEmployeeLocationCounts(locationCountsMap);
+				setShifts(locationShifts);
+				setUpcomingShifts(upcomingShifts);
+				setPastShifts(pastShifts);
 			} catch (error) {
-				console.error("Error fetching location details:", error);
 				setErrorMessage("Failed to load location details");
 				setHasError(true);
 				toast.error("Failed to load location details");
 			} finally {
 				setLoading(false);
 				setLoadingPhase("");
+				setLoadingAssignments(false);
 			}
 		};
 
@@ -371,129 +366,181 @@ export default function LocationDetailPage() {
 			toast.success("Location deleted successfully");
 			navigate("/locations");
 		} catch (error) {
-			console.error("Error deleting location:", error);
 			toast.error("Failed to delete location");
 		}
 	};
 
 	const getCurrentEmployeeId = async () => {
-		if (!user?.id) {
-			console.error("No user ID available");
-			return null;
-		}
+		if (!user?.id) return null;
 
 		try {
 			const employees = await EmployeesAPI.getAll(organizationId);
 			const employee = employees.find((emp) => emp.email === user.email);
 
-			if (!employee) {
-				console.error("No employee record found for current user");
-				return null;
-			}
+			if (!employee) return null;
 
 			return employee.id;
 		} catch (error) {
-			console.error("Error finding current employee:", error);
 			return null;
 		}
 	};
 
 	if (loading) {
 		return (
-			<ContentContainer>
-				<LoadingState
-					type="spinner"
-					message={`Loading ${loadingPhase}...`}
-					className="py-12"
-				/>
-			</ContentContainer>
+			<LoadingState
+				message={`Loading ${loadingPhase}...`}
+				type="spinner"
+			/>
 		);
 	}
 
 	if (hasError) {
 		return (
-			<ContentContainer>
-				<ContentSection
-					title="Error Loading Location"
-					description={
-						errorMessage || "An error occurred while loading the location."
-					}
-					footer={
-						<Button
-							variant="outline"
-							onClick={() => navigate("/locations")}
-							className="mt-2">
-							Back to Locations
-						</Button>
-					}>
-					<p>Please try again or contact support if the problem persists.</p>
-				</ContentSection>
-			</ContentContainer>
+			<EmptyState
+				icon={<AlertCircle />}
+				title="Error loading location"
+				description={errorMessage || "Unable to load the location details"}
+				action={
+					<Button
+						variant="default"
+						onClick={() => navigate("/locations")}>
+						Return to Locations
+					</Button>
+				}
+			/>
 		);
 	}
 
 	if (!location) {
 		return (
-			<ContentContainer>
-				<ContentSection
-					title="Location not found"
-					description="The requested location could not be found."
-					footer={
-						<Button
-							variant="outline"
-							onClick={() => navigate("/locations")}
-							className="mt-2">
-							Back to Locations
-						</Button>
-					}>
-					<p>
-						The location you're looking for may have been removed or doesn't
-						exist.
-					</p>
-				</ContentSection>
-			</ContentContainer>
+			<EmptyState
+				icon={<AlertCircle />}
+				title="Location not found"
+				description="The location you requested could not be found"
+				action={
+					<Button
+						variant="default"
+						onClick={() => navigate("/locations")}>
+						Return to Locations
+					</Button>
+				}
+			/>
 		);
 	}
 
+	// Location Hero Section with Map Background
+	const LocationHero = () => (
+		<div className="relative w-full">
+			{/* Map Background */}
+			<div className="h-[350px] w-full overflow-hidden relative">
+				{/* Blurred Map */}
+				<div className="absolute inset-0 filter blur-[2px]">
+					<GoogleMap
+						latitude={location.latitude}
+						longitude={location.longitude}
+						address={getFullAddress(location)}
+						height="350px"
+						className="w-full"
+						zoom={9}
+						mapStyle="monochrome"
+					/>
+				</div>
+				{/* Darker Overlay */}
+				<div className="absolute inset-0 bg-black/70"></div>
+
+				{/* Directions Button */}
+				<div className="absolute top-6 right-6 z-10">
+					<Button
+						variant="secondary"
+						size="sm"
+						className="bg-background/80 hover:bg-background/95 backdrop-blur-md shadow-lg"
+						onClick={() => {
+							const url =
+								location.latitude && location.longitude
+									? `https://www.google.com/maps/dir/?api=1&destination=${location.latitude},${location.longitude}`
+									: `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+											getFullAddress(location)
+									  )}`;
+							window.open(url, "_blank");
+						}}>
+						<Navigation className="h-3.5 w-3.5 mr-1.5" />
+						Directions
+					</Button>
+				</div>
+
+				{/* Hero Content */}
+				<div className="absolute inset-0 flex items-center justify-center">
+					<div className="text-center px-4">
+						<div className="flex flex-col items-center">
+							<div className="h-20 w-20 rounded-full bg-primary flex items-center justify-center mb-4 shadow-lg">
+								<Building2 className="h-10 w-10 text-primary-foreground" />
+							</div>
+							<h1 className="text-4xl font-bold text-white mb-2">
+								{location.name}
+							</h1>
+							<div className="mt-2 mb-4">
+								<Badge
+									variant="outline"
+									className="bg-background/30 backdrop-blur-md text-white border-white/30 px-3 py-1.5 text-sm shadow-md">
+									<MapPin className="h-3.5 w-3.5 mr-2" />
+									{getFullAddress(location)}
+								</Badge>
+							</div>
+
+							{/* Quick Stats */}
+							<div className="grid grid-cols-3 gap-6 mt-6 max-w-md">
+								<div className="bg-background/30 backdrop-blur-md rounded-lg p-4 shadow-lg border border-white/10 transform hover:scale-105 transition-transform">
+									<div className="text-xs text-white/80 font-medium">
+										Employees
+									</div>
+									<div className="text-2xl font-bold text-white">
+										{assignedEmployees.length}
+									</div>
+								</div>
+								<div className="bg-background/30 backdrop-blur-md rounded-lg p-4 shadow-lg border border-white/10 transform hover:scale-105 transition-transform">
+									<div className="text-xs text-white/80 font-medium">
+										Upcoming
+									</div>
+									<div className="text-2xl font-bold text-white">
+										{upcomingShifts.length}
+									</div>
+								</div>
+								<div className="bg-background/30 backdrop-blur-md rounded-lg p-4 shadow-lg border border-white/10 transform hover:scale-105 transition-transform">
+									<div className="text-xs text-white/80 font-medium">
+										Total Shifts
+									</div>
+									<div className="text-2xl font-bold text-white">
+										{shifts.length}
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	);
+
 	return (
 		<>
-			<LocationNav />
+			{/* Add the Hero Section */}
+			<LocationHero />
+
+			{/* Location Navigation - Moved outside ContentContainer */}
+			<LocationNav className="border-t" />
+
+			{/* Main Content */}
 			<ContentContainer>
+				{/* Location Insights Section */}
+				<LocationInsights
+					location={location}
+					shifts={shifts}
+					employees={assignedEmployees}
+					className="mt-6"
+				/>
+
 				{/* Content Sections */}
-				<div className="grid gap-6">
-					{/* Contact Information */}
-					{(location.phone || location.email) && (
-						<ContentSection
-							title="Contact Information"
-							description="Ways to contact this location">
-							<div className="space-y-4">
-								{location.phone && (
-									<div className="flex items-center gap-3">
-										<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
-											<Phone className="h-5 w-5 text-primary" />
-										</div>
-										<div>
-											<div className="text-sm font-medium">Phone</div>
-											<div className="text-sm">{location.phone}</div>
-										</div>
-									</div>
-								)}
-
-								{location.email && (
-									<div className="flex items-center gap-3">
-										<div className="flex-shrink-0 h-9 w-9 bg-primary/10 rounded-full flex items-center justify-center">
-											<Mail className="h-5 w-5 text-primary" />
-										</div>
-										<div>
-											<div className="text-sm font-medium">Email</div>
-											<div className="text-sm">{location.email}</div>
-										</div>
-									</div>
-								)}
-							</div>
-						</ContentSection>
-					)}
-
+				<div className="grid gap-6 mt-6">
 					{/* Upcoming Shifts Section */}
 					<ContentSection
 						title="Upcoming Shifts"
@@ -518,7 +565,6 @@ export default function LocationDetailPage() {
 										initialLocationId={locationId}
 										onComplete={() => {
 											// Refresh shifts data after creating a new shift
-											// Replace the inefficient page reload with targeted data refresh
 											const refreshData = async () => {
 												try {
 													setLoading(true);
@@ -526,7 +572,7 @@ export default function LocationDetailPage() {
 
 													// Add a slight delay to ensure assignments are completed before refresh
 													await new Promise((resolve) =>
-														setTimeout(resolve, 1000)
+														setTimeout(resolve, 1500)
 													);
 
 													// Fetch all schedules
@@ -574,30 +620,90 @@ export default function LocationDetailPage() {
 
 													// Also fetch the latest shift assignments
 													setLoadingPhase("shiftAssignments");
+													setLoadingAssignments(true);
 													const locationShiftIds = locationShifts.map(
 														(shift) => shift.id
 													);
+
+													// Get ALL assignments
 													const allAssignments =
 														await ShiftAssignmentsAPI.getAll();
+
+													// Filter assignments for this location's shifts
 													const locationShiftAssignments =
 														allAssignments.filter((assignment) =>
 															locationShiftIds.includes(assignment.shift_id)
 														);
 
+													// Refresh employees
+													const employees = await EmployeesAPI.getAll(
+														organizationId
+													);
+
+													// Get assigned employees
+													const assignedEmployeeIds =
+														await EmployeeLocationsAPI.getByLocationId(
+															locationId || ""
+														);
+													let assignedEmployeesList = employees.filter(
+														(employee) =>
+															assignedEmployeeIds.includes(employee.id)
+													);
+
+													// Add employees from shift assignments
+													const shiftAssignmentEmployeeIds = [
+														...new Set(
+															locationShiftAssignments.map((a) => a.employee_id)
+														),
+													];
+
+													// Check for employees in assignments who aren't in assigned list
+													const additionalEmployees = employees.filter(
+														(emp) =>
+															shiftAssignmentEmployeeIds.includes(emp.id) &&
+															!assignedEmployeeIds.includes(emp.id)
+													);
+
+													if (additionalEmployees.length > 0) {
+														assignedEmployeesList = [
+															...assignedEmployeesList,
+															...additionalEmployees,
+														];
+													}
+
+													// Get location counts
+													const locationCountsMap: Record<string, number> = {};
+													for (const employee of assignedEmployeesList) {
+														try {
+															const locations =
+																await EmployeeLocationsAPI.getByEmployeeId(
+																	employee.id
+																);
+															locationCountsMap[employee.id] =
+																locations.length || 1;
+														} catch (error) {
+															locationCountsMap[employee.id] = 1;
+														}
+													}
+
+													// Set state with fresh data
 													setShiftAssignments(locationShiftAssignments);
+													setAllEmployees(employees);
+													setAssignedEmployees(assignedEmployeesList);
+													setEmployeeLocationCounts(locationCountsMap);
 													setShifts(locationShifts);
 													setUpcomingShifts(upcomingShifts);
 													setPastShifts(pastShifts);
 
 													toast.success("Shift created and data refreshed");
 												} catch (error) {
-													console.error("Error refreshing shifts data:", error);
 													toast.error(
 														"Failed to refresh shifts after creation"
 													);
 												} finally {
 													setLoading(false);
 													setLoadingPhase("");
+													setLoadingAssignments(false);
 												}
 											};
 
@@ -615,41 +721,40 @@ export default function LocationDetailPage() {
 								}
 							/>
 						) : (
-							<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-								{upcomingShifts.slice(0, 6).map((shift) => {
+							<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+								{upcomingShifts.slice(0, 10).map((shift) => {
 									// Get all employees assigned to this shift
-									const shiftEmployees: Employee[] = [];
-
-									// Check direct assignment via user_id
-									const directEmployee = allEmployees.find(
-										(emp) => emp.id === shift.user_id
-									);
-									if (directEmployee) {
-										shiftEmployees.push(directEmployee);
-									}
+									let shiftEmployees: Employee[] = [];
 
 									// Check shift assignments table
 									const assignments = shiftAssignments.filter(
 										(assignment) => assignment.shift_id === shift.id
 									);
 
-									console.log(
-										`Shift ${shift.id} has ${assignments.length} assignments`
-									);
+									if (assignments.length > 0) {
+										// Process each assignment to find the employee
+										assignments.forEach((assignment) => {
+											const employee = allEmployees.find(
+												(emp) => emp.id === assignment.employee_id
+											);
 
-									// Add employees from assignments
-									assignments.forEach((assignment) => {
-										const employee = allEmployees.find(
-											(emp) => emp.id === assignment.employee_id
+											if (employee) {
+												if (!shiftEmployees.some((e) => e.id === employee.id)) {
+													shiftEmployees.push(employee);
+												}
+											}
+										});
+									}
+
+									// Check direct assignment via user_id as backup
+									if (shift.user_id && shiftEmployees.length === 0) {
+										const directEmployee = allEmployees.find(
+											(emp) => emp.id === shift.user_id
 										);
-										// Only add if not already added and if found
-										if (
-											employee &&
-											!shiftEmployees.some((e) => e.id === employee.id)
-										) {
-											shiftEmployees.push(employee);
+										if (directEmployee) {
+											shiftEmployees.push(directEmployee);
 										}
-									});
+									}
 
 									return (
 										<ShiftCard
@@ -658,7 +763,7 @@ export default function LocationDetailPage() {
 											locationName={location.name}
 											assignedEmployees={shiftEmployees}
 											showLocationName={false}
-											isLoading={loading && loadingPhase === "shiftAssignments"}
+											isLoading={loadingAssignments}
 										/>
 									);
 								})}
@@ -735,41 +840,6 @@ export default function LocationDetailPage() {
 										onSelect={() => navigate(`/employees/${employee.id}`)}
 									/>
 								))}
-							</div>
-						)}
-					</ContentSection>
-
-					{/* Location Map Section */}
-					<ContentSection
-						title="Location Map"
-						description="View this location on the map and get directions">
-						{(location.address || location.latitude) && (
-							<div className="space-y-2">
-								<GoogleMap
-									latitude={location.latitude}
-									longitude={location.longitude}
-									address={
-										location.latitude ? undefined : getFullAddress(location)
-									}
-									height="300px"
-									className="w-full rounded-lg"
-									zoom={15}
-								/>
-								<Button
-									variant="outline"
-									className="w-full flex items-center justify-center gap-2"
-									onClick={() => {
-										const url =
-											location.latitude && location.longitude
-												? `https://www.google.com/maps/dir/?api=1&destination=${location.latitude},${location.longitude}`
-												: `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
-														getFullAddress(location)
-												  )}`;
-										window.open(url, "_blank");
-									}}>
-									<Navigation className="h-4 w-4" />
-									Get Directions
-								</Button>
 							</div>
 						)}
 					</ContentSection>
