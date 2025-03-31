@@ -1,50 +1,56 @@
-import { LoginForm, LoginFormRef } from "@/components/auth/LoginForm";
-import { useRef } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { ContentContainer } from "@/components/ui/content-container";
-import { ContentSection } from "@/components/ui/content-section";
+import { LoginForm } from "@/components/auth/LoginForm";
+import {
+	Card,
+	CardContent,
+	CardHeader,
+	CardTitle,
+	CardDescription,
+} from "@/components/ui/card";
 
 export default function LoginPage() {
-	const loginFormRef = useRef<LoginFormRef>(null);
-
 	return (
-		<div className="min-h-screen flex items-center justify-center bg-muted">
-			<ContentContainer
-				maxWidth="max-w-md"
-				className="flex justify-center items-center">
-				<ContentSection
-					title="Employee Scheduler"
-					description="Log in to manage your schedule"
-					footer={
-						<div className="flex flex-col space-y-2">
-							<p className="text-sm text-muted-foreground mb-2">
-								Don't have an account?
+		<div className="flex min-h-screen items-center justify-center bg-muted p-4">
+			<div className="w-full max-w-md">
+				<Card className="border-none shadow-lg">
+					<CardHeader className="text-center">
+						<CardTitle className="text-xl">Employee Scheduler</CardTitle>
+						<CardDescription>Log in to manage your schedule</CardDescription>
+					</CardHeader>
+					<CardContent>
+						<LoginForm />
+						<div className="text-center text-sm mt-6 space-y-2">
+							<p className="text-muted-foreground">
+								Don't have an account?{" "}
+								<Link
+									to="/signup"
+									className="underline underline-offset-4 hover:text-primary">
+									Sign up as an employee
+								</Link>
 							</p>
-							<Button
-								variant="link"
-								className="h-auto p-0"
-								asChild>
-								<Link to="/signup">Sign up as an employee</Link>
-							</Button>
-							<Button
-								variant="link"
-								className="h-auto p-0 font-semibold"
-								asChild>
-								<Link to="/business-signup">Register a business account</Link>
-							</Button>
-							<div className="text-sm text-center mt-2">
+							<p className="text-muted-foreground">
+								<Link
+									to="/business-signup"
+									className="underline underline-offset-4 hover:text-primary">
+									Register a business account
+								</Link>
+							</p>
+							<p className="text-muted-foreground mt-2">
 								<Link
 									to="/forgot-password"
-									className="underline text-primary hover:text-primary/90">
+									className="underline underline-offset-4 hover:text-primary">
 									Forgot your password?
 								</Link>
-							</div>
+							</p>
 						</div>
-					}>
-					<LoginForm ref={loginFormRef} />
-				</ContentSection>
-			</ContentContainer>
+					</CardContent>
+				</Card>
+				<div className="text-balance text-center text-xs text-muted-foreground mt-6 [&_a]:underline [&_a]:underline-offset-4 [&_a]:hover:text-primary">
+					By logging in, you agree to our <a href="#">Terms of Service</a> and{" "}
+					<a href="#">Privacy Policy</a>.
+				</div>
+			</div>
 		</div>
 	);
 }

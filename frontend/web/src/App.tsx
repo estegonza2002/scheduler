@@ -9,6 +9,7 @@ import { OrganizationProvider } from "./lib/organization";
 import { StripeProvider } from "./lib/stripe";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import AppLayout from "./components/layout/AppLayout";
+import MarketingLayout from "./components/layout/MarketingLayout";
 import { NotificationProvider } from "./lib/notification-context";
 import { OnboardingProvider } from "./lib/onboarding-context";
 import { useEffect, useState } from "react";
@@ -56,6 +57,17 @@ import ReportsPage from "./pages/ReportsPage";
 import PricingPage from "./pages/PricingPage";
 import UsersManagementPage from "./pages/UsersManagementPage";
 import AccountPage from "./pages/AccountPage";
+
+// Marketing pages
+import HomePage from "./pages/HomePage";
+import FeaturesPage from "./pages/FeaturesPage";
+import EnterprisePage from "./pages/EnterprisePage";
+import ResourcesPage from "./pages/ResourcesPage";
+import ContactPage from "./pages/ContactPage";
+import BlogPage from "./pages/BlogPage";
+import BlogPostPage from "./pages/BlogPostPage";
+import AboutPage from "./pages/AboutPage";
+import DevelopersPage from "./pages/DevelopersPage";
 
 // Root redirect component that checks user role
 function RootRedirect() {
@@ -153,7 +165,59 @@ function App() {
 										<NotificationProvider>
 											<OnboardingProvider>
 												<Routes>
-													{/* Public routes */}
+													{/* Marketing pages - accessible without login */}
+													<Route element={<MarketingLayout />}>
+														<Route
+															path="/"
+															element={<HomePage />}
+														/>
+														<Route
+															path="/features"
+															element={<FeaturesPage />}
+														/>
+														<Route
+															path="/pricing"
+															element={<PricingPage />}
+														/>
+														<Route
+															path="/enterprise"
+															element={<EnterprisePage />}
+														/>
+														<Route
+															path="/resources"
+															element={<ResourcesPage />}
+														/>
+														<Route
+															path="/contact"
+															element={<ContactPage />}
+														/>
+														<Route
+															path="/blog"
+															element={<BlogPage />}
+														/>
+														<Route
+															path="/blog/:postId"
+															element={<BlogPostPage />}
+														/>
+														<Route
+															path="/terms"
+															element={<TermsPage />}
+														/>
+														<Route
+															path="/privacy"
+															element={<PrivacyPage />}
+														/>
+														<Route
+															path="/about"
+															element={<AboutPage />}
+														/>
+														<Route
+															path="/developers"
+															element={<DevelopersPage />}
+														/>
+													</Route>
+
+													{/* Auth pages - accessible without login */}
 													<Route
 														path="/login"
 														element={<LoginPage />}
@@ -177,18 +241,6 @@ function App() {
 													<Route
 														path="/auth-callback"
 														element={<AuthCallbackPage />}
-													/>
-													<Route
-														path="/terms"
-														element={<TermsPage />}
-													/>
-													<Route
-														path="/privacy"
-														element={<PrivacyPage />}
-													/>
-													<Route
-														path="/pricing"
-														element={<PricingPage />}
 													/>
 
 													{/* Protected routes */}
@@ -357,9 +409,9 @@ function App() {
 														</Route>
 													</Route>
 
-													{/* Root redirect */}
+													{/* Root redirect - only for authenticated app routes */}
 													<Route
-														path="/"
+														path="/app"
 														element={<RootRedirect />}
 													/>
 													<Route

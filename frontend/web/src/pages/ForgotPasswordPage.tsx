@@ -10,15 +10,18 @@ import {
 	FormControl,
 	FormField,
 	FormItem,
-	FormLabel,
 	FormMessage,
 } from "@/components/ui/form";
-import { FormSection } from "@/components/ui/form-section";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ContentContainer } from "@/components/ui/content-container";
-import { ContentSection } from "@/components/ui/content-section";
-import { Mail } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import {
+	Card,
+	CardContent,
+	CardHeader,
+	CardTitle,
+	CardDescription,
+} from "@/components/ui/card";
 
 const forgotPasswordSchema = z.object({
 	email: z.string().email("Please enter a valid email address"),
@@ -62,91 +65,83 @@ export default function ForgotPasswordPage() {
 	);
 
 	return (
-		<ContentContainer>
-			<ContentSection
-				title="Reset Password"
-				className="max-w-md mx-auto">
-				<div className="space-y-6">
-					<div className="text-center">
-						<h1 className="text-2xl font-bold tracking-tight">
-							Reset your password
-						</h1>
-						<p className="text-sm text-muted-foreground mt-2">
+		<div className="flex min-h-screen items-center justify-center bg-muted p-4">
+			<div className="w-full max-w-md">
+				<Card className="border-none shadow-lg">
+					<CardHeader className="text-center">
+						<CardTitle className="text-xl">Reset your password</CardTitle>
+						<CardDescription>
 							Enter your email address and we'll send you a link to reset your
 							password
-						</p>
-					</div>
-
-					{emailSent ? (
-						<div className="bg-muted p-4 rounded-md">
-							<p className="text-center">
-								Check your email for a link to reset your password. If it
-								doesn't appear within a few minutes, check your spam folder.
-							</p>
-							<div className="mt-4 text-center">
-								<Link
-									to="/login"
-									className="text-primary hover:underline">
-									Return to login
-								</Link>
-							</div>
-						</div>
-					) : (
-						<Form {...form}>
-							<form
-								onSubmit={form.handleSubmit(onSubmit)}
-								className="space-y-6">
-								<FormSection
-									title="Password Recovery"
-									description="We'll send you a secure reset link">
-									<FormField
-										control={form.control}
-										name="email"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel>
-													Email <span className="text-destructive">*</span>
-												</FormLabel>
-												<FormControl>
-													<div className="relative">
-														<Input
-															type="email"
-															placeholder="you@example.com"
-															disabled={isLoading}
-															className="pl-9"
-															aria-required="true"
-															aria-invalid={!!form.formState.errors.email}
-															required
-															{...field}
-														/>
-														<Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-													</div>
-												</FormControl>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-								</FormSection>
-
+						</CardDescription>
+					</CardHeader>
+					<CardContent>
+						{emailSent ? (
+							<div className="bg-muted p-6 rounded-lg text-center space-y-4">
+								<p className="text-sm">
+									Check your email for a link to reset your password. If it
+									doesn't appear within a few minutes, check your spam folder.
+								</p>
 								<Button
-									type="submit"
-									className="w-full"
-									disabled={isLoading}>
-									{isLoading ? "Sending..." : "Send reset link"}
+									asChild
+									variant="outline"
+									className="w-full">
+									<Link to="/login">Return to login</Link>
 								</Button>
+							</div>
+						) : (
+							<Form {...form}>
+								<form
+									onSubmit={form.handleSubmit(onSubmit)}
+									className="space-y-6">
+									<div className="space-y-4">
+										<div className="grid gap-2">
+											<Label htmlFor="email">Email</Label>
+											<FormField
+												control={form.control}
+												name="email"
+												render={({ field }) => (
+													<FormItem>
+														<FormControl>
+															<Input
+																id="email"
+																type="email"
+																placeholder="m@example.com"
+																disabled={isLoading}
+																required
+																{...field}
+															/>
+														</FormControl>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
+										</div>
+									</div>
 
-								<div className="text-center text-sm">
-									<Link
-										to="/login"
-										className="text-primary hover:underline">
-										Back to login
-									</Link>
-								</div>
-							</form>
-						</Form>
-					)}
+									<Button
+										type="submit"
+										className="w-full"
+										disabled={isLoading}>
+										{isLoading ? "Sending..." : "Send reset link"}
+									</Button>
+
+									<div className="text-center text-sm">
+										<Link
+											to="/login"
+											className="underline underline-offset-4 hover:text-primary">
+											Back to login
+										</Link>
+									</div>
+								</form>
+							</Form>
+						)}
+					</CardContent>
+				</Card>
+				<div className="text-balance text-center text-xs text-muted-foreground mt-6 [&_a]:underline [&_a]:underline-offset-4 [&_a]:hover:text-primary">
+					Need help? <a href="#">Contact support</a>
 				</div>
-			</ContentSection>
-		</ContentContainer>
+			</div>
+		</div>
 	);
 }
