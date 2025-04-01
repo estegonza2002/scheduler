@@ -45,7 +45,7 @@ import {
 	AlertCircle,
 	Loader2,
 } from "lucide-react";
-import { ShiftCreationSheet } from "@/components/ShiftCreationSheet";
+import { ShiftCreationDialog } from "@/components/ShiftCreationDialog";
 import { cn } from "@/lib/utils";
 import {
 	Card,
@@ -168,7 +168,7 @@ export default function SchedulePage() {
 		}
 
 		return (
-			<ShiftCreationSheet
+			<ShiftCreationDialog
 				scheduleId={scheduleId}
 				organizationId={organizationId}
 				initialDate={new Date()}

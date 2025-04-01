@@ -13,7 +13,6 @@ import { format } from "date-fns";
 import {
 	LocationSelectionStep,
 	ShiftDetailsStep,
-	WizardProgressBar,
 	WizardStep,
 } from "./shift-wizard";
 import {
@@ -24,6 +23,7 @@ import { Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 
 /**
  * Helper function to validate if a string is a UUID
@@ -629,15 +629,17 @@ export function ShiftCreationWizard({
 		handleLocationSelect(locationId);
 	};
 
-	// Function to handle step navigation via progress bar
-	const handleStepClick = (targetStep: WizardStep) => {
-		// Only allow navigation to steps that make sense based on current data
-		if (targetStep === "select-location") {
-			resetLocation();
-		} else if (targetStep === "shift-details" && locationData) {
-			setStep(targetStep);
-		} else if (targetStep === "assign-employees" && locationData && shiftData) {
-			setStep(targetStep);
+	// Get progress value based on current step
+	const getProgressValue = () => {
+		switch (step) {
+			case "select-location":
+				return 33;
+			case "shift-details":
+				return 66;
+			case "assign-employees":
+				return 100;
+			default:
+				return 0;
 		}
 	};
 
@@ -647,13 +649,41 @@ export function ShiftCreationWizard({
 	};
 
 	return (
-		<div className={className}>
-			<WizardProgressBar
-				currentStep={step}
-				hasLocationData={!!locationData}
-				hasShiftData={!!shiftData}
-				onStepClick={handleStepClick}
-			/>
+		<>
+			<div className="space-y-2 mb-4">
+				<div className="flex justify-between text-sm">
+					<span
+						className={cn(
+							step === "select-location"
+								? "text-primary font-medium"
+								: "text-muted-foreground"
+						)}>
+						1. Location
+					</span>
+					<span
+						className={cn(
+							step === "shift-details"
+								? "text-primary font-medium"
+								: "text-muted-foreground",
+							!locationData && "opacity-50"
+						)}>
+						2. Schedule
+					</span>
+					<span
+						className={cn(
+							step === "assign-employees"
+								? "text-primary font-medium"
+								: "text-muted-foreground",
+							!shiftData && "opacity-50"
+						)}>
+						3. Employee
+					</span>
+				</div>
+				<Progress
+					value={getProgressValue()}
+					className="h-1.5"
+				/>
+			</div>
 
 			{error && (
 				<Alert variant="destructive">
@@ -728,6 +758,6 @@ export function ShiftCreationWizard({
 					submitButtonText="Create Shift"
 				/>
 			)}
-		</div>
+		</>
 	);
 }

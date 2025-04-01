@@ -25,7 +25,7 @@ import {
 import { ContentContainer } from "@/components/ui/content-container";
 import { ContentSection } from "@/components/ui/content-section";
 import { EmployeeDialog } from "@/components/EmployeeDialog";
-import { ShiftCreationSheet } from "@/components/ShiftCreationSheet";
+import { ShiftCreationDialog } from "@/components/ShiftCreationDialog";
 import { LocationDialog } from "@/components/LocationDialog";
 import { useOnboarding } from "@/lib/onboarding-context";
 import { Badge } from "@/components/ui/badge";
@@ -338,7 +338,7 @@ export default function AdminDashboardPage() {
 						/>
 					)}
 					{organization && (
-						<ShiftCreationSheet
+						<ShiftCreationDialog
 							scheduleId={currentSchedule || "sch-6"}
 							organizationId={organization.id}
 							initialDate={new Date()}

@@ -1,32 +1,16 @@
 import { UseFormReturn } from "react-hook-form";
 import { Button } from "../ui/button";
-import {
-	Card,
-	CardContent,
-	CardHeader,
-	CardTitle,
-	CardDescription,
-} from "../ui/card";
-import { Input } from "../ui/input";
+import { Card, CardContent, CardFooter, CardHeader } from "../ui/card";
 import { Label } from "../ui/label";
 import { Location } from "../../api";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Calendar } from "../ui/calendar";
-import { format, parse, addDays, parseISO } from "date-fns";
-import {
-	CalendarIcon,
-	ArrowLeft,
-	MapPin,
-	X,
-	Clock,
-	Building2,
-} from "lucide-react";
+import { format, addDays, parseISO } from "date-fns";
+import { CalendarIcon, ArrowLeft, MapPin, Building2 } from "lucide-react";
 import { Textarea } from "../ui/textarea";
 import { Badge } from "../ui/badge";
 import { useMemo, useEffect, useState } from "react";
-import { DatePicker } from "../ui/date-picker";
 import { cn } from "@/lib/utils";
-import { LocationCard } from "../ui/location-card";
 import { TimePicker } from "../ui/time-picker";
 
 type ShiftData = {
@@ -175,25 +159,52 @@ export function ShiftDetailsStep({
 		// so we don't need to show an error
 	};
 
+	// Get full address as a formatted string
+	const getFullAddress = (location?: Location) => {
+		if (!location) return "";
+
+		const parts = [];
+		if (location.address) parts.push(location.address);
+		if (location.city) parts.push(location.city);
+		if (location.state) {
+			if (location.zipCode) {
+				parts.push(`${location.state} ${location.zipCode}`);
+			} else {
+				parts.push(location.state);
+			}
+		} else if (location.zipCode) {
+			parts.push(location.zipCode);
+		}
+		return parts.join(", ");
+	};
+
 	return (
-		<div className="p-6 flex flex-col">
-			{/* Location Card */}
+		<Card className="p-6">
 			{location && (
-				<div className="mb-6">
-					<LocationCard
-						location={location}
-						variant="detailed"
-						size="md"
-					/>
-				</div>
+				<CardHeader className="p-0 pb-6">
+					<Card className="bg-accent/30">
+						<CardContent className="p-4">
+							<div className="flex items-center mb-2">
+								<Building2 className="h-5 w-5 mr-2 text-muted-foreground" />
+								<h3 className="text-lg font-medium">{location.name}</h3>
+							</div>
+							{getFullAddress(location) && (
+								<div className="flex items-start text-sm text-muted-foreground">
+									<MapPin className="h-4 w-4 mr-1 mt-0.5 flex-shrink-0" />
+									<span>{getFullAddress(location)}</span>
+								</div>
+							)}
+						</CardContent>
+					</Card>
+				</CardHeader>
 			)}
 
-			<form
-				id="shift-details-form"
-				className="space-y-4"
-				onSubmit={handleSubmit(handleShiftDetailsSubmit)}>
-				<div className="space-y-4">
-					<div className="grid grid-cols-1 gap-4">
+			<CardContent className="p-0">
+				<form
+					id="shift-details-form"
+					className="space-y-4"
+					onSubmit={handleSubmit(handleShiftDetailsSubmit)}>
+					<div className="space-y-4">
 						<div className="space-y-2">
 							<Label htmlFor="date">Date</Label>
 							<Popover>
@@ -215,7 +226,6 @@ export function ShiftDetailsStep({
 										onSelect={handleDateChange}
 										initialFocus
 										disabled={(date) =>
-											// Only disable dates before today (not including today)
 											date < new Date(new Date().setHours(0, 0, 0, 0))
 										}
 										className="rounded-md border"
@@ -249,8 +259,8 @@ export function ShiftDetailsStep({
 						</div>
 
 						{isValid && date && startTime && endTime && (
-							<div className="bg-muted/50 p-3 rounded-md">
-								<div className="flex justify-between text-sm">
+							<Card className="bg-muted/50">
+								<CardContent className="py-3 flex justify-between text-sm">
 									<span>
 										{formattedDate} • {formatTime(startTime)} to{" "}
 										{formatTime(endTime)}
@@ -260,8 +270,8 @@ export function ShiftDetailsStep({
 											{shiftDuration.displayText}
 										</Badge>
 									)}
-								</div>
-							</div>
+								</CardContent>
+							</Card>
 						)}
 
 						<div className="space-y-2">
@@ -274,17 +284,15 @@ export function ShiftDetailsStep({
 							/>
 						</div>
 					</div>
-				</div>
 
-				{/* Hidden submit button for form validity */}
-				<button
-					type="submit"
-					className="hidden"
-				/>
-			</form>
+					<button
+						type="submit"
+						className="hidden"
+					/>
+				</form>
+			</CardContent>
 
-			{/* Navigation Buttons */}
-			<div className="flex justify-between border-t pt-4 mt-4">
+			<CardFooter className="px-0 pt-4 mt-4 border-t flex justify-between">
 				<Button
 					variant="outline"
 					onClick={onBack}>
@@ -296,7 +304,7 @@ export function ShiftDetailsStep({
 					disabled={!isValid}>
 					Continue
 				</Button>
-			</div>
-		</div>
+			</CardFooter>
+		</Card>
 	);
 }

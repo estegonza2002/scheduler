@@ -21,6 +21,7 @@ import {
 	Eye,
 	Clock,
 	Search,
+	Plus,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -28,7 +29,7 @@ import { toast } from "sonner";
 import { ContentContainer } from "@/components/ui/content-container";
 import { ContentSection } from "@/components/ui/content-section";
 import { LoadingState } from "@/components/ui/loading-state";
-import { ShiftCreationSheet } from "@/components/ShiftCreationSheet";
+import { ShiftCreationDialog } from "@/components/ShiftCreationDialog";
 import { Input } from "@/components/ui/input";
 import { ShiftCard } from "@/components/ShiftCard";
 import {
@@ -76,7 +77,7 @@ export default function LocationShiftPage() {
 		} else {
 			// Header actions for the page header
 			const headerActions = (
-				<ShiftCreationSheet
+				<ShiftCreationDialog
 					scheduleId={locationId || ""}
 					organizationId="org-1"
 					initialLocationId={locationId || ""}
@@ -410,7 +411,7 @@ export default function LocationShiftPage() {
 									<p className="text-muted-foreground">
 										No upcoming shifts scheduled for this location.
 									</p>
-									<ShiftCreationSheet
+									<ShiftCreationDialog
 										scheduleId={locationId || ""}
 										organizationId="org-1"
 										initialLocationId={locationId || ""}
@@ -541,6 +542,31 @@ export default function LocationShiftPage() {
 							</Card>
 						)}
 					</ContentSection>
+
+					{/* Action buttons */}
+					<div className="flex flex-wrap gap-2 mb-6">
+						<ShiftCreationDialog
+							scheduleId={locationId || ""}
+							organizationId="org-1"
+							initialLocationId={locationId || ""}
+							onComplete={() => {
+								// Refresh shifts after creation
+								window.location.reload();
+							}}
+							trigger={
+								<Button className="flex items-center gap-2">
+									<Plus className="h-4 w-4" />
+									Create Shift
+								</Button>
+							}
+						/>
+
+						<Button
+							variant="outline"
+							onClick={() => navigate(`/locations/${locationId}`)}>
+							View Location Details
+						</Button>
+					</div>
 				</div>
 			</ContentContainer>
 		</>

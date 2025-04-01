@@ -26,7 +26,7 @@ import { useOnboarding, OnboardingStep } from "../../lib/onboarding-context";
 import { useAuth } from "../../lib/auth";
 import { LocationDialog } from "../LocationDialog";
 import { EmployeeDialog } from "../EmployeeDialog";
-import { ShiftCreationSheet } from "../ShiftCreationSheet";
+import { ShiftCreationDialog } from "../ShiftCreationDialog";
 import { Badge } from "../ui/badge";
 import React from "react";
 import { ShiftsAPI, SchedulesAPI, ScheduleCreateInput } from "@/api";
@@ -293,7 +293,7 @@ export function OnboardingModal() {
 				) : (
 					<>
 						{defaultScheduleId ? (
-							<ShiftCreationSheet
+							<ShiftCreationDialog
 								scheduleId={defaultScheduleId}
 								organizationId={organizationId || ""}
 								onComplete={handleShiftCreated}

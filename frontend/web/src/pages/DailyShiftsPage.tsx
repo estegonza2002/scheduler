@@ -35,7 +35,7 @@ import {
 	Clock,
 	CalendarX,
 } from "lucide-react";
-import { ShiftCreationSheet } from "@/components/ShiftCreationSheet";
+import { ShiftCreationDialog } from "@/components/ShiftCreationDialog";
 import {
 	Popover,
 	PopoverContent,
@@ -95,10 +95,10 @@ export default function DailyShiftsPage() {
 	const [itemsPerPage, setItemsPerPage] = useState<number>(25);
 	const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
 
-	// Export the ShiftCreationSheet with its props for use in the AppLayout
+	// Export the ShiftCreationDialog with its props for use in the AppLayout
 	function getHeaderActions() {
 		return (
-			<ShiftCreationSheet
+			<ShiftCreationDialog
 				scheduleId={selectedSchedule}
 				organizationId={organizationId}
 				initialDate={currentDate}
@@ -445,10 +445,11 @@ export default function DailyShiftsPage() {
 							description="There are no shifts scheduled for this date."
 							icon={<CalendarComponent className="h-10 w-10" />}
 							action={
-								<ShiftCreationSheet
+								<ShiftCreationDialog
 									scheduleId={selectedSchedule}
 									organizationId={organizationId}
 									initialDate={currentDate}
+									onComplete={fetchShifts}
 									trigger={
 										<Button size="lg">
 											<Plus className="h-4 w-4 mr-2" />

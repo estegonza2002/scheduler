@@ -51,7 +51,7 @@ import { LoadingState } from "@/components/ui/loading-state";
 import { LocationInsights } from "@/components/LocationInsights";
 import { EmptyState } from "@/components/ui/empty-state";
 import { EmployeeAssignmentSheet } from "@/components/EmployeeAssignmentSheet";
-import { ShiftCreationSheet } from "@/components/ShiftCreationSheet";
+import { ShiftCreationDialog } from "@/components/ShiftCreationDialog";
 import { useAuth } from "@/lib/auth";
 import { getDefaultOrganizationId } from "@/lib/utils";
 import { useOrganizationId } from "@/hooks/useOrganizationId";
@@ -560,7 +560,7 @@ export default function LocationDetailPage() {
 								description="There are no upcoming shifts scheduled at this location."
 								icon={<Calendar className="h-6 w-6" />}
 								action={
-									<ShiftCreationSheet
+									<ShiftCreationDialog
 										scheduleId={defaultScheduleId}
 										organizationId={organizationId}
 										initialLocationId={locationId}
