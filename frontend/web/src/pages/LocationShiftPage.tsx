@@ -546,13 +546,13 @@ export default function LocationShiftPage() {
 					{/* Action buttons */}
 					<div className="flex flex-wrap gap-2 mb-6">
 						<Button
-							className="flex items-center gap-2"
-							onClick={() => {
+							size="sm"
+							onClick={() =>
 								navigate(
-									`/shifts/create/${locationId}?organizationId=org-1&locationId=${locationId}&returnUrl=/locations/${locationId}/shifts`
-								);
-							}}>
-							<Plus className="h-4 w-4" />
+									`/shifts/create?organizationId=org-1&locationId=${locationId}&returnUrl=/locations/${locationId}/shifts`
+								)
+							}>
+							<Plus className="mr-1 h-4 w-4" />
 							Create Shift
 						</Button>
 

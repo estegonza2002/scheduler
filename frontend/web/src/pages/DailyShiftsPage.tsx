@@ -104,7 +104,7 @@ export default function DailyShiftsPage() {
 				onClick={() => {
 					const date = format(currentDate, "yyyy-MM-dd");
 					navigate(
-						`/shifts/create/${selectedSchedule}?organizationId=${organizationId}&date=${date}&returnUrl=/daily-shifts?date=${date}`
+						`/shifts/create?organizationId=${organizationId}&date=${date}&returnUrl=/daily-shifts?date=${date}`
 					);
 				}}>
 				<Plus className="h-5 w-5 mr-2" />
@@ -396,7 +396,7 @@ export default function DailyShiftsPage() {
 									onClick={() => {
 										const date = format(currentDate, "yyyy-MM-dd");
 										navigate(
-											`/shifts/create/${selectedSchedule}?organizationId=${organizationId}&date=${date}&returnUrl=/daily-shifts?date=${date}`
+											`/shifts/create?organizationId=${organizationId}&date=${date}&returnUrl=/daily-shifts?date=${date}`
 										);
 									}}>
 									<Plus className="h-4 w-4 mr-2" />

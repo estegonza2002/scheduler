@@ -78,7 +78,7 @@ export type ScheduleCreateInput = Omit<ShiftCreateInput, "is_schedule"> & {
  */
 export type ShiftItemCreateInput = Omit<ShiftCreateInput, "is_schedule"> & {
 	is_schedule: false;
-	parent_shift_id: string; // Required for individual shifts
+	parent_shift_id?: string; // Optional for individual shifts
 	status: string; // Required field
 };
 

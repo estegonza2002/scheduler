@@ -411,7 +411,6 @@ export function ShiftCreationWizard({
 
 		console.log("Creating shift with the following data:");
 		console.log({
-			parent_shift_id: scheduleId,
 			organization_id: organizationId,
 			location_id: locationData.locationId,
 			date: shiftData.date,
@@ -425,7 +424,7 @@ export function ShiftCreationWizard({
 		});
 
 		// Validate critical IDs
-		if (!isValidUUID(scheduleId)) {
+		if (scheduleId && !isValidUUID(scheduleId)) {
 			setError(`Invalid schedule ID: ${scheduleId}. Must be a valid UUID.`);
 			toast.error("Failed to create shift: Invalid schedule ID");
 			return;
@@ -462,7 +461,6 @@ export function ShiftCreationWizard({
 				console.log("Creating shift without employee");
 				try {
 					const shiftCreateData = {
-						parent_shift_id: scheduleId,
 						organization_id: organizationId,
 						location_id: locationData.locationId,
 						// Removing user_id completely to avoid foreign key constraint
@@ -490,7 +488,6 @@ export function ShiftCreationWizard({
 				// First create a shift without a user_id to avoid the foreign key constraint
 				try {
 					const shiftCreateData = {
-						parent_shift_id: scheduleId,
 						organization_id: organizationId,
 						location_id: locationData.locationId,
 						// No user_id field
@@ -548,7 +545,6 @@ export function ShiftCreationWizard({
 					try {
 						console.log("Attempting fallback method");
 						const fallbackShiftData = {
-							parent_shift_id: scheduleId,
 							organization_id: organizationId,
 							location_id: locationData.locationId,
 							start_time: startDateTime,

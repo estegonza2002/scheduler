@@ -33,7 +33,6 @@ import ProfilePage from "./pages/ProfilePage";
 import BusinessProfilePage from "./pages/BusinessProfilePage";
 import BillingPage from "./pages/BillingPage";
 import BrandingPage from "./pages/BrandingPage";
-import SchedulePage from "./pages/SchedulePage";
 import DailyShiftsPage from "./pages/DailyShiftsPage";
 import MyShiftsPage from "./pages/MyShiftsPage";
 import MyLocationsPage from "./pages/MyLocationsPage";
@@ -302,14 +301,6 @@ function App() {
 																element={<AdminDashboardPage />}
 															/>
 															<Route
-																path="/schedule"
-																element={<SchedulePage />}
-															/>
-															<Route
-																path="/schedule/monthly"
-																element={<SchedulePage />}
-															/>
-															<Route
 																path="/daily-shifts"
 																element={<DailyShiftsPage />}
 															/>
@@ -460,7 +451,7 @@ function App() {
 
 															{/* New route for shift creation */}
 															<Route
-																path="/shifts/create/:scheduleId?"
+																path="/shifts/create"
 																element={<CreateShiftPage />}
 															/>
 

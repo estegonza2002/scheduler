@@ -24,6 +24,7 @@ import {
 	Coffee,
 	ChevronsUp,
 	ChevronLeft,
+	ExternalLink,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ShiftsAPI, EmployeesAPI, LocationsAPI } from "@/api";
@@ -473,7 +474,7 @@ export default function DashboardPage() {
 				description="Shortcuts to common tasks"
 				flat>
 				<div className="flex flex-wrap gap-3 mb-6">
-					<Link to="/schedule">
+					<Link to="/manage-shifts">
 						<Button variant="outline">
 							<Calendar className="h-4 w-4 mr-2" />
 							My Schedule
@@ -513,7 +514,7 @@ export default function DashboardPage() {
 				title="My Upcoming Shifts"
 				description="Your next 7 days"
 				headerActions={
-					<Link to="/schedule">
+					<Link to="/manage-shifts">
 						<Button
 							variant="outline"
 							size="sm">

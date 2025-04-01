@@ -180,15 +180,6 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 				isRouteActive("/dashboard") || isRouteActive("/admin-dashboard"),
 		},
 		{
-			icon: <Calendar className="h-5 w-5" />,
-			label: "Schedule",
-			href: `/schedule?organizationId=${organization?.id || "org-1"}`,
-			isActive:
-				isRouteActive("/schedule") ||
-				isRouteActive("/schedule/monthly") ||
-				isRouteActive("/daily-shifts"),
-		},
-		{
 			icon: <ClipboardList className="h-5 w-5" />,
 			label: "Manage Shifts",
 			href: `/manage-shifts?organizationId=${organization?.id || "org-1"}`,

@@ -64,7 +64,6 @@ function GlobalHeader() {
 		"/dashboard",
 		"/admin-dashboard",
 		"/daily-shifts",
-		"/schedule",
 		"/employees",
 		"/locations",
 		"/shifts",
@@ -221,13 +220,10 @@ export default function AppLayout() {
 	// Pages with different layouts and actions
 	const isCheckoutPage = location.pathname === "/checkout";
 	const isLoginPage = location.pathname === "/login";
-	const isMessagesPage = location.pathname === "/chat";
-	const isSchedulePage = location.pathname === "/schedule";
+	const isMessagesPage = location.pathname === "/messages";
 	const isSchedulerPage = location.pathname.startsWith("/scheduler");
 	const isShiftDetailsPage = location.pathname.match(/\/shifts\/(\w+)/);
 	const isDailyShiftsPage = location.pathname === "/daily-shifts";
-	const isEmployeesPage = location.pathname === "/employees";
-	const isLocationsPage = location.pathname === "/locations";
 
 	// Determines if the page should have a secondary sidebar
 	const hasSecondarySidebar = isMessagesPage || isShiftDetailsPage;

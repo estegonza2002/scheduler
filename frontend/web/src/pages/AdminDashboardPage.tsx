@@ -343,11 +343,7 @@ export default function AdminDashboardPage() {
 							className="h-24 flex flex-col items-center justify-center w-full gap-2 text-sm hover:border-primary hover:text-primary"
 							onClick={() => {
 								navigate(
-									`/shifts/create/${
-										currentSchedule || "sch-6"
-									}?organizationId=${
-										organization.id
-									}&returnUrl=/admin-dashboard`
+									`/shifts/create?organizationId=${organization.id}&returnUrl=/admin-dashboard`
 								);
 							}}>
 							<CalendarClock className="h-6 w-6" />

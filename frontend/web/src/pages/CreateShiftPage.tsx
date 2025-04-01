@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useHeader } from "@/lib/header-context";
 import { ShiftCreationWizard } from "@/components/ShiftCreationWizard";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,6 @@ import { format } from "date-fns";
 export default function CreateShiftPage() {
 	const navigate = useNavigate();
 	const { updateHeader } = useHeader();
-	const { scheduleId } = useParams<{ scheduleId: string }>();
 	const [searchParams] = useSearchParams();
 
 	// Get parameters from URL
@@ -22,7 +21,7 @@ export default function CreateShiftPage() {
 	const initialLocationId = searchParams.get("locationId") || undefined;
 	const initialDateStr = searchParams.get("date");
 	const initialDate = initialDateStr ? new Date(initialDateStr) : new Date();
-	const returnUrl = searchParams.get("returnUrl") || "/schedule";
+	const returnUrl = searchParams.get("returnUrl") || "/manage-shifts";
 
 	// State for handling wizard completion
 	const [wizardCurrentStep, setWizardCurrentStep] =
@@ -74,7 +73,7 @@ export default function CreateShiftPage() {
 			<ContentSection title="Create New Shift">
 				<div className="max-w-3xl mx-auto">
 					<ShiftCreationWizard
-						scheduleId={scheduleId || ""}
+						scheduleId=""
 						organizationId={organizationId}
 						initialDate={initialDate}
 						initialLocationId={initialLocationId}
