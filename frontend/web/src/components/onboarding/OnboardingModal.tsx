@@ -566,6 +566,7 @@ export function OnboardingModal() {
 				open={locationSheetOpen}
 				onOpenChange={setLocationSheetOpen}
 				onLocationCreated={handleLocationCreated}
+				trigger={<Button className="hidden">Add Location</Button>}
 			/>
 
 			<EmployeeDialog

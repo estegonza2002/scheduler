@@ -83,9 +83,9 @@ interface LocationDialogProps {
 	 */
 	onLocationCreated?: (location: ExtendedLocation) => void;
 	/**
-	 * Optional custom trigger element
+	 * Custom trigger element (required)
 	 */
-	trigger?: React.ReactNode;
+	trigger: React.ReactNode;
 	/**
 	 * Controls whether the dialog is open
 	 */
@@ -505,9 +505,7 @@ export function LocationDialog({
 		<Dialog
 			open={isOpen}
 			onOpenChange={handleOpenChange}>
-			<DialogTrigger asChild>
-				{trigger || <Button>Add Location</Button>}
-			</DialogTrigger>
+			<DialogTrigger asChild>{trigger}</DialogTrigger>
 
 			<DialogContent>
 				<h2 className="text-lg font-semibold mb-4">

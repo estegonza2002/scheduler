@@ -865,6 +865,7 @@ export default function LocationDetailPage() {
 						longitude: location.longitude || undefined,
 					}}
 					isEditing={true}
+					trigger={<Button className="hidden">Edit Location</Button>}
 				/>
 			)}
 		</>
