@@ -660,23 +660,19 @@ export function ShiftDetails({ hideHeader = false }: ShiftDetailsProps) {
 		if (loading) {
 			return (
 				<div className="flex items-center justify-center h-64">
-					<div className="flex flex-col items-center gap-4">
-						<Loader2 className="h-8 w-8 animate-spin text-primary" />
-						<p className="text-muted-foreground">Loading shift details...</p>
-					</div>
+					<Loader2 className="h-8 w-8 animate-spin text-primary" />
+					<p className="text-muted-foreground ml-3">Loading shift details...</p>
 				</div>
 			);
 		}
 
 		if (!shift) {
 			return (
-				<div className="flex items-center justify-center h-64">
-					<div className="text-center">
-						<p className="text-lg font-medium">Shift not found</p>
-						<p className="text-muted-foreground">
-							The requested shift does not exist or has been deleted.
-						</p>
-					</div>
+				<div className="flex flex-col items-center justify-center h-64">
+					<p className="text-lg font-medium">Shift not found</p>
+					<p className="text-muted-foreground">
+						The requested shift does not exist or has been deleted.
+					</p>
 				</div>
 			);
 		}
@@ -709,6 +705,7 @@ export function ShiftDetails({ hideHeader = false }: ShiftDetailsProps) {
 					location={location}
 					assignedEmployees={assignedEmployees}
 					calculateTotalCost={calculateShiftCost}
+					hasShiftEnded={hasShiftEnded()}
 				/>
 
 				{/* If shift has ended, show the report after information */}
@@ -765,7 +762,7 @@ export function ShiftDetails({ hideHeader = false }: ShiftDetailsProps) {
 
 	if (loading) {
 		return (
-			<div className="flex justify-center items-center h-[50vh]">
+			<div className="flex items-center justify-center h-[50vh]">
 				<Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
 			</div>
 		);
@@ -775,17 +772,15 @@ export function ShiftDetails({ hideHeader = false }: ShiftDetailsProps) {
 		return (
 			<div className="p-6">
 				<div className="flex flex-col items-center justify-center h-[70vh]">
-					<div className="text-center max-w-md mx-auto">
-						<h1 className="text-2xl font-bold mb-2">Shift not found</h1>
-						<p className="text-muted-foreground mb-6">
-							The requested shift could not be found.
-						</p>
-						<Button
-							onClick={() => navigate("/schedule")}
-							className="min-w-[150px]">
-							Return to Schedule
-						</Button>
-					</div>
+					<h1 className="text-2xl font-bold mb-2">Shift not found</h1>
+					<p className="text-muted-foreground mb-6">
+						The requested shift could not be found.
+					</p>
+					<Button
+						onClick={() => navigate("/schedule")}
+						className="min-w-[150px]">
+						Return to Schedule
+					</Button>
 				</div>
 			</div>
 		);

@@ -4,13 +4,17 @@ import { useHeader } from "@/lib/header-context";
 import { ContentContainer } from "@/components/ui/content-container";
 import { ContentSection } from "@/components/ui/content-section";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Clock, Filter, Users, Plus, ChevronLeft } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { format, subMonths } from "date-fns";
 import { ShiftsAPI } from "@/api";
 import { SearchInput } from "@/components/ui/search-input";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { EmptyState } from "@/components/ui/empty-state";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
 	Popover,
 	PopoverContent,
@@ -135,7 +139,7 @@ export default function PastShiftsPage() {
 				description="Search and filter through your completed shifts"
 				className="mb-8">
 				{/* Search and Filter Controls */}
-				<div className="mb-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+				<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
 					<SearchInput
 						value={searchTerm}
 						onChange={setSearchTerm}
@@ -184,15 +188,13 @@ export default function PastShiftsPage() {
 
 				<div className="flex justify-between items-center mb-4">
 					<div className="text-sm text-muted-foreground">
-						{/* This would show the actual count from the API */}
 						{isLoading ? "Loading..." : "0 shifts found"}
 					</div>
-					<div>
+					<div className="flex space-x-2">
 						<Button
 							variant="outline"
 							size="sm"
-							onClick={handleResetFilters}
-							className="mr-2">
+							onClick={handleResetFilters}>
 							Reset Filters
 						</Button>
 						<Button
@@ -206,8 +208,8 @@ export default function PastShiftsPage() {
 
 				{/* Past Shifts List */}
 				{isLoading ? (
-					<div className="flex items-center justify-center h-48">
-						<div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+					<div className="grid place-items-center h-48">
+						<Skeleton className="h-8 w-8 rounded-full" />
 					</div>
 				) : pastShifts.length > 0 ? (
 					<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -252,25 +254,6 @@ export default function PastShiftsPage() {
 	);
 }
 
-// Placeholder component for empty state
-interface EmptyStateProps {
-	title: string;
-	description: string;
-	action: React.ReactNode;
-}
-
-function EmptyState({ title, description, action }: EmptyStateProps) {
-	return (
-		<div className="flex flex-col items-center justify-center py-12 px-4 border border-dashed rounded-lg bg-muted/40">
-			<div className="text-center max-w-md">
-				<h3 className="text-lg font-semibold mb-2">{title}</h3>
-				<p className="text-muted-foreground mb-4">{description}</p>
-				{action}
-			</div>
-		</div>
-	);
-}
-
 // Placeholder component for shift card
 interface ShiftCardPlaceholderProps {
 	date: string;
@@ -288,37 +271,31 @@ function ShiftCardPlaceholder({
 	status = "Completed",
 }: ShiftCardPlaceholderProps) {
 	return (
-		<Card className="p-4 hover:shadow-md transition-shadow cursor-pointer">
-			<div className="flex justify-between items-start mb-3">
-				<div>
-					<div className="font-medium">{location}</div>
-					<div className="text-sm text-muted-foreground">{date}</div>
-				</div>
-				<div>
-					{status === "Completed" && (
-						<span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-							Completed
-						</span>
-					)}
-					{status === "Cancelled" && (
-						<span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-							Cancelled
-						</span>
-					)}
-				</div>
-			</div>
-
-			<div className="space-y-2">
-				<div className="flex items-center text-sm">
-					<Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-					<span>{time}</span>
+		<Card className="hover:shadow-sm transition-shadow cursor-pointer">
+			<CardContent className="p-4">
+				<div className="flex justify-between items-start mb-3">
+					<div>
+						<div className="font-medium">{location}</div>
+						<div className="text-sm text-muted-foreground">{date}</div>
+					</div>
+					<StatusBadge
+						status={status === "Completed" ? "success" : "error"}
+						text={status}
+					/>
 				</div>
 
-				<div className="flex items-center text-sm">
-					<Users className="h-4 w-4 mr-2 text-muted-foreground" />
-					<span>{employees} employees</span>
+				<div className="space-y-2">
+					<div className="flex items-center text-sm">
+						<Clock className="h-4 w-4 mr-2 text-muted-foreground" />
+						<span>{time}</span>
+					</div>
+
+					<div className="flex items-center text-sm">
+						<Users className="h-4 w-4 mr-2 text-muted-foreground" />
+						<span>{employees} employees</span>
+					</div>
 				</div>
-			</div>
+			</CardContent>
 		</Card>
 	);
 }

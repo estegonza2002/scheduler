@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { ShiftStatus } from "./ShiftStatus";
 import { Alert, AlertTitle, AlertDescription } from "../ui/alert";
+import { Card, CardContent } from "../ui/card";
 
 interface ShiftHeaderProps {
 	shift: Shift;
@@ -68,8 +69,8 @@ export function ShiftHeader({
 			)}
 
 			{/* Header Section */}
-			<div className="bg-white rounded-lg shadow-sm border mb-6">
-				<div className="border-b p-4">
+			<Card className="mb-6">
+				<CardContent className="p-4 border-b">
 					<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
 						<div>
 							<div className="flex items-center gap-2 mb-1">
@@ -181,8 +182,8 @@ export function ShiftHeader({
 							)}
 						</div>
 					</div>
-				</div>
-			</div>
+				</CardContent>
+			</Card>
 		</>
 	);
 }

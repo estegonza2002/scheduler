@@ -10,16 +10,6 @@ interface ContentContainerProps {
 	 * Optional additional className for the container
 	 */
 	className?: string;
-	/**
-	 * Optional maximum width for the container
-	 * @default "w-full"
-	 */
-	maxWidth?: string;
-	/**
-	 * Whether to apply default padding
-	 * @default true
-	 */
-	withPadding?: boolean;
 }
 
 /**
@@ -28,17 +18,6 @@ interface ContentContainerProps {
 export function ContentContainer({
 	children,
 	className,
-	maxWidth = "w-full",
-	withPadding = true,
 }: ContentContainerProps) {
-	return (
-		<div
-			className={cn(
-				"content-container-wrapper w-full",
-				withPadding ? "p-6" : "p-0",
-				className
-			)}>
-			{children}
-		</div>
-	);
+	return <div className={cn("w-full p-6", className)}>{children}</div>;
 }

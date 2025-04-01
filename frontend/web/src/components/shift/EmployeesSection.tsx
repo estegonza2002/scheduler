@@ -31,14 +31,6 @@ export function EmployeesSection({
 				<h2 className="text-lg font-medium flex items-center">
 					<Users className="mr-2 h-5 w-5 text-muted-foreground" />
 					Employees ({assignedEmployees.length})
-					{isCompleted && (
-						<Badge
-							variant="outline"
-							className="ml-2 bg-gray-100 text-gray-700">
-							<Lock className="h-3 w-3 mr-1" />
-							Locked
-						</Badge>
-					)}
 				</h2>
 				{!isCompleted && (
 					<Button

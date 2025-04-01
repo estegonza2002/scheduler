@@ -1,4 +1,4 @@
-import { Plus, Edit, Trash, Lock } from "lucide-react";
+import { Plus, Edit, Trash, Lock, CheckSquare } from "lucide-react";
 import { Button } from "../ui/button";
 import { Checkbox } from "../ui/checkbox";
 import { ShiftTask } from "../../api";
@@ -32,15 +32,8 @@ export function ShiftTasks({
 		<div className="mb-6">
 			<div className="flex items-center justify-between mb-4">
 				<h2 className="text-lg font-medium flex items-center">
+					<CheckSquare className="mr-2 h-5 w-5 text-muted-foreground" />
 					Shift Tasks
-					{isCompleted && (
-						<Badge
-							variant="outline"
-							className="ml-2 bg-gray-100 text-gray-700">
-							<Lock className="h-3 w-3 mr-1" />
-							Locked
-						</Badge>
-					)}
 				</h2>
 			</div>
 

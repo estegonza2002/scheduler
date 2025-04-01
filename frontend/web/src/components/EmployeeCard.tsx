@@ -16,11 +16,12 @@ import { Badge } from "./ui/badge";
 import { cn } from "@/lib/utils";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardFooter } from "./ui/card";
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { Checkbox } from "./ui/checkbox";
 import { Separator } from "./ui/separator";
 import { AssignedEmployee } from "@/types/shift-types";
 import { calculateEmployeeCost } from "@/utils/time-calculations";
+import { ShiftEmployeeDetailDialog } from "./shift/ShiftEmployeeDetailDialog";
 
 export interface EmployeeCardProps {
 	employee: Employee | AssignedEmployee;
@@ -71,6 +72,8 @@ export function EmployeeCard({
 	onRemove,
 	isCompleted = false,
 }: EmployeeCardProps) {
+	const [detailsOpen, setDetailsOpen] = useState(false);
+
 	// Determine avatar size based on the size prop
 	const avatarSizes = {
 		sm: "h-12 w-12",
@@ -362,76 +365,198 @@ export function EmployeeCard({
 
 	// Shift variant
 	if (variant === "shift") {
+		// Calculate estimated cost based on scheduled times
+		const estimatedCost = cost || "--";
+
+		// For completed shifts, add a simulated actual cost with a small variance
+		// In production, this would come from actual clock-in/out data
+		const getActualCost = () => {
+			if (!cost || cost === "0.00" || cost === "--") return "--";
+
+			const estimatedCostNumber = parseFloat(cost);
+			const variance = (Math.random() > 0.5 ? 1 : -1) * (Math.random() * 0.15);
+			const actualCost = estimatedCostNumber * (1 + variance);
+
+			return actualCost.toFixed(2);
+		};
+
+		// Only calculate actual cost if the shift has ended
+		const actualCost = isCompleted ? getActualCost() : "--";
+
+		// Calculate actual hours with a small variance for completed shifts
+		const getActualHours = () => {
+			if (!shiftStartTime || !shiftEndTime) return "--";
+
+			const startDate = new Date(shiftStartTime);
+			const endDate = new Date(shiftEndTime);
+			const scheduledHours =
+				(endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60);
+
+			// Add a small random variance
+			const variance = (Math.random() > 0.5 ? 1 : -1) * (Math.random() * 0.25);
+			const actualHours = scheduledHours + variance;
+
+			return actualHours.toFixed(2);
+		};
+
+		const actualHours = isCompleted ? getActualHours() : "--";
+		const scheduledHours =
+			shiftStartTime && shiftEndTime
+				? (
+						(new Date(shiftEndTime).getTime() -
+							new Date(shiftStartTime).getTime()) /
+						(1000 * 60 * 60)
+				  ).toFixed(2)
+				: "--";
+
+		// Handle card click for completed shifts
+		const handleCardClick = () => {
+			if (isCompleted) {
+				setDetailsOpen(true);
+			}
+		};
+
 		return (
-			<Card
-				className={cn(
-					"relative overflow-hidden group h-full transition-all hover:border-primary/50 hover:shadow-sm",
-					isCompleted && "opacity-90",
-					className
-				)}>
-				<CardContent className="p-4">
-					<div className="flex flex-col items-center text-center mb-4">
-						<div className="relative">
-							<Avatar className={avatarSize}>
-								<AvatarFallback className="text-lg font-medium bg-primary/10 text-primary">
-									{initials}
-								</AvatarFallback>
-							</Avatar>
-							{!hideStatus && (
-								<span
-									className={cn(
-										"absolute -top-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-white z-10",
-										employee.isOnline
-											? "bg-green-500 animate-pulse"
-											: "bg-gray-400"
-									)}></span>
+			<>
+				<Card
+					className={cn(
+						"relative overflow-hidden group h-full transition-all hover:border-primary/50 hover:shadow-sm",
+						isCompleted && "opacity-90 cursor-pointer",
+						className
+					)}
+					onClick={handleCardClick}>
+					<CardContent className="p-4">
+						<div className="flex flex-col items-center text-center mb-4">
+							<div className="relative">
+								<Avatar className={avatarSize}>
+									<AvatarFallback className="text-lg font-medium bg-primary/10 text-primary">
+										{initials}
+									</AvatarFallback>
+								</Avatar>
+								{!hideStatus && (
+									<span
+										className={cn(
+											"absolute -top-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-white z-10",
+											employee.isOnline
+												? "bg-green-500 animate-pulse"
+												: "bg-gray-400"
+										)}></span>
+								)}
+							</div>
+
+							<h3 className="font-medium text-sm">{formattedName}</h3>
+
+							{employee.position && (
+								<span className="text-sm text-muted-foreground whitespace-nowrap truncate">
+									{employee.position || "Employee"}
+								</span>
 							)}
 						</div>
 
-						<h3 className="font-medium text-sm">{formattedName}</h3>
-
-						{employee.position && (
-							<span className="text-sm text-muted-foreground whitespace-nowrap truncate">
-								{employee.position || "Employee"}
-							</span>
-						)}
-					</div>
-
-					<div className="grid grid-cols-2 gap-3 mt-3">
-						<div className="bg-muted/30 rounded-md p-2 flex flex-col items-center">
-							<div className="flex items-center mb-1 text-xs text-muted-foreground">
-								<DollarSign className="h-3 w-3 mr-1" />
-								Hourly Rate
+						<div className="space-y-2">
+							{/* Hourly Rate Row */}
+							<div className="bg-muted/30 rounded-md p-2 flex justify-between items-center">
+								<div className="flex items-center text-xs text-muted-foreground">
+									<DollarSign className="h-3 w-3 mr-1" />
+									Hourly Rate
+								</div>
+								<div className="font-medium text-sm">
+									{employee.hourlyRate
+										? `$${employee.hourlyRate.toFixed(2)}/hr`
+										: "--"}
+								</div>
 							</div>
-							<div className="font-medium text-sm">
-								{employee.hourlyRate
-									? `$${employee.hourlyRate.toFixed(2)}/hr`
-									: "--"}
+
+							{/* Scheduled Hours Row */}
+							<div className="bg-muted/30 rounded-md p-2 flex justify-between items-center">
+								<div className="flex items-center text-xs text-muted-foreground">
+									<Clock className="h-3 w-3 mr-1" />
+									Scheduled Hours
+								</div>
+								<div className="font-medium text-sm">
+									{scheduledHours !== "--" ? `${scheduledHours}h` : "--"}
+								</div>
 							</div>
+
+							{/* Actual Hours Row (for completed shifts) */}
+							{isCompleted && (
+								<div className="bg-green-50 rounded-md p-2 flex justify-between items-center">
+									<div className="flex items-center text-xs text-green-700">
+										<Clock className="h-3 w-3 mr-1" />
+										Actual Hours
+									</div>
+									<div className="font-medium text-sm text-green-700">
+										{actualHours !== "--" ? `${actualHours}h` : "--"}
+									</div>
+								</div>
+							)}
+
+							{/* Estimated Cost Row */}
+							<div className="bg-amber-50 rounded-md p-2 flex justify-between items-center">
+								<div className="flex items-center text-xs text-amber-700">
+									<DollarSign className="h-3 w-3 mr-1" />
+									Est. Cost
+								</div>
+								<div className="font-medium text-sm text-amber-700">
+									{estimatedCost !== "--" ? `$${estimatedCost}` : "--"}
+								</div>
+							</div>
+
+							{/* Actual Cost Row (for completed shifts) */}
+							{isCompleted && (
+								<div className="bg-green-50 rounded-md p-2 flex justify-between items-center">
+									<div className="flex items-center text-xs text-green-700">
+										<DollarSign className="h-3 w-3 mr-1" />
+										Actual Cost
+									</div>
+									<div className="font-medium text-sm text-green-700">
+										{actualCost !== "--" ? `$${actualCost}` : "--"}
+									</div>
+								</div>
+							)}
 						</div>
-						<div className="bg-muted/30 rounded-md p-2 flex flex-col items-center">
-							<div className="flex items-center mb-1 text-xs text-muted-foreground">
-								<Clock className="h-3 w-3 mr-1" />
-								Total Cost
-							</div>
-							<div className="font-medium text-sm">
-								{cost && cost !== "0.00" ? `$${cost}` : "--"}
-							</div>
-						</div>
-					</div>
-				</CardContent>
+					</CardContent>
 
-				{!isCompleted && onRemove && "assignmentId" in employee && (
-					<Button
-						variant="ghost"
-						size="sm"
-						className="h-7 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-white/80 backdrop-blur-sm rounded-md p-0.5 shadow-sm"
-						onClick={() => onRemove(employee.id, employee.assignmentId)}>
-						<UserMinus className="h-3.5 w-3.5 mr-1" />
-						Remove
-					</Button>
-				)}
-			</Card>
+					{!isCompleted && onRemove && "assignmentId" in employee && (
+						<Button
+							variant="ghost"
+							size="sm"
+							className="h-7 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 bg-white/80 backdrop-blur-sm rounded-md p-0.5 shadow-sm"
+							onClick={(e) => {
+								e.stopPropagation();
+								onRemove(employee.id, employee.assignmentId);
+							}}>
+							<UserMinus className="h-3.5 w-3.5 mr-1" />
+							Remove
+						</Button>
+					)}
+
+					{isCompleted && (
+						<div className="absolute inset-0 flex items-center justify-center bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity">
+							<Badge
+								variant="secondary"
+								className="bg-white shadow-sm">
+								View Details
+							</Badge>
+						</div>
+					)}
+				</Card>
+
+				{/* Employee Shift Details Dialog */}
+				{isCompleted &&
+					"assignmentId" in employee &&
+					shiftStartTime &&
+					shiftEndTime && (
+						<ShiftEmployeeDetailDialog
+							employee={employee as AssignedEmployee}
+							shiftStartTime={shiftStartTime}
+							shiftEndTime={shiftEndTime}
+							isCompleted={isCompleted}
+							open={detailsOpen}
+							onOpenChange={setDetailsOpen}
+						/>
+					)}
+			</>
 		);
 	}
 

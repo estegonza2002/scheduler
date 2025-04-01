@@ -1,5 +1,5 @@
 import { Button } from "../ui/button";
-import { Edit, Plus, Trash, Lock } from "lucide-react";
+import { Edit, Plus, Trash, Lock, FileText } from "lucide-react";
 import { parseSimpleMarkdown } from "../../utils/text-formatting";
 import { cn } from "../../lib/utils";
 import { Badge } from "../ui/badge";
@@ -20,16 +20,9 @@ export function ShiftNotes({
 	return (
 		<div className="mb-6">
 			<div className="flex items-center justify-between mb-4">
-				<h2 className="text-lg font-medium">
+				<h2 className="text-lg font-medium flex items-center">
+					<FileText className="mr-2 h-5 w-5 text-muted-foreground" />
 					Notes
-					{isCompleted && (
-						<Badge
-							variant="outline"
-							className="ml-2 bg-gray-100 text-gray-700">
-							<Lock className="h-3 w-3 mr-1" />
-							Locked
-						</Badge>
-					)}
 				</h2>
 				<div className="flex gap-2">
 					{!isCompleted && (

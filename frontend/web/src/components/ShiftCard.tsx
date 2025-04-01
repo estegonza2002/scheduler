@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { Shift, Employee } from "@/api";
 import { useNavigate } from "react-router-dom";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ShiftCardProps {
 	shift: Shift;
@@ -111,21 +113,27 @@ export function ShiftCard({
 			switch (status) {
 				case "in-progress":
 					return (
-						<Badge className="bg-blue-500 hover:bg-blue-600 text-white">
+						<Badge
+							variant="default"
+							className="bg-blue-500 hover:bg-blue-600">
 							<Play className="h-3 w-3 mr-1" />
 							In Progress
 						</Badge>
 					);
 				case "completed":
 					return (
-						<Badge className="bg-green-500 hover:bg-green-600 text-white">
+						<Badge
+							variant="default"
+							className="bg-green-500 hover:bg-green-600">
 							<CheckCircle2 className="h-3 w-3 mr-1" />
 							Completed
 						</Badge>
 					);
 				case "canceled":
 					return (
-						<Badge className="bg-red-500 hover:bg-red-600 text-white">
+						<Badge
+							variant="default"
+							className="bg-red-500 hover:bg-red-600">
 							<AlertCircle className="h-3 w-3 mr-1" />
 							Canceled
 						</Badge>
@@ -135,7 +143,7 @@ export function ShiftCard({
 					return (
 						<Badge
 							variant="outline"
-							className="bg-blue-50 text-blue-700 border border-blue-200">
+							className="bg-blue-50 text-blue-700 border-blue-200">
 							Scheduled
 						</Badge>
 					);
@@ -164,103 +172,94 @@ export function ShiftCard({
 					status === "in-progress" ? "border-l-4 border-l-blue-500" : ""
 				}`}
 				onClick={() => navigate(`/shifts/${shift.id}`)}>
-				<CardContent className="p-4">
-					<div className="space-y-3">
-						{/* Status and Today/Tomorrow Badge */}
-						<div className="flex justify-between items-center mb-1">
-							{getStatusBadge()}
+				<CardContent className="p-4 space-y-3">
+					{/* Status and Today/Tomorrow Badge */}
+					<div className="flex justify-between items-center">
+						{getStatusBadge()}
 
-							<div className="flex items-center gap-1">
-								{isToday && (
-									<span className="text-sm text-green-600 font-medium">
-										Today
-									</span>
-								)}
+						{(isToday || isTomorrow) && (
+							<span
+								className={`text-sm font-medium ${
+									isToday ? "text-green-600" : "text-amber-600"
+								}`}>
+								{isToday ? "Today" : "Tomorrow"}
+							</span>
+						)}
+					</div>
 
-								{isTomorrow && (
-									<span className="text-sm text-amber-600 font-medium">
-										Tomorrow
-									</span>
-								)}
+					{/* Time information */}
+					<div className="flex items-center gap-2">
+						<Clock className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+						<div className="text-lg font-medium">
+							{startTime} - {endTime}{" "}
+							<span className="text-sm text-muted-foreground">
+								{durationText}
+							</span>
+						</div>
+					</div>
+
+					{/* Date */}
+					<div className="flex items-center gap-2 text-sm text-muted-foreground">
+						<Calendar className="h-4 w-4 flex-shrink-0" />
+						<span>{startDate}</span>
+					</div>
+
+					{/* Status and Assignment */}
+					<div className="flex justify-between items-center mt-2">
+						{isLoading ? (
+							<div className="flex items-center gap-2">
+								<Skeleton className="h-8 w-8 rounded-full" />
+								<Skeleton className="h-4 w-24" />
 							</div>
-						</div>
-
-						{/* Time information */}
-						<div className="flex items-center gap-2">
-							<Clock className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-							<div>
-								<div className="text-lg font-medium">
-									{startTime} - {endTime}{" "}
-									<span className="text-sm text-muted-foreground">
-										{durationText}
-									</span>
-								</div>
-							</div>
-						</div>
-
-						{/* Date */}
-						<div className="flex items-center gap-2 text-sm text-muted-foreground">
-							<Calendar className="h-4 w-4 flex-shrink-0" />
-							<span>{startDate}</span>
-						</div>
-
-						{/* Status and Assignment */}
-						<div className="flex justify-between items-center mt-2">
+						) : assignedEmployees.length > 0 ? (
 							<div className="flex items-center">
-								{isLoading ? (
-									<div className="flex items-center">
-										<div className="h-8 w-8 rounded-full bg-primary/10 border-2 border-white flex items-center justify-center text-sm animate-pulse">
-											<Users className="h-4 w-4 text-primary" />
-										</div>
-										<span className="ml-2 text-sm text-muted-foreground animate-pulse">
-											Loading assignments...
-										</span>
-									</div>
-								) : assignedEmployees.length > 0 ? (
-									<div className="flex items-center">
-										<div className="flex -space-x-2">
-											{assignedEmployees
-												.slice(0, maxDisplayedAvatars)
-												.map((employee, index) => (
-													<div
-														key={employee.id || index}
-														className="h-8 w-8 rounded-full bg-primary/10 border-2 border-white flex items-center justify-center text-sm font-medium text-primary"
-														style={{ zIndex: 10 - index }}>
-														{getInitial(employee.name)}
-													</div>
-												))}
-											{assignedEmployees.length > maxDisplayedAvatars && (
-												<div
-													className="h-8 w-8 rounded-full bg-gray-100 border-2 border-white flex items-center justify-center text-xs font-medium text-gray-600"
-													style={{ zIndex: 10 - maxDisplayedAvatars }}>
-													+{assignedEmployees.length - maxDisplayedAvatars}
-												</div>
-											)}
-										</div>
-										<div className="ml-2 flex items-center text-sm text-muted-foreground">
-											<Users className="h-4 w-4 mr-1" />
-											<span>{assignedEmployees.length}</span>
-										</div>
-									</div>
-								) : (
-									<div className="flex items-center">
-										<div className="h-8 w-8 rounded-full bg-gray-100 border-2 border-white flex items-center justify-center">
-											<User className="h-4 w-4 text-gray-400" />
-										</div>
-										<span className="ml-2 text-sm text-muted-foreground">
-											Unassigned
-										</span>
-									</div>
-								)}
-							</div>
-
-							{showLocationName && (
-								<div className="flex items-center text-sm text-muted-foreground">
-									<MapPin className="h-4 w-4 mr-1" />
-									<span>{locationName}</span>
+								<div className="flex -space-x-2">
+									{assignedEmployees
+										.slice(0, maxDisplayedAvatars)
+										.map((employee, index) => (
+											<Avatar
+												key={employee.id || index}
+												className="border-2 border-background"
+												style={{ zIndex: 10 - index }}>
+												<AvatarFallback className="bg-primary/10 text-primary">
+													{getInitial(employee.name)}
+												</AvatarFallback>
+											</Avatar>
+										))}
+									{assignedEmployees.length > maxDisplayedAvatars && (
+										<Avatar
+											className="border-2 border-background"
+											style={{ zIndex: 10 - maxDisplayedAvatars }}>
+											<AvatarFallback className="bg-muted text-muted-foreground text-xs">
+												+{assignedEmployees.length - maxDisplayedAvatars}
+											</AvatarFallback>
+										</Avatar>
+									)}
 								</div>
-							)}
-						</div>
+								<div className="ml-2 flex items-center text-sm text-muted-foreground">
+									<Users className="h-4 w-4 mr-1" />
+									<span>{assignedEmployees.length}</span>
+								</div>
+							</div>
+						) : (
+							<div className="flex items-center">
+								<Avatar className="border-2 border-background">
+									<AvatarFallback className="bg-muted">
+										<User className="h-4 w-4 text-muted-foreground" />
+									</AvatarFallback>
+								</Avatar>
+								<span className="ml-2 text-sm text-muted-foreground">
+									Unassigned
+								</span>
+							</div>
+						)}
+
+						{showLocationName && (
+							<div className="flex items-center text-sm text-muted-foreground">
+								<MapPin className="h-4 w-4 mr-1" />
+								<span>{locationName}</span>
+							</div>
+						)}
 					</div>
 				</CardContent>
 			</Card>
@@ -270,10 +269,8 @@ export function ShiftCard({
 		return (
 			<Card className="cursor-pointer hover:bg-muted/50 transition-all">
 				<CardContent className="p-4">
-					<div className="space-y-3">
-						<div className="text-sm text-muted-foreground">
-							Error rendering shift
-						</div>
+					<div className="text-sm text-muted-foreground">
+						Error rendering shift
 					</div>
 				</CardContent>
 			</Card>

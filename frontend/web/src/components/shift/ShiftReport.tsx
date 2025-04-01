@@ -4,7 +4,14 @@ import { calculateHours } from "../../utils/time-calculations";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Progress } from "../ui/progress";
 import { format, parseISO } from "date-fns";
-import { CircleCheck, Clock, ClipboardCheck, Frown, Users } from "lucide-react";
+import {
+	CircleCheck,
+	Clock,
+	ClipboardCheck,
+	Frown,
+	Users,
+	FileBarChart,
+} from "lucide-react";
 
 interface ShiftReportProps {
 	shift: Shift;
@@ -58,11 +65,14 @@ export function ShiftReport({ shift, assignedEmployees }: ShiftReportProps) {
 
 	return (
 		<div className="space-y-6">
-			<h2 className="text-xl font-semibold">Shift Report</h2>
+			<h2 className="text-lg font-medium flex items-center">
+				<FileBarChart className="mr-2 h-5 w-5 text-muted-foreground" />
+				Shift Report
+			</h2>
 			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 				{/* Hours Card */}
-				<Card className="border-2 border-blue-100 hover:border-blue-200 transition-colors">
-					<CardHeader className="pb-2 pt-4 px-4 bg-gradient-to-r from-blue-50 to-transparent">
+				<Card className="bg-blue-50 hover:shadow-md transition-all duration-200">
+					<CardHeader className="pb-2 pt-4 px-4">
 						<CardTitle className="text-sm flex items-center gap-2 text-blue-700">
 							<Clock className="h-4 w-4" />
 							Hours
@@ -90,8 +100,8 @@ export function ShiftReport({ shift, assignedEmployees }: ShiftReportProps) {
 				</Card>
 
 				{/* Task Completion Card */}
-				<Card className="border-2 border-green-100 hover:border-green-200 transition-colors">
-					<CardHeader className="pb-2 pt-4 px-4 bg-gradient-to-r from-green-50 to-transparent">
+				<Card className="bg-green-50 hover:shadow-md transition-all duration-200">
+					<CardHeader className="pb-2 pt-4 px-4">
 						<CardTitle className="text-sm flex items-center gap-2 text-green-700">
 							<ClipboardCheck className="h-4 w-4" />
 							Task Completion
@@ -117,8 +127,8 @@ export function ShiftReport({ shift, assignedEmployees }: ShiftReportProps) {
 				</Card>
 
 				{/* Attendance Card */}
-				<Card className="border-2 border-purple-100 hover:border-purple-200 transition-colors">
-					<CardHeader className="pb-2 pt-4 px-4 bg-gradient-to-r from-purple-50 to-transparent">
+				<Card className="bg-purple-50 hover:shadow-md transition-all duration-200">
+					<CardHeader className="pb-2 pt-4 px-4">
 						<CardTitle className="text-sm flex items-center gap-2 text-purple-700">
 							<Users className="h-4 w-4" />
 							Attendance
@@ -144,8 +154,8 @@ export function ShiftReport({ shift, assignedEmployees }: ShiftReportProps) {
 				</Card>
 
 				{/* Check-in/out Tasks Card */}
-				<Card className="border-2 border-amber-100 hover:border-amber-200 transition-colors">
-					<CardHeader className="pb-2 pt-4 px-4 bg-gradient-to-r from-amber-50 to-transparent">
+				<Card className="bg-amber-50 hover:shadow-md transition-all duration-200">
+					<CardHeader className="pb-2 pt-4 px-4">
 						<CardTitle className="text-sm flex items-center gap-2 text-amber-700">
 							<CircleCheck className="h-4 w-4" />
 							Check-in/out
@@ -177,8 +187,6 @@ export function ShiftReport({ shift, assignedEmployees }: ShiftReportProps) {
 					</CardContent>
 				</Card>
 			</div>
-
-			{/* Additional reports could be added here */}
 		</div>
 	);
 }
