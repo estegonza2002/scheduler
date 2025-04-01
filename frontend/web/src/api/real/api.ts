@@ -403,13 +403,55 @@ export const LocationsAPI = {
 	},
 
 	create: async (data: Omit<Location, "id">): Promise<Location> => {
-		console.log("Creating location with data:", data);
+		console.log("Creating location with data:", JSON.stringify(data, null, 2));
+
+		// Verify database structure first
+		try {
+			// Use admin client to bypass RLS
+			const client = supabase;
+
+			// Get table information using system tables
+			const { data: dbInfo, error: dbInfoError } = await client
+				.from("pg_catalog.pg_tables")
+				.select("*")
+				.eq("tablename", "locations")
+				.limit(1);
+
+			if (dbInfoError) {
+				console.error(
+					"Error checking locations table:",
+					JSON.stringify(dbInfoError, null, 2)
+				);
+			} else {
+				console.log("Locations table exists:", dbInfo && dbInfo.length > 0);
+
+				// Check columns in the locations table
+				const { data: columnInfo, error: columnError } = await client
+					.rpc("get_table_columns", { table_name: "locations" })
+					.select("*");
+
+				if (columnError) {
+					console.error(
+						"Error fetching column info:",
+						JSON.stringify(columnError, null, 2)
+					);
+				} else {
+					console.log(
+						"Locations table columns:",
+						JSON.stringify(columnInfo, null, 2)
+					);
+				}
+			}
+		} catch (infoError) {
+			console.error("Error checking database structure:", infoError);
+		}
 
 		// Ensure we have a valid organization ID
 		if (!data.organizationId) {
 			console.warn("No organization ID provided, using default");
 			// Use default organization ID from the first organization
-			const { data: orgs } = await supabase
+			const client = supabase;
+			const { data: orgs } = await client
 				.from("organizations")
 				.select("id")
 				.limit(1);
@@ -418,7 +460,7 @@ export const LocationsAPI = {
 				data.organizationId = orgs[0].id;
 			} else {
 				// Fallback to a hardcoded UUID if no organizations exist
-				data.organizationId = "03a0572b-fb64-49ab-8955-c2f5ce50cfe6";
+				data.organizationId = "79a0cd70-b7e6-4ea4-8b00-a88dfea38e25"; // Updated to match organization context fallback
 			}
 		}
 
@@ -434,69 +476,75 @@ export const LocationsAPI = {
 		}
 
 		// Map from app camelCase properties to DB snake_case columns
-		const dbData = {
+		const dbData: any = {
 			name: data.name || "New Location", // Ensure name is not null
 			address: data.address || "", // Ensure not null
 			city: data.city || "", // Ensure not null
 			state: data.state || "", // Ensure not null
 			zip_code: data.zipCode || "",
-			is_active: data.isActive,
+			is_active: data.isActive === undefined ? true : data.isActive, // Default to true if undefined
 			organization_id: data.organizationId,
 		};
 
-		console.log("Transformed DB data:", dbData);
+		// Add additional fields if they exist in the Location object
+		if (data.latitude !== undefined) dbData.latitude = data.latitude;
+		if (data.longitude !== undefined) dbData.longitude = data.longitude;
+		if (data.imageUrl !== undefined) dbData.image_url = data.imageUrl;
+
+		console.log("Transformed DB data:", JSON.stringify(dbData, null, 2));
+
+		// First try a simple select to check permissions
+		try {
+			const client = supabase;
+			const { data: permCheck, error: permError } = await client
+				.from("locations")
+				.select("id")
+				.limit(1);
+
+			if (permError) {
+				console.error(
+					"Permission error checking locations table:",
+					JSON.stringify(permError, null, 2)
+				);
+				toast.error(
+					"Permission issue with accessing locations. Please check your account."
+				);
+			} else {
+				console.log(
+					"Location permissions check successful, found:",
+					permCheck?.length || 0,
+					"locations"
+				);
+			}
+		} catch (permCheckError) {
+			console.error("Error in permission check:", permCheckError);
+		}
 
 		try {
-			const { data: newLocation, error } = await supabase
+			const client = supabase;
+			const { data: newLocation, error } = await client
 				.from("locations")
 				.insert(dbData)
 				.select()
 				.single();
 
 			if (error) {
-				console.error("Error creating location:", error);
+				console.error(
+					"Error creating location:",
+					JSON.stringify(error, null, 2)
+				);
 
-				// Try alternate approach with both field formats if original fails
-				if (
-					error.message.includes("organization_id") ||
-					error.message.includes("organizationId")
-				) {
-					console.log("Trying alternate approach with both field formats...");
-
-					const alternateData = {
-						...dbData,
-						organizationId: data.organizationId, // Add camelCase version as well
-					};
-
-					const { data: altLocation, error: altError } = await supabase
-						.from("locations")
-						.insert(alternateData)
-						.select()
-						.single();
-
-					if (altError) {
-						console.error("Alternative approach also failed:", altError);
-						toast.error("Failed to create location");
-						throw altError;
-					}
-
-					toast.success("Location created successfully!");
-
-					// Map from DB snake_case columns to app camelCase properties
-					return {
-						id: altLocation.id,
-						name: altLocation.name,
-						address: altLocation.address,
-						city: altLocation.city,
-						state: altLocation.state,
-						zipCode: altLocation.zipCode || altLocation.zip_code,
-						isActive: altLocation.isActive || altLocation.is_active,
-						organizationId:
-							altLocation.organizationId || altLocation.organization_id,
-					} as Location;
+				// Provide more detailed error message
+				if (error.message?.includes("violates foreign key constraint")) {
+					toast.error("Failed to create location: Invalid organization ID");
+				} else if (error.message?.includes("violates not-null constraint")) {
+					toast.error("Failed to create location: Missing required field");
+				} else {
+					toast.error(
+						`Failed to create location: ${error.message || "Unknown error"}`
+					);
 				}
 
-				toast.error("Failed to create location");
 				throw error;
 			}
 
@@ -509,13 +557,18 @@ export const LocationsAPI = {
 				address: newLocation.address,
 				city: newLocation.city,
 				state: newLocation.state,
-				zipCode: newLocation.zipCode || newLocation.zip_code,
-				isActive: newLocation.isActive || newLocation.is_active,
-				organizationId:
-					newLocation.organizationId || newLocation.organization_id,
+				zipCode: newLocation.zip_code,
+				isActive: newLocation.is_active,
+				organizationId: newLocation.organization_id,
+				latitude: newLocation.latitude,
+				longitude: newLocation.longitude,
+				imageUrl: newLocation.image_url,
 			} as Location;
 		} catch (error) {
-			console.error("Exception creating location:", error);
+			console.error(
+				"Exception creating location:",
+				error instanceof Error ? error.message : JSON.stringify(error, null, 2)
+			);
 			toast.error("Failed to create location");
 			throw error;
 		}

@@ -1,0 +1,10 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# cleanup means
+
+- remove the old files
+- Delete unused files
+- remove debugin code

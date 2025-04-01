@@ -212,9 +212,10 @@ export default function LocationsPage() {
 					</Button>
 					<LocationDialog
 						organizationId={organizationId}
-						onLocationCreated={(newLocation) =>
-							handleLocationsAdded([newLocation])
-						}
+						onLocationCreated={(newLocation) => {
+							console.log("Location created:", newLocation);
+							handleLocationsAdded([newLocation]);
+						}}
 						trigger={
 							<Button>
 								<PlusCircle className="h-4 w-4 mr-2" />

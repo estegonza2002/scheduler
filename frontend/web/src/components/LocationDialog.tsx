@@ -371,20 +371,38 @@ export function LocationDialog({
 						return;
 					}
 
+					// Log the organization ID to verify it's valid
+					console.log(
+						"Creating location with organization ID:",
+						organizationId
+					);
+
+					// Make sure all values are of the correct type
+					const locationData = {
+						name: locationToCreate.name || "New Location", // Default value if empty
+						address: locationToCreate.address || "",
+						city: locationToCreate.city || "",
+						state: locationToCreate.state || "",
+						zipCode: locationToCreate.zipCode || "",
+						// Explicitly convert to appropriate types
+						latitude: locationToCreate.latitude
+							? Number(locationToCreate.latitude)
+							: undefined,
+						longitude: locationToCreate.longitude
+							? Number(locationToCreate.longitude)
+							: undefined,
+						isActive: Boolean(locationToCreate.isActive !== false),
+						imageUrl: locationToCreate.imageUrl || undefined,
+						organizationId: organizationId,
+					};
+
+					console.log(
+						"Prepared location data:",
+						JSON.stringify(locationData, null, 2)
+					);
+
 					// Only include properties that exist in the Location interface
-					const newLocation = await LocationsAPI.create({
-						name: locationToCreate.name,
-						address: locationToCreate.address,
-						city: locationToCreate.city,
-						state: locationToCreate.state,
-						zipCode: locationToCreate.zipCode,
-						latitude: locationToCreate.latitude,
-						longitude: locationToCreate.longitude,
-						isActive: locationToCreate.isActive,
-						imageUrl: locationToCreate.imageUrl,
-						organizationId,
-						// country, phone, and email are used locally but not sent to API
-					});
+					const newLocation = await LocationsAPI.create(locationData);
 
 					// Store the extended properties locally
 					result = {

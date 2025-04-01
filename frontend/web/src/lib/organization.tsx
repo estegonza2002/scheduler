@@ -57,9 +57,10 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
 		}
 	};
 
-	// Get the current organization ID with fallback
+	// Get the current organization ID safely (with fallback)
 	const getCurrentOrganizationId = (): string => {
 		if (organization) {
+			console.log("Using organization ID from context:", organization.id);
 			return organization.id;
 		}
 

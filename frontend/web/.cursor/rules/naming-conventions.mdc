@@ -1,0 +1,7 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+- Use camelCase in the frontend code (React/TypeScript) 
+- Use snake_case in the database/backend (Supabase)
