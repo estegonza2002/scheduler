@@ -48,7 +48,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ContentContainer } from "@/components/ui/content-container";
 import { ContentSection } from "@/components/ui/content-section";
 import { LoadingState } from "@/components/ui/loading-state";
-import { LocationEditSheet } from "@/components/LocationEditSheet";
 import { LocationInsights } from "@/components/LocationInsights";
 import { EmptyState } from "@/components/ui/empty-state";
 import { EmployeeAssignmentSheet } from "@/components/EmployeeAssignmentSheet";
@@ -61,6 +60,7 @@ import { GoogleMap } from "@/components/ui/google-map";
 import { LocationNav } from "@/components/LocationNav";
 import { ShiftCard } from "@/components/ShiftCard";
 import { EmployeeCard } from "@/components/EmployeeCard";
+import { LocationDialog } from "@/components/LocationDialog";
 
 // Update Location type to include optional fields
 interface ExtendedLocation extends Location {
@@ -102,6 +102,7 @@ export default function LocationDetailPage() {
 	>({});
 	const [hasError, setHasError] = useState<boolean>(false);
 	const [errorMessage, setErrorMessage] = useState<string>("");
+	const [editDialogOpen, setEditDialogOpen] = useState<boolean>(false);
 
 	// Function to get the full address string
 	const getFullAddress = (loc: ExtendedLocation | null): string => {
@@ -116,23 +117,23 @@ export default function LocationDetailPage() {
 		const createActionButtons = () => {
 			if (!location) return null;
 
+			// Log location to verify coordinates are present
+			console.log("LocationDetailPage: Location data for edit:", {
+				id: location.id,
+				name: location.name,
+				lat: location.latitude,
+				lng: location.longitude,
+			});
+
 			return (
 				<>
-					<LocationEditSheet
-						location={location}
-						onLocationUpdated={(updatedLocation) => {
-							setLocation(updatedLocation as ExtendedLocation);
-						}}
-						organizationId={organizationId}
-						trigger={
-							<Button
-								variant="outline"
-								size="sm"
-								className="h-9 gap-1">
-								<Edit className="h-4 w-4" /> Edit
-							</Button>
-						}
-					/>
+					<Button
+						variant="outline"
+						size="sm"
+						className="h-9 gap-1"
+						onClick={() => setEditDialogOpen(true)}>
+						<Edit className="h-4 w-4" /> Edit
+					</Button>
 
 					<AlertDialog
 						open={deleteDialogOpen}
@@ -846,6 +847,26 @@ export default function LocationDetailPage() {
 					</ContentSection>
 				</div>
 			</ContentContainer>
+
+			{/* Location Edit Dialog */}
+			{location && (
+				<LocationDialog
+					organizationId={organizationId}
+					onLocationCreated={(updatedLocation) => {
+						setLocation(updatedLocation as ExtendedLocation);
+						setEditDialogOpen(false);
+					}}
+					open={editDialogOpen}
+					onOpenChange={setEditDialogOpen}
+					location={{
+						...location,
+						// Ensure coordinates are numbers not undefined
+						latitude: location.latitude || undefined,
+						longitude: location.longitude || undefined,
+					}}
+					isEditing={true}
+				/>
+			)}
 		</>
 	);
 }

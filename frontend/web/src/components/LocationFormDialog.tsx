@@ -5,7 +5,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
+import {
+	Dialog,
+	DialogContent,
+	DialogFooter,
+	DialogTrigger,
+} from "@/components/ui/dialog";
 import {
 	Form,
 	FormControl,
@@ -301,7 +306,7 @@ export function LocationFormDialog({
 		<Dialog
 			open={open !== undefined ? open : isOpen}
 			onOpenChange={handleOpenChange}>
-			{trigger}
+			{trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
 			<DialogContent
 				className={cn(
 					"sm:max-w-[550px] overflow-hidden flex flex-col max-h-[90vh]",
