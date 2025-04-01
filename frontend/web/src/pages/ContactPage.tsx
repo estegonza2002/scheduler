@@ -33,7 +33,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useAuth } from "@/lib/auth";
-import { useOrganization } from "@/lib/organization";
+import { useOrganization } from "@/lib/organization-context";
 import { useEffect, useState } from "react";
 
 const contactFormSchema = z.object({
@@ -59,7 +59,7 @@ const contactFormSchema = z.object({
 
 export default function ContactPage() {
 	const { user } = useAuth();
-	const { organization } = useOrganization();
+	const { currentOrganization } = useOrganization();
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [formInitialized, setFormInitialized] = useState(false);
 
@@ -94,7 +94,7 @@ export default function ContactPage() {
 	// Prefill form with user data if logged in
 	useEffect(() => {
 		console.log("Auth user data:", user);
-		console.log("Organization data:", organization);
+		console.log("Organization data:", currentOrganization);
 
 		if (user && !formInitialized) {
 			const firstName = user.user_metadata?.firstName || "";
@@ -105,7 +105,7 @@ export default function ContactPage() {
 				"";
 
 			const companyName =
-				organization?.name ||
+				currentOrganization?.name ||
 				user.user_metadata?.company ||
 				user.user_metadata?.organization_name ||
 				"";
@@ -146,7 +146,7 @@ export default function ContactPage() {
 				phone: form.getValues("phone"),
 			});
 		}
-	}, [user, organization, form, formInitialized]);
+	}, [user, currentOrganization, form, formInitialized]);
 
 	// Secondary effect to ensure values are set if they're missing
 	useEffect(() => {
@@ -167,7 +167,7 @@ export default function ContactPage() {
 					name: fullName,
 					email: user.email || "",
 					company:
-						organization?.name ||
+						currentOrganization?.name ||
 						user.user_metadata?.company ||
 						user.user_metadata?.organization_name ||
 						"",
@@ -183,7 +183,7 @@ export default function ContactPage() {
 				}
 			);
 		}
-	}, [user, watchedName, formInitialized, form, organization]);
+	}, [user, watchedName, formInitialized, form, currentOrganization]);
 
 	function onSubmit(values: z.infer<typeof contactFormSchema>) {
 		setIsSubmitting(true);

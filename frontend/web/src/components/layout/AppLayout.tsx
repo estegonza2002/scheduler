@@ -45,6 +45,7 @@ import { Button } from "../ui/button";
 import { ChevronLeft } from "lucide-react";
 import { HeaderProvider, useHeader } from "../../lib/header-context";
 import { SidebarTrigger } from "../ui/sidebar";
+import { OrganizationSwitcher } from "../ui/organization-switcher";
 
 // Common props type for app layout components
 type CommonProps = {
@@ -122,9 +123,12 @@ function GlobalHeader() {
 						</p>
 					)}
 				</div>
+				<div className="ml-auto">
+					<OrganizationSwitcher />
+				</div>
 			</div>
 			{headerContent.actions && (
-				<div className="flex items-center justify-end gap-3">
+				<div className="flex items-center justify-end gap-3 ml-4">
 					{headerContent.actions}
 				</div>
 			)}

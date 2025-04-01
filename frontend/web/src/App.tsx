@@ -1,11 +1,9 @@
-import {
-	BrowserRouter as Router,
-	Routes,
-	Route,
-	Navigate,
-} from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./lib/auth";
-import { OrganizationProvider } from "./lib/organization";
+import {
+	OrganizationProvider,
+	useOrganization,
+} from "./lib/organization-context";
 import { StripeProvider } from "./lib/stripe";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import AppLayout from "./components/layout/AppLayout";
@@ -19,6 +17,7 @@ import { EmployeeProvider } from "./lib/employee";
 import { ShiftProvider } from "./lib/shift";
 import { Button } from "./components/ui/button";
 import { HeaderProvider } from "./lib/header-context";
+import { LoadingState } from "./components/ui/loading-state";
 
 // Import our pages
 import LoginPage from "./pages/LoginPage";
@@ -60,6 +59,12 @@ import AccountPage from "./pages/AccountPage";
 import CreateShiftPage from "./pages/CreateShiftPage";
 import ManageShiftsPage from "./pages/ManageShiftsPage";
 import PastShiftsPage from "./pages/PastShiftsPage";
+import RoleSelectionPage from "./pages/RoleSelectionPage";
+import CreateOrganizationPage from "./pages/CreateOrganizationPage";
+import JoinOrganizationPage from "./pages/JoinOrganizationPage";
+import OrganizationSelectionPage from "./pages/OrganizationSelectionPage";
+import NoOrganizationPage from "./pages/NoOrganizationPage";
+import SettingsPage from "./pages/SettingsPage";
 
 // Marketing pages
 import HomePage from "./pages/HomePage";
@@ -86,48 +91,17 @@ interface RootRedirectProps {
 
 function RootRedirect({ fallbackComponent }: RootRedirectProps) {
 	const { user, isLoading } = useAuth();
+	const { organizations, isLoading: isLoadingOrgs } = useOrganization();
 	const [showBusinessSetup, setShowBusinessSetup] = useState(false);
-	const [loadingTimeout, setLoadingTimeout] = useState(false);
 
-	useEffect(() => {
-		// Check if this is a Google sign-in for business registration
-		if (user && localStorage.getItem("business_signup") === "true") {
-			setShowBusinessSetup(true);
-		}
-
-		// Set a timeout to avoid infinite loading state
-		const timeoutId = setTimeout(() => {
-			if (isLoading) {
-				console.warn("Loading timeout in RootRedirect");
-				setLoadingTimeout(true);
-			}
-		}, 8000); // 8 seconds timeout
-
-		return () => clearTimeout(timeoutId);
-	}, [user, isLoading]);
-
-	if (isLoading && !loadingTimeout) {
+	// Show loading state while checking auth and orgs
+	if (isLoading || isLoadingOrgs) {
 		return (
 			<div className="min-h-screen flex items-center justify-center">
-				<div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-			</div>
-		);
-	}
-
-	// If we hit a timeout but are still loading, show a retry button
-	if (loadingTimeout && isLoading) {
-		return (
-			<div className="min-h-screen flex flex-col items-center justify-center gap-4 p-4">
-				<div className="text-center">
-					<h2 className="text-2xl font-semibold mb-2">Connection Issue</h2>
-					<p className="text-muted-foreground mb-4">
-						We're having trouble connecting to our servers. This might be due to
-						network issues.
-					</p>
-					<Button onClick={() => window.location.reload()}>
-						Retry Connection
-					</Button>
-				</div>
+				<LoadingState
+					message="Loading..."
+					type="spinner"
+				/>
 			</div>
 		);
 	}
@@ -157,8 +131,29 @@ function RootRedirect({ fallbackComponent }: RootRedirectProps) {
 		);
 	}
 
+	// If not logged in, show login page
 	if (!user) {
 		return fallbackComponent;
+	}
+
+	// If user has no organizations, redirect to no-organization page
+	if (!isLoadingOrgs && (!organizations || organizations.length === 0)) {
+		return (
+			<Navigate
+				to="/no-organization"
+				replace
+			/>
+		);
+	}
+
+	// If user has multiple organizations, redirect to organization selection
+	if (!isLoadingOrgs && organizations && organizations.length > 1) {
+		return (
+			<Navigate
+				to="/organization-selection"
+				replace
+			/>
+		);
 	}
 
 	// Check if user is an admin
@@ -168,331 +163,89 @@ function RootRedirect({ fallbackComponent }: RootRedirectProps) {
 
 function App() {
 	return (
-		<Router>
-			<AuthProvider>
-				<OrganizationProvider>
-					<LocationProvider>
-						<EmployeeProvider>
-							<ShiftProvider>
-								<StripeProvider>
-									<HeaderProvider>
-										<NotificationProvider>
-											<OnboardingProvider>
-												<Routes>
-													{/* Marketing pages - accessible without login */}
-													<Route element={<MarketingLayout />}>
-														<Route
-															path="/"
-															element={
-																<RootRedirect
-																	fallbackComponent={<HomePage />}
-																/>
-															}
-														/>
-														<Route
-															path="/features"
-															element={<FeaturesPage />}
-														/>
-														<Route
-															path="/features/all"
-															element={<AllFeaturesPage />}
-														/>
-														<Route
-															path="/features/shift-scheduling"
-															element={<ShiftSchedulingPage />}
-														/>
-														<Route
-															path="/features/leave-management"
-															element={<LeaveManagementPage />}
-														/>
-														<Route
-															path="/features/auto-scheduling"
-															element={<AutoSchedulingPage />}
-														/>
-														<Route
-															path="/features/task-management"
-															element={<TaskManagementPage />}
-														/>
-														<Route
-															path="/features/clock-in-out"
-															element={<ClockInOutPage />}
-														/>
-														<Route
-															path="/integrations"
-															element={<IntegrationsPage />}
-														/>
-														<Route
-															path="/pricing"
-															element={<PricingPage />}
-														/>
-														<Route
-															path="/enterprise"
-															element={<EnterprisePage />}
-														/>
-														<Route
-															path="/resources"
-															element={<ResourcesPage />}
-														/>
-														<Route
-															path="/contact"
-															element={<ContactPage />}
-														/>
-														<Route
-															path="/blog"
-															element={<BlogPage />}
-														/>
-														<Route
-															path="/blog/:postId"
-															element={<BlogPostPage />}
-														/>
-														<Route
-															path="/terms"
-															element={<TermsPage />}
-														/>
-														<Route
-															path="/privacy"
-															element={<PrivacyPage />}
-														/>
-														<Route
-															path="/about"
-															element={<AboutPage />}
-														/>
-														<Route
-															path="/developers"
-															element={<DevelopersPage />}
-														/>
-													</Route>
+		<AuthProvider>
+			<OrganizationProvider>
+				<HeaderProvider>
+					<StripeProvider>
+						<BrowserRouter>
+							<Routes>
+								{/* Public routes */}
+								<Route
+									path="/login"
+									element={<LoginPage />}
+								/>
+								<Route
+									path="/signup"
+									element={<SignUpPage />}
+								/>
+								<Route
+									path="/forgot-password"
+									element={<ForgotPasswordPage />}
+								/>
+								<Route
+									path="/reset-password"
+									element={<ResetPasswordPage />}
+								/>
 
-													{/* Auth pages - accessible without login */}
-													<Route
-														path="/login"
-														element={<LoginPage />}
-													/>
-													<Route
-														path="/signup"
-														element={<SignUpPage />}
-													/>
-													<Route
-														path="/business-signup"
-														element={<BusinessSignUpPage />}
-													/>
-													<Route
-														path="/forgot-password"
-														element={<ForgotPasswordPage />}
-													/>
-													<Route
-														path="/reset-password"
-														element={<ResetPasswordPage />}
-													/>
-													<Route
-														path="/auth-callback"
-														element={<AuthCallbackPage />}
-													/>
-
-													{/* Protected routes */}
-													<Route element={<ProtectedRoute />}>
-														<Route element={<AppLayout />}>
-															<Route
-																path="/dashboard"
-																element={<DashboardPage />}
-															/>
-															<Route
-																path="/admin-dashboard"
-																element={<AdminDashboardPage />}
-															/>
-															<Route
-																path="/daily-shifts"
-																element={<DailyShiftsPage />}
-															/>
-															<Route
-																path="/my-shifts"
-																element={<MyShiftsPage />}
-															/>
-															<Route
-																path="/my-locations"
-																element={<MyLocationsPage />}
-															/>
-															<Route
-																path="/today"
-																element={
-																	<Navigate
-																		to={`/daily-shifts?date=${
-																			new Date().toISOString().split("T")[0]
-																		}`}
-																	/>
-																}
-															/>
-															<Route
-																path="/profile"
-																element={<ProfilePage />}
-															/>
-															<Route
-																path="/account"
-																element={<AccountPage />}>
-																<Route
-																	index
-																	element={<AccountPage />}
-																/>
-																<Route
-																	path="business-profile"
-																	element={<BusinessProfilePage />}
-																/>
-																<Route
-																	path="users"
-																	element={<UsersManagementPage />}
-																/>
-																<Route
-																	path="billing"
-																	element={<BillingPage />}
-																/>
-															</Route>
-															<Route
-																path="/employees"
-																element={<EmployeesPage />}
-															/>
-															<Route
-																path="/locations"
-																element={<LocationsPage />}
-															/>
-															<Route
-																path="/locations/bulk-import"
-																element={<BulkLocationImportPage />}
-															/>
-															<Route
-																path="/locations/:locationId"
-																element={<LocationDetailPage />}
-															/>
-															<Route
-																path="/locations/:locationId/insights"
-																element={<LocationInsightsPage />}
-															/>
-															<Route
-																path="/locations/:locationId/finance"
-																element={<LocationFinancialReportPage />}
-															/>
-															<Route
-																path="/locations/:locationId/shifts"
-																element={<LocationShiftPage />}
-															/>
-															<Route
-																path="/locations/:locationId/employees"
-																element={<LocationEmployeesPage />}
-															/>
-															<Route
-																path="/employees/:employeeId"
-																element={<EmployeeDetailPage />}
-															/>
-															<Route
-																path="/shifts/new"
-																element={<EditShiftPage />}
-															/>
-															<Route
-																path="/shifts/:shiftId"
-																element={<ShiftDetailsPage />}
-															/>
-															<Route
-																path="/shifts/:shiftId/edit"
-																element={<EditShiftPage />}
-															/>
-															<Route
-																path="/shift-logs/:logId"
-																element={<ShiftLogDetailsPage />}
-															/>
-															<Route
-																path="/notifications"
-																element={<NotificationsPage />}
-															/>
-															<Route
-																path="/messages"
-																element={<MessagesPage />}
-															/>
-															<Route
-																path="/design-system"
-																element={<DesignSystemShowcasePage />}
-															/>
-
-															{/* Reports Routes */}
-															<Route
-																path="/reports"
-																element={<ReportsPage />}
-															/>
-															<Route
-																path="/reports/performance"
-																element={<ReportsPage />}
-															/>
-															<Route
-																path="/reports/attendance"
-																element={<ReportsPage />}
-															/>
-															<Route
-																path="/reports/payroll"
-																element={<ReportsPage />}
-															/>
-
-															{/* Legacy routes for backward compatibility */}
-															<Route
-																path="/business-profile"
-																element={
-																	<Navigate to="/account/business-profile" />
-																}
-															/>
-															<Route
-																path="/billing"
-																element={<Navigate to="/account/billing" />}
-															/>
-															<Route
-																path="/users"
-																element={<Navigate to="/account/users" />}
-															/>
-															<Route
-																path="/branding"
-																element={<BrandingPage />}
-															/>
-
-															{/* New route for shift creation */}
-															<Route
-																path="/shifts/create"
-																element={<CreateShiftPage />}
-															/>
-
-															{/* New route for manage shifts */}
-															<Route
-																path="/manage-shifts"
-																element={<ManageShiftsPage />}
-															/>
-
-															{/* Route for past shifts */}
-															<Route
-																path="/past-shifts"
-																element={<PastShiftsPage />}
-															/>
-														</Route>
-													</Route>
-
-													{/* Root redirect - only for authenticated app routes */}
-													<Route
-														path="/app"
-														element={
-															<RootRedirect
-																fallbackComponent={<Navigate to="/login" />}
-															/>
-														}
-													/>
-													<Route
-														path="*"
-														element={<Navigate to="/" />}
-													/>
-												</Routes>
-											</OnboardingProvider>
-										</NotificationProvider>
-									</HeaderProvider>
-								</StripeProvider>
-							</ShiftProvider>
-						</EmployeeProvider>
-					</LocationProvider>
-				</OrganizationProvider>
-			</AuthProvider>
-		</Router>
+								{/* Protected routes */}
+								<Route element={<ProtectedRoute />}>
+									<Route
+										path="/no-organization"
+										element={<NoOrganizationPage />}
+									/>
+									<Route
+										path="/create-organization"
+										element={<CreateOrganizationPage />}
+									/>
+									<Route
+										path="/join-organization"
+										element={<JoinOrganizationPage />}
+									/>
+									<Route
+										path="/organization-selection"
+										element={<OrganizationSelectionPage />}
+									/>
+									<Route
+										path="/role-selection"
+										element={<RoleSelectionPage />}
+									/>
+									<Route element={<AppLayout />}>
+										<Route
+											path="/dashboard"
+											element={<DashboardPage />}
+										/>
+										<Route
+											path="/admin-dashboard"
+											element={<AdminDashboardPage />}
+										/>
+										<Route
+											path="/account/*"
+											element={<AccountPage />}
+										/>
+										<Route
+											path="/users"
+											element={<UsersManagementPage />}
+										/>
+										<Route
+											path="/employees"
+											element={<EmployeesPage />}
+										/>
+									</Route>
+									<Route
+										path="/"
+										element={
+											<RootRedirect
+												fallbackComponent={<Navigate to="/login" />}
+											/>
+										}
+									/>
+								</Route>
+							</Routes>
+						</BrowserRouter>
+					</StripeProvider>
+				</HeaderProvider>
+			</OrganizationProvider>
+		</AuthProvider>
 	);
 }
 

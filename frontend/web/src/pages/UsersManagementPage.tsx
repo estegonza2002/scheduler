@@ -12,7 +12,7 @@ import {
 	AlertCircle,
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
-import { useOrganization } from "@/lib/organization";
+import { useOrganization } from "@/lib/organization-context";
 import { useHeader } from "@/lib/header-context";
 import {
 	Table,
@@ -111,7 +111,7 @@ interface OrgMemberWithUser {
 
 export default function UsersManagementPage() {
 	const { user } = useAuth();
-	const { organization } = useOrganization();
+	const { currentOrganization } = useOrganization();
 	const [users, setUsers] = useState<User[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
@@ -162,21 +162,24 @@ export default function UsersManagementPage() {
 			setUsers([currentUserData]);
 		}
 
-		if (!organization?.id) {
-			console.log("No organization ID found", { organization });
+		if (!currentOrganization?.id) {
+			console.log("No organization ID found", { currentOrganization });
 			// Don't show error immediately, just log it and keep showing the current user
 			setLoading(false);
 			return;
 		}
 
 		try {
-			console.log("Fetching organization members for org:", organization.id);
+			console.log(
+				"Fetching organization members for org:",
+				currentOrganization.id
+			);
 
 			// 1. Get active members
 			const { data: memberData, error: memberError } = await supabase
 				.from("organization_members")
 				.select("*")
-				.eq("organization_id", organization.id);
+				.eq("organization_id", currentOrganization.id);
 
 			if (memberError) {
 				console.error("Error fetching members:", memberError);
@@ -186,14 +189,17 @@ export default function UsersManagementPage() {
 			console.log("Active members found:", memberData?.length || 0, memberData);
 
 			// 2. Get pending invitations
-			console.log("Fetching invitations for organization:", organization.id);
+			console.log(
+				"Fetching invitations for organization:",
+				currentOrganization.id
+			);
 
 			// First try without the status filter to see if any invitations exist
 			const { data: allInvitationData, error: allInvitationError } =
 				await supabase
 					.from("invitations")
 					.select("*")
-					.eq("organization_id", organization.id);
+					.eq("organization_id", currentOrganization.id);
 
 			if (allInvitationError) {
 				console.error("Error fetching all invitations:", allInvitationError);
@@ -209,7 +215,7 @@ export default function UsersManagementPage() {
 			const { data: invitationData, error: invitationError } = await supabase
 				.from("invitations")
 				.select("*")
-				.eq("organization_id", organization.id)
+				.eq("organization_id", currentOrganization.id)
 				.eq("status", "pending");
 
 			if (invitationError) {
@@ -331,7 +337,7 @@ export default function UsersManagementPage() {
 
 	useEffect(() => {
 		fetchUsers();
-	}, [organization?.id, user]);
+	}, [currentOrganization?.id, user]);
 
 	// Reset form fields
 	const resetInviteForm = () => {
@@ -347,14 +353,14 @@ export default function UsersManagementPage() {
 			return;
 		}
 
-		if (!organization) {
-			console.error("No organization object available:", organization);
+		if (!currentOrganization) {
+			console.error("No organization object available:", currentOrganization);
 			toast.error("Organization data not available. Please refresh the page.");
 			return;
 		}
 
-		if (!organization.id) {
-			console.error("Missing organization ID:", organization);
+		if (!currentOrganization.id) {
+			console.error("Missing organization ID:", currentOrganization);
 			toast.error("Organization ID is missing. Please refresh the page.");
 			return;
 		}
@@ -363,7 +369,7 @@ export default function UsersManagementPage() {
 			"Starting invitation process for:",
 			inviteEmail,
 			"Org ID:",
-			organization.id
+			currentOrganization.id
 		);
 
 		try {
@@ -387,7 +393,7 @@ export default function UsersManagementPage() {
 				const { data: existingMember, error: memberQueryError } = await supabase
 					.from("organization_members")
 					.select("id")
-					.eq("organization_id", organization.id)
+					.eq("organization_id", currentOrganization.id)
 					.eq("user_id", existingUserId);
 
 				if (memberQueryError) {
@@ -410,7 +416,7 @@ export default function UsersManagementPage() {
 				await supabase
 					.from("invitations")
 					.select("id")
-					.eq("organization_id", organization.id)
+					.eq("organization_id", currentOrganization.id)
 					.eq("email", inviteEmail)
 					.eq("status", "pending");
 
@@ -430,7 +436,7 @@ export default function UsersManagementPage() {
 
 			console.log(
 				"Creating invitation record in database for org:",
-				organization.id
+				currentOrganization.id
 			);
 
 			// Prepare display name - use entered name or derive from email
@@ -444,7 +450,7 @@ export default function UsersManagementPage() {
 
 			// Create invitation with name and selected role
 			const invitePayload = {
-				organization_id: organization.id,
+				organization_id: currentOrganization.id,
 				email: inviteEmail,
 				name: displayName, // Store the name
 				role: inviteRole, // Use the selected role, defaults to admin
@@ -580,13 +586,13 @@ export default function UsersManagementPage() {
 	};
 
 	const handlePromoteToAdmin = async (userId: string) => {
-		if (!organization?.id) return;
+		if (!currentOrganization?.id) return;
 
 		try {
 			const { error } = await supabase
 				.from("organization_members")
 				.update({ role: "admin" })
-				.eq("organization_id", organization.id)
+				.eq("organization_id", currentOrganization.id)
 				.eq("user_id", userId);
 
 			if (error) throw error;
@@ -603,13 +609,13 @@ export default function UsersManagementPage() {
 	};
 
 	const handleDemoteToMember = async (userId: string) => {
-		if (!organization?.id) return;
+		if (!currentOrganization?.id) return;
 
 		try {
 			const { error } = await supabase
 				.from("organization_members")
 				.update({ role: "member" })
-				.eq("organization_id", organization.id)
+				.eq("organization_id", currentOrganization.id)
 				.eq("user_id", userId);
 
 			if (error) throw error;
@@ -626,14 +632,14 @@ export default function UsersManagementPage() {
 	};
 
 	const handleResendInvite = async (email: string) => {
-		if (!organization?.id) return;
+		if (!currentOrganization?.id) return;
 
 		try {
 			// Get the invitation
 			const { data, error } = await supabase
 				.from("invitations")
 				.select("id")
-				.eq("organization_id", organization.id)
+				.eq("organization_id", currentOrganization.id)
 				.eq("email", email)
 				.eq("status", "pending");
 

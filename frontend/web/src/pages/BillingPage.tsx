@@ -35,7 +35,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { useStripeContext } from "@/lib/stripe";
-import { useOrganization } from "@/lib/organization";
+import { useOrganization } from "@/lib/organization-context";
 import {
 	CardElement,
 	useStripe as useStripeJs,
@@ -124,7 +124,7 @@ export default function BillingPage() {
 	const isInAccountPage = location.pathname.includes("/account/");
 	const [searchParams, setSearchParams] = useSearchParams();
 	const activeTab = searchParams.get("tab") || "subscription";
-	const { organization } = useOrganization();
+	const { currentOrganization } = useOrganization();
 	const {
 		subscription,
 		isLoading: isLoadingSubscription,
@@ -155,7 +155,7 @@ export default function BillingPage() {
 	// Load invoices and payment methods
 	useEffect(() => {
 		const fetchBillingData = async () => {
-			if (!organization) return;
+			if (!currentOrganization) return;
 
 			try {
 				setIsLoading(true);
@@ -171,14 +171,16 @@ export default function BillingPage() {
 
 				// Fetch invoices
 				if (activeTab === "billing-history") {
-					const invoiceData = await BillingAPI.getInvoices(organization.id);
+					const invoiceData = await BillingAPI.getInvoices(
+						currentOrganization.id
+					);
 					setInvoices(invoiceData);
 				}
 
 				// Fetch payment methods
 				if (activeTab === "payment-methods") {
 					const paymentMethodsData = await BillingAPI.getPaymentMethods(
-						organization.id
+						currentOrganization.id
 					);
 					setPaymentMethods(paymentMethodsData);
 				}
@@ -191,7 +193,7 @@ export default function BillingPage() {
 		};
 
 		fetchBillingData();
-	}, [organization, activeTab, success, sessionId]);
+	}, [currentOrganization, activeTab, success, sessionId]);
 
 	// Handle subscription upgrade
 	const handleUpgrade = async (plan: "pro" | "business") => {
@@ -220,7 +222,7 @@ export default function BillingPage() {
 
 	// Handle adding a new payment method
 	const handleAddPaymentMethod = async () => {
-		if (!organization || !stripeJs || !elements) return;
+		if (!currentOrganization || !stripeJs || !elements) return;
 
 		try {
 			setIsLoading(true);
@@ -244,14 +246,17 @@ export default function BillingPage() {
 			}
 
 			// Add payment method to the organization
-			await BillingAPI.addPaymentMethod(organization.id, paymentMethod.id);
+			await BillingAPI.addPaymentMethod(
+				currentOrganization.id,
+				paymentMethod.id
+			);
 
 			// Clear card input and refresh payment methods
 			cardElement.clear();
 
 			// Fetch updated payment methods
 			const updatedPaymentMethods = await BillingAPI.getPaymentMethods(
-				organization.id
+				currentOrganization.id
 			);
 			setPaymentMethods(updatedPaymentMethods);
 
@@ -266,17 +271,20 @@ export default function BillingPage() {
 
 	// Handle removing a payment method
 	const handleRemovePaymentMethod = async (paymentMethodId: string) => {
-		if (!organization) return;
+		if (!currentOrganization) return;
 
 		try {
 			setIsLoading(true);
 
 			// Remove payment method
-			await BillingAPI.removePaymentMethod(organization.id, paymentMethodId);
+			await BillingAPI.removePaymentMethod(
+				currentOrganization.id,
+				paymentMethodId
+			);
 
 			// Update payment methods list
 			const updatedPaymentMethods = await BillingAPI.getPaymentMethods(
-				organization.id
+				currentOrganization.id
 			);
 			setPaymentMethods(updatedPaymentMethods);
 

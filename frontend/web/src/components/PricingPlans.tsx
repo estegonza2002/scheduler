@@ -10,7 +10,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
 import { useStripeContext } from "@/lib/stripe";
-import { useOrganization } from "@/lib/organization";
+import { useOrganization } from "@/lib/organization-context";
 import SubscriptionModal from "./SubscriptionModal";
 
 type TeamSize = "small" | "medium" | "large";
@@ -144,7 +144,7 @@ export default function PricingPlans() {
 	const [teamSize, setTeamSize] = useState<TeamSize>("small");
 	const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
 	const { subscription, upgradeSubscription } = useStripeContext();
-	const { organization } = useOrganization();
+	const { currentOrganization } = useOrganization();
 
 	// Track loading state for individual plans
 	const [loadingPlan, setLoadingPlan] = useState<
@@ -229,7 +229,7 @@ export default function PricingPlans() {
 	const handleSelectPlan = async (plan: "free" | "pro" | "business") => {
 		// Don't open modal for free plan
 		if (plan === "free") {
-			if (!organization) return;
+			if (!currentOrganization) return;
 
 			setLoadingPlan(plan);
 			try {

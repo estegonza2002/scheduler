@@ -15,6 +15,7 @@ export interface Organization {
 	stripe_customer_id?: string;
 	subscription_id?: string;
 	subscription_status?: string;
+	role?: "owner" | "admin" | "member";
 }
 
 /**
@@ -176,6 +177,7 @@ export interface Subscription {
 	current_period_start: string;
 	current_period_end: string;
 	cancel_at_period_end: boolean;
+	trial_end?: string;
 }
 
 export type SubscriptionPlan = "free" | "pro" | "business";

@@ -24,7 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Check, Loader2, CalendarIcon } from "lucide-react";
 import { useAuth } from "@/lib/auth";
-import { useOrganization } from "@/lib/organization";
+import { useOrganization } from "@/lib/organization-context";
 import { DatePicker } from "@/components/ui/date-picker";
 import {
 	Select,
@@ -80,7 +80,7 @@ export function RequestDemo({
 	size = "default",
 }: RequestDemoProps) {
 	const { user } = useAuth();
-	const { organization } = useOrganization();
+	const { currentOrganization } = useOrganization();
 	const [open, setOpen] = useState(false);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [isSubmitted, setIsSubmitted] = useState(false);
@@ -130,8 +130,8 @@ export function RequestDemo({
 				form.setValue("phone", user.user_metadata.phone);
 
 			// Use organization name if available, otherwise fall back to user metadata
-			if (organization?.name) {
-				form.setValue("company", organization.name);
+			if (currentOrganization?.name) {
+				form.setValue("company", currentOrganization.name);
 			} else if (user.user_metadata?.company) {
 				form.setValue("company", user.user_metadata.company);
 			} else if (user.user_metadata?.organization_name) {
@@ -141,7 +141,7 @@ export function RequestDemo({
 			// Make sure message field is always empty
 			form.setValue("message", "");
 		}
-	}, [user, organization, form]);
+	}, [user, currentOrganization, form]);
 
 	// Update available times when date changes
 	useEffect(() => {

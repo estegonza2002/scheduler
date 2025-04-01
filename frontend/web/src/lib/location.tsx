@@ -9,7 +9,7 @@ import { Location } from "@/api/types";
 import { LocationsAPI } from "@/api";
 import { supabase } from "./supabase";
 import { toast } from "sonner";
-import { getOrgId } from "./organization";
+import { getCurrentOrganizationId } from "./organization-utils";
 
 // Context type that includes all necessary functionality
 interface LocationContextType {
@@ -40,7 +40,14 @@ export function LocationProvider({ children }: { children: ReactNode }) {
 	const refreshLocations = async () => {
 		try {
 			setIsLoading(true);
-			const organizationId = getOrgId();
+			const organizationId = await getCurrentOrganizationId();
+
+			if (!organizationId) {
+				console.error("No organization ID available");
+				toast.error("Failed to load organization data");
+				return;
+			}
+
 			const locationsData = await LocationsAPI.getAll(organizationId);
 
 			setLocations(locationsData);
@@ -92,27 +99,36 @@ export function LocationProvider({ children }: { children: ReactNode }) {
 
 	// Set up real-time subscription for location updates
 	useEffect(() => {
-		const organizationId = getOrgId();
+		const setupRealtimeSubscription = async () => {
+			const organizationId = await getCurrentOrganizationId();
 
-		const subscription = supabase
-			.channel("location-updates")
-			.on(
-				"postgres_changes",
-				{
-					event: "*", // Listen for all events (INSERT, UPDATE, DELETE)
-					schema: "public",
-					table: "locations",
-					filter: `organizationId=eq.${organizationId}`,
-				},
-				() => {
-					refreshLocations();
-				}
-			)
-			.subscribe();
+			if (!organizationId) {
+				console.error("No organization ID available for real-time updates");
+				return;
+			}
 
-		return () => {
-			subscription.unsubscribe();
+			const subscription = supabase
+				.channel("location-updates")
+				.on(
+					"postgres_changes",
+					{
+						event: "*", // Listen for all events (INSERT, UPDATE, DELETE)
+						schema: "public",
+						table: "locations",
+						filter: `organizationId=eq.${organizationId}`,
+					},
+					() => {
+						refreshLocations();
+					}
+				)
+				.subscribe();
+
+			return () => {
+				subscription.unsubscribe();
+			};
 		};
+
+		setupRealtimeSubscription();
 	}, []);
 
 	// Context value

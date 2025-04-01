@@ -9,7 +9,7 @@ import { Shift, Schedule } from "@/api/types";
 import { ShiftsAPI } from "@/api";
 import { supabase } from "./supabase";
 import { toast } from "sonner";
-import { getOrgId } from "./organization";
+import { getCurrentOrganizationId } from "./organization-utils";
 
 // Context type that includes all necessary functionality
 interface ShiftContextType {
@@ -43,7 +43,13 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
 	const refreshShifts = async () => {
 		try {
 			setIsLoading(true);
-			const organizationId = getOrgId();
+			const organizationId = await getCurrentOrganizationId();
+
+			if (!organizationId) {
+				console.error("No organization ID available");
+				toast.error("Failed to load organization data");
+				return;
+			}
 
 			// First get all schedules
 			const schedulesData = await ShiftsAPI.getAllSchedules(organizationId);
@@ -146,27 +152,36 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
 
 	// Set up real-time subscription for shift updates
 	useEffect(() => {
-		const organizationId = getOrgId();
+		const setupRealtimeSubscription = async () => {
+			const organizationId = await getCurrentOrganizationId();
 
-		const subscription = supabase
-			.channel("shift-updates")
-			.on(
-				"postgres_changes",
-				{
-					event: "*", // Listen for all events (INSERT, UPDATE, DELETE)
-					schema: "public",
-					table: "shifts",
-					filter: `organization_id=eq.${organizationId}`,
-				},
-				() => {
-					refreshShifts();
-				}
-			)
-			.subscribe();
+			if (!organizationId) {
+				console.error("No organization ID available for real-time updates");
+				return;
+			}
 
-		return () => {
-			subscription.unsubscribe();
+			const subscription = supabase
+				.channel("shift-updates")
+				.on(
+					"postgres_changes",
+					{
+						event: "*", // Listen for all events (INSERT, UPDATE, DELETE)
+						schema: "public",
+						table: "shifts",
+						filter: `organization_id=eq.${organizationId}`,
+					},
+					() => {
+						refreshShifts();
+					}
+				)
+				.subscribe();
+
+			return () => {
+				subscription.unsubscribe();
+			};
 		};
+
+		setupRealtimeSubscription();
 	}, []);
 
 	// Context value

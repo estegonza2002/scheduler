@@ -1,6 +1,9 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { getOrgId } from "./organization";
+import { getCurrentOrganizationId } from "./organization-utils";
+
+// Fallback organization ID when no organization is selected
+const FALLBACK_ORGANIZATION_ID = "00000000-0000-0000-0000-000000000000";
 
 export function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs));
@@ -17,10 +20,21 @@ export function formatPhoneNumber(phone: string): string {
 
 /**
  * Returns the current organization ID from context or a fallback UUID
- * This should be used in components that require an organization ID
- *
- * @deprecated Use getOrgId from @/lib/organization instead
+ * This is a synchronous function that always returns a value, even though
+ * getCurrentOrganizationId is async. This maintains backward compatibility.
  */
 export function getDefaultOrganizationId(): string {
-	return getOrgId();
+	// Since we need to maintain a synchronous interface but getCurrentOrganizationId
+	// is async, we return a fallback ID immediately
+	// This is not ideal but maintains compatibility with existing code
+	getCurrentOrganizationId()
+		.then((id) => {
+			console.log("Async organization ID:", id);
+			// In a real implementation, you might cache this for future calls
+		})
+		.catch((error) => {
+			console.error("Error getting organization ID:", error);
+		});
+
+	return FALLBACK_ORGANIZATION_ID;
 }

@@ -9,7 +9,7 @@ import { Employee } from "@/api/types";
 import { EmployeesAPI } from "@/api";
 import { supabase } from "./supabase";
 import { toast } from "sonner";
-import { getOrgId } from "./organization";
+import { getCurrentOrganizationId } from "./organization-utils";
 
 // Context type that includes all necessary functionality
 interface EmployeeContextType {
@@ -40,7 +40,14 @@ export function EmployeeProvider({ children }: { children: ReactNode }) {
 	const refreshEmployees = async () => {
 		try {
 			setIsLoading(true);
-			const organizationId = getOrgId();
+			const organizationId = await getCurrentOrganizationId();
+
+			if (!organizationId) {
+				console.error("No organization ID available");
+				toast.error("Failed to load organization data");
+				return;
+			}
+
 			const employeeData = await EmployeesAPI.getAll(organizationId);
 
 			setEmployees(employeeData);
@@ -92,27 +99,36 @@ export function EmployeeProvider({ children }: { children: ReactNode }) {
 
 	// Set up real-time subscription for employee updates
 	useEffect(() => {
-		const organizationId = getOrgId();
+		const setupRealtimeSubscription = async () => {
+			const organizationId = await getCurrentOrganizationId();
 
-		const subscription = supabase
-			.channel("employee-updates")
-			.on(
-				"postgres_changes",
-				{
-					event: "*", // Listen for all events (INSERT, UPDATE, DELETE)
-					schema: "public",
-					table: "employees",
-					filter: `organizationId=eq.${organizationId}`,
-				},
-				() => {
-					refreshEmployees();
-				}
-			)
-			.subscribe();
+			if (!organizationId) {
+				console.error("No organization ID available for real-time updates");
+				return;
+			}
 
-		return () => {
-			subscription.unsubscribe();
+			const subscription = supabase
+				.channel("employee-updates")
+				.on(
+					"postgres_changes",
+					{
+						event: "*", // Listen for all events (INSERT, UPDATE, DELETE)
+						schema: "public",
+						table: "employees",
+						filter: `organizationId=eq.${organizationId}`,
+					},
+					() => {
+						refreshEmployees();
+					}
+				)
+				.subscribe();
+
+			return () => {
+				subscription.unsubscribe();
+			};
 		};
+
+		setupRealtimeSubscription();
 	}, []);
 
 	// Context value

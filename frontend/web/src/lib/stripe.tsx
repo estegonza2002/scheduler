@@ -9,7 +9,7 @@ import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
 import { Subscription, SubscriptionPlan } from "@/api/types";
 import { BillingAPI } from "@/api";
-import { useOrganization } from "./organization";
+import { useOrganization } from "./organization-context";
 import { supabase } from "./supabase";
 
 // Initialize Stripe with the public key
@@ -26,16 +26,18 @@ interface StripeContextType {
 const StripeContext = createContext<StripeContextType | undefined>(undefined);
 
 export function StripeProvider({ children }: { children: ReactNode }) {
-	const { organization } = useOrganization();
+	const { currentOrganization } = useOrganization();
 	const [subscription, setSubscription] = useState<Subscription | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
 
 	const refreshSubscription = async () => {
-		if (!organization) return;
+		if (!currentOrganization) return;
 
 		try {
 			setIsLoading(true);
-			const data = await BillingAPI.getCurrentSubscription(organization.id);
+			const data = await BillingAPI.getCurrentSubscription(
+				currentOrganization.id
+			);
 			setSubscription(data);
 		} catch (error) {
 			console.error("Error fetching subscription:", error);
@@ -45,10 +47,10 @@ export function StripeProvider({ children }: { children: ReactNode }) {
 	};
 
 	const upgradeSubscription = async (plan: SubscriptionPlan) => {
-		if (!organization) return;
+		if (!currentOrganization) return;
 
 		try {
-			await BillingAPI.updateSubscription(organization.id, { plan });
+			await BillingAPI.updateSubscription(currentOrganization.id, { plan });
 			await refreshSubscription();
 		} catch (error) {
 			console.error("Error upgrading subscription:", error);
@@ -57,10 +59,10 @@ export function StripeProvider({ children }: { children: ReactNode }) {
 	};
 
 	const cancelSubscription = async () => {
-		if (!organization) return;
+		if (!currentOrganization) return;
 
 		try {
-			await BillingAPI.cancelSubscription(organization.id);
+			await BillingAPI.cancelSubscription(currentOrganization.id);
 			await refreshSubscription();
 		} catch (error) {
 			console.error("Error canceling subscription:", error);
@@ -69,7 +71,7 @@ export function StripeProvider({ children }: { children: ReactNode }) {
 	};
 
 	useEffect(() => {
-		if (organization) {
+		if (currentOrganization) {
 			refreshSubscription();
 
 			// Set up real-time subscription for webhooks
@@ -81,7 +83,7 @@ export function StripeProvider({ children }: { children: ReactNode }) {
 						event: "UPDATE",
 						schema: "public",
 						table: "organizations",
-						filter: `id=eq.${organization.id}`,
+						filter: `id=eq.${currentOrganization.id}`,
 					},
 					() => {
 						refreshSubscription();
@@ -93,7 +95,7 @@ export function StripeProvider({ children }: { children: ReactNode }) {
 				subscription.unsubscribe();
 			};
 		}
-	}, [organization]);
+	}, [currentOrganization]);
 
 	// Value for the context provider
 	const contextValue: StripeContextType = {

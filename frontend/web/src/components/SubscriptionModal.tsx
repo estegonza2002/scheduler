@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useStripeContext } from "@/lib/stripe";
-import { useOrganization } from "@/lib/organization";
+import { useOrganization } from "@/lib/organization-context";
 import { Check, ArrowLeft, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -81,7 +81,7 @@ export default function SubscriptionModal({
 
 	// Get context
 	const { upgradeSubscription } = useStripeContext();
-	const { organization } = useOrganization();
+	const { currentOrganization } = useOrganization();
 
 	// Get billing period text
 	const billingPeriodText = billingCycle === "monthly" ? "monthly" : "annually";
@@ -95,7 +95,7 @@ export default function SubscriptionModal({
 			// In a real implementation, you would send this to your backend
 			console.log("Account information:", data);
 
-			if (organization) {
+			if (currentOrganization) {
 				try {
 					// Upgrade subscription using the context
 					await upgradeSubscription(selectedPlan);

@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
+import { useOrganization } from "@/lib/organization-context";
 import { BusinessSetupModal } from "@/components/auth/BusinessSetupModal";
 import { supabase } from "@/lib/supabase";
 
 export default function AuthCallbackPage() {
 	const navigate = useNavigate();
 	const { user, isLoading } = useAuth();
+	const { organizations, isLoading: isLoadingOrgs } = useOrganization();
 	const [showBusinessSetup, setShowBusinessSetup] = useState(false);
 	const [processingAuth, setProcessingAuth] = useState(true);
 
@@ -36,16 +38,37 @@ export default function AuthCallbackPage() {
 						);
 						setShowBusinessSetup(true);
 					} else {
-						// Regular user login - check if admin
-						const isAdmin = session.user.user_metadata?.role === "admin";
-						console.log("Regular user login, isAdmin:", isAdmin);
+						// Check if this is a new user (no role in metadata)
+						const userMetadata = session.user.user_metadata || {};
+						const hasRole = userMetadata.role !== undefined;
 
-						// Use a short timeout to ensure navigation happens after state updates
-						setTimeout(() => {
-							navigate(isAdmin ? "/admin-dashboard" : "/dashboard", {
-								replace: true,
-							});
-						}, 100);
+						console.log("User metadata check:", {
+							hasRole,
+							metadata: userMetadata,
+						});
+
+						if (!hasRole) {
+							// New user - redirect to role selection
+							console.log("New user detected, redirecting to role selection");
+							navigate("/role-selection", { replace: true });
+						} else if (!isLoadingOrgs && organizations.length > 1) {
+							// User has multiple organizations - redirect to organization selection
+							console.log(
+								"User has multiple organizations, redirecting to organization selection"
+							);
+							navigate("/organization-selection", { replace: true });
+						} else {
+							// Regular user login - check if admin
+							const isAdmin = userMetadata.role === "admin";
+							console.log("Regular user login, isAdmin:", isAdmin);
+
+							// Use a short timeout to ensure navigation happens after state updates
+							setTimeout(() => {
+								navigate(isAdmin ? "/admin-dashboard" : "/dashboard", {
+									replace: true,
+								});
+							}, 100);
+						}
 					}
 				} else {
 					console.log("No authenticated user found, redirecting to login");
@@ -61,7 +84,7 @@ export default function AuthCallbackPage() {
 
 		// Only run once when component mounts
 		handleAuthRedirect();
-	}, [navigate]); // Only depend on navigate, not on user or isLoading
+	}, [navigate, organizations, isLoadingOrgs]);
 
 	if (processingAuth) {
 		return (

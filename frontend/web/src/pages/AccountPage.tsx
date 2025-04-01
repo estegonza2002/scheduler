@@ -4,7 +4,7 @@ import { ContentContainer } from "@/components/ui/content-container";
 import { useAuth } from "@/lib/auth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Building2, Users, CreditCard, ExternalLink } from "lucide-react";
-import { useOrganization } from "@/lib/organization";
+import { useOrganization } from "@/lib/organization-context";
 import { ContentSection } from "@/components/ui/content-section";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,13 +24,13 @@ import { AppContent } from "@/components/layout/AppLayout";
 // Overview tab component that displays the business summary cards
 function OverviewTab() {
 	const { user, isLoading: isLoadingAuth } = useAuth();
-	const { organization, isLoading: isLoadingOrg } = useOrganization();
+	const { currentOrganization, isLoading: isLoadingOrg } = useOrganization();
 	const { subscription } = useStripeContext();
 	const navigate = useNavigate();
 
 	// Get business initials for avatar fallback
 	const getBusinessInitials = () => {
-		const name = organization?.name || "";
+		const name = currentOrganization?.name || "";
 		const words = name.split(" ");
 		if (words.length >= 2) {
 			return `${words[0].charAt(0)}${words[1].charAt(0)}`.toUpperCase();
@@ -63,15 +63,16 @@ function OverviewTab() {
 									</Avatar>
 									<div className="space-y-1">
 										<h3 className="text-lg font-semibold">
-											{organization?.name || "Your Business"}
+											{currentOrganization?.name || "Your Business"}
 										</h3>
 										<p className="text-sm text-muted-foreground">
-											{organization?.description || "No description provided"}
+											{currentOrganization?.description ||
+												"No description provided"}
 										</p>
-										{organization?.address && (
+										{currentOrganization?.address && (
 											<p className="text-sm flex items-center gap-1">
 												<Building2 className="h-3.5 w-3.5" />
-												{organization.address}
+												{currentOrganization.address}
 											</p>
 										)}
 									</div>
