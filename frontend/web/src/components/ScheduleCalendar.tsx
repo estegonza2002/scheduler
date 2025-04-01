@@ -12,7 +12,6 @@ import {
 } from "date-fns";
 import { toast } from "sonner";
 import {
-	SchedulesAPI,
 	ShiftsAPI,
 	Shift,
 	EmployeesAPI,
@@ -77,30 +76,44 @@ const CalendarDay = ({
 		isSameDay(parseISO(shift.start_time), date)
 	);
 
-	// Get location-based color scheme
-	const getLocationColorScheme = (locationId?: string) => {
-		if (!locationId) return undefined;
+	// Find the color map with mock location IDs:
+	const locationColorMap: Record<string, string> = {
+		"loc-1": "blue",
+		"loc-2": "purple",
+		"loc-3": "green",
+		"loc-4": "amber",
+		"loc-5": "red",
+		"loc-6": "indigo",
+		"loc-7": "pink",
+		"loc-8": "teal",
+	};
 
-		// Map locationId to color schemes
-		const locationColors: Record<string, BadgeProps["colorScheme"]> = {
-			"loc-1": "blue",
-			"loc-2": "purple",
-			"loc-3": "green",
-			"loc-4": "amber",
-			"loc-5": "red",
-			"loc-6": "indigo",
-			"loc-7": "pink",
-			"loc-8": "teal",
-		};
+	// Replace with this color map that uses indexing instead of hardcoded IDs:
+	const colorOptions: BadgeProps["colorScheme"][] = [
+		"blue",
+		"purple",
+		"green",
+		"amber",
+		"red",
+		"indigo",
+		"pink",
+		"teal",
+	];
 
-		// Use hash of locationId to select a color for unknown locations
-		const hash = locationId
-			.split("")
-			.reduce((acc, char) => acc + char.charCodeAt(0), 0);
-		const colorKeys = Object.keys(locationColors);
-		const defaultKey = colorKeys[hash % colorKeys.length];
+	// Get color by location ID (now will use a hash function to map IDs to colors)
+	const getLocationColor = (locationId: string): BadgeProps["colorScheme"] => {
+		// If we don't have a location ID, return a default color
+		if (!locationId) return "blue";
 
-		return locationColors[locationId] || locationColors[defaultKey];
+		// Use a simple hash function to map the location ID to a color
+		const hashCode = locationId.split("").reduce((a, b) => {
+			a = (a << 5) - a + b.charCodeAt(0);
+			return a & a;
+		}, 0);
+
+		// Use the absolute value of hashCode modulo the length of colorOptions
+		const colorIndex = Math.abs(hashCode) % colorOptions.length;
+		return colorOptions[colorIndex];
 	};
 
 	// Format location name for display
@@ -126,7 +139,7 @@ const CalendarDay = ({
 					)} - ${formatShiftTime(shift.end_time)}`}>
 					<Badge
 						variant="outline"
-						colorScheme={getLocationColorScheme(shift.location_id)}
+						colorScheme={getLocationColor(shift.location_id || "")}
 						className="w-full truncate justify-start font-normal">
 						<MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
 						<span className="truncate">

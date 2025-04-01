@@ -1,5 +1,11 @@
 import { useState, useEffect } from "react";
-import { Employee, EmployeesAPI, EmployeeLocationsAPI } from "@/api";
+import {
+	Employee,
+	EmployeesAPI,
+	EmployeeLocationsAPI,
+	ShiftAssignmentsAPI,
+	OrganizationsAPI,
+} from "@/api";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -96,6 +102,10 @@ export function EmployeeAssignmentSheet({
 		propAssignedEmployees || []
 	);
 	const [isLoading, setIsLoading] = useState(false);
+	const [employees, setEmployees] = useState<Employee[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState("");
+	const [organizationId, setOrganizationId] = useState<string>("");
 
 	// State for unified component
 	const [selectedEmployeeObjects, setSelectedEmployeeObjects] = useState<
@@ -123,15 +133,54 @@ export function EmployeeAssignmentSheet({
 		}
 	}, [isOpen]);
 
+	// Fetch employees data when the component mounts
+	useEffect(() => {
+		if (!organizationId) {
+			fetchOrganization();
+		} else {
+			fetchEmployees();
+		}
+	}, [organizationId]);
+
+	// Fetch organization data
+	const fetchOrganization = async () => {
+		try {
+			setLoading(true);
+
+			// Try to get organization ID from organizations API
+			const organizations = await OrganizationsAPI.getAll();
+			if (organizations && organizations.length > 0) {
+				const orgId = organizations[0].id;
+				setOrganizationId(orgId);
+				console.log("Using organization ID:", orgId);
+			} else {
+				console.error("No organization found");
+				setError("Could not find any organizations.");
+				setLoading(false);
+			}
+		} catch (err) {
+			console.error("Error fetching organizations:", err);
+			setError("Failed to load organizations. Please try again.");
+			setLoading(false);
+		}
+	};
+
 	// Load employees from the API
 	const fetchEmployees = async () => {
+		if (!organizationId) {
+			console.error("Cannot fetch employees without organization ID");
+			return;
+		}
+
 		setIsLoading(true);
 		try {
+			console.log(`Fetching employees for organization: ${organizationId}`);
 			// Fetch all employees for the organization
-			const organizationId = "org-1"; // Default organization ID
 			const employees = await EmployeesAPI.getAll(organizationId);
 			setAllEmployees(employees);
-			console.log("Fetched employees:", employees);
+			console.log(
+				`Fetched ${employees.length} employees from organization ${organizationId}`
+			);
 
 			// Get employees assigned to this location
 			if (locationId) {
@@ -142,7 +191,9 @@ export function EmployeeAssignmentSheet({
 					assignedEmployeeIds.includes(emp.id)
 				);
 				setAssignedEmployees(assignedList);
-				console.log("Assigned employees:", assignedList);
+				console.log(
+					`Found ${assignedList.length} employees assigned to location ${locationId}`
+				);
 			}
 		} catch (error) {
 			console.error("Error fetching employees:", error);

@@ -8,6 +8,7 @@ import {
 	LocationsAPI,
 	Location,
 	ShiftAssignmentsAPI,
+	OrganizationsAPI,
 } from "@/api";
 import { format } from "date-fns";
 import {
@@ -436,6 +437,29 @@ export function ShiftCreationWizard({
 			);
 			toast.error("Failed to create shift: Invalid organization ID");
 			return;
+		}
+
+		// If organization ID is invalid or empty, try to get a valid one
+		if (!organizationId || !isValidUUID(organizationId)) {
+			console.log(
+				"Invalid or missing organization ID. Attempting to find a valid organization..."
+			);
+			try {
+				const organizations = await OrganizationsAPI.getAll();
+				if (organizations && organizations.length > 0) {
+					console.log("Found valid organization:", organizations[0].id);
+					organizationId = organizations[0].id;
+				} else {
+					setError("No valid organizations found");
+					toast.error("Failed to create shift: No valid organizations found");
+					return;
+				}
+			} catch (error) {
+				console.error("Error fetching organizations:", error);
+				setError("Failed to fetch organizations");
+				toast.error("Failed to create shift: Could not fetch organizations");
+				return;
+			}
 		}
 
 		if (!isValidUUID(locationData.locationId)) {

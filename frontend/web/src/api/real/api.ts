@@ -819,40 +819,92 @@ export const EmployeesAPI = {
 // Shift Assignments API
 export const ShiftAssignmentsAPI = {
 	getAll: async (shiftId?: string): Promise<ShiftAssignment[]> => {
-		let query = supabase.from("shift_assignments").select("*");
+		console.log(
+			"ShiftAssignmentsAPI.getAll called",
+			shiftId ? `for shift ${shiftId}` : "for all shifts"
+		);
 
-		if (shiftId) {
-			query = query.eq("shift_id", shiftId);
-		}
+		try {
+			let query = supabase.from("shift_assignments").select("*");
 
-		const { data, error } = await query;
+			if (shiftId) {
+				query = query.eq("shift_id", shiftId);
+			}
 
-		if (error) {
-			// Log error but don't show toast - empty results are expected for new users
-			console.error("Error fetching shift assignments:", error);
+			const { data, error } = await query;
+
+			if (error) {
+				console.error("Error fetching shift assignments:", error);
+				return [];
+			}
+
+			console.log(
+				`ShiftAssignmentsAPI.getAll returned ${data?.length || 0} assignments`
+			);
+			if (data && data.length > 0) {
+				console.log(
+					"Sample assignments:",
+					data.slice(0, 3).map((a) => ({
+						id: a.id,
+						shift_id: a.shift_id,
+						employee_id: a.employee_id,
+					}))
+				);
+			} else {
+				console.log("No assignments found");
+			}
+
+			return data as ShiftAssignment[];
+		} catch (error) {
+			console.error("Unexpected error in ShiftAssignmentsAPI.getAll:", error);
 			return [];
 		}
-
-		return data as ShiftAssignment[];
 	},
 
 	create: async (
 		data: Omit<ShiftAssignment, "id">
 	): Promise<ShiftAssignment> => {
-		const { data: newAssignment, error } = await supabase
-			.from("shift_assignments")
-			.insert(data)
-			.select()
-			.single();
+		console.log("ShiftAssignmentsAPI.create called with data:", {
+			shift_id: data.shift_id,
+			employee_id: data.employee_id,
+		});
 
-		if (error) {
-			toast.error("Failed to create shift assignment");
-			console.error("Error creating shift assignment:", error);
+		try {
+			// Validate that we have required IDs
+			if (!data.shift_id || !data.employee_id) {
+				throw new Error(
+					"Missing required shift_id or employee_id for shift assignment"
+				);
+			}
+
+			// Create the assignment
+			const { data: newAssignment, error } = await supabase
+				.from("shift_assignments")
+				.insert(data)
+				.select()
+				.single();
+
+			if (error) {
+				console.error("Error creating shift assignment:", error);
+				toast.error(`Failed to create shift assignment: ${error.message}`);
+				throw error;
+			}
+
+			console.log("Shift assignment created successfully:", {
+				id: newAssignment.id,
+				shift_id: newAssignment.shift_id,
+				employee_id: newAssignment.employee_id,
+			});
+
+			toast.success("Shift assignment created successfully!");
+			return newAssignment as ShiftAssignment;
+		} catch (error) {
+			console.error("Unexpected error in ShiftAssignmentsAPI.create:", error);
+			toast.error(
+				"Failed to create shift assignment due to an unexpected error"
+			);
 			throw error;
 		}
-
-		toast.success("Shift assignment created successfully!");
-		return newAssignment as ShiftAssignment;
 	},
 
 	delete: async (id: string): Promise<void> => {
@@ -1125,21 +1177,6 @@ export const EmployeeLocationsAPI = {
 		}
 	},
 };
-
-// SchedulesAPI for backward compatibility
-export const SchedulesAPI = {
-	getAll: async (organizationId?: string): Promise<Schedule[]> => {
-		return ShiftsAPI.getAllSchedules(organizationId);
-	},
-
-	getById: async (id: string): Promise<Schedule | null> => {
-		return ShiftsAPI.getScheduleById(id);
-	},
-
-	create: async (data: ScheduleCreateInput): Promise<Schedule> => {
-		return ShiftsAPI.createSchedule(data);
-	},
-}; // End of SchedulesAPI
 
 // Messages and Conversations API
 export const ConversationsAPI = {

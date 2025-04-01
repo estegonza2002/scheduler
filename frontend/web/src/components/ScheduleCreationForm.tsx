@@ -4,10 +4,14 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { SchedulesAPI } from "@/lib/api";
+import { ShiftsAPI } from "@/api";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { CalendarIcon } from "lucide-react";
 
@@ -44,11 +48,12 @@ export function ScheduleCreationForm({
 		try {
 			setLoading(true);
 
-			await SchedulesAPI.create({
+			await ShiftsAPI.createSchedule({
 				name: data.name,
-				organizationId,
-				startDate: data.startDate,
-				endDate: data.endDate,
+				organization_id: organizationId,
+				start_time: data.startDate,
+				end_time: data.endDate,
+				is_schedule: true,
 			});
 
 			toast.success(`Schedule "${data.name}" created successfully`);

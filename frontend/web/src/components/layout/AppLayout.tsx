@@ -205,7 +205,7 @@ export default function AppLayout() {
 		return dateParam ? new Date(dateParam) : new Date();
 	});
 	const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-	const organizationId = searchParams.get("organizationId") || "org-1";
+	const [organizationId, setOrganizationId] = useState<string>("");
 	const [organization, setOrganization] = useState<Organization | null>(null);
 	const [showLogoutDialog, setShowLogoutDialog] = useState(false);
 
@@ -259,6 +259,29 @@ export default function AppLayout() {
 			}
 		}
 	}, [searchParams, location.pathname]);
+
+	useEffect(() => {
+		const orgId = searchParams.get("organizationId");
+		if (orgId) {
+			setOrganizationId(orgId);
+		} else {
+			// If no organization ID in URL, try to get a valid one
+			const fetchOrganization = async () => {
+				try {
+					const organizations = await OrganizationsAPI.getAll();
+					if (organizations && organizations.length > 0) {
+						setOrganizationId(organizations[0].id);
+						console.log("Using organization ID:", organizations[0].id);
+					} else {
+						console.error("No organization found");
+					}
+				} catch (error) {
+					console.error("Error fetching organizations:", error);
+				}
+			};
+			fetchOrganization();
+		}
+	}, [searchParams]);
 
 	const updateDate = (newDate: Date) => {
 		setCurrentDate(newDate);

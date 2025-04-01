@@ -8,6 +8,7 @@ import {
 	EmployeesAPI,
 	Employee,
 	EmployeeLocationsAPI,
+	OrganizationsAPI,
 } from "@/api";
 import { Button } from "@/components/ui/button";
 import {
@@ -48,6 +49,7 @@ export default function LocationFinancialReportPage() {
 	const [assignedEmployees, setAssignedEmployees] = useState<Employee[]>([]);
 	const [loading, setLoading] = useState<boolean>(true);
 	const [loadingPhase, setLoadingPhase] = useState<string>("location");
+	const [organizationId, setOrganizationId] = useState<string>("");
 
 	// Handle print
 	const handlePrint = () => {
@@ -126,7 +128,7 @@ export default function LocationFinancialReportPage() {
 	]);
 
 	useEffect(() => {
-		const fetchData = async () => {
+		const fetchLocationData = async () => {
 			if (!locationId) return;
 
 			try {
@@ -142,9 +144,21 @@ export default function LocationFinancialReportPage() {
 				}
 				setLocation(locationData);
 
+				// Get organization ID from the location
+				if (locationData.organizationId) {
+					setOrganizationId(locationData.organizationId);
+				} else {
+					// Fallback to fetching organizations
+					const organizations = await OrganizationsAPI.getAll();
+					if (organizations && organizations.length > 0) {
+						setOrganizationId(organizations[0].id);
+					} else {
+						console.error("No organization found");
+					}
+				}
+
 				// Fetch shifts for this location
 				setLoadingPhase("shifts");
-				const organizationId = "org-1"; // Default organization ID
 				const allSchedules = await ShiftsAPI.getAllSchedules(organizationId);
 				const allShifts: Shift[] = [];
 
@@ -186,7 +200,7 @@ export default function LocationFinancialReportPage() {
 			}
 		};
 
-		fetchData();
+		fetchLocationData();
 	}, [locationId, navigate]);
 
 	if (loading) {

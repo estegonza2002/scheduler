@@ -14,7 +14,7 @@ import {
 import { Shift, Employee } from "@/api";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "./ui/skeleton";
 
 interface ShiftCardProps {
 	shift: Shift;
@@ -41,26 +41,31 @@ export function ShiftCard({
 		"start_time:",
 		shift.start_time,
 		"assigned employees:",
-		assignedEmployees.length > 0
-			? assignedEmployees.map((e) => ({ id: e.id, name: e.name }))
-			: "None"
+		assignedEmployees
 	);
 
-	// Double check that we have actual employees
-	if (assignedEmployees && assignedEmployees.length > 0) {
-		// Validate each employee has an id and name
-		console.log("[ShiftCard] Employee details:");
-		assignedEmployees.forEach((emp, index) => {
-			console.log(
-				`Employee ${index + 1}:`,
-				emp
-					? `id=${emp.id || "missing"}, name=${emp.name || "missing"}`
-					: "undefined employee"
-			);
-		});
-	} else {
-		console.log("[ShiftCard] No employees assigned to this shift:", shift.id);
-	}
+	// Debug: Log the raw data structure
+	console.log(
+		"[ShiftCard] Raw assignedEmployees data:",
+		JSON.stringify(assignedEmployees)
+	);
+
+	// Validate the assignedEmployees array is properly defined and has valid entries
+	const validAssignedEmployees = Array.isArray(assignedEmployees)
+		? assignedEmployees.filter((emp) => {
+				const isValid = emp && emp.id && emp.name;
+				if (!isValid) {
+					console.log("[ShiftCard] Invalid employee data:", emp);
+				}
+				return isValid;
+		  })
+		: [];
+
+	console.log(
+		"[ShiftCard] Valid assignedEmployees after filtering:",
+		validAssignedEmployees.length,
+		validAssignedEmployees.map((e) => ({ id: e.id, name: e.name }))
+	);
 
 	// Format times for display
 	try {
@@ -211,47 +216,76 @@ export function ShiftCard({
 								<Skeleton className="h-8 w-8 rounded-full" />
 								<Skeleton className="h-4 w-24" />
 							</div>
-						) : assignedEmployees.length > 0 ? (
-							<div className="flex items-center">
-								<div className="flex -space-x-2">
-									{assignedEmployees
-										.slice(0, maxDisplayedAvatars)
-										.map((employee, index) => (
-											<Avatar
-												key={employee.id || index}
-												className="border-2 border-background"
-												style={{ zIndex: 10 - index }}>
-												<AvatarFallback className="bg-primary/10 text-primary">
-													{getInitial(employee.name)}
-												</AvatarFallback>
-											</Avatar>
-										))}
-									{assignedEmployees.length > maxDisplayedAvatars && (
-										<Avatar
-											className="border-2 border-background"
-											style={{ zIndex: 10 - maxDisplayedAvatars }}>
-											<AvatarFallback className="bg-muted text-muted-foreground text-xs">
-												+{assignedEmployees.length - maxDisplayedAvatars}
+						) : (
+							(() => {
+								console.log(
+									`[ShiftCard] RENDER DECISION for shift ${shift.id}:`
+								);
+								console.log(
+									`[ShiftCard] - Has ${validAssignedEmployees.length} valid employees`
+								);
+								console.log(
+									`[ShiftCard] - Raw assignedEmployees length: ${
+										assignedEmployees?.length || 0
+									}`
+								);
+
+								// Check if we have valid employees
+								if (
+									validAssignedEmployees &&
+									validAssignedEmployees.length > 0
+								) {
+									console.log(`[ShiftCard] Rendering WITH employees`);
+									return (
+										<div className="flex items-center">
+											<div className="flex -space-x-2">
+												{validAssignedEmployees
+													.slice(0, maxDisplayedAvatars)
+													.map((employee, index) => (
+														<Avatar
+															key={employee.id || index}
+															className="border-2 border-background"
+															style={{ zIndex: 10 - index }}>
+															<AvatarFallback className="bg-primary/10 text-primary">
+																{getInitial(employee.name)}
+															</AvatarFallback>
+														</Avatar>
+													))}
+												{validAssignedEmployees.length >
+													maxDisplayedAvatars && (
+													<Avatar
+														className="border-2 border-background"
+														style={{ zIndex: 10 - maxDisplayedAvatars }}>
+														<AvatarFallback className="bg-muted text-muted-foreground text-xs">
+															+
+															{validAssignedEmployees.length -
+																maxDisplayedAvatars}
+														</AvatarFallback>
+													</Avatar>
+												)}
+											</div>
+											<div className="ml-2 flex items-center text-sm text-muted-foreground">
+												<Users className="h-4 w-4 mr-1" />
+												<span>{validAssignedEmployees.length}</span>
+											</div>
+										</div>
+									);
+								}
+
+								console.log(`[ShiftCard] Rendering as UNASSIGNED`);
+								return (
+									<div className="flex items-center">
+										<Avatar className="border-2 border-background">
+											<AvatarFallback className="bg-muted">
+												<User className="h-4 w-4 text-muted-foreground" />
 											</AvatarFallback>
 										</Avatar>
-									)}
-								</div>
-								<div className="ml-2 flex items-center text-sm text-muted-foreground">
-									<Users className="h-4 w-4 mr-1" />
-									<span>{assignedEmployees.length}</span>
-								</div>
-							</div>
-						) : (
-							<div className="flex items-center">
-								<Avatar className="border-2 border-background">
-									<AvatarFallback className="bg-muted">
-										<User className="h-4 w-4 text-muted-foreground" />
-									</AvatarFallback>
-								</Avatar>
-								<span className="ml-2 text-sm text-muted-foreground">
-									Unassigned
-								</span>
-							</div>
+										<span className="ml-2 text-sm text-muted-foreground">
+											Unassigned
+										</span>
+									</div>
+								);
+							})()
 						)}
 
 						{showLocationName && (

@@ -182,7 +182,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 		{
 			icon: <ClipboardList className="h-5 w-5" />,
 			label: "Manage Shifts",
-			href: `/manage-shifts?organizationId=${organization?.id || "org-1"}`,
+			href: `/manage-shifts?organizationId=${organization?.id || ""}`,
 			isActive: isRouteActive("/manage-shifts"),
 		},
 		{

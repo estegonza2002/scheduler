@@ -3,4 +3,8 @@ description:
 globs: 
 alwaysApply: true
 ---
-Only use shadCN component with Tailwind. Absolutly no custom css or unceseary warppers. 
+- Only use componets in components/ui
+- If tou need to create a new componet ASK first. 
+- New componets must be shadCN component with Tailwind. 
+- Prohibit, Absolutly no custom css
+- Prohibit, Absolutly no div warppers. 

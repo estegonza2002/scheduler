@@ -16,7 +16,13 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { Shift, ShiftsAPI, LocationsAPI, Location } from "@/api";
+import {
+	Shift,
+	ShiftsAPI,
+	LocationsAPI,
+	Location,
+	OrganizationsAPI,
+} from "@/api";
 import { format, parseISO } from "date-fns";
 import { ChevronLeft, Save } from "lucide-react";
 import { toast } from "sonner";
@@ -42,6 +48,11 @@ export default function EditShiftPage() {
 	const [endTime, setEndTime] = useState("");
 	const [locationId, setLocationId] = useState("none");
 	const [notes, setNotes] = useState("");
+
+	// Additional form fields
+	const returnUrl = searchParams.get("returnUrl") || "/";
+	const locationIdParam = searchParams.get("locationId") || "";
+	const [organizationId, setOrganizationId] = useState<string>("");
 
 	// Load shift data
 	useEffect(() => {
@@ -151,6 +162,31 @@ export default function EditShiftPage() {
 			setSaving(false);
 		}
 	};
+
+	// Look up the organization ID
+	useEffect(() => {
+		const fetchOrganization = async () => {
+			try {
+				const organizations = await OrganizationsAPI.getAll();
+				if (organizations && organizations.length > 0) {
+					setOrganizationId(organizations[0].id);
+					console.log("Using organization ID:", organizations[0].id);
+				} else {
+					console.error("No organization found");
+				}
+			} catch (error) {
+				console.error("Error fetching organizations:", error);
+			}
+		};
+
+		// Check if we have an org ID in params first
+		const orgIdParam = searchParams.get("organizationId");
+		if (orgIdParam) {
+			setOrganizationId(orgIdParam);
+		} else {
+			fetchOrganization();
+		}
+	}, [searchParams]);
 
 	if (loading) {
 		return (

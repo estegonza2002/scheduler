@@ -124,7 +124,12 @@ export default function LocationEmployeesPage() {
 
 				// Fetch employees assigned to this location
 				setLoadingPhase("employees");
-				const organizationId = locationData.organizationId || "org-1"; // Use the location's org ID
+				const organizationId = locationData.organizationId || "";
+				if (!locationData.organizationId) {
+					console.warn(
+						"No organization ID found for location. Using empty string."
+					);
+				}
 				console.log(`Fetching employees for organization: ${organizationId}`);
 
 				const employees = await EmployeesAPI.getAll(organizationId);

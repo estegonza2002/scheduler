@@ -8,6 +8,7 @@ import {
 	EmployeesAPI,
 	Employee,
 	EmployeeLocationsAPI,
+	OrganizationsAPI,
 } from "@/api";
 import { ContentContainer } from "@/components/ui/content-container";
 import { ContentSection } from "@/components/ui/content-section";
@@ -39,6 +40,7 @@ export default function LocationInsightsPage() {
 	const [assignedEmployees, setAssignedEmployees] = useState<Employee[]>([]);
 	const [loading, setLoading] = useState<boolean>(true);
 	const [loadingPhase, setLoadingPhase] = useState<string>("location");
+	const [organizationId, setOrganizationId] = useState<string>("");
 
 	// Update the header when location data is loaded
 	useEffect(() => {
@@ -103,6 +105,19 @@ export default function LocationInsightsPage() {
 				);
 
 				setAssignedEmployees(assignedEmployeesList);
+
+				// Get organization ID from the location
+				if (locationData.organizationId) {
+					setOrganizationId(locationData.organizationId);
+				} else {
+					// Fallback to fetching organizations
+					const organizations = await OrganizationsAPI.getAll();
+					if (organizations && organizations.length > 0) {
+						setOrganizationId(organizations[0].id);
+					} else {
+						console.error("No organization found");
+					}
+				}
 			} catch (error) {
 				console.error("Error fetching data:", error);
 				toast.error("Failed to load location data");

@@ -7,10 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Calendar, Clock, Filter, Plus, Users, History } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { format, parseISO, isToday, isTomorrow, isAfter } from "date-fns";
-import { ShiftsAPI, LocationsAPI } from "@/api";
-import { Shift, Location } from "@/api/types";
+import {
+	ShiftsAPI,
+	LocationsAPI,
+	OrganizationsAPI,
+	EmployeesAPI,
+	ShiftAssignmentsAPI,
+} from "@/api";
+import { Shift, Location, Organization, Employee } from "@/api/types";
 import { ShiftCard } from "@/components/ShiftCard";
-import type { Employee } from "@/api/types";
 import { supabase } from "@/lib/supabase";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -28,6 +33,9 @@ export default function ManageShiftsPage() {
 	const [employeesByShift, setEmployeesByShift] = useState<
 		Record<string, Employee[]>
 	>({});
+	const [organization, setOrganization] = useState<Organization | null>(null);
+	const [loadingMessage, setLoadingMessage] = useState<string>("Loading data");
+	const [error, setError] = useState<string | null>(null);
 
 	// Get parameters from URL
 	const organizationId = searchParams.get("organizationId") || "";
@@ -66,33 +74,44 @@ export default function ManageShiftsPage() {
 
 	// Fetch shifts
 	useEffect(() => {
-		const fetchShifts = async () => {
+		const fetchData = async () => {
 			try {
 				setIsLoading(true);
-				const today = new Date();
+				setLoadingMessage("Loading shifts");
 
-				console.log("Fetching shifts for organization:", organizationId);
-
-				// Get all shifts directly from supabase instead of using getAllSchedules
-				// which only returns schedules (is_schedule=true)
-				const { data: allShifts, error } = await supabase
-					.from("shifts")
-					.select("*")
-					.eq("organization_id", organizationId)
-					.eq("is_schedule", false);
-
-				if (error) {
-					throw error;
+				console.log("Fetching organizations...");
+				const userOrganizations = await OrganizationsAPI.getAll();
+				if (userOrganizations.length === 0) {
+					throw new Error("No organizations found");
 				}
 
-				console.log("All shifts fetched:", allShifts);
+				// Use organization ID from URL or default to first org
+				const orgIdFromUrl = searchParams.get("organizationId");
+				let useOrgId = orgIdFromUrl || userOrganizations[0].id;
 
-				if (!allShifts) {
-					setTodayShifts([]);
-					setUpcomingShifts([]);
-					setIsLoading(false);
-					return;
-				}
+				console.log(`Using organization ID: ${useOrgId}`);
+				setOrganization(
+					userOrganizations.find((org) => org.id === useOrgId) ||
+						userOrganizations[0]
+				);
+
+				setLoadingMessage("Loading locations");
+				const allLocations = await LocationsAPI.getAll(useOrgId);
+				setLocations(allLocations);
+				console.log(`Loaded ${allLocations.length} locations`);
+
+				setLoadingMessage("Loading shifts");
+				const allShifts = await ShiftsAPI.getAllSchedules(useOrgId);
+				console.log(`Loaded ${allShifts.length} shifts`);
+
+				setLoadingMessage("Loading employees");
+				const allEmployees = await EmployeesAPI.getAll(useOrgId);
+				setEmployees(allEmployees);
+				console.log(`Loaded ${allEmployees.length} employees`);
+
+				setLoadingMessage("Loading shift assignments");
+				const shiftAssignments = await ShiftAssignmentsAPI.getAll();
+				console.log(`Loaded ${shiftAssignments.length} shift assignments`);
 
 				// Separate shifts for today and upcoming
 				const today_shifts = allShifts.filter((shift) =>
@@ -102,7 +121,7 @@ export default function ManageShiftsPage() {
 
 				const upcoming_shifts = allShifts.filter(
 					(shift) =>
-						isAfter(parseISO(shift.start_time), today) &&
+						isAfter(parseISO(shift.start_time), new Date()) &&
 						!isToday(parseISO(shift.start_time))
 				);
 				console.log("Upcoming shifts:", upcoming_shifts);
@@ -110,45 +129,25 @@ export default function ManageShiftsPage() {
 				setTodayShifts(today_shifts);
 				setUpcomingShifts(upcoming_shifts);
 
-				// Collect all location IDs
-				const locationIds = new Set<string>();
-				allShifts.forEach((shift) => {
-					if (shift.location_id) {
-						locationIds.add(shift.location_id);
-					}
-				});
-				console.log("Location IDs to fetch:", Array.from(locationIds));
-
-				// Fetch all needed locations
-				const locationsArray: Location[] = [];
-				for (const locId of locationIds) {
-					const location = await LocationsAPI.getById(locId);
-					if (location) {
-						locationsArray.push(location);
-					}
-				}
-				console.log("Locations fetched:", locationsArray);
-				setLocations(locationsArray);
-
-				// For now, we're not fetching real employees
-				// This would be implemented with an EmployeesAPI call
-				setEmployees([]);
-
 				// For now we're just creating empty arrays for each shift
 				const employeeMapping: Record<string, Employee[]> = {};
 				allShifts.forEach((shift) => {
 					employeeMapping[shift.id] = [];
 				});
 				setEmployeesByShift(employeeMapping);
+
+				setIsLoading(false);
 			} catch (error) {
-				console.error("Error fetching shifts:", error);
-			} finally {
+				console.error("Error fetching data:", error);
+				setError(
+					error instanceof Error ? error.message : "Failed to load data"
+				);
 				setIsLoading(false);
 			}
 		};
 
-		fetchShifts();
-	}, [organizationId, locationId]);
+		fetchData();
+	}, [navigate, searchParams]);
 
 	return (
 		<ContentContainer>

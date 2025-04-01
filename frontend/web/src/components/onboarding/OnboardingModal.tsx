@@ -29,7 +29,7 @@ import { EmployeeDialog } from "../EmployeeDialog";
 import { ShiftCreationDialog } from "../ShiftCreationDialog";
 import { Badge } from "../ui/badge";
 import React from "react";
-import { ShiftsAPI, SchedulesAPI, ScheduleCreateInput } from "@/api";
+import { ShiftsAPI, ScheduleCreateInput } from "@/api";
 import { useOrganizationId } from "@/hooks/useOrganizationId";
 import { EmployeesAPI } from "@/api";
 

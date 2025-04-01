@@ -25,9 +25,8 @@ export {
 	LocationsAPI,
 	NotificationsAPI,
 	OrganizationsAPI,
-	ShiftsAPI as SchedulesAPI,
-	ShiftAssignmentsAPI,
 	ShiftsAPI,
+	ShiftAssignmentsAPI,
 	EmployeeLocationsAPI,
 	BillingAPI,
 };

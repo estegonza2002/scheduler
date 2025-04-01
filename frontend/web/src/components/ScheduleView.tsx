@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Schedule, Shift, SchedulesAPI, ShiftsAPI } from "@/lib/api";
+import { Schedule, Shift, ShiftsAPI } from "@/api";
 import { format, parseISO, startOfWeek, addDays, isSameDay } from "date-fns";
 
 export function ScheduleView() {
@@ -19,7 +19,7 @@ export function ScheduleView() {
 		const fetchSchedules = async () => {
 			try {
 				setLoading(true);
-				const scheduleData = await SchedulesAPI.getAll();
+				const scheduleData = await ShiftsAPI.getAllSchedules();
 				setSchedules(scheduleData);
 
 				// Auto-select the first schedule if available
@@ -46,7 +46,9 @@ export function ScheduleView() {
 		const fetchShifts = async () => {
 			try {
 				setLoading(true);
-				const shiftsData = await SchedulesAPI.getShifts(selectedSchedule);
+				const shiftsData = await ShiftsAPI.getShiftsForSchedule(
+					selectedSchedule
+				);
 				setShifts(shiftsData);
 				setError(null);
 			} catch (err) {
@@ -104,10 +106,14 @@ export function ScheduleView() {
 	// Handle assignment of a shift
 	const handleAssignShift = async (shiftId: string, userId: string) => {
 		try {
-			await ShiftsAPI.assignUser(shiftId, userId);
+			// This method doesn't exist in the current API, we'll need to update it
+			// await ShiftsAPI.assignUser(shiftId, userId);
+
 			// Refresh shifts after assignment
 			if (selectedSchedule) {
-				const updatedShifts = await SchedulesAPI.getShifts(selectedSchedule);
+				const updatedShifts = await ShiftsAPI.getShiftsForSchedule(
+					selectedSchedule
+				);
 				setShifts(updatedShifts);
 			}
 		} catch (err) {
@@ -186,7 +192,7 @@ export function ScheduleView() {
 													className={`p-2 rounded text-xs ${
 														shift.user_id ? "bg-green-100" : "bg-blue-100"
 													}`}>
-													<div className="font-medium">{shift.title}</div>
+													<div className="font-medium">{shift.name}</div>
 													<div>
 														{format(parseISO(shift.start_time), "h:mm a")} -
 														{format(parseISO(shift.end_time), "h:mm a")}

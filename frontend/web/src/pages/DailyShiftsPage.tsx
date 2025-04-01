@@ -9,7 +9,6 @@ import {
 	Location,
 	Employee,
 	Schedule,
-	SchedulesAPI,
 } from "@/api";
 import { format, addDays, subDays } from "date-fns";
 import {
