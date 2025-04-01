@@ -58,6 +58,8 @@ import { Badge } from "../ui/badge";
 import { ShiftStatus } from "./ShiftStatus";
 import { Link } from "react-router-dom";
 import { Alert, AlertTitle, AlertDescription } from "../ui/alert";
+import { supabase } from "../../lib/supabase";
+import { RealtimeChannel } from "@supabase/supabase-js";
 
 // Define API access functions
 const getShift = async (shiftId: string): Promise<Shift | null> => {
@@ -158,6 +160,13 @@ export function ShiftDetails({ hideHeader = false }: ShiftDetailsProps) {
 		[]
 	);
 
+	// Add state for real-time channels
+	const [shiftsChannel, setShiftsChannel] = useState<RealtimeChannel | null>(
+		null
+	);
+	const [assignmentsChannel, setAssignmentsChannel] =
+		useState<RealtimeChannel | null>(null);
+
 	// Dialog states
 	const [assignEmployeeDialogOpen, setAssignEmployeeDialogOpen] =
 		useState(false);
@@ -171,116 +180,190 @@ export function ShiftDetails({ hideHeader = false }: ShiftDetailsProps) {
 		assignmentId: string;
 	} | null>(null);
 
-	// Load initial data
-	useEffect(() => {
-		const loadData = async () => {
-			if (!shiftId) return;
+	// Load data function
+	const loadData = useCallback(async () => {
+		if (!shiftId) return;
 
-			setLoading(true);
+		console.log(`Loading data for shift: ${shiftId}`);
+		setLoading(true);
 
-			try {
-				// Load shift and related data from API
-				const shiftData = await getShift(shiftId);
-				setShift(shiftData);
+		try {
+			// Load shift and related data from API
+			const shiftData = await getShift(shiftId);
+			setShift(shiftData);
 
-				if (!shiftData) {
-					console.error("Shift not found");
-					return;
-				}
+			if (!shiftData) {
+				console.error("Shift not found");
+				return;
+			}
 
-				// Load location data
-				if (shiftData.location_id) {
-					const locationData = await getLocation(shiftData.location_id);
-					setLocation(locationData);
-				}
+			// Load location data
+			if (shiftData.location_id) {
+				const locationData = await getLocation(shiftData.location_id);
+				setLocation(locationData);
+			}
 
-				// Load shift assignments and associated employees
-				const assignmentsData = await getShiftAssignments(shiftId);
-				setShiftAssignments(assignmentsData);
+			// Load shift assignments and associated employees
+			const assignmentsData = await getShiftAssignments(shiftId);
+			setShiftAssignments(assignmentsData);
 
-				// For each assignment, fetch the employee details
-				const assignedEmployeePromises = assignmentsData.map(
-					async (assignment) => {
-						const employee = await getEmployee(assignment.employee_id);
-						if (employee) {
-							return {
-								...employee,
-								assignmentId: assignment.id,
-							};
-						}
-						return null;
+			// For each assignment, fetch the employee details
+			const assignedEmployeePromises = assignmentsData.map(
+				async (assignment) => {
+					const employee = await getEmployee(assignment.employee_id);
+					if (employee) {
+						return {
+							...employee,
+							assignmentId: assignment.id,
+						};
 					}
-				);
-
-				const assignedEmployeeData = await Promise.all(
-					assignedEmployeePromises
-				);
-				const filteredEmployees = assignedEmployeeData.filter(
-					(item) => item !== null
-				) as AssignedEmployee[];
-				setAssignedEmployees(filteredEmployees);
-
-				// Set check-in/check-out tasks and notes
-				if (shiftData.check_in_tasks) {
-					setLocalCheckInTasks(shiftData.check_in_tasks);
+					return null;
 				}
+			);
 
-				if (shiftData.check_out_tasks) {
-					setLocalCheckOutTasks(shiftData.check_out_tasks);
-				}
+			const assignedEmployeeData = await Promise.all(assignedEmployeePromises);
+			const filteredEmployees = assignedEmployeeData.filter(
+				(item) => item !== null
+			) as AssignedEmployee[];
+			setAssignedEmployees(filteredEmployees);
 
-				if (shiftData.description) {
-					setLocalNotes(shiftData.description);
-				}
+			// Set check-in/check-out tasks and notes
+			if (shiftData.check_in_tasks) {
+				setLocalCheckInTasks(shiftData.check_in_tasks);
+			}
 
-				// Load available employees
-				if (shiftData.organization_id) {
-					const employeesData = await getEmployees(shiftData.organization_id);
-					setAvailableEmployees(employeesData);
+			if (shiftData.check_out_tasks) {
+				setLocalCheckOutTasks(shiftData.check_out_tasks);
+			}
+
+			if (shiftData.description) {
+				setLocalNotes(shiftData.description);
+			}
+
+			// Load available employees
+			if (shiftData.organization_id) {
+				const employeesData = await getEmployees(shiftData.organization_id);
+				setAvailableEmployees(employeesData);
+			}
+		} catch (error) {
+			console.error("Error loading shift data:", error);
+			toast.error("Failed to load shift data");
+		} finally {
+			setLoading(false);
+		}
+	}, [shiftId]);
+
+	// Setup real-time subscriptions
+	const setupRealtimeSubscriptions = useCallback(() => {
+		if (!shiftId) return;
+
+		console.log(`Setting up real-time subscriptions for shift: ${shiftId}`);
+
+		// Unsubscribe from existing channels first
+		if (shiftsChannel) {
+			shiftsChannel.unsubscribe();
+		}
+
+		if (assignmentsChannel) {
+			assignmentsChannel.unsubscribe();
+		}
+
+		// Subscribe to shifts table changes for this specific shift
+		const shiftsSubscription = supabase
+			.channel("shift-details-changes")
+			.on(
+				"postgres_changes",
+				{
+					event: "*",
+					schema: "public",
+					table: "shifts",
+					filter: `id=eq.${shiftId}`,
+				},
+				(payload) => {
+					console.log("Shift details changed:", payload);
+					// Reload data when the shift changes
+					loadData();
 				}
-			} catch (error) {
-				console.error("Error loading shift data:", error);
-				toast.error("Failed to load shift data");
-			} finally {
-				setLoading(false);
+			)
+			.subscribe((status) => {
+				console.log("Shift subscription status:", status);
+			});
+
+		// Subscribe to shift assignments changes for this shift
+		const assignmentsSubscription = supabase
+			.channel("shift-assignments-details-changes")
+			.on(
+				"postgres_changes",
+				{
+					event: "*",
+					schema: "public",
+					table: "shift_assignments",
+					filter: `shift_id=eq.${shiftId}`,
+				},
+				(payload) => {
+					console.log("Shift assignment changed:", payload);
+					// Reload data when assignments change
+					loadData();
+				}
+			)
+			.subscribe((status) => {
+				console.log("Shift assignments subscription status:", status);
+			});
+
+		// Save channel references for cleanup
+		setShiftsChannel(shiftsSubscription);
+		setAssignmentsChannel(assignmentsSubscription);
+	}, [shiftId, loadData]);
+
+	// Initial data load
+	useEffect(() => {
+		loadData();
+
+		// Setup real-time subscriptions
+		setupRealtimeSubscriptions();
+
+		// Cleanup subscriptions when component unmounts
+		return () => {
+			console.log("Cleaning up real-time subscriptions");
+			if (shiftsChannel) {
+				shiftsChannel.unsubscribe();
+			}
+			if (assignmentsChannel) {
+				assignmentsChannel.unsubscribe();
 			}
 		};
-
-		loadData();
-	}, [shiftId]);
+	}, [shiftId, loadData, setupRealtimeSubscriptions]);
 
 	// Save shift changes
 	const saveShift = async (updatedShift: Partial<Shift>) => {
-		if (!shift || !shiftId) return;
+		if (!shiftId || !shift) return;
 
 		setSaving(true);
-
 		try {
 			const result = await updateShift(shiftId, updatedShift);
 			if (result) {
-				setShift(result);
+				console.log("Shift updated. This should trigger a real-time update.");
 				toast.success("Shift updated successfully");
-			} else {
-				toast.error("Failed to update shift");
+				// The real-time subscription will update the UI
 			}
 		} catch (error) {
 			console.error("Error updating shift:", error);
-			toast.error("Error updating shift");
+			toast.error("Failed to update shift");
 		} finally {
 			setSaving(false);
 		}
 	};
 
-	// Handle delete shift
+	// Handle shift deletion
 	const handleDeleteShift = async () => {
-		if (!shift || !shiftId) return;
+		if (!shiftId) return;
 
 		try {
 			setSaving(true);
 			await deleteShift(shiftId);
 			toast.success("Shift deleted successfully");
-			// Navigate back to overview
-			navigate("/schedule");
+			console.log("Shift deleted. Navigating away from detail page.");
+			navigate("/manage-shifts");
 		} catch (error) {
 			console.error("Error deleting shift:", error);
 			toast.error("Failed to delete shift");
@@ -292,81 +375,69 @@ export function ShiftDetails({ hideHeader = false }: ShiftDetailsProps) {
 
 	// Handle employee assignment
 	const handleAssignEmployees = async (employees: AssignedEmployee[]) => {
-		if (!shift || !shiftId) return;
+		if (!shiftId || !shift) return;
 
+		setSaving(true);
 		try {
-			setSaving(true);
+			// Get currently assigned employees
+			const currentlyAssigned = new Set(assignedEmployees.map((emp) => emp.id));
 
-			// Get the newly assigned employees (not in current assigned list)
-			const currentIds = assignedEmployees.map((emp) => emp.id);
+			// Find new employees to assign
 			const newAssignments = employees.filter(
-				(emp) => !currentIds.includes(emp.id)
+				(emp) => !currentlyAssigned.has(emp.id)
 			);
 
-			// Create new assignments
-			const assignmentPromises = newAssignments.map((emp) =>
-				createShiftAssignment({
+			// Create assignments for each new employee
+			for (const employee of newAssignments) {
+				await createShiftAssignment({
 					shift_id: shiftId,
-					employee_id: emp.id,
-				})
+					employee_id: employee.id,
+				});
+			}
+
+			console.log(
+				`${newAssignments.length} new employees assigned. This should trigger a real-time update.`
 			);
 
-			await Promise.all(assignmentPromises);
-			setAssignedEmployees(employees);
+			if (newAssignments.length > 0) {
+				toast.success(
+					`${newAssignments.length} employee${
+						newAssignments.length > 1 ? "s" : ""
+					} assigned to shift`
+				);
+			}
 
-			// Update available employees list
-			const assignedIds = employees.map((emp) => emp.id);
-			setAvailableEmployees((prevAvailable) =>
-				prevAvailable.filter((emp) => !assignedIds.includes(emp.id))
-			);
-
-			toast.success("Employees assigned successfully");
+			// The real-time subscription will update the UI
 		} catch (error) {
 			console.error("Error assigning employees:", error);
 			toast.error("Failed to assign employees");
 		} finally {
 			setSaving(false);
+			setAssignEmployeeDialogOpen(false);
 		}
 	};
 
-	// Handle remove employee
+	// Handle employee removal (sets up the confirmation dialog)
 	const handleRemoveEmployee = (employeeId: string, assignmentId: string) => {
-		if (hasShiftEnded()) {
-			toast.error("Cannot modify a completed shift");
-			return;
-		}
-
 		setEmployeeToRemove({ id: employeeId, assignmentId });
 		setRemoveEmployeeAlertOpen(true);
 	};
 
-	// Actually remove employee after confirmation
+	// Confirm employee removal
 	const confirmRemoveEmployee = async () => {
-		if (!shift || !employeeToRemove) return;
+		if (!employeeToRemove) return;
 
+		setSaving(true);
 		try {
-			setSaving(true);
 			await deleteShiftAssignment(employeeToRemove.assignmentId);
 
-			// Update UI state
-			const removedEmployee = assignedEmployees.find(
-				(emp) => emp.id === employeeToRemove.id
+			console.log(
+				`Employee removed from shift. This should trigger a real-time update.`
 			);
-			setAssignedEmployees((prev) =>
-				prev.filter((emp) => emp.id !== employeeToRemove.id)
-			);
-
-			if (removedEmployee) {
-				// Add back to available employees
-				const employeeWithoutAssignment = {
-					...removedEmployee,
-				} as Employee;
-				delete (employeeWithoutAssignment as any).assignmentId;
-
-				setAvailableEmployees((prev) => [...prev, employeeWithoutAssignment]);
-			}
 
 			toast.success("Employee removed from shift");
+
+			// The real-time subscription will update the UI
 		} catch (error) {
 			console.error("Error removing employee:", error);
 			toast.error("Failed to remove employee");
@@ -377,25 +448,86 @@ export function ShiftDetails({ hideHeader = false }: ShiftDetailsProps) {
 		}
 	};
 
-	// Handle notes update
+	// Handle notes updates
 	const handleSaveNotes = async (notes: string) => {
 		setLocalNotes(notes);
 		await saveShift({ description: notes });
-		toast.success("Notes saved successfully");
+		setNotesDialogOpen(false);
 	};
 
-	// Handle check-in tasks update
+	// Handle check-in tasks updates
 	const handleSaveCheckInTasks = async (tasks: ShiftTask[]) => {
 		setLocalCheckInTasks(tasks);
 		await saveShift({ check_in_tasks: tasks });
-		toast.success("Check-in tasks saved successfully");
+		setCheckInTasksDialogOpen(false);
 	};
 
-	// Handle check-out tasks update
+	// Handle check-out tasks updates
 	const handleSaveCheckOutTasks = async (tasks: ShiftTask[]) => {
 		setLocalCheckOutTasks(tasks);
 		await saveShift({ check_out_tasks: tasks });
-		toast.success("Check-out tasks saved successfully");
+		setCheckOutTasksDialogOpen(false);
+	};
+
+	// Handle task completion toggle
+	const handleToggleTaskCompletion = (
+		taskType: "checkIn" | "checkOut",
+		taskId: string
+	) => {
+		// Update local state first for immediate UI feedback
+		if (taskType === "checkIn") {
+			const updatedTasks = localCheckInTasks.map((task) =>
+				task.id === taskId ? { ...task, completed: !task.completed } : task
+			);
+			setLocalCheckInTasks(updatedTasks);
+
+			// Save to the server (will trigger real-time update)
+			saveShift({ check_in_tasks: updatedTasks });
+			console.log(
+				"Updated check-in task. This should trigger a real-time update."
+			);
+		} else {
+			const updatedTasks = localCheckOutTasks.map((task) =>
+				task.id === taskId ? { ...task, completed: !task.completed } : task
+			);
+			setLocalCheckOutTasks(updatedTasks);
+
+			// Save to the server (will trigger real-time update)
+			saveShift({ check_out_tasks: updatedTasks });
+			console.log(
+				"Updated check-out task. This should trigger a real-time update."
+			);
+		}
+	};
+
+	// Remove a task
+	const handleRemoveTask = (
+		taskType: "checkIn" | "checkOut",
+		taskId: string
+	) => {
+		if (taskType === "checkIn") {
+			const updatedTasks = localCheckInTasks.filter(
+				(task) => task.id !== taskId
+			);
+			setLocalCheckInTasks(updatedTasks);
+
+			// Save to the server (will trigger real-time update)
+			saveShift({ check_in_tasks: updatedTasks });
+			console.log(
+				"Removed check-in task. This should trigger a real-time update."
+			);
+		} else {
+			const updatedTasks = localCheckOutTasks.filter(
+				(task) => task.id !== taskId
+			);
+			setLocalCheckOutTasks(updatedTasks);
+
+			// Save to the server (will trigger real-time update)
+			saveShift({ check_out_tasks: updatedTasks });
+			console.log(
+				"Removed check-out task. This should trigger a real-time update."
+			);
+		}
 	};
 
 	// Format date for URL parameters
@@ -456,64 +588,6 @@ export function ShiftDetails({ hideHeader = false }: ShiftDetailsProps) {
 			return;
 		}
 		setCheckOutTasksDialogOpen(true);
-	};
-
-	// Handle toggle task completion
-	const handleToggleTaskCompletion = (
-		taskType: "checkIn" | "checkOut",
-		taskId: string
-	) => {
-		if (!shift) return;
-
-		if (hasShiftEnded()) {
-			toast.error("Cannot modify a completed shift");
-			return;
-		}
-
-		if (taskType === "checkIn") {
-			const updatedTasks = localCheckInTasks.map((task) =>
-				task.id === taskId ? { ...task, completed: !task.completed } : task
-			);
-			setLocalCheckInTasks(updatedTasks);
-
-			saveShift({ check_in_tasks: updatedTasks });
-		} else {
-			const updatedTasks = localCheckOutTasks.map((task) =>
-				task.id === taskId ? { ...task, completed: !task.completed } : task
-			);
-			setLocalCheckOutTasks(updatedTasks);
-
-			saveShift({ check_out_tasks: updatedTasks });
-		}
-	};
-
-	// Handle remove task
-	const handleRemoveTask = (
-		taskType: "checkIn" | "checkOut",
-		taskId: string
-	) => {
-		if (!shift) return;
-
-		if (hasShiftEnded()) {
-			toast.error("Cannot modify a completed shift");
-			return;
-		}
-
-		if (taskType === "checkIn") {
-			const updatedTasks = localCheckInTasks.filter(
-				(task) => task.id !== taskId
-			);
-			setLocalCheckInTasks(updatedTasks);
-
-			saveShift({ check_in_tasks: updatedTasks });
-		} else {
-			const updatedTasks = localCheckOutTasks.filter(
-				(task) => task.id !== taskId
-			);
-			setLocalCheckOutTasks(updatedTasks);
-
-			saveShift({ check_out_tasks: updatedTasks });
-		}
 	};
 
 	// Update global header when shift data is loaded

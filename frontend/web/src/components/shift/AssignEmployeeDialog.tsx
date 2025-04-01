@@ -4,6 +4,7 @@ import {
 	EmployeesAPI,
 	LocationsAPI,
 	ShiftsAPI,
+	ShiftAssignmentsAPI,
 	Employee,
 	Location,
 	Shift,
@@ -35,6 +36,9 @@ export function AssignEmployeeDialog({
 	const [selectedEmployees, setSelectedEmployees] = useState<
 		SelectedEmployee[]
 	>([]);
+	const [alreadyAssignedEmployees, setAlreadyAssignedEmployees] = useState<
+		Employee[]
+	>([]);
 
 	// Fetch employees, locations and shift data
 	useEffect(() => {
@@ -53,19 +57,45 @@ export function AssignEmployeeDialog({
 					setShift(shiftData);
 
 					// Next fetch employees and locations in parallel
-					const [employeesData, locationsData] = await Promise.all([
-						EmployeesAPI.getAll(),
-						LocationsAPI.getAll(),
-					]);
+					const [employeesData, locationsData, shiftAssignments] =
+						await Promise.all([
+							EmployeesAPI.getAll(),
+							LocationsAPI.getAll(),
+							ShiftAssignmentsAPI.getAll(shiftId),
+						]);
 
 					console.log("AssignEmployeeDialog: Loaded data:", {
 						employeesCount: employeesData.length,
 						locationsCount: locationsData.length,
 						locationIds: locationsData.map((loc) => loc.id),
+						assignmentsCount: shiftAssignments.length,
 					});
 
 					setEmployees(employeesData);
 					setLocations(locationsData);
+
+					// Find employees who are already assigned to this shift
+					const assignedEmployeeIds = shiftAssignments.map(
+						(assignment) => assignment.employee_id
+					);
+					const assignedEmployees = employeesData.filter((employee) =>
+						assignedEmployeeIds.includes(employee.id)
+					);
+
+					setAlreadyAssignedEmployees(assignedEmployees);
+					console.log(
+						"Already assigned employees:",
+						assignedEmployees.map((e) => e.name)
+					);
+
+					// Also populate the selected employees with the assigned ones
+					setSelectedEmployees(
+						assignedEmployees.map((emp) => ({
+							id: emp.id,
+							name: emp.name,
+							position: emp.position,
+						}))
+					);
 
 					// If shift has a location_id, directly fetch the location by ID
 					if (shiftData?.location_id) {
@@ -108,32 +138,6 @@ export function AssignEmployeeDialog({
 					} else {
 						setLocationName("Unassigned");
 					}
-
-					// Find assigned employees only after we have the employee data
-					if (shiftData?.user_id) {
-						const assignedEmp = employeesData.find(
-							(emp) => emp.id === shiftData.user_id
-						);
-
-						if (assignedEmp) {
-							console.log(
-								"AssignEmployeeDialog: Found assigned employee:",
-								assignedEmp.name
-							);
-							setSelectedEmployees([
-								{
-									id: assignedEmp.id,
-									name: assignedEmp.name,
-									role: assignedEmp.role || "",
-								},
-							]);
-						} else {
-							console.warn(
-								"AssignEmployeeDialog: User ID in shift not found in employees:",
-								shiftData.user_id
-							);
-						}
-					}
 				} catch (error) {
 					console.error("Error loading data:", error);
 					toast.error("Error loading data. Please try again.");
@@ -148,6 +152,7 @@ export function AssignEmployeeDialog({
 			setSearchTerm("");
 			setSelectedEmployees([]);
 			setLocationName("Loading...");
+			setAlreadyAssignedEmployees([]);
 		}
 	}, [open, shiftId]);
 
@@ -165,23 +170,63 @@ export function AssignEmployeeDialog({
 			// Get the employee IDs from the selected employees
 			const employeeIds = selectedEmployees.map((emp) => emp.id);
 
-			// Since ShiftsAPI doesn't have an explicit method for managing assigned employees,
-			// we'll use updateShift to update the user_id field
-			// This is a simple implementation - in a real app, you'd likely
-			// handle multiple employees differently
-			await ShiftsAPI.updateShift(shiftId, {
-				user_id: employeeIds.length > 0 ? employeeIds[0] : undefined,
-			});
-
-			toast.success("Employees assigned successfully");
-
-			// Call the callback if provided
-			if (onAssigned) {
-				onAssigned();
+			if (employeeIds.length === 0) {
+				toast.error("Please select at least one employee");
+				setLoading(false);
+				return;
 			}
 
-			// Close the dialog
-			onOpenChange(false);
+			console.log(
+				`Assigning ${employeeIds.length} employees to shift ${shiftId}`
+			);
+
+			// Process each employee assignment in sequence
+			const assignmentPromises = employeeIds.map(async (employeeId) => {
+				try {
+					// Create shift assignment
+					await ShiftAssignmentsAPI.create({
+						shift_id: shiftId,
+						employee_id: employeeId,
+					});
+					return true;
+				} catch (err) {
+					console.error(
+						`Error creating assignment for employee ${employeeId}:`,
+						err
+					);
+					return false;
+				}
+			});
+
+			// Wait for all assignments to complete
+			const results = await Promise.all(assignmentPromises);
+			const successCount = results.filter(Boolean).length;
+
+			if (successCount === employeeIds.length) {
+				toast.success(`${successCount} employees assigned successfully`);
+
+				// Call the callback if provided
+				if (onAssigned) {
+					onAssigned();
+				}
+
+				// Close the dialog
+				onOpenChange(false);
+			} else if (successCount > 0) {
+				toast.success(
+					`${successCount} out of ${employeeIds.length} employees assigned successfully`
+				);
+
+				// Call the callback if provided
+				if (onAssigned) {
+					onAssigned();
+				}
+
+				// Close the dialog
+				onOpenChange(false);
+			} else {
+				toast.error("Failed to assign employees");
+			}
 		} catch (error) {
 			console.error("Error assigning employees:", error);
 			toast.error("Failed to assign employees");
@@ -224,7 +269,9 @@ export function AssignEmployeeDialog({
 		<Sheet
 			open={open}
 			onOpenChange={onOpenChange}>
-			<SheetContent side="right">
+			<SheetContent
+				side="bottom"
+				className="h-[90vh]">
 				<SheetHeader>
 					<SheetTitle>Assign Employees to Shift</SheetTitle>
 				</SheetHeader>
@@ -253,6 +300,7 @@ export function AssignEmployeeDialog({
 					showShiftInfo={true}
 					filterByLocation={true}
 					submitButtonText="Assign Employees"
+					alreadyAssignedEmployees={alreadyAssignedEmployees}
 				/>
 			</SheetContent>
 		</Sheet>

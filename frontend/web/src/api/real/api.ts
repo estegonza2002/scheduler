@@ -161,6 +161,24 @@ export const ShiftsAPI = {
 		return data as Schedule[];
 	},
 
+	// Get regular shifts (not schedules)
+	getRegularShifts: async (organizationId?: string): Promise<Shift[]> => {
+		let query = supabase.from("shifts").select("*").eq("is_schedule", false);
+
+		if (organizationId) {
+			query = query.eq("organization_id", organizationId);
+		}
+
+		const { data, error } = await query;
+
+		if (error) {
+			console.error("Error fetching regular shifts:", error);
+			return [];
+		}
+
+		return data as Shift[];
+	},
+
 	getScheduleById: async (id: string): Promise<Schedule | null> => {
 		const { data, error } = await supabase
 			.from("shifts")

@@ -42,7 +42,7 @@ interface ShiftCreationDialogProps {
 	/**
 	 * Optional function to call on successful shift creation
 	 */
-	onComplete?: () => void;
+	onComplete?: (shiftId: string) => void;
 	/**
 	 * Optional trigger element
 	 */
@@ -95,7 +95,7 @@ export function ShiftCreationDialog({
 	};
 
 	// Handle completion
-	const handleComplete = () => {
+	const handleComplete = (shiftId: string) => {
 		console.log("ShiftCreationDialog: handleComplete called");
 		if (onOpenChange) {
 			console.log("ShiftCreationDialog: Closing dialog");
@@ -103,7 +103,7 @@ export function ShiftCreationDialog({
 		}
 		if (onComplete) {
 			console.log("ShiftCreationDialog: Calling onComplete callback");
-			onComplete();
+			onComplete(shiftId);
 		}
 	};
 

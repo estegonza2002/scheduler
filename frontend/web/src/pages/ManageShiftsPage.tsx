@@ -14,11 +14,18 @@ import {
 	EmployeesAPI,
 	ShiftAssignmentsAPI,
 } from "@/api";
-import { Shift, Location, Organization, Employee } from "@/api/types";
+import {
+	Shift,
+	Location,
+	Organization,
+	Employee,
+	ShiftAssignment,
+} from "@/api/types";
 import { ShiftCard } from "@/components/ShiftCard";
 import { supabase } from "@/lib/supabase";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
+import { RealtimeChannel } from "@supabase/supabase-js";
 
 export default function ManageShiftsPage() {
 	const navigate = useNavigate();
@@ -36,6 +43,153 @@ export default function ManageShiftsPage() {
 	const [organization, setOrganization] = useState<Organization | null>(null);
 	const [loadingMessage, setLoadingMessage] = useState<string>("Loading data");
 	const [error, setError] = useState<string | null>(null);
+	const [shiftsChannel, setShiftsChannel] = useState<RealtimeChannel | null>(
+		null
+	);
+	const [assignmentsChannel, setAssignmentsChannel] =
+		useState<RealtimeChannel | null>(null);
+
+	// Function to reload data
+	const loadData = async () => {
+		try {
+			setIsLoading(true);
+			// Get organization ID from state or URL
+			const orgId =
+				organization?.id || searchParams.get("organizationId") || "";
+
+			if (orgId) {
+				// Load shifts
+				const shifts = await ShiftsAPI.getRegularShifts(orgId);
+				console.log(`Loaded ${shifts.length} shifts`);
+
+				// Separate shifts for today and upcoming
+				const today_shifts = shifts.filter((shift) =>
+					isToday(parseISO(shift.start_time))
+				);
+
+				const upcoming_shifts = shifts.filter(
+					(shift) =>
+						isAfter(parseISO(shift.start_time), new Date()) &&
+						!isToday(parseISO(shift.start_time))
+				);
+
+				setTodayShifts(today_shifts);
+				setUpcomingShifts(upcoming_shifts);
+
+				// Load employees
+				const employees = await EmployeesAPI.getAll(orgId);
+				setEmployees(employees);
+				console.log(`Loaded ${employees.length} employees`);
+
+				// Load assignments
+				const assignments = await ShiftAssignmentsAPI.getAll();
+				console.log(`Loaded ${assignments.length} shift assignments`);
+
+				// Create employee mapping
+				const employeeMapping: Record<string, Employee[]> = {};
+
+				// Initialize with empty arrays for all shifts
+				shifts.forEach((shift) => {
+					employeeMapping[shift.id] = [];
+				});
+
+				// Process assignments
+				for (const assignment of assignments) {
+					const shiftId = assignment.shift_id;
+					const employeeId = assignment.employee_id;
+
+					// Find the employee by ID
+					const employee = employees.find((emp) => emp.id === employeeId);
+					if (employee && employeeMapping[shiftId]) {
+						if (
+							!employeeMapping[shiftId].some((emp) => emp.id === employee.id)
+						) {
+							console.log(
+								`Adding employee ${employee.name} to shift ${shiftId}`
+							);
+							employeeMapping[shiftId].push(employee);
+						}
+					}
+				}
+
+				// Debug: Log assignments for each shift
+				Object.keys(employeeMapping).forEach((shiftId) => {
+					const assignedEmps = employeeMapping[shiftId];
+					if (assignedEmps.length > 0) {
+						console.log(
+							`Shift ${shiftId} has ${assignedEmps.length} employees:`,
+							assignedEmps.map((e) => e.name).join(", ")
+						);
+					}
+				});
+
+				setEmployeesByShift(employeeMapping);
+			} else {
+				console.error("No organization ID available for data reload");
+			}
+		} catch (error) {
+			console.error("Error loading data:", error);
+		} finally {
+			setIsLoading(false);
+		}
+	};
+
+	// Setup Supabase real-time subscriptions
+	const setupRealtimeSubscriptions = (orgId: string) => {
+		// Unsubscribe from any existing channels
+		if (shiftsChannel) {
+			shiftsChannel.unsubscribe();
+		}
+
+		if (assignmentsChannel) {
+			assignmentsChannel.unsubscribe();
+		}
+
+		// Subscribe to shifts table changes
+		const shiftsSubscription = supabase
+			.channel("shifts-changes")
+			.on(
+				"postgres_changes",
+				{
+					event: "*",
+					schema: "public",
+					table: "shifts",
+					filter: `organization_id=eq.${orgId}`,
+				},
+				(payload) => {
+					console.log("Shifts change received!", payload);
+					// Reload data when shifts change
+					loadData();
+				}
+			)
+			.subscribe((status) => {
+				console.log("Shifts subscription status:", status);
+			});
+
+		// Subscribe to shift_assignments table changes
+		const assignmentsSubscription = supabase
+			.channel("shift-assignments-changes")
+			.on(
+				"postgres_changes",
+				{
+					event: "*",
+					schema: "public",
+					table: "shift_assignments",
+				},
+				(payload) => {
+					console.log("Shift assignments change received!", payload);
+					// Reload data when assignments change
+					loadData();
+				}
+			)
+			.subscribe((status) => {
+				console.log("Shift assignments subscription status:", status);
+			});
+
+		// Save the channel references for cleanup
+		setShiftsChannel(shiftsSubscription);
+		setAssignmentsChannel(assignmentsSubscription);
+	};
 
 	// Get parameters from URL
 	const organizationId = searchParams.get("organizationId") || "";
@@ -72,7 +226,7 @@ export default function ManageShiftsPage() {
 		});
 	}, [updateHeader, navigate, organizationId]);
 
-	// Fetch shifts
+	// Initial data fetch
 	useEffect(() => {
 		const fetchData = async () => {
 			try {
@@ -100,43 +254,11 @@ export default function ManageShiftsPage() {
 				setLocations(allLocations);
 				console.log(`Loaded ${allLocations.length} locations`);
 
-				setLoadingMessage("Loading shifts");
-				const allShifts = await ShiftsAPI.getAllSchedules(useOrgId);
-				console.log(`Loaded ${allShifts.length} shifts`);
+				// Load data
+				await loadData();
 
-				setLoadingMessage("Loading employees");
-				const allEmployees = await EmployeesAPI.getAll(useOrgId);
-				setEmployees(allEmployees);
-				console.log(`Loaded ${allEmployees.length} employees`);
-
-				setLoadingMessage("Loading shift assignments");
-				const shiftAssignments = await ShiftAssignmentsAPI.getAll();
-				console.log(`Loaded ${shiftAssignments.length} shift assignments`);
-
-				// Separate shifts for today and upcoming
-				const today_shifts = allShifts.filter((shift) =>
-					isToday(parseISO(shift.start_time))
-				);
-				console.log("Today's shifts:", today_shifts);
-
-				const upcoming_shifts = allShifts.filter(
-					(shift) =>
-						isAfter(parseISO(shift.start_time), new Date()) &&
-						!isToday(parseISO(shift.start_time))
-				);
-				console.log("Upcoming shifts:", upcoming_shifts);
-
-				setTodayShifts(today_shifts);
-				setUpcomingShifts(upcoming_shifts);
-
-				// For now we're just creating empty arrays for each shift
-				const employeeMapping: Record<string, Employee[]> = {};
-				allShifts.forEach((shift) => {
-					employeeMapping[shift.id] = [];
-				});
-				setEmployeesByShift(employeeMapping);
-
-				setIsLoading(false);
+				// Set up real-time subscriptions
+				setupRealtimeSubscriptions(useOrgId);
 			} catch (error) {
 				console.error("Error fetching data:", error);
 				setError(
@@ -147,6 +269,16 @@ export default function ManageShiftsPage() {
 		};
 
 		fetchData();
+
+		// Cleanup function to unsubscribe from channels when component unmounts
+		return () => {
+			if (shiftsChannel) {
+				shiftsChannel.unsubscribe();
+			}
+			if (assignmentsChannel) {
+				assignmentsChannel.unsubscribe();
+			}
+		};
 	}, [navigate, searchParams]);
 
 	return (

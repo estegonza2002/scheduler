@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -90,6 +90,8 @@ import {
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useHeader } from "@/lib/header-context";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
+import { supabase } from "@/lib/supabase";
+import { RealtimeChannel } from "@supabase/supabase-js";
 
 export default function EmployeesPage() {
 	const { updateHeader } = useHeader();
@@ -103,6 +105,8 @@ export default function EmployeesPage() {
 	const [currentPage, setCurrentPage] = useState(1);
 	const [pageSize, setPageSize] = useState(10);
 	const [employeeDialogOpen, setEmployeeDialogOpen] = useState(false);
+	const [employeesChannel, setEmployeesChannel] =
+		useState<RealtimeChannel | null>(null);
 
 	const {
 		initialized: presenceInitialized,
@@ -111,6 +115,133 @@ export default function EmployeesPage() {
 	} = useEmployeePresenceWithNotifications(organization?.id || "");
 	const navigate = useNavigate();
 	const [searchParams, setSearchParams] = useSearchParams();
+
+	// Function to load employee data
+	const loadEmployeeData = useCallback(async (orgId: string) => {
+		if (!orgId) return;
+
+		try {
+			setLoadingPhase("employees");
+			console.log("Loading employees for organization:", orgId);
+
+			const fetchedEmployees = await EmployeesAPI.getAll(orgId);
+			console.log(`Loaded ${fetchedEmployees.length} employees`);
+
+			setEmployees(fetchedEmployees);
+		} catch (error) {
+			console.error("Error loading employees:", error);
+		} finally {
+			setIsLoading(false);
+		}
+	}, []);
+
+	// Setup Supabase real-time subscriptions
+	const setupRealtimeSubscriptions = useCallback(
+		(orgId: string) => {
+			if (!orgId) return;
+
+			console.log(
+				`Setting up real-time subscriptions for organization: ${orgId}`
+			);
+
+			// Unsubscribe from any existing channel
+			if (employeesChannel) {
+				employeesChannel.unsubscribe();
+			}
+
+			// Subscribe to employees table changes for this organization
+			const employeesSubscription = supabase
+				.channel("employees-changes")
+				.on(
+					"postgres_changes",
+					{
+						event: "*",
+						schema: "public",
+						table: "employees",
+						filter: `organization_id=eq.${orgId}`,
+					},
+					(payload) => {
+						console.log("Employee data changed:", payload);
+
+						// Handle different types of changes
+						if (payload.eventType === "INSERT") {
+							console.log("New employee added:", payload.new);
+							// Convert from snake_case to camelCase
+							const newEmployee = {
+								id: payload.new.id,
+								organizationId: payload.new.organization_id,
+								name: payload.new.name,
+								email: payload.new.email,
+								position: payload.new.position,
+								phone: payload.new.phone,
+								hireDate: payload.new.hire_date,
+								address: payload.new.address,
+								emergencyContact: payload.new.emergency_contact,
+								notes: payload.new.notes,
+								avatar: payload.new.avatar,
+								hourlyRate:
+									payload.new.hourly_rate !== null
+										? parseFloat(payload.new.hourly_rate)
+										: undefined,
+								status: payload.new.status,
+								isOnline: payload.new.is_online,
+								lastActive: payload.new.last_active,
+							} as Employee;
+
+							// Update state
+							setEmployees((prevEmployees) => [...prevEmployees, newEmployee]);
+						} else if (payload.eventType === "UPDATE") {
+							console.log("Employee updated:", payload.new);
+							// Convert from snake_case to camelCase
+							const updatedEmployee = {
+								id: payload.new.id,
+								organizationId: payload.new.organization_id,
+								name: payload.new.name,
+								email: payload.new.email,
+								position: payload.new.position,
+								phone: payload.new.phone,
+								hireDate: payload.new.hire_date,
+								address: payload.new.address,
+								emergencyContact: payload.new.emergency_contact,
+								notes: payload.new.notes,
+								avatar: payload.new.avatar,
+								hourlyRate:
+									payload.new.hourly_rate !== null
+										? parseFloat(payload.new.hourly_rate)
+										: undefined,
+								status: payload.new.status,
+								isOnline: payload.new.is_online,
+								lastActive: payload.new.last_active,
+							} as Employee;
+
+							// Update state
+							setEmployees((prevEmployees) =>
+								prevEmployees.map((emp) =>
+									emp.id === updatedEmployee.id ? updatedEmployee : emp
+								)
+							);
+						} else if (payload.eventType === "DELETE") {
+							console.log("Employee deleted:", payload.old);
+
+							// Update state
+							setEmployees((prevEmployees) =>
+								prevEmployees.filter((emp) => emp.id !== payload.old.id)
+							);
+						} else {
+							// For any other change, reload all employees
+							loadEmployeeData(orgId);
+						}
+					}
+				)
+				.subscribe((status) => {
+					console.log("Employees subscription status:", status);
+				});
+
+			// Save the channel reference for cleanup
+			setEmployeesChannel(employeesSubscription);
+		},
+		[loadEmployeeData]
+	);
 
 	// Listen for employee-added events from the system header
 	useEffect(() => {
@@ -166,6 +297,47 @@ export default function EmployeesPage() {
 			);
 		};
 	}, []);
+
+	// Initial data fetch and setup
+	useEffect(() => {
+		const fetchData = async () => {
+			try {
+				setIsLoading(true);
+				setLoadingPhase("organization");
+				const orgs = await OrganizationsAPI.getAll();
+				if (orgs.length > 0) {
+					setOrganization(orgs[0]);
+
+					// Load employee data
+					await loadEmployeeData(orgs[0].id);
+
+					// Setup real-time subscriptions
+					setupRealtimeSubscriptions(orgs[0].id);
+				}
+			} catch (error) {
+				console.error("Error fetching data:", error);
+			} finally {
+				setIsLoading(false);
+			}
+		};
+
+		fetchData();
+
+		// Cleanup function to unsubscribe from channels when component unmounts
+		return () => {
+			if (employeesChannel) {
+				console.log("Cleaning up employees subscription");
+				employeesChannel.unsubscribe();
+			}
+		};
+	}, [loadEmployeeData, setupRealtimeSubscriptions]);
+
+	// Calculate pagination for card view
+	const paginatedEmployees = useMemo(() => {
+		const startIndex = (currentPage - 1) * pageSize;
+		const endIndex = startIndex + pageSize;
+		return employees.slice(startIndex, endIndex);
+	}, [employees, currentPage, pageSize]);
 
 	// Set the page header on component mount
 	useEffect(() => {
@@ -464,36 +636,6 @@ export default function EmployeesPage() {
 		],
 		[navigate]
 	);
-
-	useEffect(() => {
-		const fetchData = async () => {
-			try {
-				setIsLoading(true);
-				setLoadingPhase("organization");
-				const orgs = await OrganizationsAPI.getAll();
-				if (orgs.length > 0) {
-					setOrganization(orgs[0]);
-					setLoadingPhase("employees");
-
-					const fetchedEmployees = await EmployeesAPI.getAll(orgs[0].id);
-					setEmployees(fetchedEmployees);
-				}
-			} catch (error) {
-				console.error("Error fetching data:", error);
-			} finally {
-				setIsLoading(false);
-			}
-		};
-
-		fetchData();
-	}, []);
-
-	// Calculate pagination for card view
-	const paginatedEmployees = useMemo(() => {
-		const startIndex = (currentPage - 1) * pageSize;
-		const endIndex = startIndex + pageSize;
-		return employees.slice(startIndex, endIndex);
-	}, [employees, currentPage, pageSize]);
 
 	// Pagination handlers for card view
 	const handlePageChange = (page: number) => {

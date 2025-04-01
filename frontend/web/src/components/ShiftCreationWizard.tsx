@@ -58,7 +58,7 @@ interface ShiftCreationWizardProps {
 	/**
 	 * Optional callback fired when wizard completes successfully
 	 */
-	onComplete?: () => void;
+	onComplete?: (shiftId: string) => void;
 	/**
 	 * Optional callback fired when wizard is cancelled
 	 */
@@ -499,6 +499,11 @@ export function ShiftCreationWizard({
 					const createdShift = await ShiftsAPI.createShift(shiftCreateData);
 					console.log("Shift created successfully:", createdShift);
 					toast.success("Shift created successfully");
+
+					// Call onComplete with created shift ID
+					if (onComplete) {
+						onComplete(createdShift.id);
+					}
 				} catch (err) {
 					console.error("Detailed error creating shift:", err);
 					throw err;
@@ -562,59 +567,30 @@ export function ShiftCreationWizard({
 
 					console.log("All assignments processed");
 					toast.success("Shift created with employee assignments");
+
+					// Call onComplete with created shift ID
+					if (onComplete) {
+						onComplete(createdShift.id);
+					}
 				} catch (error) {
 					console.error("Error creating shift or assignments:", error);
-
-					// Fallback to the previous working method if there are still issues
-					try {
-						console.log("Attempting fallback method");
-						const fallbackShiftData = {
-							organization_id: organizationId,
-							location_id: locationData.locationId,
-							start_time: startDateTime,
-							end_time: endDateTime,
-							description: shiftData.notes
-								? `${shiftData.notes} (${selectedEmployees
-										.map((e) => e.name)
-										.join(", ")})`
-								: `Assigned to: ${selectedEmployees
-										.map((e) => e.name)
-										.join(", ")}`,
-							is_schedule: false as const,
-							status: "scheduled",
-						};
-
-						console.log(
-							"Creating fallback shift with employee names in description"
-						);
-						await ShiftsAPI.createShift(fallbackShiftData);
-						toast.success("Shift created successfully (using fallback method)");
-					} catch (fallbackError) {
-						console.error("Fallback method also failed:", fallbackError);
-						throw error; // Throw the original error
-					}
+					setError(
+						"Failed to create shift. Please check your inputs and try again."
+					);
+					setLoading(false);
+					throw error;
 				}
 			}
 
-			console.log("Shifts created successfully");
-			// Add a delay to ensure all database operations are complete before notifying the parent
-			await new Promise((resolve) => setTimeout(resolve, 500));
-
-			if (onComplete) {
-				console.log("Calling onComplete callback");
-				onComplete();
-			}
+			setLoading(false);
+			console.log("Shift creation process complete");
 		} catch (error) {
-			console.error("Error creating shift:", error);
-			// More detailed error message
-			if (error instanceof Error) {
-				setError(`Failed to create shift: ${error.message}. Please try again.`);
-				toast.error(`Failed to create shift: ${error.message}`);
-			} else {
-				setError("Failed to create shift. Please try again.");
-				toast.error("Failed to create shift");
-			}
-		} finally {
+			console.error("Error in handleEmployeeAssignSubmit:", error);
+			setError(
+				error instanceof Error
+					? error.message
+					: "An unexpected error occurred. Please try again."
+			);
 			setLoading(false);
 		}
 	};

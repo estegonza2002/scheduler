@@ -22,11 +22,16 @@ import {
 	Users,
 	Loader2,
 	UserCheck,
+	CalendarDays,
+	Clock,
+	FileText,
+	X,
 } from "lucide-react";
 
 import { EmployeeCard } from "../EmployeeCard";
 import { format } from "date-fns";
 import { LucideIcon } from "lucide-react";
+import { cn } from "../../lib/utils";
 
 // Type definition for selected employee
 export type SelectedEmployee = {
@@ -112,6 +117,7 @@ export interface EmployeeSelectionComponentProps {
 	// Selection state and callbacks
 	selectedEmployees: SelectedEmployee[];
 	onSelectedEmployeesChange: (employees: SelectedEmployee[]) => void;
+	alreadyAssignedEmployees?: Employee[];
 
 	// Navigation and form handling
 	onBack?: () => void;
@@ -146,6 +152,7 @@ export function EmployeeSelectionComponent({
 	onResetLocation,
 	selectedEmployees = [],
 	onSelectedEmployeesChange,
+	alreadyAssignedEmployees,
 	onBack = () => {},
 	onFormSubmit = () => {},
 	handleEmployeeAssignSubmit,
@@ -274,17 +281,30 @@ export function EmployeeSelectionComponent({
 			return { locationEmployees: [], otherEmployees: filteredEmployees };
 		}
 
-		// Split into location employees and others
-		const locationEmployees = filteredEmployees.filter((emp) =>
-			locationEmployeeIds.includes(emp.id)
+		// Create a set of already assigned employee IDs for efficient lookup
+		const alreadyAssignedIds = new Set(
+			alreadyAssignedEmployees?.map((emp) => emp.id) || []
 		);
 
+		// Filter out already assigned employees from location employees
+		const locationEmployees = filteredEmployees.filter(
+			(emp) =>
+				locationEmployeeIds.includes(emp.id) && !alreadyAssignedIds.has(emp.id)
+		);
+
+		// Filter out already assigned employees from other employees
 		const otherEmployees = filteredEmployees.filter(
-			(emp) => !locationEmployeeIds.includes(emp.id)
+			(emp) =>
+				!locationEmployeeIds.includes(emp.id) && !alreadyAssignedIds.has(emp.id)
 		);
 
 		return { locationEmployees, otherEmployees };
-	}, [filteredEmployees, locationEmployeeIds, filterByLocation]);
+	}, [
+		filteredEmployees,
+		locationEmployeeIds,
+		filterByLocation,
+		alreadyAssignedEmployees,
+	]);
 
 	// Create a reusable toggle function
 	const toggleEmployee = useCallback(
@@ -376,7 +396,7 @@ export function EmployeeSelectionComponent({
 						variant="compact"
 						size="sm"
 						showActions={false}
-						className={`w-full max-w-[200px] ${
+						className={`w-full max-w-none ${
 							isSelected
 								? "border-primary bg-primary/5"
 								: "hover:border-primary/50"
@@ -396,206 +416,329 @@ export function EmployeeSelectionComponent({
 		]
 	);
 
-	if (loadingEmployees || loadingLocationEmployees) {
-		return (
-			<Card className="w-full">
-				<CardContent className="p-6 flex flex-col items-center justify-center min-h-[400px]">
-					<Loader2 className="h-8 w-8 animate-spin opacity-30 mb-4" />
-					<p className="text-sm text-muted-foreground">Loading employees...</p>
-				</CardContent>
-			</Card>
-		);
-	}
-
-	if (filteredEmployees.length === 0 && !searchTerm) {
-		return (
-			<Card className="w-full">
-				<CardContent className="p-6">
-					{showShiftInfo && (
-						<>
-							<Badge
-								variant="outline"
-								className="mb-2">
-								Shift
-							</Badge>
-							<h3 className="text-lg font-medium">
-								{locationName && `${locationName} • `}
-								{formattedDate}
-							</h3>
-							{shiftTimeDisplay && (
-								<p className="text-sm text-muted-foreground mb-4">
-									{shiftTimeDisplay}
-								</p>
-							)}
-						</>
-					)}
-					<EmptyState
-						title={emptyStateTitle}
-						message={emptyStateMessage}
-						compact={compactEmptyState}
-					/>
-				</CardContent>
-			</Card>
-		);
-	}
-
+	// Render the component
 	return (
-		<Card className="w-full">
-			<CardContent className="p-6 space-y-4">
-				{/* Context information (Shift or Location) */}
-				{(showShiftInfo || showLocationInfo) && (
-					<>
-						{showShiftInfo && (
-							<>
-								<Badge
-									variant="outline"
-									className="mb-2">
-									Shift
-								</Badge>
-								<h3 className="text-lg font-medium">
-									{locationName && `${locationName} • `}
-									{formattedDate}
-								</h3>
-								{shiftTimeDisplay && (
-									<p className="text-sm text-muted-foreground">
-										{shiftTimeDisplay}
-									</p>
-								)}
-							</>
-						)}
-
-						{showLocationInfo && !showShiftInfo && (
-							<>
-								<Badge
-									variant="outline"
-									className="mb-2">
-									Location
-								</Badge>
-								{locationName && (
-									<h3 className="text-lg font-medium">{locationName}</h3>
-								)}
-							</>
-						)}
-					</>
-				)}
-
-				{/* Title and subtitle */}
-				<>
-					<h2 className="text-xl font-semibold">{title}</h2>
-					{subtitle && (
-						<p className="text-sm text-muted-foreground">{subtitle}</p>
-					)}
-				</>
-
-				{/* Search bar */}
+		<div className="flex flex-col h-full">
+			{/* Search bar positioned at the top */}
+			<div className="mb-4 sticky top-0 z-10 pt-2 pb-3 bg-background">
 				<div className="relative">
 					<Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
 					<Input
-						type="text"
+						type="search"
 						placeholder="Search employees..."
-						className="pl-8"
+						className="pl-9 bg-background"
 						value={searchTerm}
 						onChange={(e) => setSearchTerm(e.target.value)}
 					/>
 				</div>
+			</div>
 
-				{/* Employee selection */}
-				<form
-					ref={formRef}
-					onSubmit={(e) => {
-						e.preventDefault();
-						if (onFormSubmit) {
-							onFormSubmit(employeeForm?.getValues());
-						} else if (employeeForm && handleEmployeeAssignSubmit) {
-							handleEmployeeAssignSubmit(employeeForm.getValues());
-						}
-					}}
-					className="space-y-6">
-					{/* If we're filtering by location, show that section first */}
-					{filterByLocation &&
-						groupedEmployees.locationEmployees.length > 0 && (
-							<div className="space-y-4">
-								<div className="flex items-center justify-between">
-									<div className="flex items-center gap-2">
-										<MapPin className="h-4 w-4 text-muted-foreground" />
-										<span className="font-medium text-sm">
-											Employees at {locationName}
-										</span>
-									</div>
-									<Button
-										type="button"
+			{/* Location display with shift details */}
+			<div className="mb-4">
+				{/* Combined location, date and time card */}
+				<div className="border border-border rounded-md p-3">
+					{/* Location section */}
+					<div className="flex items-center space-x-2 mb-3">
+						<MapPin className="h-4 w-4 text-primary flex-shrink-0" />
+						<div>
+							<p className="text-sm font-medium">Shift Location</p>
+							<p className="text-sm text-muted-foreground">
+								{locationData?.locationId
+									? isLoadingLocationName
+										? "Loading location..."
+										: getLocationName
+										? getLocationName(locationData.locationId)
+										: localLocationName || "Unknown Location"
+									: "No location assigned"}
+							</p>
+						</div>
+					</div>
+
+					{/* Divider */}
+					{(shiftData?.date || shiftTimeDisplay) && (
+						<div className="border-t border-border my-2"></div>
+					)}
+
+					{/* Date and time */}
+					{(shiftData?.date || shiftTimeDisplay) && (
+						<div className="flex flex-wrap items-center gap-6 mt-3">
+							{shiftData?.date && (
+								<div className="flex items-center space-x-2">
+									<CalendarDays className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+									<span className="text-sm font-medium">{formattedDate}</span>
+								</div>
+							)}
+
+							{shiftTimeDisplay && (
+								<div className="flex items-center space-x-2">
+									<Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+									<span className="text-sm">{shiftTimeDisplay}</span>
+								</div>
+							)}
+						</div>
+					)}
+				</div>
+			</div>
+
+			{/* Selected Employees */}
+			{showSelectedEmployees && selectedEmployees.length > 0 && (
+				<div className="mb-4">
+					<div className="text-sm font-medium mb-2 flex items-center">
+						<UserCheck className="h-4 w-4 mr-1.5 text-muted-foreground" />
+						Selected Employees ({selectedEmployees.length})
+					</div>
+					<div className="flex flex-wrap gap-2">
+						{selectedEmployees.map((employee) => (
+							<Badge
+								key={employee.id}
+								className="pl-2 pr-1 py-1 flex items-center">
+								<span>{employee.name}</span>
+								<Button
+									variant="ghost"
+									size="sm"
+									className="h-5 w-5 p-0 ml-1 text-primary-foreground"
+									onClick={() =>
+										onSelectedEmployeesChange(
+											selectedEmployees.filter((emp) => emp.id !== employee.id)
+										)
+									}>
+									<X className="h-3 w-3" />
+									<span className="sr-only">Remove</span>
+								</Button>
+							</Badge>
+						))}
+					</div>
+				</div>
+			)}
+
+			{/* Scrollable employee list area */}
+			<ScrollArea className="flex-1 -mx-1 px-1">
+				<div className="space-y-4">
+					{/* Already assigned employees section */}
+					{alreadyAssignedEmployees && alreadyAssignedEmployees.length > 0 && (
+						<div>
+							<div className="flex items-center justify-between mb-2">
+								<div className="flex items-center">
+									<UserCheck className="h-4 w-4 mr-1.5 text-primary" />
+									<h3 className="text-sm font-medium">
+										Already Assigned ({alreadyAssignedEmployees.length})
+									</h3>
+								</div>
+							</div>
+							<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-2">
+								{alreadyAssignedEmployees.map((employee) => (
+									<EmployeeCard
+										key={employee.id}
+										employee={employee}
+										selected={true}
+										onSelect={() => toggleEmployee(employee)}
+										selectable={true}
+										selectionMode="checkbox"
+										variant="compact"
 										size="sm"
-										variant="outline"
-										className="h-8 text-xs"
-										onClick={selectAllLocationEmployees}>
-										<UserCheck className="mr-1 h-3 w-3" />
-										Select All
-									</Button>
+										showActions={false}
+										className="w-full border-primary bg-primary/5"
+										hideStatus={true}
+										checkboxPosition="left"
+									/>
+								))}
+							</div>
+						</div>
+					)}
+
+					{shouldFetchLocationEmployees && (
+						<>
+							{loadingLocationEmployees ? (
+								<div className="flex items-center justify-center py-6">
+									<Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+									<span className="ml-2 text-muted-foreground">
+										Loading employees...
+									</span>
 								</div>
-								<div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-									{renderEmployeeGrid(groupedEmployees.locationEmployees, true)}
+							) : (
+								<>
+									{/* Location employees section */}
+									{groupedEmployees.locationEmployees.length > 0 ? (
+										<div>
+											<div className="flex items-center justify-between mb-2">
+												<div className="flex items-center">
+													<MapPin className="h-4 w-4 mr-1.5 text-muted-foreground" />
+													<h3 className="text-sm font-medium">
+														From This Location (
+														{groupedEmployees.locationEmployees.length})
+													</h3>
+												</div>
+												<Button
+													type="button"
+													size="sm"
+													variant="outline"
+													className="h-8 text-xs"
+													onClick={selectAllLocationEmployees}>
+													<UserCheck className="mr-1 h-3 w-3" />
+													Select All
+												</Button>
+											</div>
+											<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-2">
+												{groupedEmployees.locationEmployees.map((employee) => (
+													<EmployeeCard
+														key={employee.id}
+														employee={employee}
+														selected={selectedEmployees.some(
+															(emp) => emp.id === employee.id
+														)}
+														onSelect={() => toggleEmployee(employee)}
+														selectable={true}
+														selectionMode="checkbox"
+														variant="compact"
+														size="sm"
+														showActions={false}
+														className={`w-full ${
+															selectedEmployees.some(
+																(emp) => emp.id === employee.id
+															)
+																? "border-primary bg-primary/5"
+																: "hover:border-primary/50"
+														}`}
+														hideStatus={true}
+														checkboxPosition="left"
+													/>
+												))}
+											</div>
+										</div>
+									) : (
+										<div>
+											<div className="flex items-center mb-2">
+												<MapPin className="h-4 w-4 mr-1.5 text-muted-foreground" />
+												<h3 className="text-sm font-medium">
+													From This Location (0)
+												</h3>
+											</div>
+											<EmptyState
+												title="No Employees at This Location"
+												message="There are no employees assigned to this location."
+												icon={MapPin}
+												compact={true}
+											/>
+										</div>
+									)}
+
+									{/* Other employees section */}
+									<div className="mt-4">
+										<div className="flex items-center mb-2">
+											<Users className="h-4 w-4 mr-1.5 text-muted-foreground" />
+											<h3 className="text-sm font-medium">
+												All Other Employees (
+												{groupedEmployees.otherEmployees.length})
+											</h3>
+										</div>
+										{groupedEmployees.otherEmployees.length > 0 ? (
+											<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-2">
+												{groupedEmployees.otherEmployees.map((employee) => (
+													<EmployeeCard
+														key={employee.id}
+														employee={employee}
+														selected={selectedEmployees.some(
+															(emp) => emp.id === employee.id
+														)}
+														onSelect={() => toggleEmployee(employee)}
+														selectable={true}
+														selectionMode="checkbox"
+														variant="compact"
+														size="sm"
+														showActions={false}
+														className={`w-full ${
+															selectedEmployees.some(
+																(emp) => emp.id === employee.id
+															)
+																? "border-primary bg-primary/5"
+																: "hover:border-primary/50"
+														}`}
+														hideStatus={true}
+														checkboxPosition="left"
+													/>
+												))}
+											</div>
+										) : (
+											<EmptyState
+												title="No Other Employees"
+												message="All available employees are assigned to this location."
+												icon={Users}
+												compact={true}
+											/>
+										)}
+									</div>
+								</>
+							)}
+						</>
+					)}
+
+					{/* Standard employee list (when not filtering by location) */}
+					{!shouldFetchLocationEmployees && (
+						<>
+							{loadingEmployees ? (
+								<div className="flex items-center justify-center py-6">
+									<Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+									<span className="ml-2 text-muted-foreground">
+										Loading employees...
+									</span>
 								</div>
-							</div>
-						)}
+							) : filteredEmployees.length > 0 ? (
+								<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-2">
+									{filteredEmployees.map((employee) => (
+										<EmployeeCard
+											key={employee.id}
+											employee={employee}
+											selected={selectedEmployees.some(
+												(emp) => emp.id === employee.id
+											)}
+											onSelect={() => toggleEmployee(employee)}
+											selectable={true}
+											selectionMode="checkbox"
+											variant="compact"
+											size="sm"
+											showActions={false}
+											className={`w-full ${
+												selectedEmployees.some((emp) => emp.id === employee.id)
+													? "border-primary bg-primary/5"
+													: "hover:border-primary/50"
+											}`}
+											hideStatus={true}
+											checkboxPosition="left"
+										/>
+									))}
+								</div>
+							) : (
+								<EmptyState
+									title={emptyStateTitle}
+									message={emptyStateMessage}
+									compact={compactEmptyState}
+								/>
+							)}
+						</>
+					)}
+				</div>
+				<div className="h-20"></div> {/* Extra space for footer */}
+			</ScrollArea>
 
-					{/* All other employees (or all employees if not filtering by location) */}
-					<div className="space-y-4">
-						{filterByLocation &&
-						groupedEmployees.locationEmployees.length > 0 ? (
-							<div className="flex items-center gap-2">
-								<Users className="h-4 w-4 text-muted-foreground" />
-								<span className="font-medium text-sm">Other employees</span>
-							</div>
-						) : null}
-
-						{(filterByLocation
-							? groupedEmployees.otherEmployees
-							: filteredEmployees
-						).length > 0 ? (
-							<div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-								{renderEmployeeGrid(
-									filterByLocation
-										? groupedEmployees.otherEmployees
-										: filteredEmployees
-								)}
-							</div>
-						) : (
-							<EmptyState
-								title="No Other Employees"
-								message={
-									searchTerm
-										? "No employees match your search."
-										: "There are no additional employees available to assign."
-								}
-								compact={true}
-							/>
-						)}
-					</div>
-
-					{/* Action buttons */}
-					<div className="flex justify-between">
-						{onBack ? (
-							<Button
-								type="button"
-								variant="outline"
-								onClick={onBack}
-								disabled={loading}>
-								<ArrowLeft className="mr-2 h-4 w-4" />
-								{backButtonText}
-							</Button>
-						) : (
-							<span></span>
-						)}
-
-						<Button
-							type="submit"
-							disabled={selectedEmployees.length === 0 || loading}>
-							{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-							{submitButtonText}
-						</Button>
-					</div>
-				</form>
-			</CardContent>
-		</Card>
+			{/* Sticky footer with action buttons */}
+			<div className="sticky bottom-0 pt-3 pb-2 bg-background border-t mt-auto">
+				<div className="flex justify-between">
+					<Button
+						type="button"
+						variant="outline"
+						onClick={onBack}
+						disabled={loading}>
+						{backButtonText}
+					</Button>
+					<Button
+						type="submit"
+						disabled={loading}
+						onClick={() => onFormSubmit(selectedEmployees)}>
+						{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+						{submitButtonText}
+					</Button>
+				</div>
+			</div>
+		</div>
 	);
 }

@@ -208,9 +208,9 @@ export default function LocationShiftPage() {
 					scheduleId={locationId || ""}
 					organizationId="org-1"
 					initialLocationId={locationId || ""}
-					onComplete={() => {
-						// Refresh shifts after creation
-						window.location.reload();
+					onComplete={(shiftId) => {
+						// Navigate to the shift detail page
+						navigate(`/shifts/${shiftId}`);
 					}}
 				/>
 			);
@@ -222,7 +222,7 @@ export default function LocationShiftPage() {
 				showBackButton: true,
 			});
 		}
-	}, [loading, location, locationId, updateHeader]);
+	}, [loading, location, locationId, updateHeader, navigate]);
 
 	// Effect to fetch the location and shift data
 	useEffect(() => {

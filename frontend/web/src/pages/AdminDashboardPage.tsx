@@ -41,6 +41,9 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { DollarSign, Users, Calendar } from "lucide-react";
 import { FragmentFix } from "@/components/ui/fragment-fix";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
+import { supabase } from "@/lib/supabase";
+import { RealtimeChannel } from "@supabase/supabase-js";
+import { toast } from "sonner";
 
 // Extended organization type for UI display purposes
 interface ExtendedOrganization extends Organization {
@@ -84,12 +87,20 @@ export default function AdminDashboardPage() {
 		employeeTypes: [],
 		locationPerformance: [],
 	});
+
+	// State for real-time subscriptions
+	const [employeesChannel, setEmployeesChannel] =
+		useState<RealtimeChannel | null>(null);
+	const [locationsChannel, setLocationsChannel] =
+		useState<RealtimeChannel | null>(null);
+	const [shiftsChannel, setShiftsChannel] = useState<RealtimeChannel | null>(
+		null
+	);
+
 	const navigate = useNavigate();
 
-	// Data fetching effect is now separated to prevent infinite update loops
+	// Data fetching function
 	const fetchData = useCallback(async () => {
-		if (!loading) return; // Only fetch if we're in loading state
-
 		try {
 			setLoadingPhase("organization");
 			const orgs = await OrganizationsAPI.getAll();
@@ -110,6 +121,10 @@ export default function AdminDashboardPage() {
 						LocationsAPI.getAll(orgs[0].id),
 						ShiftsAPI.getAllSchedules(orgs[0].id),
 					]);
+
+					console.log("Fetched employees:", fetchedEmployees);
+					console.log("Fetched locations:", locations);
+					console.log("Fetched schedules:", schedules);
 
 					setEmployees(fetchedEmployees);
 					setTotalLocations(locations.length);
@@ -134,6 +149,8 @@ export default function AdminDashboardPage() {
 						const shiftsArrays = await Promise.all(shiftsPromises);
 						const allShifts = shiftsArrays.flat();
 
+						console.log("Fetched all shifts:", allShifts);
+
 						// Calculate active and upcoming shifts
 						const now = new Date();
 						const active = allShifts.filter(
@@ -157,26 +174,175 @@ export default function AdminDashboardPage() {
 			}
 		} catch (error) {
 			console.error("Error fetching data:", error);
+			toast.error("Failed to load dashboard data");
 		} finally {
 			setLoading(false);
 			setLoadingPhase("");
 		}
-	}, [loading]);
+	}, []);
 
-	// Run the fetch data function only once on component mount
+	// Setup real-time subscriptions
+	const setupRealtimeSubscriptions = useCallback(() => {
+		if (!organization) {
+			console.log("No organization available for subscriptions");
+			return;
+		}
+
+		const orgId = organization.id;
+		console.log("Setting up real-time subscriptions for organization:", orgId);
+
+		// Subscribe to employees table changes
+		const employeesSubscription = supabase
+			.channel("admin-employees-changes")
+			.on(
+				"postgres_changes",
+				{
+					event: "*",
+					schema: "public",
+					table: "employees",
+					filter: `organization_id=eq.${orgId}`,
+				},
+				(payload) => {
+					console.log("Employee change detected:", payload);
+
+					if (payload.eventType === "INSERT") {
+						console.log("New employee added:", payload.new);
+
+						// Map snake_case to camelCase
+						const newEmployee = {
+							id: payload.new.id,
+							organizationId: payload.new.organization_id,
+							name: payload.new.name,
+							email: payload.new.email,
+							position: payload.new.position,
+							phone: payload.new.phone,
+							hireDate: payload.new.hire_date,
+							address: payload.new.address,
+							emergencyContact: payload.new.emergency_contact,
+							notes: payload.new.notes,
+							avatar: payload.new.avatar,
+							hourlyRate:
+								payload.new.hourly_rate !== null
+									? parseFloat(payload.new.hourly_rate)
+									: undefined,
+							status: payload.new.status,
+							isOnline: payload.new.is_online,
+							lastActive: payload.new.last_active,
+						} as Employee;
+
+						// Update employees state
+						setEmployees((prev) => [...prev, newEmployee]);
+					} else if (payload.eventType === "DELETE") {
+						console.log("Employee deleted:", payload.old);
+						// Remove deleted employee from state
+						setEmployees((prev) =>
+							prev.filter((emp) => emp.id !== payload.old.id)
+						);
+					}
+					// We don't need to handle UPDATE here since we're just counting employees
+				}
+			)
+			.subscribe((status) => {
+				console.log("Employees subscription status:", status);
+			});
+
+		// Subscribe to locations table changes
+		const locationsSubscription = supabase
+			.channel("admin-locations-changes")
+			.on(
+				"postgres_changes",
+				{
+					event: "*",
+					schema: "public",
+					table: "locations",
+					filter: `organization_id=eq.${orgId}`,
+				},
+				(payload) => {
+					console.log("Location change detected:", payload);
+
+					if (payload.eventType === "INSERT") {
+						console.log("New location added");
+						// Increment location count
+						setTotalLocations((prev) => prev + 1);
+					} else if (payload.eventType === "DELETE") {
+						console.log("Location deleted");
+						// Decrement location count
+						setTotalLocations((prev) => Math.max(0, prev - 1));
+					}
+					// We don't need to handle UPDATE here since we're just counting locations
+				}
+			)
+			.subscribe((status) => {
+				console.log("Locations subscription status:", status);
+			});
+
+		// Subscribe to shifts table changes
+		const shiftsSubscription = supabase
+			.channel("admin-shifts-changes")
+			.on(
+				"postgres_changes",
+				{
+					event: "*",
+					schema: "public",
+					table: "shifts",
+					filter: `organization_id=eq.${orgId}`,
+				},
+				(payload) => {
+					console.log("Shift change detected:", payload);
+
+					// When shifts change, we need to recalculate active and upcoming shifts
+					// For simplicity, we'll just refetch data rather than calculating in-memory
+					fetchData();
+				}
+			)
+			.subscribe((status) => {
+				console.log("Shifts subscription status:", status);
+			});
+
+		// Save channel references for cleanup
+		setEmployeesChannel(employeesSubscription);
+		setLocationsChannel(locationsSubscription);
+		setShiftsChannel(shiftsSubscription);
+	}, [organization, fetchData]);
+
+	// Initial data load and subscription setup
 	useEffect(() => {
 		fetchData();
 	}, [fetchData]);
 
+	// Setup subscriptions when organization is available
+	useEffect(() => {
+		if (organization && !loading) {
+			setupRealtimeSubscriptions();
+		}
+
+		// Cleanup subscriptions on unmount
+		return () => {
+			console.log("Cleaning up real-time subscriptions");
+			if (employeesChannel) {
+				employeesChannel.unsubscribe();
+			}
+			if (locationsChannel) {
+				locationsChannel.unsubscribe();
+			}
+			if (shiftsChannel) {
+				shiftsChannel.unsubscribe();
+			}
+		};
+	}, [organization, loading, setupRealtimeSubscriptions]);
+
 	const handleEmployeesAdded = useCallback((newEmployees: Employee[]) => {
+		console.log("Employees added:", newEmployees);
 		setEmployees((prev) => [...prev, ...newEmployees]);
 	}, []);
 
 	const handleEmployeeAdded = useCallback((newEmployee: Employee) => {
+		console.log("Employee added:", newEmployee);
 		setEmployees((prev) => [...prev, newEmployee]);
 	}, []);
 
 	const handleLocationCreated = useCallback(() => {
+		console.log("Location created");
 		// Increment the location count
 		setTotalLocations((prev) => prev + 1);
 	}, []);
@@ -194,6 +360,7 @@ export default function AdminDashboardPage() {
 		);
 	};
 
+	// Render onboarding status
 	const renderOnboardingStatus = () => {
 		const completedCount = getCompletedStepsCount();
 		const totalCount = getTotalStepsCount();
@@ -350,6 +517,57 @@ export default function AdminDashboardPage() {
 							<span>Schedule Shift</span>
 						</Button>
 					)}
+				</div>
+			</ContentSection>
+
+			{/* Stats Overview Section */}
+			<ContentSection
+				title="Business Overview"
+				description="Key metrics for your organization"
+				className="mb-6">
+				<div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+					<Card>
+						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+							<CardTitle className="text-sm font-medium">
+								Total Employees
+							</CardTitle>
+							<Users className="h-4 w-4 text-muted-foreground" />
+						</CardHeader>
+						<CardContent>
+							<div className="text-2xl font-bold">{employees.length}</div>
+							<p className="text-xs text-muted-foreground">
+								Active team members
+							</p>
+						</CardContent>
+					</Card>
+					<Card>
+						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+							<CardTitle className="text-sm font-medium">
+								Total Locations
+							</CardTitle>
+							<MapPin className="h-4 w-4 text-muted-foreground" />
+						</CardHeader>
+						<CardContent>
+							<div className="text-2xl font-bold">{totalLocations}</div>
+							<p className="text-xs text-muted-foreground">
+								Business locations
+							</p>
+						</CardContent>
+					</Card>
+					<Card>
+						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+							<CardTitle className="text-sm font-medium">
+								Active Shifts
+							</CardTitle>
+							<Calendar className="h-4 w-4 text-muted-foreground" />
+						</CardHeader>
+						<CardContent>
+							<div className="text-2xl font-bold">{activeShifts}</div>
+							<p className="text-xs text-muted-foreground">
+								{upcomingShifts} upcoming shifts
+							</p>
+						</CardContent>
+					</Card>
 				</div>
 			</ContentSection>
 		</ContentContainer>

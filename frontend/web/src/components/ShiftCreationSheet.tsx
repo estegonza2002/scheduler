@@ -43,7 +43,7 @@ interface ShiftCreationSheetProps {
 	/**
 	 * Optional function to call on successful shift creation
 	 */
-	onComplete?: () => void;
+	onComplete?: (shiftId: string) => void;
 	/**
 	 * Optional trigger element
 	 */
@@ -96,7 +96,7 @@ export function ShiftCreationSheet({
 	};
 
 	// Handle completion
-	const handleComplete = () => {
+	const handleComplete = (shiftId: string) => {
 		console.log("ShiftCreationSheet: handleComplete called");
 		if (onOpenChange) {
 			console.log("ShiftCreationSheet: Closing sheet");
@@ -104,7 +104,7 @@ export function ShiftCreationSheet({
 		}
 		if (onComplete) {
 			console.log("ShiftCreationSheet: Calling onComplete callback");
-			onComplete();
+			onComplete(shiftId);
 		}
 	};
 

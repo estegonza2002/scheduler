@@ -48,8 +48,10 @@ export default function CreateShiftPage() {
 	}, [updateHeader, initialDate, initialDateStr, navigate, returnUrl]);
 
 	// Handle completion
-	const handleComplete = () => {
-		navigate(returnUrl);
+	const handleComplete = (shiftId: string) => {
+		console.log(`Shift created with ID: ${shiftId}`);
+		// Navigate to the shift details page
+		navigate(`/shifts/${shiftId}`);
 	};
 
 	// Handle cancellation
@@ -70,20 +72,18 @@ export default function CreateShiftPage() {
 
 	return (
 		<ContentContainer>
-			<ContentSection title="Create New Shift">
-				<div className="max-w-3xl mx-auto">
-					<ShiftCreationWizard
-						scheduleId=""
-						organizationId={organizationId}
-						initialDate={initialDate}
-						initialLocationId={initialLocationId}
-						onComplete={handleComplete}
-						onCancel={handleCancel}
-						onStateChange={handleWizardStateChange}
-						className="mt-4"
-					/>
-				</div>
-			</ContentSection>
+			<div className="max-w-3xl mx-auto">
+				<ShiftCreationWizard
+					scheduleId=""
+					organizationId={organizationId}
+					initialDate={initialDate}
+					initialLocationId={initialLocationId}
+					onComplete={handleComplete}
+					onCancel={handleCancel}
+					onStateChange={handleWizardStateChange}
+					className="mt-4"
+				/>
+			</div>
 		</ContentContainer>
 	);
 }

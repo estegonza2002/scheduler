@@ -41,14 +41,23 @@ export function ShiftCard({
 		"start_time:",
 		shift.start_time,
 		"assigned employees:",
-		assignedEmployees
+		assignedEmployees.length
 	);
 
-	// Debug: Log the raw data structure
-	console.log(
-		"[ShiftCard] Raw assignedEmployees data:",
-		JSON.stringify(assignedEmployees)
-	);
+	// Debug: Log detailed information about each employee
+	if (assignedEmployees && assignedEmployees.length > 0) {
+		console.log("[ShiftCard] Employee details:");
+		assignedEmployees.forEach((emp, index) => {
+			console.log(`Employee ${index + 1}:`, {
+				id: emp.id,
+				name: emp.name,
+				email: emp.email,
+				keys: Object.keys(emp),
+			});
+		});
+	} else {
+		console.log("[ShiftCard] No employees assigned to this shift");
+	}
 
 	// Validate the assignedEmployees array is properly defined and has valid entries
 	const validAssignedEmployees = Array.isArray(assignedEmployees)

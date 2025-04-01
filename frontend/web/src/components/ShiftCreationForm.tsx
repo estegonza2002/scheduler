@@ -64,7 +64,7 @@ interface ShiftCreationFormProps {
 	scheduleId: string;
 	organizationId: string;
 	initialDate?: Date;
-	onShiftCreated?: () => void;
+	onShiftCreated?: (shiftId: string) => void;
 }
 
 export function ShiftCreationForm({
@@ -148,7 +148,7 @@ export function ShiftCreationForm({
 				data.endTime
 			}:00`;
 
-			await ShiftsAPI.createShift({
+			const createdShift = await ShiftsAPI.createShift({
 				parent_shift_id: scheduleId,
 				is_schedule: false,
 				organization_id: organizationId,
@@ -163,7 +163,7 @@ export function ShiftCreationForm({
 			toast.success("Shift created successfully");
 
 			if (onShiftCreated) {
-				onShiftCreated();
+				onShiftCreated(createdShift.id);
 			}
 		} catch (error) {
 			console.error("Error creating shift:", error);
