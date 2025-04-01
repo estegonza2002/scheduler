@@ -189,6 +189,12 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 				isRouteActive("/daily-shifts"),
 		},
 		{
+			icon: <ClipboardList className="h-5 w-5" />,
+			label: "Manage Shifts",
+			href: `/manage-shifts?organizationId=${organization?.id || "org-1"}`,
+			isActive: isRouteActive("/manage-shifts"),
+		},
+		{
 			icon: <Users className="h-5 w-5" />,
 			label: "Employees",
 			href: "/employees",

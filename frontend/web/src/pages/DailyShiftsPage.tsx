@@ -73,6 +73,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { useOrganizationId } from "@/hooks/useOrganizationId";
 import { toast } from "sonner";
+import { ShiftCard } from "@/components/ShiftCard";
 
 export default function DailyShiftsPage() {
 	const { updateHeader } = useHeader();
@@ -98,17 +99,17 @@ export default function DailyShiftsPage() {
 	// Export the ShiftCreationDialog with its props for use in the AppLayout
 	function getHeaderActions() {
 		return (
-			<ShiftCreationDialog
-				scheduleId={selectedSchedule}
-				organizationId={organizationId}
-				initialDate={currentDate}
-				trigger={
-					<Button className="bg-primary hover:bg-primary/90 text-white h-9">
-						<Plus className="h-5 w-5 mr-2" />
-						Create Shift
-					</Button>
-				}
-			/>
+			<Button
+				className="bg-primary hover:bg-primary/90 text-white h-9"
+				onClick={() => {
+					const date = format(currentDate, "yyyy-MM-dd");
+					navigate(
+						`/shifts/create/${selectedSchedule}?organizationId=${organizationId}&date=${date}&returnUrl=/daily-shifts?date=${date}`
+					);
+				}}>
+				<Plus className="h-5 w-5 mr-2" />
+				Create Shift
+			</Button>
 		);
 	}
 
@@ -233,61 +234,6 @@ export default function DailyShiftsPage() {
 		(currentPage - 1) * itemsPerPage,
 		currentPage * itemsPerPage
 	);
-
-	// Render the shift card
-	const ShiftCard = ({ shift }: { shift: Shift }) => {
-		const assignedEmployees = getAssignedEmployees(shift);
-		const hasEmployees = assignedEmployees.length > 0;
-
-		return (
-			<Card
-				className="cursor-pointer hover:shadow-sm transition-all border hover:border-primary"
-				onClick={() => navigate(`/shifts/${shift.id}`)}>
-				<CardHeader className="pb-1 px-4 pt-4">
-					<div className="flex justify-between items-center w-full">
-						<h3 className="font-medium text-sm flex items-center">
-							<div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center mr-2 flex-shrink-0">
-								<Clock className="h-3.5 w-3.5 text-primary" />
-							</div>
-							{formatTime(new Date(shift.start_time))} -{" "}
-							{formatTime(new Date(shift.end_time))}
-						</h3>
-						{hasEmployees ? (
-							<Badge
-								variant="outline"
-								className="flex items-center gap-1">
-								<User className="h-3.5 w-3.5 text-muted-foreground" />
-								<span>{assignedEmployees.length}</span>
-							</Badge>
-						) : (
-							<Badge
-								variant="destructive"
-								className="flex items-center gap-1">
-								<AlertCircle className="h-3.5 w-3.5" />
-								<span>Open</span>
-							</Badge>
-						)}
-					</div>
-				</CardHeader>
-				<CardContent className="pt-1 px-4 pb-4">
-					<div className="text-xs text-muted-foreground mb-1.5 flex items-center">
-						<MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
-						<span className="truncate">
-							{getLocationName(shift.location_id)}
-						</span>
-					</div>
-					{shift.name && (
-						<p className="text-sm font-medium truncate">{shift.name}</p>
-					)}
-					{shift.description && (
-						<p className="text-xs text-muted-foreground line-clamp-2 mt-1">
-							{shift.description}
-						</p>
-					)}
-				</CardContent>
-			</Card>
-		);
-	};
 
 	// Define columns outside the component to prevent re-renders
 	const tableColumns: ColumnDef<Shift>[] = [
@@ -445,18 +391,17 @@ export default function DailyShiftsPage() {
 							description="There are no shifts scheduled for this date."
 							icon={<CalendarComponent className="h-10 w-10" />}
 							action={
-								<ShiftCreationDialog
-									scheduleId={selectedSchedule}
-									organizationId={organizationId}
-									initialDate={currentDate}
-									onComplete={fetchShifts}
-									trigger={
-										<Button size="lg">
-											<Plus className="h-4 w-4 mr-2" />
-											Add Shift
-										</Button>
-									}
-								/>
+								<Button
+									size="lg"
+									onClick={() => {
+										const date = format(currentDate, "yyyy-MM-dd");
+										navigate(
+											`/shifts/create/${selectedSchedule}?organizationId=${organizationId}&date=${date}&returnUrl=/daily-shifts?date=${date}`
+										);
+									}}>
+									<Plus className="h-4 w-4 mr-2" />
+									Add Shift
+								</Button>
 							}
 						/>
 					) : (
@@ -517,7 +462,16 @@ export default function DailyShiftsPage() {
 									enableViewToggle: true,
 									defaultView: viewMode,
 									onViewChange: setViewMode,
-									renderCard: (shift: Shift) => <ShiftCard shift={shift} />,
+									renderCard: (shift: Shift) => (
+										<ShiftCard
+											key={shift.id}
+											shift={shift}
+											locationName={getLocationName(shift.location_id)}
+											assignedEmployees={getAssignedEmployees(shift)}
+											showLocationName={true}
+											isLoading={false}
+										/>
+									),
 									enableFullscreen: true,
 								}}
 								onRowClick={(shift) => navigate(`/shifts/${shift.id}`)}

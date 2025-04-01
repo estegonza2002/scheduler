@@ -338,19 +338,21 @@ export default function AdminDashboardPage() {
 						/>
 					)}
 					{organization && (
-						<ShiftCreationDialog
-							scheduleId={currentSchedule || "sch-6"}
-							organizationId={organization.id}
-							initialDate={new Date()}
-							trigger={
-								<Button
-									variant="outline"
-									className="h-24 flex flex-col items-center justify-center w-full gap-2 text-sm hover:border-primary hover:text-primary">
-									<CalendarClock className="h-6 w-6" />
-									<span>Schedule Shift</span>
-								</Button>
-							}
-						/>
+						<Button
+							variant="outline"
+							className="h-24 flex flex-col items-center justify-center w-full gap-2 text-sm hover:border-primary hover:text-primary"
+							onClick={() => {
+								navigate(
+									`/shifts/create/${
+										currentSchedule || "sch-6"
+									}?organizationId=${
+										organization.id
+									}&returnUrl=/admin-dashboard`
+								);
+							}}>
+							<CalendarClock className="h-6 w-6" />
+							<span>Schedule Shift</span>
+						</Button>
 					)}
 				</div>
 			</ContentSection>

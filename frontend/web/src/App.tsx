@@ -58,6 +58,9 @@ import ReportsPage from "./pages/ReportsPage";
 import PricingPage from "./pages/PricingPage";
 import UsersManagementPage from "./pages/UsersManagementPage";
 import AccountPage from "./pages/AccountPage";
+import CreateShiftPage from "./pages/CreateShiftPage";
+import ManageShiftsPage from "./pages/ManageShiftsPage";
+import PastShiftsPage from "./pages/PastShiftsPage";
 
 // Marketing pages
 import HomePage from "./pages/HomePage";
@@ -454,13 +457,35 @@ function App() {
 																path="/branding"
 																element={<BrandingPage />}
 															/>
+
+															{/* New route for shift creation */}
+															<Route
+																path="/shifts/create/:scheduleId?"
+																element={<CreateShiftPage />}
+															/>
+
+															{/* New route for manage shifts */}
+															<Route
+																path="/manage-shifts"
+																element={<ManageShiftsPage />}
+															/>
+
+															{/* Route for past shifts */}
+															<Route
+																path="/past-shifts"
+																element={<PastShiftsPage />}
+															/>
 														</Route>
 													</Route>
 
 													{/* Root redirect - only for authenticated app routes */}
 													<Route
 														path="/app"
-														element={<RootRedirect />}
+														element={
+															<RootRedirect
+																fallbackComponent={<Navigate to="/login" />}
+															/>
+														}
 													/>
 													<Route
 														path="*"

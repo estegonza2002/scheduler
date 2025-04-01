@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
-import { ShiftsAPI, LocationsAPI, Shift, Location } from "@/api";
+import { ShiftsAPI, LocationsAPI, Shift, Location, Employee } from "@/api";
 import { isAfter, isBefore, parseISO, format } from "date-fns";
 import { MapPin, Calendar, Briefcase, Clock } from "lucide-react";
 import { calculateHours } from "@/utils/time-calculations";
@@ -11,6 +11,7 @@ import { ContentContainer } from "@/components/ui/content-container";
 import { ContentSection } from "@/components/ui/content-section";
 import { LoadingState } from "@/components/ui/loading-state";
 import { useHeader } from "@/lib/header-context";
+import { ShiftCard } from "@/components/ShiftCard";
 
 export default function MyShiftsPage() {
 	const { updateHeader } = useHeader();
@@ -112,29 +113,18 @@ export default function MyShiftsPage() {
 
 	// Helper function to render a shift card
 	const renderShiftCard = (shift: Shift) => {
+		// Create an empty array for employees since we don't have that data here
+		const emptyEmployees: Employee[] = [];
+
 		return (
-			<Card
+			<ShiftCard
 				key={shift.id}
-				className="mb-3 hover:shadow-sm transition-all">
-				<CardContent className="p-4">
-					<div className="flex justify-between items-start">
-						<div>
-							<p className="font-medium">
-								{format(parseISO(shift.start_time), "h:mm a")} -
-								{format(parseISO(shift.end_time), "h:mm a")}
-								<span className="mx-1">•</span>
-								{calculateHours(shift.start_time, shift.end_time)} hours
-							</p>
-						</div>
-					</div>
-					{shift.location_id && (
-						<div className="mt-2 text-xs flex items-center text-muted-foreground">
-							<MapPin className="h-3 w-3 mr-1" />
-							<span>{getLocationName(shift.location_id)}</span>
-						</div>
-					)}
-				</CardContent>
-			</Card>
+				shift={shift}
+				locationName={getLocationName(shift.location_id)}
+				assignedEmployees={emptyEmployees}
+				showLocationName={true}
+				isLoading={false}
+			/>
 		);
 	};
 

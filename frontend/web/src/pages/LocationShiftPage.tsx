@@ -545,21 +545,16 @@ export default function LocationShiftPage() {
 
 					{/* Action buttons */}
 					<div className="flex flex-wrap gap-2 mb-6">
-						<ShiftCreationDialog
-							scheduleId={locationId || ""}
-							organizationId="org-1"
-							initialLocationId={locationId || ""}
-							onComplete={() => {
-								// Refresh shifts after creation
-								window.location.reload();
-							}}
-							trigger={
-								<Button className="flex items-center gap-2">
-									<Plus className="h-4 w-4" />
-									Create Shift
-								</Button>
-							}
-						/>
+						<Button
+							className="flex items-center gap-2"
+							onClick={() => {
+								navigate(
+									`/shifts/create/${locationId}?organizationId=org-1&locationId=${locationId}&returnUrl=/locations/${locationId}/shifts`
+								);
+							}}>
+							<Plus className="h-4 w-4" />
+							Create Shift
+						</Button>
 
 						<Button
 							variant="outline"

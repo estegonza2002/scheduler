@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import {
 	format,
 	addMonths,
@@ -168,18 +168,16 @@ export default function SchedulePage() {
 		}
 
 		return (
-			<ShiftCreationDialog
-				scheduleId={scheduleId}
-				organizationId={organizationId}
-				initialDate={new Date()}
-				onComplete={refreshShifts}
-				trigger={
-					<Button className="bg-primary hover:bg-primary/90 text-white h-9">
-						<Plus className="h-5 w-5 mr-2" />
-						Create Shift
-					</Button>
-				}
-			/>
+			<Button
+				className="bg-primary hover:bg-primary/90 text-white h-9"
+				onClick={() => {
+					navigate(
+						`/shifts/create/${scheduleId}?organizationId=${organizationId}&returnUrl=/schedule`
+					);
+				}}>
+				<Plus className="h-5 w-5 mr-2" />
+				Create Shift
+			</Button>
 		);
 	};
 
