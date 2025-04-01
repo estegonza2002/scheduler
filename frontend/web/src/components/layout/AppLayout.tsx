@@ -46,6 +46,11 @@ import { ChevronLeft } from "lucide-react";
 import { HeaderProvider, useHeader } from "../../lib/header-context";
 import { SidebarTrigger } from "../ui/sidebar";
 import { OrganizationSwitcher } from "../ui/organization-switcher";
+import { NotificationProvider } from "../../lib/notification-context";
+import { LocationProvider } from "../../lib/location";
+import { EmployeeProvider } from "../../lib/employee";
+import { ShiftProvider } from "../../lib/shift";
+import { OnboardingProvider } from "../../lib/onboarding-context";
 
 // Common props type for app layout components
 type CommonProps = {
@@ -252,7 +257,7 @@ export default function AppLayout() {
 		};
 
 		fetchOrganization();
-	}, []);
+	}, [location.pathname]);
 
 	// Get date from URL param or use today's date
 	useEffect(() => {
@@ -301,15 +306,24 @@ export default function AppLayout() {
 	};
 
 	return (
-		<HeaderProvider>
-			<SidebarProvider defaultOpen={defaultSidebarOpen}>
-				<Sidebar className="w-64">
-					<AppSidebar />
-				</Sidebar>
-				<LayoutContent />
-				{/* Onboarding modal - shown globally for new users */}
-				<OnboardingModal />
-			</SidebarProvider>
-		</HeaderProvider>
+		<SidebarProvider defaultOpen={defaultSidebarOpen}>
+			<NotificationProvider>
+				<LocationProvider>
+					<EmployeeProvider>
+						<ShiftProvider>
+							<OnboardingProvider>
+								<div className="flex h-screen">
+									<Sidebar className="w-64">
+										<AppSidebar />
+									</Sidebar>
+									<LayoutContent />
+									<OnboardingModal />
+								</div>
+							</OnboardingProvider>
+						</ShiftProvider>
+					</EmployeeProvider>
+				</LocationProvider>
+			</NotificationProvider>
+		</SidebarProvider>
 	);
 }

@@ -43,7 +43,7 @@ const orgFormSchema = z.object({
 type OrgFormValues = z.infer<typeof orgFormSchema>;
 
 export default function CreateOrganizationPage() {
-	const { user } = useAuth();
+	const { user, updateUserMetadata } = useAuth();
 	const navigate = useNavigate();
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [showConfirmation, setShowConfirmation] = useState(false);
@@ -96,6 +96,7 @@ export default function CreateOrganizationPage() {
 				name: data.name,
 				description: data.description || undefined,
 				website: data.website || undefined,
+				owner_id: user.id,
 			});
 
 			// Update user metadata with new organization id
@@ -103,6 +104,10 @@ export default function CreateOrganizationPage() {
 
 			if (success) {
 				toast.success("Organization created successfully!");
+
+				// Ensure user role is updated in auth metadata
+				await updateUserMetadata({ role: "owner" });
+
 				// Redirect to admin dashboard
 				navigate("/admin-dashboard", { replace: true });
 			}

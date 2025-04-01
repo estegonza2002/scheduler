@@ -156,8 +156,9 @@ function RootRedirect({ fallbackComponent }: RootRedirectProps) {
 		);
 	}
 
-	// Check if user is an admin
-	const isAdmin = user?.user_metadata?.role === "admin";
+	// Check if user is an admin or owner
+	const role = user?.user_metadata?.role;
+	const isAdmin = role === "admin" || role === "owner";
 	return <Navigate to={isAdmin ? "/admin-dashboard" : "/dashboard"} />;
 }
 

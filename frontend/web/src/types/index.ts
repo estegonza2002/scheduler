@@ -17,3 +17,16 @@ export interface Organization {
 	subscription_plan?: string;
 	stripe_customer_id?: string;
 }
+
+export interface OrganizationCreateInput {
+	name: string;
+	description?: string;
+	logo_url?: string;
+	owner_id: string;
+	website?: string;
+	contactemail?: string;
+	contactphone?: string;
+	address?: string;
+	country?: string;
+	businesshours?: string;
+}

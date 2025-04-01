@@ -20,6 +20,7 @@ import {
 	CheckoutSession,
 	SubscriptionPlan,
 } from "../types"; // Import from main types file
+import { OrganizationCreateInput } from "../../types"; // Import the new type
 
 // Organizations API
 export const OrganizationsAPI = {
@@ -102,7 +103,8 @@ export const OrganizationsAPI = {
 		return data as Organization;
 	},
 
-	create: async (data: Omit<Organization, "id">): Promise<Organization> => {
+	create: async (data: OrganizationCreateInput): Promise<Organization> => {
+		// First create the organization
 		const { data: newOrg, error } = await supabase
 			.from("organizations")
 			.insert(data)
@@ -113,6 +115,21 @@ export const OrganizationsAPI = {
 			toast.error("Failed to create organization");
 			console.error("Error creating organization:", error);
 			throw error;
+		}
+
+		// Now add the user as an owner in the organization_members table
+		const { error: memberError } = await supabase
+			.from("organization_members")
+			.insert({
+				organization_id: newOrg.id,
+				user_id: data.owner_id,
+				role: "owner",
+			});
+
+		if (memberError) {
+			toast.error("Failed to add user as organization owner");
+			console.error("Error adding user as organization owner:", memberError);
+			// We don't throw here because the organization was successfully created
 		}
 
 		toast.success("Organization created successfully!");

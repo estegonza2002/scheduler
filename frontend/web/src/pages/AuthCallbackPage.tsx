@@ -51,6 +51,15 @@ export default function AuthCallbackPage() {
 							// New user - redirect to role selection
 							console.log("New user detected, redirecting to role selection");
 							navigate("/role-selection", { replace: true });
+						} else if (
+							!isLoadingOrgs &&
+							(!organizations || organizations.length === 0)
+						) {
+							// User has no organizations - redirect to no-organization page
+							console.log(
+								"User has no organizations, redirecting to no-organization page"
+							);
+							navigate("/no-organization", { replace: true });
 						} else if (!isLoadingOrgs && organizations.length > 1) {
 							// User has multiple organizations - redirect to organization selection
 							console.log(
@@ -84,7 +93,32 @@ export default function AuthCallbackPage() {
 
 		// Only run once when component mounts
 		handleAuthRedirect();
-	}, [navigate, organizations, isLoadingOrgs]);
+	}, [navigate, organizations, isLoadingOrgs, user]);
+
+	// Add a safety timeout to ensure we don't get stuck on this page
+	useEffect(() => {
+		const safetyTimeout = setTimeout(() => {
+			if (processingAuth) {
+				console.log(
+					"Safety timeout reached on auth callback page, redirecting"
+				);
+				setProcessingAuth(false);
+
+				// If we have a user but got stuck, try to redirect to no-organization as a fallback
+				if (user && (!organizations || organizations.length === 0)) {
+					navigate("/no-organization", { replace: true });
+				} else if (user) {
+					// If we have a user but aren't sure about orgs, try dashboard
+					navigate("/dashboard", { replace: true });
+				} else {
+					// If no user, go to login
+					navigate("/login", { replace: true });
+				}
+			}
+		}, 8000); // 8 second timeout
+
+		return () => clearTimeout(safetyTimeout);
+	}, [navigate, user, organizations, processingAuth]);
 
 	if (processingAuth) {
 		return (

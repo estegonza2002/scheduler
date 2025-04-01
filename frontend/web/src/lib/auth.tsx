@@ -74,7 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 				);
 				setIsLoading(false);
 			}
-		}, 5000); // 5 second timeout
+		}, 10000); // 10 second timeout
 
 		initializeAuth();
 
