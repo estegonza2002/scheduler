@@ -98,7 +98,7 @@ export default function LocationsPage() {
 			title: "Locations",
 			description: "Manage your organization's locations",
 			actions: (
-				<div className="flex space-x-2">
+				<div className="flex gap-2">
 					<Button
 						variant="outline"
 						onClick={() => navigate("/locations/bulk-import")}>
@@ -162,9 +162,9 @@ export default function LocationsPage() {
 				),
 				cell: ({ row }) => (
 					<div className="flex items-center gap-3">
-						<div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+						<span className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
 							<MapPin className="h-4 w-4 text-primary" />
-						</div>
+						</span>
 						<span className="font-medium">{row.original.name}</span>
 					</div>
 				),
@@ -360,60 +360,57 @@ export default function LocationsPage() {
 								defaultView: viewMode,
 								onViewChange: setViewMode,
 								renderCard: (location: Location) => (
-									<div className="relative">
-										<LocationCard
-											location={location}
-											interactive={true}
-											variant="detailed"
-											onClick={() => navigate(`/locations/${location.id}`)}
-											className="cursor-pointer hover:shadow-sm transition-all hover:border-primary">
-											<div className="flex justify-end mt-4">
+									<LocationCard
+										location={location}
+										interactive={true}
+										variant="compact"
+										size="sm"
+										onClick={() => navigate(`/locations/${location.id}`)}
+										className="cursor-pointer hover:shadow-sm transition-all hover:border-primary relative">
+										<CardFooter className="flex justify-end mt-4 p-0">
+											<Button
+												variant="outline"
+												size="sm"
+												className="w-full"
+												onClick={(e) => {
+													e.stopPropagation();
+													navigate(`/locations/${location.id}`);
+												}}>
+												<Eye className="h-4 w-4 mr-2" />
+												View Details
+											</Button>
+										</CardFooter>
+										<DropdownMenu>
+											<DropdownMenuTrigger asChild>
 												<Button
-													variant="outline"
+													variant="ghost"
 													size="sm"
-													className="w-full"
+													className="h-8 w-8 p-0 hover:bg-accent/80 absolute top-2 right-2"
+													onClick={(e) => e.stopPropagation()}>
+													<MoreHorizontal className="h-4 w-4" />
+												</Button>
+											</DropdownMenuTrigger>
+											<DropdownMenuContent align="end">
+												<DropdownMenuItem
 													onClick={(e) => {
 														e.stopPropagation();
-														navigate(`/locations/${location.id}`);
+														handleOpenEditDialog(location);
 													}}>
-													<Eye className="h-4 w-4 mr-2" />
-													View Details
-												</Button>
-											</div>
-										</LocationCard>
-										<div className="absolute top-2 right-2">
-											<DropdownMenu>
-												<DropdownMenuTrigger asChild>
-													<Button
-														variant="ghost"
-														size="sm"
-														className="h-8 w-8 p-0 hover:bg-accent/80"
-														onClick={(e) => e.stopPropagation()}>
-														<MoreHorizontal className="h-4 w-4" />
-													</Button>
-												</DropdownMenuTrigger>
-												<DropdownMenuContent align="end">
-													<DropdownMenuItem
-														onClick={(e) => {
-															e.stopPropagation();
-															handleOpenEditDialog(location);
-														}}>
-														<Edit className="h-4 w-4 mr-2" />
-														Edit
-													</DropdownMenuItem>
-													<DropdownMenuItem
-														onClick={(e) => {
-															e.stopPropagation();
-															handleOpenDeleteDialog(location);
-														}}
-														className="text-destructive hover:text-destructive">
-														<Trash className="h-4 w-4 mr-2" />
-														Delete
-													</DropdownMenuItem>
-												</DropdownMenuContent>
-											</DropdownMenu>
-										</div>
-									</div>
+													<Edit className="h-4 w-4 mr-2" />
+													Edit
+												</DropdownMenuItem>
+												<DropdownMenuItem
+													onClick={(e) => {
+														e.stopPropagation();
+														handleOpenDeleteDialog(location);
+													}}
+													className="text-destructive hover:text-destructive">
+													<Trash className="h-4 w-4 mr-2" />
+													Delete
+												</DropdownMenuItem>
+											</DropdownMenuContent>
+										</DropdownMenu>
+									</LocationCard>
 								),
 							}}
 						/>

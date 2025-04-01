@@ -1,11 +1,11 @@
-import { Location } from "@/api";
+import { Location, EmployeeLocationsAPI } from "@/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { Building2, MapPin, Check } from "lucide-react";
+import { Building2, MapPin, Check, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 export interface LocationCardProps {
@@ -72,7 +72,25 @@ export function LocationCard({
 	navigable = true,
 }: LocationCardProps) {
 	const [imgError, setImgError] = useState(false);
+	const [employeeCount, setEmployeeCount] = useState<number | null>(null);
 	const navigate = useNavigate();
+
+	// Fetch employee count for this location
+	useEffect(() => {
+		const fetchEmployeeCount = async () => {
+			try {
+				const employeeIds = await EmployeeLocationsAPI.getByLocationId(
+					location.id
+				);
+				setEmployeeCount(employeeIds.length);
+			} catch (error) {
+				console.error("Error fetching employee count:", error);
+				setEmployeeCount(0);
+			}
+		};
+
+		fetchEmployeeCount();
+	}, [location.id]);
 
 	// Helper to format address parts into a single string
 	const getFullAddress = () => {
@@ -153,6 +171,34 @@ export function LocationCard({
 		justifyContent: "center",
 	};
 
+	// Render employee count badge
+	const renderEmployeeCount = () => {
+		if (employeeCount === null) {
+			return (
+				<div className="flex items-center gap-1 text-xs text-muted-foreground">
+					<Users className={getIconSize()} />
+					<span>...</span>
+				</div>
+			);
+		}
+
+		if (employeeCount === 0) {
+			return (
+				<div className="flex items-center gap-1 text-xs text-red-500 bg-red-50 px-2 py-0.5 rounded-full">
+					<Users className={getIconSize()} />
+					<span className="font-medium">0</span>
+				</div>
+			);
+		}
+
+		return (
+			<div className="flex items-center gap-1 text-xs text-muted-foreground">
+				<Users className={getIconSize()} />
+				<span>{employeeCount}</span>
+			</div>
+		);
+	};
+
 	// Render the card based on variant
 	const renderContent = () => {
 		switch (variant) {
@@ -199,6 +245,7 @@ export function LocationCard({
 										</p>
 									)}
 								</div>
+								{renderEmployeeCount()}
 							</div>
 						</CardContent>
 					</>
@@ -225,16 +272,21 @@ export function LocationCard({
 							</AspectRatio>
 						</div>
 						<CardHeader className="p-4 pb-2">
-							<div className="flex items-center">
-								<Building2
-									className={cn("mr-2 text-muted-foreground", getIconSize())}
-								/>
-								<CardTitle className={getTitleSize()}>
-									{location.name}
-									{selected && (
-										<Check className={cn("ml-2 text-primary", getIconSize())} />
-									)}
-								</CardTitle>
+							<div className="flex items-center justify-between">
+								<div className="flex items-center">
+									<Building2
+										className={cn("mr-2 text-muted-foreground", getIconSize())}
+									/>
+									<CardTitle className={getTitleSize()}>
+										{location.name}
+										{selected && (
+											<Check
+												className={cn("ml-2 text-primary", getIconSize())}
+											/>
+										)}
+									</CardTitle>
+								</div>
+								{renderEmployeeCount()}
 							</div>
 						</CardHeader>
 						<CardContent className="p-4 pt-2">
@@ -293,6 +345,7 @@ export function LocationCard({
 										</p>
 									)}
 								</div>
+								{renderEmployeeCount()}
 							</div>
 							{children && <div className="mt-3">{children}</div>}
 						</CardContent>
