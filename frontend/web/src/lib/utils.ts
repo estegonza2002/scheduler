@@ -16,11 +16,19 @@ export function formatPhoneNumber(phone: string): string {
 }
 
 /**
- * Returns the current organization ID from context or a fallback UUID
+ * Returns the current organization ID from context or an empty string
  * This should be used in components that require an organization ID
  *
  * @deprecated Use getOrgId from @/lib/organization instead
  */
 export function getDefaultOrganizationId(): string {
-	return getOrgId();
+	try {
+		return getOrgId();
+	} catch (error) {
+		console.log(
+			"Error in getDefaultOrganizationId - returning empty string:",
+			error
+		);
+		return "";
+	}
 }

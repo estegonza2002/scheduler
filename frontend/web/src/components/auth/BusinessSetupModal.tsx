@@ -109,11 +109,17 @@ export function BusinessSetupModal({
 						);
 						// Don't fail the whole operation if this fails, the trigger might have succeeded
 					}
+
+					// Update user metadata with current organization ID and role
+					await updateUserMetadata({
+						current_organization_id: newOrg.id,
+						role: "admin",
+					});
 				}
 
-				toast.success("Business created successfully!");
-				localStorage.removeItem("business_signup");
-				navigate("/admin-dashboard");
+				toast.success("Organization created successfully!");
+				onClose();
+				navigate("/admin-dashboard", { replace: true });
 			} catch (error: any) {
 				console.error("Failed to create business:", error);
 				toast.error(
@@ -127,7 +133,6 @@ export function BusinessSetupModal({
 			);
 		} finally {
 			setIsLoading(false);
-			onClose();
 		}
 	};
 

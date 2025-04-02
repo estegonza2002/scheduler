@@ -41,23 +41,23 @@ export function LocationProvider({ children }: { children: ReactNode }) {
 		try {
 			setIsLoading(true);
 			const organizationId = getOrgId();
-			const locationsData = await LocationsAPI.getAll(organizationId);
+			const locationData = await LocationsAPI.getAll(organizationId);
 
-			setLocations(locationsData);
+			setLocations(locationData);
 
 			// Set the first location as current if there's no current selection
-			if (locationsData.length > 0 && !currentLocation) {
-				setCurrentLocation(locationsData[0]);
+			if (locationData.length > 0 && !currentLocation) {
+				setCurrentLocation(locationData[0]);
 			} else if (currentLocation) {
 				// Make sure current location is updated with latest data
-				const updated = locationsData.find(
+				const updated = locationData.find(
 					(loc) => loc.id === currentLocation.id
 				);
 				if (updated) {
 					setCurrentLocation(updated);
-				} else if (locationsData.length > 0) {
+				} else if (locationData.length > 0) {
 					// If current location no longer exists, select the first one
-					setCurrentLocation(locationsData[0]);
+					setCurrentLocation(locationData[0]);
 				} else {
 					setCurrentLocation(null);
 				}
@@ -93,7 +93,6 @@ export function LocationProvider({ children }: { children: ReactNode }) {
 	// Set up real-time subscription for location updates
 	useEffect(() => {
 		const organizationId = getOrgId();
-
 		const subscription = supabase
 			.channel("location-updates")
 			.on(
@@ -102,7 +101,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
 					event: "*", // Listen for all events (INSERT, UPDATE, DELETE)
 					schema: "public",
 					table: "locations",
-					filter: `organizationId=eq.${organizationId}`,
+					filter: `organization_id=eq.${organizationId}`,
 				},
 				() => {
 					refreshLocations();

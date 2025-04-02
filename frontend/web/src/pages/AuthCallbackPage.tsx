@@ -63,57 +63,47 @@ export default function AuthCallbackPage() {
 		handleAuthRedirect();
 	}, [navigate]); // Only depend on navigate, not on user or isLoading
 
-	if (processingAuth) {
-		return (
-			<div className="min-h-screen flex items-center justify-center">
-				<div className="text-center">
-					<div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
-					<h2 className="text-xl font-medium">Processing your sign-in...</h2>
-					<p className="text-muted-foreground mt-2">
-						Please wait while we complete your authentication.
-					</p>
-				</div>
-			</div>
-		);
-	}
-
-	if (showBusinessSetup) {
-		return (
-			<>
-				<BusinessSetupModal
-					isOpen={showBusinessSetup}
-					onClose={() => {
-						setShowBusinessSetup(false);
-						localStorage.removeItem("business_signup");
-						navigate("/admin-dashboard", { replace: true });
-					}}
-				/>
+	return (
+		<>
+			{processingAuth ? (
 				<div className="min-h-screen flex items-center justify-center">
-					<div className="text-center max-w-md px-4">
-						<h2 className="text-2xl font-semibold mb-2">
-							Complete Your Business Setup
-						</h2>
-						<p className="text-muted-foreground">
-							Please provide your business details to finish the registration
-							process.
+					<div className="text-center">
+						<div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
+						<h2 className="text-xl font-medium">Processing your sign-in...</h2>
+						<p className="text-muted-foreground mt-2">
+							Please wait while we complete your authentication.
 						</p>
 					</div>
 				</div>
-			</>
-		);
-	}
-
-	// Handle organization creation errors
-	if (showBusinessSetup) {
-		localStorage.setItem("business_setup_pending", "true");
-	}
-
-	// Fallback - should not normally be seen
-	return (
-		<div className="min-h-screen flex items-center justify-center">
-			<div className="text-center">
-				<h2 className="text-xl font-medium">Redirecting...</h2>
-			</div>
-		</div>
+			) : showBusinessSetup ? (
+				<>
+					<BusinessSetupModal
+						isOpen={showBusinessSetup}
+						onClose={() => {
+							setShowBusinessSetup(false);
+							localStorage.removeItem("business_signup");
+							navigate("/admin-dashboard", { replace: true });
+						}}
+					/>
+					<div className="min-h-screen flex items-center justify-center">
+						<div className="text-center max-w-md px-4">
+							<h2 className="text-2xl font-semibold mb-2">
+								Complete Your Business Setup
+							</h2>
+							<p className="text-muted-foreground">
+								Please provide your business details to finish the registration
+								process.
+							</p>
+						</div>
+					</div>
+				</>
+			) : (
+				<div className="min-h-screen flex items-center justify-center">
+					<div className="text-center">
+						<h2 className="text-xl font-medium">Redirecting...</h2>
+					</div>
+				</div>
+			)}
+		</>
 	);
 }

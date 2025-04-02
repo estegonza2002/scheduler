@@ -43,7 +43,18 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
 	const refreshShifts = async () => {
 		try {
 			setIsLoading(true);
-			const organizationId = getOrgId();
+			let organizationId;
+
+			try {
+				organizationId = getOrgId();
+			} catch (error) {
+				console.error("No organization available:", error);
+				toast.error(
+					"No organization available. Please create or join an organization first."
+				);
+				setIsLoading(false);
+				return;
+			}
 
 			// First get all schedules
 			const schedulesData = await ShiftsAPI.getAllSchedules(organizationId);
@@ -146,7 +157,14 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
 
 	// Set up real-time subscription for shift updates
 	useEffect(() => {
-		const organizationId = getOrgId();
+		let organizationId;
+
+		try {
+			organizationId = getOrgId();
+		} catch (error) {
+			console.error("No organization available for subscription:", error);
+			return; // Exit early without setting up subscription
+		}
 
 		const subscription = supabase
 			.channel("shift-updates")

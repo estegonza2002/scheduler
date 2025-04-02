@@ -2,15 +2,18 @@ import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../../lib/auth";
 import { Card, CardContent } from "../ui/card";
 import { Loader2 } from "lucide-react";
+import { ReactNode } from "react";
 
 interface ProtectedRouteProps {
 	redirectTo?: string;
 	adminOnly?: boolean;
+	children?: ReactNode;
 }
 
 export function ProtectedRoute({
 	redirectTo = "/login",
 	adminOnly = false,
+	children,
 }: ProtectedRouteProps) {
 	const { user, isLoading } = useAuth();
 	const location = useLocation();
@@ -62,6 +65,6 @@ export function ProtectedRoute({
 		);
 	}
 
-	// Render the protected content
-	return <Outlet />;
+	// Render the protected content (either children or Outlet)
+	return children ? <>{children}</> : <Outlet />;
 }

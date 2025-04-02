@@ -343,7 +343,7 @@ export const LocationsAPI = {
 	getAll: async (organizationId?: string): Promise<Location[]> => {
 		if (!organizationId) {
 			console.error("No organization ID provided to LocationsAPI.getAll");
-			return [];
+			throw new Error("Organization ID is required to fetch locations");
 		}
 
 		console.log("Filtering locations by organization_id:", organizationId);

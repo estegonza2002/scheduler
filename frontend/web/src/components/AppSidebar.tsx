@@ -8,7 +8,6 @@ import {
 	Building2,
 	MapPin,
 	Bell,
-	MessageSquare,
 	CreditCard,
 	Settings,
 	LogOut,
@@ -159,7 +158,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 	};
 
 	const handleSignOut = () => {
-		signOut();
+		navigate("/logout");
 	};
 
 	// User display info directly in AppSidebar (formerly in NavUser)
@@ -217,14 +216,6 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 	// Personal section with My Shifts and My Locations
 	const personalNavItems: NavItem[] = [
 		{
-			icon: <Building2 className="h-5 w-5" />,
-			label: "Dashboard",
-			href: isAdmin ? "/dashboard" : "/admin-dashboard",
-			isActive: isAdmin
-				? isRouteActive("/dashboard")
-				: isRouteActive("/admin-dashboard"),
-		},
-		{
 			icon: <ClipboardList className="h-5 w-5" />,
 			label: "My Shifts",
 			href: "/my-shifts",
@@ -236,21 +227,20 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 			href: "/my-locations",
 			isActive: isRouteActive("/my-locations"),
 		},
+		{
+			icon: <User className="h-5 w-5" />,
+			label: "My Profile",
+			href: "/profile",
+			isActive: isRouteActive("/profile"),
+		},
 	];
 
 	const communicationNavItems: NavItem[] = [
-		{
-			icon: <MessageSquare className="h-5 w-5" />,
-			label: "Messages",
-			href: "/messages",
-			isActive: isRouteActive("/messages"),
-		},
 		{
 			icon: <Bell className="h-5 w-5" />,
 			label: "Notifications",
 			href: "/notifications",
 			isActive: isRouteActive("/notifications"),
-			badge: true,
 		},
 	];
 
@@ -409,12 +399,16 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 
 				<SidebarSeparator />
 
-				<SidebarGroup>
-					<SidebarGroupLabel>Personal</SidebarGroupLabel>
-					<SidebarMenu>{renderMenuItems(personalNavItems)}</SidebarMenu>
-				</SidebarGroup>
-
-				<SidebarSeparator />
+				{/* Only show Personal navigation to non-admin users */}
+				{!isAdmin && (
+					<>
+						<SidebarGroup>
+							<SidebarGroupLabel>Personal</SidebarGroupLabel>
+							<SidebarMenu>{renderMenuItems(personalNavItems)}</SidebarMenu>
+						</SidebarGroup>
+						<SidebarSeparator />
+					</>
+				)}
 
 				<SidebarGroup>
 					<SidebarGroupLabel>Communication</SidebarGroupLabel>

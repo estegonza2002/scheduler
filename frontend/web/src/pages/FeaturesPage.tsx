@@ -2,16 +2,19 @@ import { Helmet } from "react-helmet";
 import { AppContent } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import {
-	CheckCircle2,
-	Calendar,
-	MessageSquare,
-	Users,
-	FileText,
-	Bell,
 	BarChart3,
+	Calendar,
+	CalendarClock,
+	CheckCircle2,
+	CircleUserRound,
+	Clock,
+	FileText,
+	GitBranch,
 	Globe,
+	PieChart,
+	Puzzle,
 	ShieldCheck,
-	ArrowRight,
+	Users,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
@@ -67,7 +70,7 @@ export default function FeaturesPage() {
 										"Create and edit schedules with a drag-and-drop interface. Set recurring shifts and templates to save time.",
 								},
 								{
-									icon: <Bell className="h-6 w-6 text-primary" />,
+									icon: <Clock className="h-6 w-6 text-primary" />,
 									title: "Automated Notifications",
 									description:
 										"Send shift reminders, updates, and important announcements automatically via email, SMS, or push notifications.",
@@ -77,12 +80,6 @@ export default function FeaturesPage() {
 									title: "Team Management",
 									description:
 										"Manage employee profiles, availability, time-off requests, and positions all in one place.",
-								},
-								{
-									icon: <MessageSquare className="h-6 w-6 text-primary" />,
-									title: "Team Communication",
-									description:
-										"Built-in messaging keeps everyone connected. Share updates and resolve scheduling issues quickly.",
 								},
 								{
 									icon: <BarChart3 className="h-6 w-6 text-primary" />,

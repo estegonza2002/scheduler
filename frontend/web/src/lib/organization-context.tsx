@@ -330,10 +330,9 @@ export function OrganizationProvider({
 
 	// Helper function to get the current organization ID safely
 	const getCurrentOrganizationId = (): string => {
-		// If we don't have organization tables initialized, use the known organization ID
+		// If we don't have organization tables initialized, throw an error
 		if (!tablesInitialized) {
-			console.log("Organization tables not initialized, using default ID");
-			return "4b319a24-be34-4031-8e83-fadde3a4b352";
+			throw new Error("Organization tables not initialized");
 		}
 
 		if (currentOrganization) {
@@ -345,9 +344,10 @@ export function OrganizationProvider({
 			return organizations[0].id;
 		}
 
-		// No organization available, use the known organization ID as fallback
-		console.log("No organization available, using default ID");
-		return "4b319a24-be34-4031-8e83-fadde3a4b352";
+		// No organization available, throw an error
+		throw new Error(
+			"No organization available - user must create or join an organization"
+		);
 	};
 
 	// Context value

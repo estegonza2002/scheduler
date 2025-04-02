@@ -29,8 +29,7 @@ const OrganizationContext = createContext<OrganizationContextType | undefined>(
 	undefined
 );
 
-// Fallback organization ID - used when no context is available
-const FALLBACK_ORGANIZATION_ID = "79a0cd70-b7e6-4ea4-8b00-a88dfea38e25";
+// Removed fallback organization ID constant
 
 export function OrganizationProvider({ children }: { children: ReactNode }) {
 	const { user } = useAuth();
@@ -57,15 +56,16 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
 		}
 	};
 
-	// Get the current organization ID safely (with fallback)
+	// Get the current organization ID safely (without fallback)
 	const getCurrentOrganizationId = (): string => {
 		if (organization) {
 			console.log("Using organization ID from context:", organization.id);
 			return organization.id;
 		}
 
-		console.warn("Using fallback organization ID - no organization found");
-		return FALLBACK_ORGANIZATION_ID;
+		// Instead of throwing an error, return null
+		console.log("No organization found - returning null organization ID");
+		return "";
 	};
 
 	// Initial data fetch
@@ -134,10 +134,18 @@ export function getOrgId(): string {
 	try {
 		// This will work in component contexts
 		const { getCurrentOrganizationId } = useOrganization();
-		return getCurrentOrganizationId();
+		const orgId = getCurrentOrganizationId();
+
+		// If no organization found, return empty string rather than throwing
+		if (!orgId) {
+			console.log("No organization found in getOrgId - returning empty string");
+			return "";
+		}
+
+		return orgId;
 	} catch (error) {
-		// Fall back to default if we're not in a component context
-		console.warn("Using fallback organization ID - not in component context");
-		return FALLBACK_ORGANIZATION_ID;
+		// No more error throwing - return empty string
+		console.log("Error in getOrgId - returning empty string:", error);
+		return "";
 	}
 }

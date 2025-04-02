@@ -62,17 +62,15 @@ function GlobalHeader() {
 	// List of top-level pages that shouldn't show a back button
 	const TOP_LEVEL_PAGES = [
 		"/dashboard",
-		"/admin-dashboard",
-		"/daily-shifts",
-		"/employees",
+		"/scheduler",
 		"/locations",
 		"/shifts",
+		"/employees",
 		"/profile",
 		"/business-profile",
 		"/billing",
 		"/branding",
 		"/notifications",
-		"/messages",
 		"/reports",
 		"/my-shifts",
 	];
@@ -220,13 +218,12 @@ export default function AppLayout() {
 	// Pages with different layouts and actions
 	const isCheckoutPage = location.pathname === "/checkout";
 	const isLoginPage = location.pathname === "/login";
-	const isMessagesPage = location.pathname === "/messages";
 	const isSchedulerPage = location.pathname.startsWith("/scheduler");
 	const isShiftDetailsPage = location.pathname.match(/\/shifts\/(\w+)/);
 	const isDailyShiftsPage = location.pathname === "/daily-shifts";
 
 	// Determines if the page should have a secondary sidebar
-	const hasSecondarySidebar = isMessagesPage || isShiftDetailsPage;
+	const hasSecondarySidebar = isShiftDetailsPage;
 
 	// Check if we're on specific pages
 	const isAdminDashboardPage = location.pathname === "/admin-dashboard";
@@ -292,8 +289,7 @@ export default function AppLayout() {
 	};
 
 	const handleLogout = () => {
-		signOut();
-		navigate("/");
+		navigate("/logout");
 	};
 
 	return (

@@ -58,15 +58,30 @@ export function SignUpForm() {
 	const logTermsAcceptance = useCallback(
 		async (userId: string, email: string) => {
 			try {
-				// Log terms acceptance for compliance
-				await supabase.from("user_terms_acceptance").insert({
-					user_id: userId,
-					email: email,
-					terms_version: "1.0",
-					accepted_at: new Date().toISOString(),
-					ip_address: "logged-client-side",
-				});
-				console.log("Terms acceptance logged successfully");
+				console.log("Attempting to log terms acceptance for user:", userId);
+
+				// Log essential terms acceptance data, with error handling
+				const { error: insertError } = await supabase
+					.from("terms_acceptances")
+					.insert({
+						user_id: userId,
+						email: email,
+						terms_version: "1.0",
+						privacy_version: "1.0",
+						accepted_at: new Date().toISOString(),
+						ip_address: "Logged client-side",
+						user_agent: navigator.userAgent,
+					});
+
+				if (insertError) {
+					console.warn(
+						"Failed to insert terms acceptance record:",
+						insertError.message
+					);
+					// Continue with registration even if this fails
+				} else {
+					console.log("Terms acceptance logged successfully");
+				}
 			} catch (error) {
 				console.error("Failed to log terms acceptance:", error);
 				// Don't block registration if this fails
@@ -79,6 +94,8 @@ export function SignUpForm() {
 		async (values: SignUpFormValues) => {
 			setIsLoading(true);
 			try {
+				console.log("Starting signup process for email:", values.email);
+
 				// Using signUp from auth context
 				const response = await signUp({
 					email: values.email,
@@ -103,24 +120,42 @@ export function SignUpForm() {
 					} else if (response.error.message.includes("password")) {
 						toast.error(response.error.message);
 					} else {
-						toast.error(response.error.message);
+						toast.error(`Registration error: ${response.error.message}`);
 					}
+					console.error("Signup error:", response.error);
 					return;
 				}
 
-				// Log detailed terms acceptance
+				// Sign-up succeeded, try to log terms acceptance but don't block registration if it fails
 				if (response.data?.user) {
-					await logTermsAcceptance(response.data.user.id, values.email);
-				}
+					console.log("User created successfully:", response.data.user.id);
 
-				// Show success message and redirect to pricing page for subscription
-				toast.success(
-					"Registration successful! Now choose a subscription plan to get started."
-				);
-				navigate("/pricing");
+					// Try to log terms acceptance but continue regardless of result
+					logTermsAcceptance(response.data.user.id, values.email).catch(
+						(termsError) => {
+							console.warn(
+								"Terms acceptance logging failed, but continuing with registration:",
+								termsError
+							);
+						}
+					);
+
+					// Success message and redirect to account type selection page
+					toast.success(
+						"Registration successful! Please select how you want to use the platform."
+					);
+					navigate("/account-type");
+				} else {
+					// This shouldn't happen if there's no error but response.data.user is null
+					console.warn("Sign-up completed but no user data returned");
+					toast.success("Registration successful! Please continue.");
+					navigate("/account-type");
+				}
 			} catch (error) {
-				console.error("Registration exception:", error);
-				toast.error("An unexpected error occurred during registration");
+				console.error("Unexpected registration exception:", error);
+				toast.error(
+					"An unexpected error occurred during registration. Please try again."
+				);
 			} finally {
 				setIsLoading(false);
 			}

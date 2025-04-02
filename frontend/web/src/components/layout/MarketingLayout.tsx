@@ -18,7 +18,11 @@ import {
 	ListChecks,
 	Clock,
 	BarChart2,
-	MessageSquare,
+	Building2,
+	CheckCircle2,
+	Globe,
+	Smartphone,
+	Users,
 } from "lucide-react";
 import { useState } from "react";
 import { RequestDemo } from "../marketing";
@@ -73,14 +77,14 @@ const featureSubmenuItems = [
 // Additional features
 const additionalFeatures = [
 	{
+		title: "Mobile App",
+		href: "/features/all",
+		icon: <Smartphone className="h-5 w-5 text-primary" />,
+	},
+	{
 		title: "Reports & Analytics",
 		href: "/features/all",
 		icon: <BarChart2 className="h-5 w-5 text-primary" />,
-	},
-	{
-		title: "Team Communication",
-		href: "/features/all",
-		icon: <MessageSquare className="h-5 w-5 text-primary" />,
 	},
 ];
 

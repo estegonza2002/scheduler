@@ -1,49 +1,53 @@
 import { SignUpForm } from "@/components/auth/SignUpForm";
-import { Link } from "react-router-dom";
-import {
-	Card,
-	CardContent,
-	CardHeader,
-	CardTitle,
-	CardDescription,
-} from "@/components/ui/card";
+import { Helmet } from "react-helmet";
+import { COMPANY_NAME } from "@/constants";
 
 export default function SignUpPage() {
 	return (
-		<div className="flex min-h-screen items-center justify-center bg-muted p-4">
-			<div className="w-full max-w-md">
-				<Card className="border-none shadow-lg">
-					<CardHeader className="text-center">
-						<CardTitle className="text-xl">Employee Scheduler</CardTitle>
-						<CardDescription>Create an account to get started</CardDescription>
-					</CardHeader>
-					<CardContent>
-						<SignUpForm />
-						<div className="text-center text-sm mt-6">
-							<p className="text-muted-foreground">
-								Are you a business owner?{" "}
-								<Link
-									to="/business-signup"
-									className="underline underline-offset-4 hover:text-primary">
-									Register a business account
-								</Link>
+		<>
+			<Helmet>
+				<title>Create Account | {COMPANY_NAME}</title>
+			</Helmet>
+			<div className="container relative h-screen flex-col items-center justify-center grid lg:max-w-none lg:grid-cols-2 lg:px-0">
+				<div className="relative hidden h-full flex-col bg-muted p-10 text-white lg:flex">
+					<div className="absolute inset-0 bg-primary" />
+					<div className="relative z-20 flex items-center text-lg font-medium">
+						{COMPANY_NAME}
+					</div>
+					<div className="relative z-20 mt-auto">
+						<blockquote className="space-y-2">
+							<p className="text-lg">
+								"This platform has made managing our staff scheduling so much
+								easier. We've reduced time spent on scheduling by 70%."
 							</p>
-							<p className="text-muted-foreground mt-2">
-								Already have an account?{" "}
-								<Link
-									to="/login"
-									className="underline underline-offset-4 hover:text-primary">
-									Login
-								</Link>
+							<footer className="text-sm">Sofia Davis, Retail Manager</footer>
+						</blockquote>
+					</div>
+				</div>
+				<div className="lg:p-8">
+					<div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
+						<div className="flex flex-col space-y-2 text-center">
+							<h1 className="text-2xl font-semibold tracking-tight">
+								Create an account
+							</h1>
+							<p className="text-sm text-muted-foreground">
+								Enter your details to create your account
 							</p>
 						</div>
-					</CardContent>
-				</Card>
-				<div className="text-balance text-center text-xs text-muted-foreground mt-6 [&_a]:underline [&_a]:underline-offset-4 [&_a]:hover:text-primary">
-					By signing up, you agree to our <a href="/terms">Terms of Service</a>{" "}
-					and <a href="/privacy">Privacy Policy</a>.
+
+						<SignUpForm />
+
+						<p className="px-8 text-center text-sm text-muted-foreground">
+							Already have an account?{" "}
+							<a
+								href="/login"
+								className="underline underline-offset-4 hover:text-primary">
+								Sign in
+							</a>
+						</p>
+					</div>
 				</div>
 			</div>
-		</div>
+		</>
 	);
 }

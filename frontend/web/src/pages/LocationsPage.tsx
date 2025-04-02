@@ -455,33 +455,35 @@ export default function LocationsPage() {
 			</Helmet>
 
 			{!loading && locations.length === 0 ? (
-				<EmptyState
-					icon={<MapPin className="h-8 w-8" />}
-					title="No locations found"
-					description="Get started by adding your first location."
-					action={
-						<div className="flex gap-2">
-							<LocationDialog
-								organizationId={organizationId}
-								onLocationCreated={(newLocation) =>
-									handleLocationsAdded([newLocation])
-								}
-								trigger={
-									<Button>
-										<PlusCircle className="h-4 w-4 mr-2" />
-										Add Location
-									</Button>
-								}
-							/>
-							<Button
-								variant="outline"
-								onClick={() => navigate("/locations/bulk-import")}>
-								<Upload className="h-4 w-4 mr-2" />
-								Bulk Import
-							</Button>
-						</div>
-					}
-				/>
+				<ContentContainer>
+					<EmptyState
+						icon={<MapPin className="h-8 w-8" />}
+						title="No locations found"
+						description="Get started by adding your first location."
+						action={
+							<div className="flex gap-2">
+								<LocationDialog
+									organizationId={organizationId}
+									onLocationCreated={(newLocation) =>
+										handleLocationsAdded([newLocation])
+									}
+									trigger={
+										<Button>
+											<PlusCircle className="h-4 w-4 mr-2" />
+											Add Location
+										</Button>
+									}
+								/>
+								<Button
+									variant="outline"
+									onClick={() => navigate("/locations/bulk-import")}>
+									<Upload className="h-4 w-4 mr-2" />
+									Bulk Import
+								</Button>
+							</div>
+						}
+					/>
+				</ContentContainer>
 			) : (
 				<ContentContainer>
 					<ContentSection title="All Locations">

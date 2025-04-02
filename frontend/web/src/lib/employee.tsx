@@ -40,7 +40,19 @@ export function EmployeeProvider({ children }: { children: ReactNode }) {
 	const refreshEmployees = async () => {
 		try {
 			setIsLoading(true);
-			const organizationId = getOrgId();
+			let organizationId;
+
+			try {
+				organizationId = getOrgId();
+			} catch (error) {
+				console.error("No organization available:", error);
+				toast.error(
+					"No organization available. Please create or join an organization first."
+				);
+				setIsLoading(false);
+				return;
+			}
+
 			const employeeData = await EmployeesAPI.getAll(organizationId);
 
 			setEmployees(employeeData);
@@ -92,7 +104,14 @@ export function EmployeeProvider({ children }: { children: ReactNode }) {
 
 	// Set up real-time subscription for employee updates
 	useEffect(() => {
-		const organizationId = getOrgId();
+		let organizationId;
+
+		try {
+			organizationId = getOrgId();
+		} catch (error) {
+			console.error("No organization available for subscription:", error);
+			return; // Exit early without setting up subscription
+		}
 
 		const subscription = supabase
 			.channel("employee-updates")

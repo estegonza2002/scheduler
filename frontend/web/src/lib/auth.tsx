@@ -103,6 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		});
 
 		try {
+			console.log("About to call Supabase auth.signUp");
 			const response = await supabase.auth.signUp(credentials);
 
 			console.log("Supabase signUp response:", {
@@ -126,7 +127,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 			return response;
 		} catch (error) {
-			console.error("Exception in signUp method:", error);
+			console.error("Network or unexpected exception in signUp method:", error);
+			// Rethrow the error to be handled by the component
 			throw error;
 		}
 	};

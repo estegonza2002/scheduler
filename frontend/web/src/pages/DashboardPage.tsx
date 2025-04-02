@@ -15,7 +15,6 @@ import {
 	CalendarDays,
 	Bell,
 	Calendar,
-	MessageSquare,
 	CircleUserRound,
 	FileText,
 	Check,
@@ -25,6 +24,10 @@ import {
 	ChevronsUp,
 	ChevronLeft,
 	ExternalLink,
+	BarChart,
+	Building2,
+	ShieldCheck,
+	Users,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ShiftsAPI, EmployeesAPI, LocationsAPI } from "@/api";
@@ -478,13 +481,6 @@ export default function DashboardPage() {
 						<Button variant="outline">
 							<Calendar className="h-4 w-4 mr-2" />
 							My Schedule
-						</Button>
-					</Link>
-
-					<Link to="/messages">
-						<Button variant="outline">
-							<MessageSquare className="h-4 w-4 mr-2" />
-							My Messages
 						</Button>
 					</Link>
 
