@@ -52,10 +52,10 @@ import { ShiftLogDetailsPage } from "./pages/ShiftLogDetailsPage";
 import LocationEmployeesPage from "./pages/LocationEmployeesPage";
 import LocationInsightsPage from "./pages/LocationInsightsPage";
 import DesignSystemShowcasePage from "./pages/DesignSystemShowcasePage";
-import TermsPage from "./pages/TermsPage";
-import PrivacyPage from "./pages/PrivacyPage";
+import TermsPage from "./pages/marketing/TermsPage";
+import PrivacyPage from "./pages/marketing/PrivacyPage";
 import ReportsPage from "./pages/ReportsPage";
-import PricingPage from "./pages/PricingPage";
+import PricingPage from "./pages/marketing/PricingPage";
 import UsersManagementPage from "./pages/UsersManagementPage";
 import AccountPage from "./pages/AccountPage";
 import CreateShiftPage from "./pages/CreateShiftPage";
@@ -63,22 +63,22 @@ import ManageShiftsPage from "./pages/ManageShiftsPage";
 import PastShiftsPage from "./pages/PastShiftsPage";
 
 // Marketing pages
-import HomePage from "./pages/HomePage";
-import FeaturesPage from "./pages/FeaturesPage";
-import EnterprisePage from "./pages/EnterprisePage";
-import ResourcesPage from "./pages/ResourcesPage";
-import ContactPage from "./pages/ContactPage";
-import BlogPage from "./pages/BlogPage";
-import BlogPostPage from "./pages/BlogPostPage";
-import AboutPage from "./pages/AboutPage";
-import DevelopersPage from "./pages/DevelopersPage";
-import AllFeaturesPage from "./pages/AllFeaturesPage";
-import ShiftSchedulingPage from "./pages/ShiftSchedulingPage";
-import LeaveManagementPage from "./pages/LeaveManagementPage";
-import AutoSchedulingPage from "./pages/AutoSchedulingPage";
-import TaskManagementPage from "./pages/TaskManagementPage";
-import ClockInOutPage from "./pages/ClockInOutPage";
-import IntegrationsPage from "./pages/IntegrationsPage";
+import HomePage from "./pages/marketing/HomePage";
+import FeaturesPage from "./pages/marketing/FeaturesPage";
+import EnterprisePage from "./pages/marketing/EnterprisePage";
+import ResourcesPage from "./pages/marketing/ResourcesPage";
+import ContactPage from "./pages/marketing/ContactPage";
+import BlogPage from "./pages/marketing/BlogPage";
+import BlogPostPage from "./pages/marketing/BlogPostPage";
+import AboutPage from "./pages/marketing/AboutPage";
+import DevelopersPage from "./pages/marketing/DevelopersPage";
+import AllFeaturesPage from "./pages/marketing/AllFeaturesPage";
+import ShiftSchedulingPage from "./pages/marketing/ShiftSchedulingPage";
+import LeaveManagementPage from "./pages/marketing/LeaveManagementPage";
+import AutoSchedulingPage from "./pages/marketing/AutoSchedulingPage";
+import TaskManagementPage from "./pages/marketing/TaskManagementPage";
+import ClockInOutPage from "./pages/marketing/ClockInOutPage";
+import IntegrationsPage from "./pages/marketing/IntegrationsPage";
 
 // Root redirect component that checks user role
 interface RootRedirectProps {

@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Check, Loader2, CalendarIcon } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useOrganization } from "@/lib/organization";
+import { Organization } from "@/api/types";
 import { DatePicker } from "@/components/ui/date-picker";
 import {
 	Select,
@@ -80,11 +81,22 @@ export function RequestDemo({
 	size = "default",
 }: RequestDemoProps) {
 	const { user } = useAuth();
-	const { organization } = useOrganization();
+	const [organization, setOrganization] = useState<Organization | null>(null);
 	const [open, setOpen] = useState(false);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [isSubmitted, setIsSubmitted] = useState(false);
 	const [availableTimes, setAvailableTimes] = useState<string[]>([]);
+
+	// Try to get organization if available, but don't require it
+	useEffect(() => {
+		try {
+			const { organization: org } = useOrganization();
+			setOrganization(org);
+		} catch (error) {
+			// Organization provider not available, continue without it
+			console.log("OrganizationProvider not available in this context");
+		}
+	}, []);
 
 	// We're defining business hours from 9AM to 5PM EST
 	const businessHours = [

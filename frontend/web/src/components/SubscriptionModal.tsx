@@ -6,13 +6,13 @@ import {
 	DialogTitle,
 	DialogDescription,
 	DialogFooter,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { useStripeContext } from "@/lib/stripe";
-import { useOrganization } from "@/lib/organization";
+} from "./ui/dialog";
+import { Button } from "./ui/button";
+import { useStripeContext } from "../lib/stripe";
+import { useOrganization } from "../lib/organization";
 import { Check, ArrowLeft, ArrowRight } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Input } from "@/components/ui/input";
+import { cn } from "../lib/utils";
+import { Input } from "./ui/input";
 import {
 	Form,
 	FormControl,
@@ -20,7 +20,7 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
-} from "@/components/ui/form";
+} from "./ui/form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";

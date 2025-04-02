@@ -9,13 +9,10 @@
 		"lint": "eslint .",
 		"lint:css": "stylelint \"src/**/*.{css,scss}\"",
 		"preview": "vite preview",
-		"test:visual": "node scripts/run-visual-tests.js",
 		"test:a11y": "jest --config=jest.config.cjs",
-		"test:browser": "node scripts/browser-compatibility.js",
 		"storybook": "storybook dev -p 6006",
 		"build-storybook": "storybook build",
-		"test:accessibility": "jest --testPathPattern=__tests__",
-		"check:form-standards": "node scripts/check-form-standards.js"
+		"test:accessibility": "jest --testPathPattern=__tests__"
 	},
 	"dependencies": {
 		"@hookform/resolvers": "^4.1.3",

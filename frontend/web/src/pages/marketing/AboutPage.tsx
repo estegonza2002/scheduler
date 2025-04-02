@@ -1,13 +1,13 @@
 import { Helmet } from "react-helmet";
-import { AppContent } from "../components/layout/AppLayout";
-import { Button } from "../components/ui/button";
+import { AppContent } from "../../components/layout/AppLayout";
+import { Button } from "../../components/ui/button";
 import { ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
 	COMPANY_NAME,
 	COMPANY_NAME_FULL,
 	COMPANY_LEGAL_NAME,
-} from "../constants";
+} from "../../constants";
 
 export default function AboutPage() {
 	return (

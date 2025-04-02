@@ -9,9 +9,7 @@ import {
 } from "./ui/card";
 import { cn } from "../lib/utils";
 import { Check } from "lucide-react";
-import { useStripeContext } from "../lib/stripe";
-import { useOrganization } from "../lib/organization";
-import SubscriptionModal from "./SubscriptionModal";
+import { useNavigate } from "react-router-dom";
 
 type TeamSize = "small" | "medium" | "large";
 type BillingCycle = "monthly" | "annually";
@@ -30,8 +28,6 @@ interface PricePlanProps {
 	billingCycle: BillingCycle;
 	plan: "free" | "pro" | "business";
 	onSelect: (plan: "free" | "pro" | "business") => void;
-	currentPlan?: string;
-	isLoading?: boolean;
 }
 
 // Individual pricing plan card component
@@ -46,8 +42,6 @@ const PricePlan = ({
 	billingCycle,
 	plan,
 	onSelect,
-	currentPlan,
-	isLoading,
 }: PricePlanProps) => {
 	// Calculate total price based on billing cycle
 	const displayPrice =
@@ -69,8 +63,7 @@ const PricePlan = ({
 		billingCycle === "monthly" ? null : billingCycle === "annually" ? 96 : 24;
 
 	// Determine button state
-	const isCurrentPlan = currentPlan === plan && currentPlan !== undefined;
-	const buttonLabel = isCurrentPlan ? "Already Subscribed" : "Start Free Trial";
+	const buttonLabel = "Start Free Trial";
 
 	return (
 		<Card className={cn("flex flex-col", popular && "border-primary relative")}>
@@ -123,9 +116,8 @@ const PricePlan = ({
 				<Button
 					className="w-full"
 					variant={popular ? "default" : "outline"}
-					onClick={() => onSelect(plan)}
-					disabled={disabled || isCurrentPlan || isLoading}>
-					{isLoading ? "Processing..." : buttonLabel}
+					onClick={() => onSelect(plan)}>
+					{buttonLabel}
 				</Button>
 			</CardFooter>
 		</Card>
@@ -139,23 +131,11 @@ const teamSizeOptions = [
 	{ label: "11+", value: "large" },
 ];
 
-// Main pricing plans component
-export default function PricingPlans() {
+// Public pricing plans component that doesn't require organization
+export default function PublicPricingPlans() {
 	const [teamSize, setTeamSize] = useState<TeamSize>("small");
 	const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
-	const { subscription, upgradeSubscription } = useStripeContext();
-	const { organization } = useOrganization();
-
-	// Track loading state for individual plans
-	const [loadingPlan, setLoadingPlan] = useState<
-		"free" | "pro" | "business" | null
-	>(null);
-
-	// State for subscription modal
-	const [subscriptionModalOpen, setSubscriptionModalOpen] = useState(false);
-	const [selectedPlanForModal, setSelectedPlanForModal] = useState<
-		"free" | "pro" | "business" | null
-	>(null);
+	const navigate = useNavigate();
 
 	// Define pricing plans based on team size and billing cycle
 	const pricingPlans = {
@@ -225,30 +205,11 @@ export default function PricingPlans() {
 		],
 	};
 
-	// Handle plan selection
-	const handleSelectPlan = async (plan: "free" | "pro" | "business") => {
-		// Don't open modal for free plan
-		if (plan === "free") {
-			if (!organization) return;
-
-			setLoadingPlan(plan);
-			try {
-				await upgradeSubscription(plan);
-			} catch (error) {
-				console.error("Error upgrading subscription:", error);
-			} finally {
-				setLoadingPlan(null);
-			}
-			return;
-		}
-
-		// For paid plans, open the subscription modal
-		setSelectedPlanForModal(plan);
-		setSubscriptionModalOpen(true);
+	// Handle plan selection - redirect to signup
+	const handleSelectPlan = (plan: "free" | "pro" | "business") => {
+		// Redirect to signup page with selected plan
+		navigate(`/signup?plan=${plan}&cycle=${billingCycle}&size=${teamSize}`);
 	};
-
-	// Get current plan from subscription
-	const currentPlan = subscription?.plan;
 
 	// Get current price based on selected plan, team size and billing cycle
 	const getCurrentPlanPrice = (plan: "free" | "pro" | "business") => {
@@ -301,165 +262,78 @@ export default function PricingPlans() {
 						</Button>
 					</div>
 				</div>
+
+				{/* Billing toggle */}
+				<div className="inline-flex flex-col items-center mb-12">
+					<p className="text-base font-medium mb-2">Billing cycle:</p>
+					<div className="inline-flex items-center bg-muted p-1 rounded-md">
+						<Button
+							variant={billingCycle === "monthly" ? "default" : "ghost"}
+							className="rounded-md"
+							onClick={() => setBillingCycle("monthly")}>
+							Monthly
+						</Button>
+						<Button
+							variant={billingCycle === "annually" ? "default" : "ghost"}
+							className="rounded-md"
+							onClick={() => setBillingCycle("annually")}>
+							Annually
+							<span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
+								Save 20%
+							</span>
+						</Button>
+					</div>
+				</div>
 			</div>
 
-			{/* Pricing plans grid */}
 			<div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-				{teamSize === "small" ? (
-					<>
-						{/* Free Plan for teams of 5 or less */}
-						<Card className="flex flex-col">
-							<CardHeader>
-								<CardTitle className="text-xl font-semibold">
-									FREE PLAN
-								</CardTitle>
-							</CardHeader>
-							<CardContent className="flex-1">
-								<div className="flex flex-col space-y-6">
-									<div>
-										<div className="flex items-baseline">
-											<span className="text-5xl font-bold">$0</span>
-											<span className="text-sm text-muted-foreground ml-2">
-												forever
-											</span>
-										</div>
-										<div className="text-sm text-muted-foreground mt-1">
-											Always free for small teams
-										</div>
-									</div>
-									<ul className="space-y-2">
-										{features.free.map((feature, i) => (
-											<li
-												key={i}
-												className="flex items-center">
-												<Check className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
-												<span className="text-sm">{feature}</span>
-											</li>
-										))}
-									</ul>
-								</div>
-							</CardContent>
-							<CardFooter className="pt-4">
-								<Button
-									className="w-full"
-									variant="outline"
-									onClick={() => handleSelectPlan("free")}
-									disabled={
-										(currentPlan === "free" && currentPlan !== undefined) ||
-										loadingPlan === "free"
-									}>
-									{loadingPlan === "free"
-										? "Processing..."
-										: currentPlan === "free" && currentPlan !== undefined
-										? "Already Subscribed"
-										: "Start Free Trial"}
-								</Button>
-							</CardFooter>
-						</Card>
-
-						{/* Monthly Pro Plan */}
-						<PricePlan
-							title="1 MONTH PRO"
-							price={{
-								monthly: pricingPlans[teamSize].monthly.pro.price,
-								annually: pricingPlans[teamSize].annually.pro.price,
-							}}
-							description="More features for small teams"
-							features={features.pro}
-							teamSize={teamSize}
-							billingCycle="monthly"
-							plan="pro"
-							onSelect={handleSelectPlan}
-							currentPlan={currentPlan}
-							isLoading={loadingPlan === "pro"}
-						/>
-
-						{/* Annual Pro Plan */}
-						<PricePlan
-							title="ANNUAL PRO"
-							price={{
-								monthly: pricingPlans[teamSize].monthly.pro.price,
-								annually: pricingPlans[teamSize].annually.pro.price,
-							}}
-							description="Best value for small teams"
-							features={features.pro}
-							popular={true}
-							teamSize={teamSize}
-							billingCycle="annually"
-							plan="pro"
-							onSelect={handleSelectPlan}
-							currentPlan={currentPlan}
-							isLoading={loadingPlan === "pro"}
-						/>
-					</>
-				) : (
-					<>
-						{/* Monthly Plan */}
-						<PricePlan
-							title="1 MONTH"
-							price={{
-								monthly: pricingPlans[teamSize].monthly.pro.price,
-								annually: pricingPlans[teamSize].annually.pro.price,
-							}}
-							description="Perfect for small teams getting started"
-							features={features.pro}
-							teamSize={teamSize}
-							billingCycle="monthly"
-							plan="pro"
-							onSelect={handleSelectPlan}
-							currentPlan={currentPlan}
-							isLoading={loadingPlan === "pro"}
-						/>
-
-						{/* 6 Month Plan */}
-						<PricePlan
-							title="6 MONTH"
-							price={{
-								monthly: pricingPlans[teamSize].monthly.pro.price,
-								annually: pricingPlans[teamSize].annually.pro.price,
-							}}
-							description="Best value for growing teams"
-							features={features.pro}
-							popular={true}
-							teamSize={teamSize}
-							billingCycle="annually"
-							plan="pro"
-							onSelect={handleSelectPlan}
-							currentPlan={currentPlan}
-							isLoading={loadingPlan === "pro"}
-						/>
-
-						{/* 12 Month Plan */}
-						<PricePlan
-							title="12 MONTH"
-							price={{
-								monthly: pricingPlans[teamSize].monthly.business.price,
-								annually: pricingPlans[teamSize].annually.business.price,
-							}}
-							description="For enterprises with advanced needs"
-							features={features.business}
-							teamSize={teamSize}
-							billingCycle="annually"
-							plan="business"
-							onSelect={handleSelectPlan}
-							currentPlan={currentPlan}
-							isLoading={loadingPlan === "business"}
-						/>
-					</>
-				)}
-			</div>
-
-			{/* Subscription Modal */}
-			{selectedPlanForModal && (
-				<SubscriptionModal
-					open={subscriptionModalOpen}
-					onOpenChange={setSubscriptionModalOpen}
-					selectedPlan={selectedPlanForModal}
+				{/* Free Plan */}
+				<PricePlan
+					title="Free"
+					price={{
+						monthly: 0,
+						annually: 0,
+					}}
+					description="Basic scheduling for small teams"
+					features={features.free}
+					teamSize={teamSize}
 					billingCycle={billingCycle}
-					price={getCurrentPlanPrice(selectedPlanForModal)}
-					features={features[selectedPlanForModal]}
+					plan="free"
+					onSelect={handleSelectPlan}
+					disabled={teamSize !== "small"}
 				/>
-			)}
+
+				{/* Pro Plan */}
+				<PricePlan
+					title="Pro"
+					price={{
+						monthly: getCurrentPlanPrice("pro"),
+						annually: getCurrentPlanPrice("pro"),
+					}}
+					description="Advanced features for growing teams"
+					features={features.pro}
+					popular={true}
+					teamSize={teamSize}
+					billingCycle={billingCycle}
+					plan="pro"
+					onSelect={handleSelectPlan}
+				/>
+
+				{/* Business Plan */}
+				<PricePlan
+					title="Business"
+					price={{
+						monthly: getCurrentPlanPrice("business"),
+						annually: getCurrentPlanPrice("business"),
+					}}
+					description="Enterprise features for larger teams"
+					features={features.business}
+					teamSize={teamSize}
+					billingCycle={billingCycle}
+					plan="business"
+					onSelect={handleSelectPlan}
+				/>
+			</div>
 		</div>
 	);
 }

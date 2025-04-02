@@ -242,9 +242,11 @@ export default function MarketingLayout() {
 										variant="outline">
 										<Link to="/login">Log In</Link>
 									</Button>
-									<Button asChild>
-										<Link to="/pricing">Get Started</Link>
-									</Button>
+									{location.pathname !== "/pricing" && (
+										<Button asChild>
+											<Link to="/pricing">Get Started</Link>
+										</Button>
+									)}
 								</>
 							)}
 						</div>
@@ -350,15 +352,17 @@ export default function MarketingLayout() {
 									</>
 								) : (
 									<>
-										<Button
-											asChild
-											className="w-full">
-											<Link
-												to="/pricing"
-												onClick={() => setMobileMenuOpen(false)}>
-												Get Started
-											</Link>
-										</Button>
+										{location.pathname !== "/pricing" && (
+											<Button
+												asChild
+												className="w-full">
+												<Link
+													to="/pricing"
+													onClick={() => setMobileMenuOpen(false)}>
+													Get Started
+												</Link>
+											</Button>
+										)}
 										<RequestDemo>
 											<Button
 												variant="outline"

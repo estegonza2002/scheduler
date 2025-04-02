@@ -1,5 +1,5 @@
 import { AlertCircle, ArrowRight, Check, Download, Zap } from "lucide-react";
-import { Button } from "../components/ui/button";
+import { Button } from "../../components/ui/button";
 import {
 	Card,
 	CardContent,
@@ -7,14 +7,14 @@ import {
 	CardFooter,
 	CardHeader,
 	CardTitle,
-} from "../components/ui/card";
+} from "../../components/ui/card";
 import {
 	Tabs,
 	TabsContent,
 	TabsList,
 	TabsTrigger,
-} from "../components/ui/tabs";
-import { Badge } from "../components/ui/badge";
+} from "../../components/ui/tabs";
+import { Badge } from "../../components/ui/badge";
 
 // Define category type
 type IntegrationCategory =

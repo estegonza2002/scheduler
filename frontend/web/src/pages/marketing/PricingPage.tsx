@@ -1,6 +1,6 @@
 import { Helmet } from "react-helmet";
-import PricingPlans from "@/components/PricingPlans";
-import { COMPANY_NAME } from "@/constants";
+import PublicPricingPlans from "../../components/PublicPricingPlans";
+import { COMPANY_NAME } from "../../constants";
 
 export default function PricingPage() {
 	return (
@@ -10,7 +10,7 @@ export default function PricingPage() {
 			</Helmet>
 
 			<div className="container mx-auto px-4 py-8">
-				<PricingPlans />
+				<PublicPricingPlans />
 
 				<div className="max-w-2xl mx-auto mt-16 text-center">
 					<h2 className="text-2xl font-semibold mb-4">
