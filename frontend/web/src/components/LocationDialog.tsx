@@ -3,7 +3,12 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import {
+	Dialog,
+	DialogContent,
+	DialogTitle,
+	DialogTrigger,
+} from "@/components/ui/dialog";
 import { Location, LocationsAPI } from "@/api";
 import {
 	Form,
@@ -26,6 +31,7 @@ import { FormPhoneInput } from "@/components/ui/form-phone-input";
 import { GoogleMap } from "@/components/ui/google-map";
 import { X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 // Extended Location type to include optional fields
 interface ExtendedLocation extends Location {
@@ -526,6 +532,11 @@ export function LocationDialog({
 			<DialogTrigger asChild>{trigger}</DialogTrigger>
 
 			<DialogContent>
+				<VisuallyHidden>
+					<DialogTitle>
+						{isEditing ? "Edit Location" : "Add New Location"}
+					</DialogTitle>
+				</VisuallyHidden>
 				<h2 className="text-lg font-semibold mb-4">
 					{isEditing ? "Edit Location" : "Add New Location"}
 				</h2>

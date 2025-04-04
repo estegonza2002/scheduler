@@ -52,7 +52,6 @@ export default function ManageShiftsPage() {
 	// Function to reload data
 	const loadData = async () => {
 		try {
-			setIsLoading(true);
 			// Get organization ID from state or URL
 			const orgId =
 				organization?.id || searchParams.get("organizationId") || "";
@@ -129,8 +128,6 @@ export default function ManageShiftsPage() {
 			}
 		} catch (error) {
 			console.error("Error loading data:", error);
-		} finally {
-			setIsLoading(false);
 		}
 	};
 
@@ -259,6 +256,9 @@ export default function ManageShiftsPage() {
 
 				// Set up real-time subscriptions
 				setupRealtimeSubscriptions(useOrgId);
+
+				// Set loading to false only after all initial data is fetched and processed
+				setIsLoading(false);
 			} catch (error) {
 				console.error("Error fetching data:", error);
 				setError(

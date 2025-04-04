@@ -22,16 +22,9 @@ export default function BulkLocationImportPage() {
 		updateHeader({
 			title: "Bulk Import Locations",
 			description: "Upload multiple locations at once",
-			actions: (
-				<Button
-					variant="outline"
-					onClick={() => navigate("/locations")}>
-					<ArrowLeft className="h-4 w-4 mr-2" />
-					Back to Locations
-				</Button>
-			),
+			actions: null,
 		});
-	}, [updateHeader, navigate]);
+	}, [updateHeader]);
 
 	const handleLocationsCreated = (locations: Location[]) => {
 		setSuccessCount(locations.length);

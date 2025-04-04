@@ -91,16 +91,35 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useHeader } from "@/lib/header-context";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/lib/supabase";
-import { RealtimeChannel } from "@supabase/supabase-js";
+import {
+	RealtimeChannel,
+	RealtimePostgresChangesPayload,
+} from "@supabase/supabase-js";
+
+// Interface for the raw employee data from Supabase (snake_case)
+interface EmployeeSupabaseRow {
+	id: string;
+	organization_id: string;
+	name: string;
+	email: string;
+	position?: string | null;
+	phone?: string | null;
+	hire_date?: string | null;
+	address?: string | null;
+	emergency_contact?: string | null;
+	notes?: string | null;
+	avatar?: string | null;
+	hourly_rate?: number | string | null;
+	status: string;
+	is_online?: boolean | null;
+	last_active?: string | null;
+}
 
 export default function EmployeesPage() {
 	const { updateHeader } = useHeader();
 	const [organization, setOrganization] = useState<Organization | null>(null);
 	const [employees, setEmployees] = useState<Employee[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
-	const [loadingPhase, setLoadingPhase] = useState<
-		"organization" | "employees"
-	>("organization");
 	const [viewMode, setViewMode] = useState<"table" | "cards">("table");
 	const [currentPage, setCurrentPage] = useState(1);
 	const [pageSize, setPageSize] = useState(10);
@@ -116,132 +135,115 @@ export default function EmployeesPage() {
 	const navigate = useNavigate();
 	const [searchParams, setSearchParams] = useSearchParams();
 
-	// Function to load employee data
-	const loadEmployeeData = useCallback(async (orgId: string) => {
+	// Setup Supabase real-time subscriptions
+	const setupRealtimeSubscriptions = useCallback((orgId: string) => {
 		if (!orgId) return;
 
-		try {
-			setLoadingPhase("employees");
-			console.log("Loading employees for organization:", orgId);
+		console.log(
+			`Setting up real-time subscriptions for organization: ${orgId}`
+		);
 
-			const fetchedEmployees = await EmployeesAPI.getAll(orgId);
-			console.log(`Loaded ${fetchedEmployees.length} employees`);
-
-			setEmployees(fetchedEmployees);
-		} catch (error) {
-			console.error("Error loading employees:", error);
-		} finally {
-			setIsLoading(false);
+		if (employeesChannel) {
+			employeesChannel.unsubscribe();
 		}
-	}, []);
 
-	// Setup Supabase real-time subscriptions
-	const setupRealtimeSubscriptions = useCallback(
-		(orgId: string) => {
-			if (!orgId) return;
+		const employeesSubscription = supabase
+			.channel("employees-changes")
+			.on(
+				"postgres_changes",
+				{
+					event: "*",
+					schema: "public",
+					table: "employees",
+					filter: `organization_id=eq.${orgId}`,
+				},
+				(payload: any) => {
+					console.log("Employee data changed:", payload);
 
-			console.log(
-				`Setting up real-time subscriptions for organization: ${orgId}`
-			);
-
-			// Unsubscribe from any existing channel
-			if (employeesChannel) {
-				employeesChannel.unsubscribe();
-			}
-
-			// Subscribe to employees table changes for this organization
-			const employeesSubscription = supabase
-				.channel("employees-changes")
-				.on(
-					"postgres_changes",
-					{
-						event: "*",
-						schema: "public",
-						table: "employees",
-						filter: `organization_id=eq.${orgId}`,
-					},
-					(payload) => {
-						console.log("Employee data changed:", payload);
-
-						// Handle different types of changes
-						if (payload.eventType === "INSERT") {
-							console.log("New employee added:", payload.new);
-							// Convert from snake_case to camelCase
-							const newEmployee = {
-								id: payload.new.id,
-								organizationId: payload.new.organization_id,
-								name: payload.new.name,
-								email: payload.new.email,
-								position: payload.new.position,
-								phone: payload.new.phone,
-								hireDate: payload.new.hire_date,
-								address: payload.new.address,
-								emergencyContact: payload.new.emergency_contact,
-								notes: payload.new.notes,
-								avatar: payload.new.avatar,
-								hourlyRate:
-									payload.new.hourly_rate !== null
-										? parseFloat(payload.new.hourly_rate)
-										: undefined,
-								status: payload.new.status,
-								isOnline: payload.new.is_online,
-								lastActive: payload.new.last_active,
-							} as Employee;
-
-							// Update state
-							setEmployees((prevEmployees) => [...prevEmployees, newEmployee]);
-						} else if (payload.eventType === "UPDATE") {
-							console.log("Employee updated:", payload.new);
-							// Convert from snake_case to camelCase
-							const updatedEmployee = {
-								id: payload.new.id,
-								organizationId: payload.new.organization_id,
-								name: payload.new.name,
-								email: payload.new.email,
-								position: payload.new.position,
-								phone: payload.new.phone,
-								hireDate: payload.new.hire_date,
-								address: payload.new.address,
-								emergencyContact: payload.new.emergency_contact,
-								notes: payload.new.notes,
-								avatar: payload.new.avatar,
-								hourlyRate:
-									payload.new.hourly_rate !== null
-										? parseFloat(payload.new.hourly_rate)
-										: undefined,
-								status: payload.new.status,
-								isOnline: payload.new.is_online,
-								lastActive: payload.new.last_active,
-							} as Employee;
-
-							// Update state
+					if (payload.eventType === "INSERT") {
+						console.log("New employee added:", payload.new);
+						const newEmployee = {
+							id: payload.new?.id,
+							organizationId: payload.new?.organization_id,
+							name: payload.new?.name,
+							email: payload.new?.email,
+							position: payload.new?.position,
+							phone: payload.new?.phone,
+							hireDate: payload.new?.hire_date,
+							address: payload.new?.address,
+							emergencyContact: payload.new?.emergency_contact,
+							notes: payload.new?.notes,
+							avatar: payload.new?.avatar,
+							hourlyRate:
+								payload.new?.hourly_rate != null
+									? parseFloat(String(payload.new.hourly_rate))
+									: undefined,
+							status: payload.new?.status,
+							isOnline: payload.new?.is_online,
+							lastActive: payload.new?.last_active,
+						} as Employee;
+						setEmployees((prevEmployees) =>
+							[...prevEmployees, newEmployee].filter((emp) => emp.id)
+						);
+					} else if (payload.eventType === "UPDATE") {
+						console.log("Employee updated:", payload.new);
+						const updatedEmployee = {
+							id: payload.new?.id,
+							organizationId: payload.new?.organization_id,
+							name: payload.new?.name,
+							email: payload.new?.email,
+							position: payload.new?.position,
+							phone: payload.new?.phone,
+							hireDate: payload.new?.hire_date,
+							address: payload.new?.address,
+							emergencyContact: payload.new?.emergency_contact,
+							notes: payload.new?.notes,
+							avatar: payload.new?.avatar,
+							hourlyRate:
+								payload.new?.hourly_rate != null
+									? parseFloat(String(payload.new.hourly_rate))
+									: undefined,
+							status: payload.new?.status,
+							isOnline: payload.new?.is_online,
+							lastActive: payload.new?.last_active,
+						} as Employee;
+						if (updatedEmployee.id) {
 							setEmployees((prevEmployees) =>
 								prevEmployees.map((emp) =>
 									emp.id === updatedEmployee.id ? updatedEmployee : emp
 								)
 							);
-						} else if (payload.eventType === "DELETE") {
-							console.log("Employee deleted:", payload.old);
-
-							// Update state
-							setEmployees((prevEmployees) =>
-								prevEmployees.filter((emp) => emp.id !== payload.old.id)
-							);
-						} else {
-							// For any other change, reload all employees
-							loadEmployeeData(orgId);
 						}
+					} else if (payload.eventType === "DELETE") {
+						console.log("Employee deleted:", payload.old);
+						const deletedId = payload.old?.id;
+						if (deletedId) {
+							setEmployees((prevEmployees) =>
+								prevEmployees.filter((emp) => emp.id !== deletedId)
+							);
+						}
+					} else {
+						const refreshData = async () => {
+							try {
+								console.log(
+									`Reloading employees due to ${payload.eventType} event`
+								);
+								const refreshedEmployees = await EmployeesAPI.getAll(orgId);
+								setEmployees(refreshedEmployees);
+							} catch (error) {
+								console.error("Error reloading employees:", error);
+							}
+						};
+						refreshData();
 					}
-				)
-				.subscribe((status) => {
-					console.log("Employees subscription status:", status);
-				});
+				}
+			)
+			.subscribe((status) => {
+				console.log("Employees subscription status:", status);
+			});
 
-			// Save the channel reference for cleanup
-			setEmployeesChannel(employeesSubscription);
-		},
-		[loadEmployeeData]
-	);
+		setEmployeesChannel(employeesSubscription);
+	}, []);
 
 	// Listen for employee-added events from the system header
 	useEffect(() => {
@@ -300,37 +302,48 @@ export default function EmployeesPage() {
 
 	// Initial data fetch and setup
 	useEffect(() => {
+		let isMounted = true; // Flag to prevent state updates on unmounted component
 		const fetchData = async () => {
+			let fetchedOrg: Organization | null = null;
+			let fetchedEmployees: Employee[] = [];
+
 			try {
 				setIsLoading(true);
-				setLoadingPhase("organization");
 				const orgs = await OrganizationsAPI.getAll();
+
+				if (!isMounted) return; // Check if component is still mounted
+
 				if (orgs.length > 0) {
-					setOrganization(orgs[0]);
-
-					// Load employee data
-					await loadEmployeeData(orgs[0].id);
-
-					// Setup real-time subscriptions
-					setupRealtimeSubscriptions(orgs[0].id);
+					fetchedOrg = orgs[0];
+					fetchedEmployees = await EmployeesAPI.getAll(fetchedOrg.id);
+					if (isMounted) {
+						setupRealtimeSubscriptions(fetchedOrg.id);
+					}
+				} else {
+					console.log("No organizations found for the user.");
 				}
 			} catch (error) {
-				console.error("Error fetching data:", error);
+				console.error("Error fetching initial data:", error);
 			} finally {
-				setIsLoading(false);
+				if (isMounted) {
+					setOrganization(fetchedOrg);
+					setEmployees(fetchedEmployees);
+					setIsLoading(false);
+				}
 			}
 		};
 
 		fetchData();
 
-		// Cleanup function to unsubscribe from channels when component unmounts
+		// Cleanup function
 		return () => {
+			isMounted = false; // Mark component as unmounted
 			if (employeesChannel) {
 				console.log("Cleaning up employees subscription");
 				employeesChannel.unsubscribe();
 			}
 		};
-	}, [loadEmployeeData, setupRealtimeSubscriptions]);
+	}, [setupRealtimeSubscriptions]);
 
 	// Calculate pagination for card view
 	const paginatedEmployees = useMemo(() => {
@@ -339,8 +352,11 @@ export default function EmployeesPage() {
 		return employees.slice(startIndex, endIndex);
 	}, [employees, currentPage, pageSize]);
 
-	// Set the page header on component mount
+	// Set the page header on component mount and when data/loading/presence state changes
 	useEffect(() => {
+		// Only update the header once loading is complete AND presence is initialized
+		if (isLoading || !presenceInitialized) return;
+
 		updateHeader({
 			title: "Employees",
 			description: "View and manage employee information",
@@ -434,7 +450,7 @@ export default function EmployeesPage() {
 					<EmployeeDialog
 						open={employeeDialogOpen}
 						onOpenChange={setEmployeeDialogOpen}
-						onSubmit={async (data) => {
+						onSubmit={async (data: any) => {
 							const newEmployee = await EmployeesAPI.create({
 								...data,
 								organizationId: organization?.id || getDefaultOrganizationId(),
@@ -459,6 +475,7 @@ export default function EmployeesPage() {
 		organization?.id,
 		organization?.name,
 		setSearchParams,
+		isLoading,
 	]);
 
 	const columns = useMemo<ColumnDef<Employee>[]>(
@@ -647,153 +664,134 @@ export default function EmployeesPage() {
 		setCurrentPage(1); // Reset to first page when changing page size
 	};
 
-	if (isLoading) {
-		return (
-			<ContentContainer>
-				<LoadingState
-					message={`Loading ${
-						loadingPhase === "organization" ? "organization" : "employees"
-					}...`}
-					type="spinner"
-					className="py-12"
-				/>
-			</ContentContainer>
-		);
-	}
+	// Memoize the EmptyState component
+	const memoizedEmptyState = useMemo(
+		() => (
+			<EmptyState
+				icon={<User className="h-10 w-10" />}
+				title="No employees yet"
+				description="Add your first employee to get started"
+				action={
+					<Button
+						variant="outline"
+						className="h-9 px-4 flex items-center gap-2"
+						onClick={() => setEmployeeDialogOpen(true)}>
+						<UserPlus className="h-4 w-4" />
+						Add Employee
+					</Button>
+				}
+			/>
+		),
+		[setEmployeeDialogOpen]
+	);
+
+	// Memoize the DataTable component
+	const memoizedDataTable = useMemo(
+		() => (
+			<DataTable
+				columns={columns}
+				data={employees}
+				searchKey="name"
+				searchPlaceholder="Search employees..."
+				onRowClick={(employee) => navigate(`/employees/${employee.id}`)}
+				viewOptions={{
+					enableViewToggle: true,
+					defaultView: viewMode,
+					onViewChange: setViewMode,
+					renderCard: (employee: Employee) => (
+						<EmployeeCard
+							employee={employee}
+							variant="standard"
+							size="md"
+							onViewDetails={() => navigate(`/employees/${employee.id}`)}
+							showActions={true}
+							actions={
+								<DropdownMenu>
+									<DropdownMenuTrigger asChild>
+										<Button
+											variant="ghost"
+											className="h-8 w-8 p-0">
+											<span className="sr-only">Open menu</span>
+											<MoreHorizontal className="h-4 w-4" />
+										</Button>
+									</DropdownMenuTrigger>
+									<DropdownMenuContent align="end">
+										<DropdownMenuItem
+											onClick={(e) => {
+												e.stopPropagation();
+												navigate(`/employees/${employee.id}`);
+											}}>
+											<Edit className="mr-2 h-4 w-4" />
+											View Profile
+										</DropdownMenuItem>
+										<DropdownMenuItem
+											onClick={(e) => {
+												e.stopPropagation();
+											}}
+											asChild>
+											<Dialog>
+												<DialogTrigger asChild>
+													<button className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full">
+														<Edit className="mr-2 h-4 w-4" />
+														Edit
+													</button>
+												</DialogTrigger>
+												<EmployeeDialog
+													employee={employee}
+													onSubmit={async (data: any) => {
+														const updatedEmployee = await EmployeesAPI.update(
+															employee.id,
+															{
+																...data,
+																organizationId:
+																	employee.organizationId ||
+																	organization?.id ||
+																	getDefaultOrganizationId(),
+																position: data.position || "Employee",
+																status: employee.status || "active",
+																isOnline: employee.isOnline || false,
+																lastActive:
+																	employee.lastActive ||
+																	new Date().toISOString(),
+															}
+														);
+														// The event-based approach will handle the state update
+													}}
+												/>
+											</Dialog>
+										</DropdownMenuItem>
+									</DropdownMenuContent>
+								</DropdownMenu>
+							}
+						/>
+					),
+					enableFullscreen: true,
+				}}
+			/>
+		),
+		[employees, columns, navigate, viewMode, setViewMode, organization?.id]
+	);
 
 	return (
 		<>
 			<ContentContainer>
-				{isLoading ? (
-					<LoadingState
-						message={
-							loadingPhase === "organization"
-								? "Loading organization information..."
-								: "Loading employee data..."
-						}
-						type="spinner"
-					/>
-				) : (
-					<ContentSection title="Employee Directory">
-						{/* No employees */}
-						{employees.length === 0 && (
-							<EmptyState
-								icon={<User className="h-10 w-10" />}
-								title="No employees yet"
-								description="Add your first employee to get started"
-								action={
-									<Dialog>
-										<DialogTrigger asChild>
-											<Button
-												variant="outline"
-												className="h-9 px-4 flex items-center gap-2">
-												<UserPlus className="h-4 w-4" />
-												Add Employee
-											</Button>
-										</DialogTrigger>
-										<EmployeeDialog
-											onSubmit={async (data) => {
-												const newEmployee = await EmployeesAPI.create({
-													...data,
-													organizationId:
-														organization?.id || getDefaultOrganizationId(),
-													position: data.position || "Employee",
-													status: "invited",
-													isOnline: false,
-													lastActive: new Date().toISOString(),
-												});
-												setEmployees((prev) => [...prev, newEmployee]);
-											}}
-										/>
-									</Dialog>
-								}
-							/>
-						)}
-
-						{employees.length > 0 && (
-							<DataTable
-								columns={columns}
-								data={employees}
-								searchKey="name"
-								searchPlaceholder="Search employees..."
-								onRowClick={(employee) => navigate(`/employees/${employee.id}`)}
-								viewOptions={{
-									enableViewToggle: true,
-									defaultView: viewMode,
-									onViewChange: setViewMode,
-									renderCard: (employee: Employee) => (
-										<EmployeeCard
-											employee={employee}
-											variant="standard"
-											size="md"
-											onViewDetails={() =>
-												navigate(`/employees/${employee.id}`)
-											}
-											showActions={true}
-											actions={
-												<DropdownMenu>
-													<DropdownMenuTrigger asChild>
-														<Button
-															variant="ghost"
-															className="h-8 w-8 p-0">
-															<span className="sr-only">Open menu</span>
-															<MoreHorizontal className="h-4 w-4" />
-														</Button>
-													</DropdownMenuTrigger>
-													<DropdownMenuContent align="end">
-														<DropdownMenuItem
-															onClick={(e) => {
-																e.stopPropagation();
-																navigate(`/employees/${employee.id}`);
-															}}>
-															<Edit className="mr-2 h-4 w-4" />
-															View Profile
-														</DropdownMenuItem>
-														<DropdownMenuItem
-															onClick={(e) => {
-																e.stopPropagation();
-															}}
-															asChild>
-															<Dialog>
-																<DialogTrigger asChild>
-																	<button className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full">
-																		<Edit className="mr-2 h-4 w-4" />
-																		Edit
-																	</button>
-																</DialogTrigger>
-																<EmployeeDialog
-																	employee={employee}
-																	onSubmit={async (data) => {
-																		const updatedEmployee =
-																			await EmployeesAPI.update(employee.id, {
-																				...data,
-																				organizationId:
-																					employee.organizationId ||
-																					organization?.id ||
-																					getDefaultOrganizationId(),
-																				position: data.position || "Employee",
-																				status: employee.status || "active",
-																				isOnline: employee.isOnline || false,
-																				lastActive:
-																					employee.lastActive ||
-																					new Date().toISOString(),
-																			});
-																		// The event-based approach will handle the state update
-																	}}
-																/>
-															</Dialog>
-														</DropdownMenuItem>
-													</DropdownMenuContent>
-												</DropdownMenu>
-											}
-										/>
-									),
-									enableFullscreen: true,
-								}}
-							/>
-						)}
-					</ContentSection>
-				)}
+				<ContentSection title="Employee Directory">
+					{isLoading ? (
+						<LoadingState
+							message={
+								!organization
+									? "Loading organization..."
+									: "Loading employees..."
+							}
+							type="spinner"
+							className="py-12"
+						/>
+					) : employees.length === 0 ? (
+						memoizedEmptyState
+					) : (
+						memoizedDataTable
+					)}
+				</ContentSection>
 			</ContentContainer>
 		</>
 	);

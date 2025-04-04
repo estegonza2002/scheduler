@@ -103,7 +103,7 @@ export default function LocationsPage() {
 				<div className="flex gap-2">
 					<Button
 						variant="outline"
-						onClick={() => navigate("/locations/bulk-import")}>
+						onClick={() => navigate("/bulk-location-import")}>
 						<Upload className="h-4 w-4 mr-2" />
 						Bulk Import
 					</Button>
@@ -396,7 +396,7 @@ export default function LocationsPage() {
 								/>
 								<Button
 									variant="outline"
-									onClick={() => navigate("/locations/bulk-import")}>
+									onClick={() => navigate("/bulk-location-import")}>
 									<Upload className="h-4 w-4 mr-2" />
 									Bulk Import
 								</Button>
