@@ -1,200 +1,140 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Employee, EmployeesAPI } from "@/api";
-import { supabase } from "./supabase";
+// import { supabase } from "./supabase"; // Removed Supabase import
 import { toast } from "sonner";
 import { useAuth } from "./auth";
+import {
+	ref,
+	set,
+	onValue,
+	onDisconnect,
+	serverTimestamp,
+	off,
+} from "firebase/database";
+import { rtdb } from "./firebase"; // Import RTDB instance
 
 // Real-time presence service configuration
-const PRESENCE_UPDATE_INTERVAL = 30000; // 30 seconds
+// const PRESENCE_UPDATE_INTERVAL = 30000; // 30 seconds // Removed
 
-interface PresenceState {
-	employeeId: string;
-	isOnline: boolean;
-	lastActive: string;
-	name?: string; // Add employee name for notifications
+// // Removed PresenceState interface and related variables
+// interface PresenceState {
+// 	employeeId: string;
+// 	isOnline: boolean;
+// 	lastActive: string;
+// 	name?: string; // Add employee name for notifications
+// }
+//
+// let presenceSubscribers: ((state: Record<string, PresenceState>) => void)[] =
+// 	[];
+// let presenceState: Record<string, PresenceState> = {};
+// let notifyStatusChange = true; // Flag to control status change notifications
+// let presenceChannel: any = null;
+
+// // Removed initializePresence function
+// export const initializePresence = async (
+// 	employees: Employee[],
+// 	userId: string | undefined
+// ) => {
+//   // ... Supabase related logic removed ...
+// };
+
+// // Removed subscribeToPresence function
+// export const subscribeToPresence = (
+// 	callback: (state: Record<string, PresenceState>) => void
+// ) => {
+//   // ... Supabase related logic removed ...
+// };
+
+// // Removed setStatusChangeNotifications function
+// export const setStatusChangeNotifications = (enabled: boolean) => {
+//   // ... Supabase related logic removed ...
+// };
+
+// // Removed useEmployeePresence hook
+// export const useEmployeePresence = (organizationId: string) => {
+//   // ... Supabase related logic removed ...
+//   return {
+//     // ... removed return values ...
+//   };
+// };
+
+// // Removed useEmployeePresenceWithNotifications hook
+// export const useEmployeePresenceWithNotifications = (
+// 	organizationId: string
+// ) => {
+//   // ... Supabase related logic removed ...
+//   return {
+//     // ... removed return values ...
+//   };
+// };
+
+// Keep necessary imports if other utility functions exist in this file, otherwise, the file might become empty.
+// Currently leaving existing imports like react, api, toast, auth, etc.
+
+// TODO: Review if this file is still needed or can be deleted entirely.
+// TODO: Find and remove usages of useEmployeePresence and useEmployeePresenceWithNotifications hooks.
+
+interface RtdbPresenceData {
+	state: "online" | "offline";
+	lastChanged: number | object; // Can be number (timestamp) or serverTimestamp object
+	name?: string;
 }
 
-let presenceSubscribers: ((state: Record<string, PresenceState>) => void)[] =
-	[];
-let presenceState: Record<string, PresenceState> = {};
+export interface PresenceState {
+	employeeId: string;
+	isOnline: boolean;
+	lastActive: number; // Use number for timestamp
+	name?: string;
+}
+
 let notifyStatusChange = true; // Flag to control status change notifications
-let presenceChannel: any = null;
 
-// Initialize the real-time presence service
-export const initializePresence = async (
-	employees: Employee[],
-	userId: string | undefined
-) => {
-	// Initialize presence state with all employees (initially offline)
-	employees.forEach((employee) => {
-		presenceState[employee.id] = {
-			employeeId: employee.id,
-			isOnline: false,
-			lastActive: employee.lastActive || new Date().toISOString(),
-			name: employee.name,
-		};
-	});
-
-	// If there's no user ID, we can't track presence, but we still return the initial state
-	if (!userId) {
-		console.warn("No user ID available for presence tracking");
-		return () => {}; // Return empty cleanup function
-	}
-
-	try {
-		// Set up a presence channel for this organization
-		const channelId = `presence-${employees[0]?.organizationId || "global"}`;
-		presenceChannel = supabase.channel(channelId);
-
-		presenceChannel
-			.on("presence", { event: "sync" }, () => {
-				// Get the full state from the channel
-				const state = presenceChannel.presenceState();
-				console.log("Presence synced:", state);
-
-				// Update our presence state with the new data
-				Object.keys(state).forEach((employeeId) => {
-					const presences = state[employeeId];
-					if (presences && presences.length > 0) {
-						const presence = presences[0]; // Get the first presence entry for this employee
-
-						presenceState[employeeId] = {
-							employeeId,
-							isOnline: true,
-							lastActive: presence.last_active || new Date().toISOString(),
-							name: presence.name || presenceState[employeeId]?.name,
-						};
-					}
-				});
-
-				// Notify subscribers
-				presenceSubscribers.forEach((callback) =>
-					callback({ ...presenceState })
-				);
-			})
-			.on(
-				"presence",
-				{ event: "join" },
-				({ key, newPresences }: { key: string; newPresences: any[] }) => {
-					// Handle user joining
-					console.log("Join event:", key, newPresences);
-
-					if (newPresences && newPresences.length > 0) {
-						const employeeId = key;
-
-						// If the joining user is the current user, don't show a notification
-						// We need to access the userId used during initialization.
-						// Since userId isn't directly available here, we might need to store it
-						// or pass it differently. For now, let's skip the check and revisit if needed.
-						// A simpler approach might be to check if the name resolution leads to the fallback.
-
-						const presence = newPresences[0];
-						const wasOnline = presenceState[employeeId]?.isOnline || false;
-						const employeeName =
-							presence.name || presenceState[employeeId]?.name || "An employee";
-
-						presenceState[employeeId] = {
-							employeeId,
-							isOnline: true,
-							lastActive: presence.last_active || new Date().toISOString(),
-							name: presence.name || presenceState[employeeId]?.name,
-						};
-
-						// Show notification if status changed, notifications are enabled,
-						// and the employee name is not the fallback indicating an issue.
-						if (
-							!wasOnline &&
-							notifyStatusChange &&
-							employeeName !== "An employee" &&
-							employeeName !== "Fetching name..."
-						) {
-							toast.success(`${employeeName} is now online`, {
-								id: `login-${employeeId}`,
-								duration: 3000,
-							});
-						}
-
-						// Notify subscribers
-						presenceSubscribers.forEach((callback) =>
-							callback({ ...presenceState })
-						);
-					}
-				}
-			)
-			.on(
-				"presence",
-				{ event: "leave" },
-				({ key, leftPresences }: { key: string; leftPresences: any[] }) => {
-					// Handle user leaving
-					console.log("Leave event:", key, leftPresences);
-
-					if (leftPresences && leftPresences.length > 0) {
-						const employeeId = key;
-						const wasOnline = presenceState[employeeId]?.isOnline || false;
-						const employeeName =
-							presenceState[employeeId]?.name || "An employee";
-
-						presenceState[employeeId] = {
-							...presenceState[employeeId],
-							isOnline: false,
-							lastActive: new Date().toISOString(),
-						};
-
-						// Show notification if status changed and notifications are enabled
-						if (wasOnline && notifyStatusChange) {
-							toast.info(`${employeeName} went offline`, {
-								id: `logout-${employeeId}`,
-								duration: 3000,
-							});
-						}
-
-						// Notify subscribers
-						presenceSubscribers.forEach((callback) =>
-							callback({ ...presenceState })
-						);
-					}
-				}
-			);
-
-		// Subscribe to the channel
-		await presenceChannel.subscribe(async (status: string) => {
-			console.log("Presence channel status:", status);
-
-			if (status === "SUBSCRIBED") {
-				// Find employee record for the current user
-				const userEmployee = employees.find((emp) => emp.id === userId);
-
-				// Start tracking this user's presence
-				await presenceChannel.track({
-					id: userId,
-					name: userEmployee?.name || "Fetching name...",
-					last_active: new Date().toISOString(),
-				});
-
-				console.log("Tracking presence for:", userId);
-			}
-		});
-
-		// Return cleanup function
-		return () => {
-			if (presenceChannel) {
-				presenceChannel.unsubscribe();
-				presenceChannel = null;
-			}
-		};
-	} catch (error) {
-		console.error("Error setting up presence channel:", error);
-		return () => {}; // Return empty cleanup function
-	}
+// Helper to get a reference to the user's status path
+const getUserStatusRef = (orgId: string, userId: string) => {
+	return ref(rtdb, `/status/${orgId}/${userId}`);
 };
 
-// Subscribe to presence updates
-export const subscribeToPresence = (
-	callback: (state: Record<string, PresenceState>) => void
-) => {
-	presenceSubscribers.push(callback);
+// Helper to get a reference to the organization's status path
+const getOrgStatusRef = (orgId: string) => {
+	return ref(rtdb, `/status/${orgId}`);
+};
+
+// Set up presence for the current user
+const setupPresenceTracking = (orgId: string, userId: string, name: string) => {
+	const userStatusRef = getUserStatusRef(orgId, userId);
+
+	// Use onValue to monitor connection state (Firebase specific)
+	const connectedRef = ref(rtdb, ".info/connected");
+	let connectedListener: (() => void) | null = null;
+
+	connectedListener = onValue(connectedRef, (snap) => {
+		if (snap.val() === true) {
+			// We're connected (or reconnected). Set status to online.
+			const presenceData: RtdbPresenceData = {
+				state: "online",
+				lastChanged: serverTimestamp(),
+				name: name,
+			};
+			set(userStatusRef, presenceData);
+
+			// When disconnected, set status to offline
+			onDisconnect(userStatusRef).set({
+				state: "offline",
+				lastChanged: serverTimestamp(),
+				name: name,
+			});
+		}
+	});
+
+	// Cleanup function to remove listener and potentially set offline status immediately
 	return () => {
-		presenceSubscribers = presenceSubscribers.filter((cb) => cb !== callback);
+		if (connectedListener) {
+			off(connectedRef, "value", connectedListener);
+		}
+		// Optionally, you could explicitly set offline here on cleanup,
+		// but onDisconnect should handle most cases.
+		// set(userStatusRef, { state: 'offline', lastChanged: serverTimestamp(), name: name });
+		onDisconnect(userStatusRef).cancel(); // Don't forget to cancel onDisconnect
 	};
 };
 
@@ -204,91 +144,164 @@ export const setStatusChangeNotifications = (enabled: boolean) => {
 };
 
 // Hook to use employee presence in components
-export const useEmployeePresence = (organizationId: string) => {
-	const [employeePresence, setEmployeePresence] = useState<
-		Record<string, PresenceState>
-	>({});
-	const [isLoading, setIsLoading] = useState(true);
+export const useEmployeePresenceWithNotifications = (
+	organizationId: string | null // Allow null while org ID might be loading
+) => {
 	const { user } = useAuth();
+	const [allPresence, setAllPresence] = useState<Record<string, PresenceState>>(
+		{}
+	);
+	const [isLoading, setIsLoading] = useState(true);
+	const [initialized, setInitialized] = useState(false);
+	const [notificationsEnabled, setNotificationsEnabled] =
+		useState<boolean>(true);
+	const currentPresenceRef = useRef<Record<string, PresenceState>>(allPresence);
+
+	// Update ref whenever state changes
+	useEffect(() => {
+		currentPresenceRef.current = allPresence;
+	}, [allPresence]);
 
 	useEffect(() => {
-		let cleanupFn: () => void = () => {};
+		if (!organizationId || !user?.uid) {
+			setIsLoading(false);
+			setInitialized(false); // Not initialized if no orgId or user
+			setAllPresence({}); // Clear presence if org/user changes
+			return;
+		}
 
-		const initPresence = async () => {
+		setIsLoading(true);
+		setInitialized(false);
+
+		// Fetch employees first to get names (optional, could get from presence data)
+		let employeesMap: Record<string, Employee> = {};
+		const fetchEmployees = async () => {
 			try {
-				setIsLoading(true);
-
-				// Get all employees for the organization
 				const employees = await EmployeesAPI.getAll(organizationId);
-
-				// Initialize real-time presence system
-				cleanupFn = await initializePresence(employees, user?.id);
-
-				// Subscribe to presence updates
-				const unsubscribe = subscribeToPresence((state) => {
-					setEmployeePresence(state);
+				employees.forEach((emp) => {
+					employeesMap[emp.id] = emp;
 				});
-
-				// Combine cleanup functions
-				const originalCleanup = cleanupFn;
-				cleanupFn = () => {
-					unsubscribe();
-					originalCleanup();
-				};
-			} catch (error) {
-				console.error("Error initializing presence:", error);
-				toast.error("Failed to initialize presence service");
-			} finally {
-				setIsLoading(false);
+			} catch (err) {
+				console.error("Error fetching employees for presence:", err);
 			}
 		};
 
-		if (organizationId) {
-			initPresence();
-		}
+		let presenceListener: (() => void) | null = null;
+		let cleanupPresenceTracking: (() => void) | null = null;
 
-		return () => {
-			cleanupFn();
+		const initialize = async () => {
+			await fetchEmployees(); // Wait for employee names
+
+			// Setup presence for the current user
+			const currentUserEmployee = employeesMap[user.uid];
+			cleanupPresenceTracking = setupPresenceTracking(
+				organizationId,
+				user.uid,
+				currentUserEmployee?.name || "Unknown User"
+			);
+
+			// Listen for presence changes across the organization
+			const orgStatusRef = getOrgStatusRef(organizationId);
+			presenceListener = onValue(orgStatusRef, (snapshot) => {
+				const statusData = snapshot.val() as Record<
+					string,
+					RtdbPresenceData
+				> | null;
+				const newPresenceState: Record<string, PresenceState> = {};
+				let initialLoad = !initialized; // Check if this is the first data load
+
+				if (statusData) {
+					Object.keys(statusData).forEach((employeeId) => {
+						const data = statusData[employeeId];
+						const isOnline = data.state === "online";
+						const employeeName =
+							data.name || employeesMap[employeeId]?.name || "Employee";
+
+						// Get previous state for comparison
+						const previousState = currentPresenceRef.current[employeeId];
+						const wasOnline = previousState?.isOnline ?? false;
+
+						newPresenceState[employeeId] = {
+							employeeId,
+							isOnline,
+							lastActive:
+								typeof data.lastChanged === "number"
+									? data.lastChanged
+									: Date.now(), // Handle server timestamp
+							name: employeeName,
+						};
+
+						// --- Notification Logic --- //
+						// Avoid notifications on initial load or if notifications are off
+						if (initialLoad || !notifyStatusChange || employeeId === user.uid) {
+							return;
+						}
+
+						if (isOnline && !wasOnline) {
+							toast.success(`${employeeName} is now online`, {
+								id: `login-${employeeId}`,
+								duration: 3000,
+							});
+						} else if (!isOnline && wasOnline) {
+							toast.info(`${employeeName} went offline`, {
+								id: `logout-${employeeId}`,
+								duration: 3000,
+							});
+						}
+						// --- End Notification Logic --- //
+					});
+				}
+
+				setAllPresence(newPresenceState);
+				setIsLoading(false);
+				setInitialized(true); // Mark as initialized after first data load
+			});
 		};
-	}, [organizationId, user?.id]);
 
-	return {
-		presenceState: employeePresence,
-		isLoading,
-		getEmployeePresence: (employeeId: string): PresenceState | undefined =>
-			employeePresence[employeeId],
-		isEmployeeOnline: (employeeId: string): boolean =>
-			employeePresence[employeeId]?.isOnline || false,
-		getLastActive: (employeeId: string): string | undefined =>
-			employeePresence[employeeId]?.lastActive,
-	};
-};
+		initialize();
 
-// Hook that extends useEmployeePresence with notification toggles
-export const useEmployeePresenceWithNotifications = (
-	organizationId: string
-) => {
-	const presenceService = useEmployeePresence(organizationId);
-	const [initialized, setInitialized] = useState(false);
-	const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+		// Cleanup function
+		return () => {
+			if (presenceListener && organizationId) {
+				off(getOrgStatusRef(organizationId), "value", presenceListener);
+			}
+			if (cleanupPresenceTracking) {
+				cleanupPresenceTracking();
+			}
+			setInitialized(false);
+			setIsLoading(true); // Set loading true on cleanup/org change
+		};
+	}, [organizationId, user?.uid]); // Rerun if orgId or user changes
 
-	useEffect(() => {
-		// If not loading anymore, we're initialized
-		if (!presenceService.isLoading) {
-			setInitialized(true);
-		}
-	}, [presenceService.isLoading]);
-
-	const toggleNotifications = () => {
+	const toggleNotifications = useCallback(() => {
 		const newState = !notificationsEnabled;
 		setNotificationsEnabled(newState);
 		setStatusChangeNotifications(newState);
-	};
+	}, [notificationsEnabled]);
+
+	// Function to get presence for a specific employee
+	const getEmployeePresence = useCallback(
+		(employeeId: string): PresenceState | undefined => {
+			return allPresence[employeeId];
+		},
+		[allPresence]
+	);
+
+	// Function to check if an employee is online
+	const isEmployeeOnline = useCallback(
+		(employeeId: string): boolean => {
+			return allPresence[employeeId]?.isOnline || false;
+		},
+		[allPresence]
+	);
 
 	return {
-		...presenceService,
+		presenceState: allPresence,
+		isLoading,
 		initialized,
 		notificationsEnabled,
 		toggleNotifications,
+		getEmployeePresence,
+		isEmployeeOnline,
 	};
 };

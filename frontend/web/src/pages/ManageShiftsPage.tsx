@@ -22,10 +22,8 @@ import {
 	ShiftAssignment,
 } from "@/api/types";
 import { ShiftCard } from "@/components/ShiftCard";
-import { supabase } from "@/lib/supabase";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
-import { RealtimeChannel } from "@supabase/supabase-js";
 
 export default function ManageShiftsPage() {
 	const navigate = useNavigate();
@@ -43,11 +41,6 @@ export default function ManageShiftsPage() {
 	const [organization, setOrganization] = useState<Organization | null>(null);
 	const [loadingMessage, setLoadingMessage] = useState<string>("Loading data");
 	const [error, setError] = useState<string | null>(null);
-	const [shiftsChannel, setShiftsChannel] = useState<RealtimeChannel | null>(
-		null
-	);
-	const [assignmentsChannel, setAssignmentsChannel] =
-		useState<RealtimeChannel | null>(null);
 
 	// Function to reload data
 	const loadData = async () => {
@@ -63,13 +56,13 @@ export default function ManageShiftsPage() {
 
 				// Separate shifts for today and upcoming
 				const today_shifts = shifts.filter((shift) =>
-					isToday(parseISO(shift.start_time))
+					isToday(parseISO(shift.startTime))
 				);
 
 				const upcoming_shifts = shifts.filter(
 					(shift) =>
-						isAfter(parseISO(shift.start_time), new Date()) &&
-						!isToday(parseISO(shift.start_time))
+						isAfter(parseISO(shift.startTime), new Date()) &&
+						!isToday(parseISO(shift.startTime))
 				);
 
 				setTodayShifts(today_shifts);
@@ -94,8 +87,8 @@ export default function ManageShiftsPage() {
 
 				// Process assignments
 				for (const assignment of assignments) {
-					const shiftId = assignment.shift_id;
-					const employeeId = assignment.employee_id;
+					const shiftId = assignment.shiftId;
+					const employeeId = assignment.employeeId;
 
 					// Find the employee by ID
 					const employee = employees.find((emp) => emp.id === employeeId);
@@ -129,63 +122,6 @@ export default function ManageShiftsPage() {
 		} catch (error) {
 			console.error("Error loading data:", error);
 		}
-	};
-
-	// Setup Supabase real-time subscriptions
-	const setupRealtimeSubscriptions = (orgId: string) => {
-		// Unsubscribe from any existing channels
-		if (shiftsChannel) {
-			shiftsChannel.unsubscribe();
-		}
-
-		if (assignmentsChannel) {
-			assignmentsChannel.unsubscribe();
-		}
-
-		// Subscribe to shifts table changes
-		const shiftsSubscription = supabase
-			.channel("shifts-changes")
-			.on(
-				"postgres_changes",
-				{
-					event: "*",
-					schema: "public",
-					table: "shifts",
-					filter: `organization_id=eq.${orgId}`,
-				},
-				(payload) => {
-					console.log("Shifts change received!", payload);
-					// Reload data when shifts change
-					loadData();
-				}
-			)
-			.subscribe((status) => {
-				console.log("Shifts subscription status:", status);
-			});
-
-		// Subscribe to shift_assignments table changes
-		const assignmentsSubscription = supabase
-			.channel("shift-assignments-changes")
-			.on(
-				"postgres_changes",
-				{
-					event: "*",
-					schema: "public",
-					table: "shift_assignments",
-				},
-				(payload) => {
-					console.log("Shift assignments change received!", payload);
-					// Reload data when assignments change
-					loadData();
-				}
-			)
-			.subscribe((status) => {
-				console.log("Shift assignments subscription status:", status);
-			});
-
-		// Save the channel references for cleanup
-		setShiftsChannel(shiftsSubscription);
-		setAssignmentsChannel(assignmentsSubscription);
 	};
 
 	// Get parameters from URL
@@ -254,9 +190,6 @@ export default function ManageShiftsPage() {
 				// Load data
 				await loadData();
 
-				// Set up real-time subscriptions
-				setupRealtimeSubscriptions(useOrgId);
-
 				// Set loading to false only after all initial data is fetched and processed
 				setIsLoading(false);
 			} catch (error) {
@@ -269,16 +202,6 @@ export default function ManageShiftsPage() {
 		};
 
 		fetchData();
-
-		// Cleanup function to unsubscribe from channels when component unmounts
-		return () => {
-			if (shiftsChannel) {
-				shiftsChannel.unsubscribe();
-			}
-			if (assignmentsChannel) {
-				assignmentsChannel.unsubscribe();
-			}
-		};
 	}, [navigate, searchParams]);
 
 	return (
@@ -312,7 +235,7 @@ export default function ManageShiftsPage() {
 								key={shift.id}
 								shift={shift}
 								locationName={
-									locations.find((l) => l.id === shift.location_id)?.name ||
+									locations.find((l) => l.id === shift.locationId)?.name ||
 									"Unassigned"
 								}
 								assignedEmployees={employeesByShift[shift.id] || []}
@@ -368,7 +291,7 @@ export default function ManageShiftsPage() {
 								key={shift.id}
 								shift={shift}
 								locationName={
-									locations.find((l) => l.id === shift.location_id)?.name ||
+									locations.find((l) => l.id === shift.locationId)?.name ||
 									"Unassigned"
 								}
 								assignedEmployees={employeesByShift[shift.id] || []}

@@ -13,12 +13,15 @@ import {
 	DialogDescription,
 	DialogHeader,
 	DialogTitle,
+	DialogFooter,
 } from "../ui/dialog";
 import { Label } from "../ui/label";
 import { useAuth } from "@/lib/auth";
-import { supabase } from "@/lib/supabase";
 import { Checkbox } from "../ui/checkbox";
 import { Link } from "react-router-dom";
+// Firestore imports
+import { db } from "@/lib/firebase";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 const businessSetupSchema = z.object({
 	businessName: z.string().min(2, "Business name is required"),
@@ -41,7 +44,7 @@ export function BusinessSetupModal({
 }: BusinessSetupModalProps) {
 	const [isLoading, setIsLoading] = useState(false);
 	const navigate = useNavigate();
-	const { user, updateUserMetadata } = useAuth();
+	const { user } = useAuth(); // Removed updateUserMetadata from context
 
 	const form = useForm<BusinessSetupFormValues>({
 		resolver: zodResolver(businessSetupSchema),
@@ -60,74 +63,36 @@ export function BusinessSetupModal({
 
 		setIsLoading(true);
 		try {
-			// Update user metadata to set role as admin and record terms acceptance
-			await updateUserMetadata({
-				role: "admin",
-				termsAccepted: true,
-				termsAcceptedAt: new Date().toISOString(),
-				termsAcceptedVersion: "1.0",
+			// Log terms acceptance in separate table for audit
+			if (user.email) {
+				await logTermsAcceptance(user.uid, user.email); // Use uid and ensure email exists
+			}
+
+			// Use OrganizationsAPI to create the organization
+			// This API handles setting the ownerId and creating the member record
+			const createdOrg = await OrganizationsAPI.create({
+				name: values.businessName,
+				description: values.businessDescription || undefined,
 			});
 
-			// Log terms acceptance in separate table for audit
-			await logTermsAcceptance(user.id, user.email);
-
-			// Create the business organization directly with Supabase
-			try {
-				// Insert organization with direct Supabase client
-				const { data: newOrg, error: orgError } = await supabase
-					.from("organizations")
-					.insert({
-						name: values.businessName,
-						description: values.businessDescription || null,
-						owner_id: user.id,
-					})
-					.select()
-					.single();
-
-				if (orgError) {
-					console.error("Failed to create business organization:", orgError);
-					toast.error(
-						"There was an issue setting up your business: " + orgError.message
-					);
-					return;
-				}
-
-				// Manually create the organization_members relationship
-				if (newOrg) {
-					const { error: memberError } = await supabase
-						.from("organization_members")
-						.insert({
-							organization_id: newOrg.id,
-							user_id: user.id,
-							role: "owner",
-						});
-
-					if (memberError) {
-						console.error(
-							"Failed to create organization membership:",
-							memberError
-						);
-						// Don't fail the whole operation if this fails, the trigger might have succeeded
-					}
-
-					// Update user metadata with current organization ID and role
-					await updateUserMetadata({
-						current_organization_id: newOrg.id,
-						role: "admin",
-					});
-				}
-
-				toast.success("Organization created successfully!");
-				onClose();
-				navigate("/admin-dashboard", { replace: true });
-			} catch (error: any) {
-				console.error("Failed to create business:", error);
-				toast.error(
-					"Failed to create business: " + (error.message || "Unknown error")
+			if (createdOrg) {
+				// Success - Organization and member record created by API
+				toast.success("Business profile created successfully!");
+				// Set the new org ID as active in localStorage
+				// (useOrganization hook should pick this up on next load)
+				localStorage.setItem("activeOrganizationId", createdOrg.id);
+				console.log("Business setup successful, closing modal.");
+				onClose(); // Close the modal on successful setup
+			} else {
+				// Error handled within OrganizationsAPI.create (toast likely shown)
+				console.error(
+					"OrganizationsAPI.create returned null in BusinessSetupModal"
 				);
+				// Optionally show a generic error here if API doesn't guarantee toast
+				// toast.error("Failed to create business profile. Please try again.");
 			}
 		} catch (error: any) {
-			console.error("Failed to update user role:", error);
+			console.error("Failed to create business:", error);
 			toast.error(
 				"Failed to create business: " + (error.message || "Unknown error")
 			);
@@ -138,32 +103,31 @@ export function BusinessSetupModal({
 
 	// Function to log terms acceptance in a separate table for audit purposes
 	async function logTermsAcceptance(userId: string, email?: string) {
+		if (!email) {
+			console.warn("Cannot log terms acceptance without user email.");
+			return;
+		}
 		try {
-			if (!email) return;
-
 			const termsAcceptanceData = {
-				user_id: userId,
+				userId: userId,
 				email: email,
-				terms_version: "1.0",
-				privacy_version: "1.0",
-				accepted_at: new Date().toISOString(),
-				ip_address: "Logged client-side", // In production, you'd log this server-side
-				user_agent: navigator.userAgent,
+				termsVersion: "1.0",
+				privacyVersion: "1.0",
+				acceptedAt: serverTimestamp(), // Use Firestore server timestamp
+				ipAddress: "Logged client-side", // In production, consider logging server-side
+				userAgent: navigator.userAgent,
 			};
 
 			// Insert into terms_acceptance table
-			const { error } = await supabase
-				.from("terms_acceptances")
-				.insert(termsAcceptanceData);
-
-			if (error) {
-				console.error("Failed to log terms acceptance:", error);
-				// Don't block registration if this fails - just log the error
-			} else {
-				console.log("Terms acceptance logged successfully");
-			}
+			const docRef = await addDoc(
+				collection(db, "termsAcceptances"),
+				termsAcceptanceData
+			);
+			console.log("Terms acceptance logged successfully with ID:", docRef.id);
 		} catch (error) {
 			console.error("Error logging terms acceptance:", error);
+			// Optionally toast here, but don't block main flow
+			// toast.error("Could not record terms acceptance.");
 		}
 	}
 

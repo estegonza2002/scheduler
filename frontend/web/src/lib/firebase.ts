@@ -2,6 +2,7 @@ import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
+import { getDatabase } from "firebase/database";
 // import { getAnalytics } from "firebase/analytics"; // Optional: Uncomment if using Analytics
 
 // Your web app's Firebase configuration
@@ -14,6 +15,7 @@ const firebaseConfig = {
 	messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
 	appId: import.meta.env.VITE_FIREBASE_APP_ID,
 	measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID, // Optional
+	databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
 };
 
 // Initialize Firebase
@@ -21,8 +23,9 @@ const app = initializeApp(firebaseConfig);
 
 // Initialize and export Firebase services
 const auth = getAuth(app);
-const db = getFirestore(app); // Using Firestore as the database
+const db = getFirestore(app); // Firestore DB
+const rtdb = getDatabase(app); // Realtime DB
 const storage = getStorage(app); // Optional: Initialize storage if needed
 // const analytics = getAnalytics(app); // Optional: Initialize analytics if needed
 
-export { app, auth, db, storage };
+export { app, auth, db, rtdb, storage };

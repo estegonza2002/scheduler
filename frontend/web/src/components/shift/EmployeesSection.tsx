@@ -9,8 +9,8 @@ interface EmployeesSectionProps {
 	assignedEmployees: AssignedEmployee[];
 	availableEmployees: any[];
 	shift: {
-		start_time: string;
-		end_time: string;
+		startTime: string;
+		endTime: string;
 	};
 	onRemoveEmployeeClick: (employeeId: string, assignmentId: string) => void;
 	onAssignClick: () => void;
@@ -82,8 +82,8 @@ export function EmployeesSection({
 							key={employee.id}
 							employee={employee}
 							onRemove={onRemoveEmployeeClick}
-							shiftStartTime={shift.start_time}
-							shiftEndTime={shift.end_time}
+							shiftStartTime={shift.startTime}
+							shiftEndTime={shift.endTime}
 							isCompleted={isCompleted}
 							variant="shift"
 						/>

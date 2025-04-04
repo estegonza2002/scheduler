@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import {
 	Form,
@@ -17,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ContentContainer } from "@/components/ui/content-container";
 import { ContentSection } from "@/components/ui/content-section";
+import { useAuth } from "@/lib/auth";
 
 const resetPasswordSchema = z
 	.object({
@@ -34,9 +34,11 @@ type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
 
 export default function ResetPasswordPage() {
 	const navigate = useNavigate();
+	const location = useLocation();
 	const [isLoading, setIsLoading] = useState(false);
 	const [isResetSuccessful, setIsResetSuccessful] = useState(false);
 	const [tokenError, setTokenError] = useState(false);
+	const { updatePassword } = useAuth();
 
 	const form = useForm<ResetPasswordFormValues>({
 		resolver: zodResolver(resetPasswordSchema),
@@ -72,30 +74,16 @@ export default function ResetPasswordPage() {
 	async function onSubmit(values: ResetPasswordFormValues) {
 		setIsLoading(true);
 		try {
-			// Get the access token from the URL hash
-			const hash = window.location.hash.substring(1);
-			const params = new URLSearchParams(hash);
-			const accessToken = params.get("access_token");
-
-			if (!accessToken) {
-				throw new Error("No access token found");
-			}
-
-			// Update the user's password
-			const { error } = await supabase.auth.updateUser({
-				password: values.password,
-			});
-
-			if (error) {
-				toast.error(error.message);
-				return;
-			}
+			console.log("Attempting to update password with Firebase...");
+			await updatePassword(values.password);
 
 			setIsResetSuccessful(true);
 			toast.success("Password reset successfully");
 		} catch (error) {
-			toast.error("Failed to reset password");
 			console.error("Password reset error:", error);
+			const errorMessage =
+				error instanceof Error ? error.message : "Failed to reset password";
+			toast.error(errorMessage);
 		} finally {
 			setIsLoading(false);
 		}
@@ -107,9 +95,7 @@ export default function ResetPasswordPage() {
 
 	return (
 		<div className="min-h-screen flex items-center justify-center bg-muted">
-			<ContentContainer
-				maxWidth="max-w-md"
-				className="flex justify-center items-center">
+			<ContentContainer className="flex justify-center items-center w-full max-w-md">
 				<ContentSection
 					title="Reset Password"
 					description={

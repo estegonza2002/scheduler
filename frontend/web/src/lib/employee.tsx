@@ -7,7 +7,6 @@ import {
 } from "react";
 import { Employee } from "@/api/types";
 import { EmployeesAPI } from "@/api";
-import { supabase } from "./supabase";
 import { toast } from "sonner";
 import { useOrganization } from "./organization";
 
@@ -132,26 +131,30 @@ export function EmployeeProvider({ children }: { children: ReactNode }) {
 			`EmployeeProvider: Setting up subscription for org: ${organizationId}`
 		);
 
-		const subscription = supabase
-			.channel("employee-updates")
-			.on(
-				"postgres_changes",
-				{
-					event: "*", // Listen for all events (INSERT, UPDATE, DELETE)
-					schema: "public",
-					table: "employees",
-					filter: `organizationId=eq.${organizationId}`,
-				},
-				() => {
-					refreshEmployees();
-				}
-			)
-			.subscribe();
+		// Remove or refactor any functions/hooks below that directly use the removed 'supabase' object.
+		// If the entire context/hook is now unused due to API refactoring, it might be safe to remove the whole file later.
+		// For now, just removing the import and any direct usage found.
 
-		return () => {
-			console.log("EmployeeProvider: Unsubscribing from employee updates.");
-			subscription.unsubscribe();
-		};
+		// const subscription = supabase
+		// 	.channel("employee-updates")
+		// 	.on(
+		// 		"postgres_changes",
+		// 		{
+		// 			event: "*", // Listen for all events (INSERT, UPDATE, DELETE)
+		// 			schema: "public",
+		// 			table: "employees",
+		// 			filter: `organizationId=eq.${organizationId}`,
+		// 		},
+		// 		() => {
+		// 			refreshEmployees();
+		// 		}
+		// 	)
+		// 	.subscribe();
+
+		// return () => {
+		// 	console.log("EmployeeProvider: Unsubscribing from employee updates.");
+		// 	subscription.unsubscribe();
+		// };
 		// Depend on org state to re-subscribe if it changes
 	}, [isOrgLoading, getCurrentOrganizationId]);
 

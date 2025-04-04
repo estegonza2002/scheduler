@@ -10,7 +10,7 @@ import { Elements } from "@stripe/react-stripe-js";
 import { Subscription, SubscriptionPlan } from "@/api/types";
 import { BillingAPI } from "@/api";
 import { useOrganization } from "./organization";
-import { supabase } from "./supabase";
+import { useAuth } from "./auth";
 
 // Initialize Stripe with the public key
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
@@ -71,27 +71,6 @@ export function StripeProvider({ children }: { children: ReactNode }) {
 	useEffect(() => {
 		if (organization) {
 			refreshSubscription();
-
-			// Set up real-time subscription for webhooks
-			const subscription = supabase
-				.channel("organization-updates")
-				.on(
-					"postgres_changes",
-					{
-						event: "UPDATE",
-						schema: "public",
-						table: "organizations",
-						filter: `id=eq.${organization.id}`,
-					},
-					() => {
-						refreshSubscription();
-					}
-				)
-				.subscribe();
-
-			return () => {
-				subscription.unsubscribe();
-			};
 		}
 	}, [organization]);
 

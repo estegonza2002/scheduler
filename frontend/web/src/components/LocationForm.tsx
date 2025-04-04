@@ -34,7 +34,7 @@ import { FormPhoneInput } from "@/components/ui/form-phone-input";
 import { isValidPhoneNumber } from "react-phone-number-input";
 import { GoogleMap } from "@/components/ui/google-map";
 import { uploadImage, deleteImage } from "@/lib/storage";
-import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/auth";
 import { FormSection } from "@/components/ui/form-section";
 
 // Extended Location type to include optional fields
@@ -123,6 +123,7 @@ export function LocationForm({
 }: LocationFormProps) {
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [uploadingImage, setUploadingImage] = useState(false);
+	const { user } = useAuth();
 
 	const isEditing = !!initialData;
 
@@ -160,64 +161,95 @@ export function LocationForm({
 	// Memoize the submit function to avoid recreating it on every render
 	const onSubmit = useCallback(
 		async (data: FormValues) => {
+			setIsSubmitting(true);
 			try {
-				setIsSubmitting(true);
+				// Prepare the data object containing only fields defined in the core Location type for the API
+				// Use 'undefined' for optional fields not provided, as expected by API/types
+				const locationDataForApi = {
+					name: data.name,
+					address: data.address || undefined,
+					city: data.city || undefined,
+					state: data.state || undefined,
+					zipCode: data.zipCode || undefined,
+					latitude: data.latitude ?? undefined,
+					longitude: data.longitude ?? undefined,
+					isActive: data.isActive,
+					imageUrl: data.imageUrl || undefined,
+				};
+
+				// Prepare the extended data object including local-only fields for the onSuccess callback
+				const extendedLocalData = {
+					phone: data.phone || undefined,
+					email: data.email || undefined,
+					country: data.country || undefined,
+				};
 
 				if (isEditing && initialData) {
 					// Update existing location
 					const locationToUpdate = {
-						id: initialData.id,
-						...data,
+						...locationDataForApi,
 					};
 
-					const updatedLocation = (await LocationsAPI.update(
-						locationToUpdate as Partial<Location> & { id: string }
-					)) as ExtendedLocation;
+					// Call update with ID and data separately
+					const updatedLocation = await LocationsAPI.update(
+						initialData.id,
+						locationToUpdate as Partial<Location> // API expects Partial<Location>
+					);
 
-					onSuccess(updatedLocation);
+					if (!updatedLocation) {
+						throw new Error(
+							"Update failed: Location not found or error occurred."
+						);
+					}
+
+					// Combine API result with local extended data for the callback
+					// Ensure the final object conforms to ExtendedLocation
+					const result: ExtendedLocation = {
+						...updatedLocation,
+						...extendedLocalData,
+						// Ensure correct types (API might return null, type expects undefined)
+						latitude: updatedLocation.latitude ?? undefined,
+						longitude: updatedLocation.longitude ?? undefined,
+						imageUrl: updatedLocation.imageUrl ?? undefined,
+					};
+					onSuccess(result);
 					toast.success(`${updatedLocation.name} updated successfully`);
 				} else {
 					// Create new location
 					const locationToCreate = {
-						...data,
+						...locationDataForApi,
 						organizationId,
 					};
 
-					// Ensure name is defined as it's required by the API
-					if (!locationToCreate.name) {
-						toast.error("Location name is required");
-						return;
+					// API expects Omit<Location, 'id'>
+					const newLocation = await LocationsAPI.create(
+						locationToCreate as Omit<Location, "id">
+					);
+
+					if (!newLocation) {
+						throw new Error("Create failed: Error occurred during creation.");
 					}
 
-					// Only include properties that exist in the Location interface
-					const newLocation = await LocationsAPI.create({
-						name: locationToCreate.name,
-						address: locationToCreate.address,
-						city: locationToCreate.city,
-						state: locationToCreate.state,
-						zipCode: locationToCreate.zipCode,
-						latitude: locationToCreate.latitude,
-						longitude: locationToCreate.longitude,
-						isActive: locationToCreate.isActive,
-						imageUrl: locationToCreate.imageUrl,
-						organizationId,
-						// country, phone, and email are used locally but not sent to API
-					});
-
-					// Store the extended properties locally
-					const extendedLocation: ExtendedLocation = {
+					// Combine API result with local extended data for the callback
+					// Ensure the final object conforms to ExtendedLocation
+					const result: ExtendedLocation = {
 						...newLocation,
-						phone: locationToCreate.phone,
-						email: locationToCreate.email,
-						country: locationToCreate.country,
+						...extendedLocalData,
+						// Ensure correct types (API might return null, type expects undefined)
+						latitude: newLocation.latitude ?? undefined,
+						longitude: newLocation.longitude ?? undefined,
+						imageUrl: newLocation.imageUrl ?? undefined,
 					};
-
-					onSuccess(extendedLocation);
+					onSuccess(result);
 					toast.success(`${newLocation.name} created successfully`);
 				}
 			} catch (error) {
 				console.error("Error saving location:", error);
-				toast.error(`Failed to ${isEditing ? "update" : "create"} location`);
+				toast.error(
+					`Failed to ${isEditing ? "update" : "create"} location. ${
+						error instanceof Error ? error.message : "Unknown error"
+					}`
+				);
 			} finally {
 				setIsSubmitting(false);
 			}
@@ -262,108 +294,82 @@ export function LocationForm({
 		if (!file) return;
 
 		if (!file.type.startsWith("image/")) {
-			toast.error("Please upload an image file");
+			toast.error("Please select an image file (e.g., JPG, PNG, GIF).");
 			return;
 		}
 
 		if (file.size > 5 * 1024 * 1024) {
-			toast.error("Image size should be less than 5MB");
+			// 5MB limit
+			toast.error("Image size must be less than 5MB.");
 			return;
 		}
 
+		if (!user) {
+			toast.error("Authentication required to upload images.");
+			return;
+		}
+
+		let uploadToastId: string | number | undefined;
 		try {
 			setUploadingImage(true);
+			uploadToastId = toast.loading("Uploading image...");
 
-			// Check auth status
-			const { data: sessionData, error: sessionError } =
-				await supabase.auth.getSession();
+			const storagePath = `location-images/org-${organizationId}/${file.name}`;
+			const imageUrl = await uploadImage(file, storagePath);
 
-			if (sessionError || !sessionData?.session) {
-				console.error("Auth error:", sessionError);
-				toast.error("Authentication required to upload images");
-				return;
-			}
-
-			// Display loading state
-			const uploadToast = toast.loading("Uploading image...");
-
-			// Try with public folder to match the policy
-			const imageUrl = await uploadImage(file, "location-images", "public");
-
-			// Update form with uploaded image URL
-			form.setValue("imageUrl", imageUrl);
-
-			// Dismiss loading toast and show success message
-			toast.dismiss(uploadToast);
-			toast.success("Image uploaded successfully");
+			form.setValue("imageUrl", imageUrl, { shouldDirty: true });
+			toast.success("Image uploaded successfully", { id: uploadToastId });
 		} catch (error) {
 			console.error("Error uploading image:", error);
-			toast.dismiss();
-
-			// Check for specific error types
-			if (error instanceof Error) {
-				const errorMessage = error.message || "Unknown error";
-
-				if (
-					errorMessage.includes("not found") ||
-					errorMessage.includes("does not exist")
-				) {
-					toast.error(
-						"Storage bucket not found. Please check Supabase configuration."
-					);
-				} else if (
-					errorMessage.includes("Unauthorized") ||
-					errorMessage.includes("violates row-level security")
-				) {
-					toast.error("Permission denied. Please check storage policies.");
-				} else {
-					toast.error(`Upload failed: ${errorMessage}`);
-				}
-			} else {
-				toast.error(
-					"Failed to upload image. Please check your Supabase storage configuration."
-				);
-			}
+			toast.error(
+				`Upload failed: ${
+					error instanceof Error ? error.message : "Unknown error"
+				}`,
+				{ id: uploadToastId }
+			);
 		} finally {
 			setUploadingImage(false);
+			// Clear the file input so the same file can be selected again if needed
+			if (e.target) {
+				e.target.value = "";
+			}
 		}
 	};
 
 	const handleRemoveImage = async () => {
 		const currentImageUrl = form.getValues("imageUrl");
 
-		if (currentImageUrl) {
-			try {
-				setUploadingImage(true);
+		if (!currentImageUrl) {
+			toast.info("No image to remove.");
+			return;
+		}
 
-				// Check auth status
-				const { data: sessionData, error: sessionError } =
-					await supabase.auth.getSession();
-				if (sessionError || !sessionData?.session) {
-					console.error("Auth error:", sessionError);
-					toast.error("Authentication required to remove images");
-					return;
-				}
+		if (!user) {
+			toast.error("Authentication required to remove images.");
+			return;
+		}
 
-				const removeToast = toast.loading("Removing image...");
+		let removeToastId: string | number | undefined;
+		try {
+			setUploadingImage(true); // Reuse uploading state for loading indicator
+			removeToastId = toast.loading("Removing image...");
 
-				// Try to delete the image from storage
-				await deleteImage(currentImageUrl);
+			await deleteImage(currentImageUrl);
 
-				// Clear the image URL in the form
-				form.setValue("imageUrl", "");
-
-				toast.dismiss(removeToast);
-				toast.success("Image removed");
-			} catch (error) {
-				console.error("Error removing image:", error);
-
-				// Still remove from form even if delete from storage failed
-				form.setValue("imageUrl", "");
-				toast.warning("Image removed from form, but may still exist on server");
-			} finally {
-				setUploadingImage(false);
-			}
+			form.setValue("imageUrl", "", { shouldDirty: true });
+			toast.success("Image removed successfully", { id: removeToastId });
+		} catch (error) {
+			console.error("Error removing image from storage:", error);
+			// Still remove from form even if storage deletion fails
+			form.setValue("imageUrl", "", { shouldDirty: true });
+			toast.warning(
+				`Failed to delete image from storage, but removed from form. ${
+					error instanceof Error ? error.message : "Unknown error"
+				}`,
+				{ id: removeToastId }
+			);
+		} finally {
+			setUploadingImage(false);
 		}
 	};
 

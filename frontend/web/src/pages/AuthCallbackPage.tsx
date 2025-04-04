@@ -2,11 +2,10 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import { BusinessSetupModal } from "@/components/auth/BusinessSetupModal";
-import { supabase } from "@/lib/supabase";
 
 export default function AuthCallbackPage() {
 	const navigate = useNavigate();
-	const { user, isLoading } = useAuth();
+	const { user, isLoading, currentMembership, isMembershipLoading } = useAuth();
 	const [showBusinessSetup, setShowBusinessSetup] = useState(false);
 	const [processingAuth, setProcessingAuth] = useState(true);
 	const [redirectAttempted, setRedirectAttempted] = useState(false);
@@ -14,19 +13,20 @@ export default function AuthCallbackPage() {
 	// Handle redirection after auth callback
 	useEffect(() => {
 		const handleAuthRedirect = async () => {
-			// Only proceed if auth loading is complete AND redirect hasn't been attempted
-			if (isLoading || redirectAttempted) {
+			// Only proceed if auth loading, membership loading are complete AND redirect hasn't been attempted
+			if (isLoading || isMembershipLoading || redirectAttempted) {
 				console.log("Auth callback: Waiting or redirect already attempted...", {
 					isLoading,
+					isMembershipLoading,
 					redirectAttempted,
 				});
-				if (isLoading) {
+				if (isLoading || isMembershipLoading) {
 					setProcessingAuth(true); // Keep showing processing indicator if loading
 				}
 				return;
 			}
 
-			setProcessingAuth(false); // Auth loading is done
+			setProcessingAuth(false); // Auth & membership loading is done
 			setRedirectAttempted(true); // Mark redirect as attempted
 
 			try {
@@ -37,6 +37,7 @@ export default function AuthCallbackPage() {
 				if (user) {
 					// Check user state from AuthProvider
 					console.log("User authenticated via AuthProvider:", user.email);
+					console.log("Current Membership:", currentMembership);
 
 					// Check for business signup flow
 					if (localStorage.getItem("business_signup") === "true") {
@@ -45,8 +46,11 @@ export default function AuthCallbackPage() {
 						);
 						setShowBusinessSetup(true);
 					} else {
-						// Regular user login - redirect based on role
-						const isAdmin = user.user_metadata?.role === "admin";
+						// Regular user login - redirect based on role from membership
+						// Assuming 'owner' or 'admin' roles should go to admin dashboard
+						const isAdmin =
+							currentMembership?.role === "admin" ||
+							currentMembership?.role === "owner";
 						console.log("Regular user login, isAdmin:", isAdmin);
 						navigate(isAdmin ? "/admin-dashboard" : "/dashboard", {
 							replace: true,
@@ -66,7 +70,14 @@ export default function AuthCallbackPage() {
 		};
 
 		handleAuthRedirect();
-	}, [navigate, user, isLoading, redirectAttempted]); // Add redirectAttempted dependency
+	}, [
+		navigate,
+		user,
+		isLoading,
+		currentMembership,
+		isMembershipLoading,
+		redirectAttempted,
+	]);
 
 	return (
 		<>

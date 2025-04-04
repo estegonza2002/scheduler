@@ -8,8 +8,7 @@ import React, {
 import { Notification, NotificationsAPI } from "@/api";
 import { useAuth } from "./auth";
 import { toast } from "sonner";
-import { supabase } from "@/lib/supabase";
-import { RealtimeChannel } from "@supabase/supabase-js";
+import { Notification as NotificationType } from "@/api/types";
 
 type NotificationContextType = {
 	notifications: Notification[];
@@ -34,8 +33,6 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
 	const [notifications, setNotifications] = useState<Notification[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<Error | null>(null);
-	const [notificationsChannel, setNotificationsChannel] =
-		useState<RealtimeChannel | null>(null);
 
 	const unreadCount = notifications.filter(
 		(n: Notification) => !n.isRead
@@ -47,7 +44,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
 
 		setLoading(true);
 
-		const userId = user.id;
+		const userId = user.uid;
 		if (!userId) {
 			console.error("No user ID available");
 			setLoading(false);
@@ -71,139 +68,24 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
 		}
 	}, [user]);
 
-	// Set up Supabase real-time subscriptions
-	const setupRealtimeSubscriptions = useCallback(() => {
-		if (!user) {
-			console.log("No user available for subscriptions");
-			return;
-		}
-
-		const userId = user.id;
-		if (!userId) {
-			console.error("No user ID available for subscriptions");
-			return;
-		}
-
-		console.log("Setting up real-time subscriptions for notifications");
-
-		// Subscribe to notification changes for this user
-		const notificationsSubscription = supabase
-			.channel("notifications-changes")
-			.on(
-				"postgres_changes",
-				{
-					event: "*",
-					schema: "public",
-					table: "notifications",
-					filter: `user_id=eq.${userId}`,
-				},
-				(payload) => {
-					console.log("Notification change detected:", payload);
-
-					if (payload.eventType === "INSERT") {
-						console.log("New notification:", payload.new);
-
-						// Map the snake_case column names to camelCase property names
-						const newNotification = {
-							id: payload.new.id,
-							userId: payload.new.user_id,
-							organizationId: payload.new.organization_id,
-							type: payload.new.type,
-							title: payload.new.title,
-							message: payload.new.message,
-							isRead: payload.new.is_read,
-							isActionRequired: payload.new.is_action_required,
-							actionUrl: payload.new.action_url,
-							relatedEntityId: payload.new.related_entity_id,
-							relatedEntityType: payload.new.related_entity_type,
-							createdAt: payload.new.created_at,
-						} as Notification;
-
-						// Show toast for new notification
-						toast(newNotification.title, {
-							description: newNotification.message,
-							action: {
-								label: "View",
-								onClick: () => markAsRead(newNotification.id),
-							},
-						});
-
-						// Add to state
-						setNotifications((prev) => [newNotification, ...prev]);
-					} else if (payload.eventType === "UPDATE") {
-						console.log("Updated notification:", payload.new);
-
-						// Map the snake_case column names to camelCase property names
-						const updatedNotification = {
-							id: payload.new.id,
-							userId: payload.new.user_id,
-							organizationId: payload.new.organization_id,
-							type: payload.new.type,
-							title: payload.new.title,
-							message: payload.new.message,
-							isRead: payload.new.is_read,
-							isActionRequired: payload.new.is_action_required,
-							actionUrl: payload.new.action_url,
-							relatedEntityId: payload.new.related_entity_id,
-							relatedEntityType: payload.new.related_entity_type,
-							createdAt: payload.new.created_at,
-						} as Notification;
-
-						// Update state
-						setNotifications((prev) =>
-							prev.map((notification) =>
-								notification.id === updatedNotification.id
-									? updatedNotification
-									: notification
-							)
-						);
-					} else if (payload.eventType === "DELETE") {
-						console.log("Deleted notification:", payload.old);
-
-						// Remove from state
-						setNotifications((prev) =>
-							prev.filter((notification) => notification.id !== payload.old.id)
-						);
-					}
-				}
-			)
-			.subscribe((status) => {
-				console.log("Notifications subscription status:", status);
-			});
-
-		// Save channel reference for cleanup
-		setNotificationsChannel(notificationsSubscription);
-	}, [user]);
-
 	// Fetch notifications on load and when user changes
 	useEffect(() => {
 		if (user) {
 			fetchNotifications();
-			setupRealtimeSubscriptions();
 		} else {
 			setNotifications([]);
 			setLoading(false);
-
-			// Cleanup any existing subscription
-			if (notificationsChannel) {
-				notificationsChannel.unsubscribe();
-				setNotificationsChannel(null);
-			}
 		}
 
-		// Cleanup subscriptions when component unmounts or user changes
 		return () => {
-			if (notificationsChannel) {
-				console.log("Cleaning up notifications subscription");
-				notificationsChannel.unsubscribe();
-			}
+			// No cleanup needed now
 		};
-	}, [user, fetchNotifications, setupRealtimeSubscriptions]);
+	}, [user, fetchNotifications]);
 
 	const markAsRead = async (notificationId: string) => {
 		if (!user) return;
 
-		const userId = user.id;
+		const userId = user.uid;
 		if (!userId) {
 			console.error("No user ID available");
 			return;
@@ -211,7 +93,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
 
 		try {
 			await NotificationsAPI.markAsRead(notificationId);
-			// No need to fetch again as the subscription will update the UI
+			await fetchNotifications();
 		} catch (error) {
 			console.error("Error marking notification as read:", error);
 		}
@@ -221,7 +103,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
 		if (!user) return;
 
 		try {
-			const userId = user.id;
+			const userId = user.uid;
 			if (!userId) {
 				console.error("No user ID available");
 				return;
@@ -229,7 +111,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
 
 			try {
 				await NotificationsAPI.markAllAsRead(userId);
-				// No need to update state as the subscription will handle it
+				await fetchNotifications();
 			} catch (apiErr) {
 				console.error("Error calling markAllAsRead API:", apiErr);
 			}
@@ -242,7 +124,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
 		try {
 			try {
 				await NotificationsAPI.dismissNotification(id);
-				// No need to update state as the subscription will handle it
+				await fetchNotifications();
 			} catch (apiErr) {
 				console.error("Error calling dismissNotification API:", apiErr);
 			}
@@ -255,7 +137,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
 		if (!user) return;
 
 		try {
-			const userId = user.id;
+			const userId = user.uid;
 			if (!userId) {
 				console.error("No user ID available");
 				return;
@@ -263,7 +145,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
 
 			try {
 				await NotificationsAPI.dismissAllNotifications(userId);
-				// No need to update state as the subscription will handle it
+				await fetchNotifications();
 			} catch (apiErr) {
 				console.error("Error calling dismissAllNotifications API:", apiErr);
 			}

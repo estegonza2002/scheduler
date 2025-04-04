@@ -28,7 +28,6 @@ import {
 import { AppSidebar } from "../AppSidebar";
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
-import { OrganizationsAPI, Organization } from "../../api";
 import { useAuth } from "../../lib/auth";
 import { OnboardingModal } from "../onboarding/OnboardingModal";
 import * as React from "react";
@@ -45,6 +44,8 @@ import { Button } from "../ui/button";
 import { ChevronLeft } from "lucide-react";
 import { HeaderProvider, useHeader } from "../../lib/header-context";
 import { SidebarTrigger } from "../ui/sidebar";
+import { useOrganization } from "@/lib/organization";
+import { ArrowLeft } from "lucide-react";
 
 // Common props type for app layout components
 type CommonProps = {
@@ -198,22 +199,10 @@ export default function AppLayout() {
 	const navigate = useNavigate();
 	const [searchParams, setSearchParams] = useSearchParams();
 	const { signOut } = useAuth();
-	const [currentDate, setCurrentDate] = useState<Date>(() => {
-		const dateParam = searchParams.get("date");
-		return dateParam ? new Date(dateParam) : new Date();
-	});
+	const [currentDate, setCurrentDate] = useState(new Date());
+	const [defaultSidebarOpen] = useState(true);
 	const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-	const [organizationId, setOrganizationId] = useState<string>("");
-	const [organization, setOrganization] = useState<Organization | null>(null);
 	const [showLogoutDialog, setShowLogoutDialog] = useState(false);
-
-	// Read sidebar state from cookie or default to expanded
-	const [defaultSidebarOpen, setDefaultSidebarOpen] = useState(() => {
-		const sidebarCookie = document.cookie
-			.split("; ")
-			.find((row) => row.startsWith("sidebar_state="));
-		return sidebarCookie ? sidebarCookie.split("=")[1] === "true" : true;
-	});
 
 	// Pages with different layouts and actions
 	const isCheckoutPage = location.pathname === "/checkout";
@@ -231,22 +220,6 @@ export default function AppLayout() {
 	const isBillingPage = location.pathname === "/billing";
 	const isBrandingPage = location.pathname === "/branding";
 
-	// Fetch organization
-	useEffect(() => {
-		const fetchOrganization = async () => {
-			try {
-				const orgs = await OrganizationsAPI.getAll();
-				if (orgs.length > 0) {
-					setOrganization(orgs[0]);
-				}
-			} catch (error) {
-				console.error("Error fetching organization:", error);
-			}
-		};
-
-		fetchOrganization();
-	}, []);
-
 	// Get date from URL param or use today's date
 	useEffect(() => {
 		if (location.pathname.startsWith("/daily-shifts")) {
@@ -256,29 +229,6 @@ export default function AppLayout() {
 			}
 		}
 	}, [searchParams, location.pathname]);
-
-	useEffect(() => {
-		const orgId = searchParams.get("organizationId");
-		if (orgId) {
-			setOrganizationId(orgId);
-		} else {
-			// If no organization ID in URL, try to get a valid one
-			const fetchOrganization = async () => {
-				try {
-					const organizations = await OrganizationsAPI.getAll();
-					if (organizations && organizations.length > 0) {
-						setOrganizationId(organizations[0].id);
-						console.log("Using organization ID:", organizations[0].id);
-					} else {
-						console.error("No organization found");
-					}
-				} catch (error) {
-					console.error("Error fetching organizations:", error);
-				}
-			};
-			fetchOrganization();
-		}
-	}, [searchParams]);
 
 	const updateDate = (newDate: Date) => {
 		setCurrentDate(newDate);

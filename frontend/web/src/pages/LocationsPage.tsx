@@ -36,8 +36,6 @@ import {
 	CardFooter,
 } from "@/components/ui/card";
 import { Helmet } from "react-helmet";
-import { supabase } from "@/lib/supabase";
-import { RealtimeChannel } from "@supabase/supabase-js";
 import { toast } from "sonner";
 
 // Import our dialog components
@@ -103,19 +101,19 @@ export default function LocationsPage() {
 			actions: (
 				<div className="flex gap-2">
 					<Button
+						disabled={!organizationId}
 						variant="outline"
 						onClick={() => navigate("/bulk-location-import")}>
 						<Upload className="h-4 w-4 mr-2" />
-						Bulk Import
 					</Button>
 					<LocationDialog
-						organizationId={organizationId}
+						organizationId={organizationId || ""}
 						onLocationCreated={(newLocation) => {
 							console.log("Location created via dialog:", newLocation);
 							refreshLocations();
 						}}
 						trigger={
-							<Button>
+							<Button disabled={!organizationId}>
 								<PlusCircle className="h-4 w-4 mr-2" />
 								Add Location
 							</Button>
@@ -323,7 +321,7 @@ export default function LocationsPage() {
 						action={
 							<div className="flex gap-2">
 								<LocationDialog
-									organizationId={organizationId}
+									organizationId={organizationId || ""}
 									onLocationCreated={(newLocation) => {
 										console.log(
 											"Location created via empty state:",
@@ -332,13 +330,14 @@ export default function LocationsPage() {
 										refreshLocations();
 									}}
 									trigger={
-										<Button>
+										<Button disabled={!organizationId}>
 											<PlusCircle className="h-4 w-4 mr-2" />
 											Add Location
 										</Button>
 									}
 								/>
 								<Button
+									disabled={!organizationId}
 									variant="outline"
 									onClick={() => navigate("/bulk-location-import")}>
 									<Upload className="h-4 w-4 mr-2" />

@@ -4,10 +4,10 @@ import {
 	ReactNode,
 	useState,
 	useEffect,
+	useCallback,
 } from "react";
 import { Shift, Schedule } from "@/api/types";
 import { ShiftsAPI } from "@/api";
-import { supabase } from "./supabase";
 import { toast } from "sonner";
 import { useOrganization } from "./organization";
 
@@ -41,12 +41,11 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
 	// Get organization context
 	const { getCurrentOrganizationId, isLoading: isOrgLoading } =
 		useOrganization();
+	// Get the organization ID once
+	const organizationId = getCurrentOrganizationId();
 
 	// Fetch all schedules for the current organization
-	const refreshShifts = async () => {
-		// Get organization ID from context
-		const organizationId = getCurrentOrganizationId();
-
+	const refreshShifts = useCallback(async () => {
 		// Wait until organization is loaded and ID is available
 		if (isOrgLoading || !organizationId) {
 			console.log(
@@ -103,37 +102,35 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
 		} finally {
 			setIsLoading(false);
 		}
-	};
+	}, [
+		isOrgLoading,
+		organizationId,
+		currentShift,
+		setSchedules,
+		setShifts,
+		setIsLoading,
+	]);
 
 	// Fetch shifts for a specific schedule
-	const refreshShiftsForSchedule = async (scheduleId: string) => {
-		try {
+	const refreshShiftsForSchedule = useCallback(
+		async (scheduleId: string) => {
+			// Use the organizationId retrieved in the component scope
+			if (!organizationId) return;
 			setIsLoading(true);
-			const shiftsData = await ShiftsAPI.getShiftsForSchedule(scheduleId);
-			setShifts(shiftsData);
-
-			// Update current shift if it belongs to this schedule
-			if (currentShift && currentShift.parent_shift_id === scheduleId) {
-				const updated = shiftsData.find((s) => s.id === currentShift.id);
-				if (updated) {
-					setCurrentShift(updated);
-				} else if (shiftsData.length > 0) {
-					setCurrentShift(shiftsData[0]);
-				} else {
-					setCurrentShift(null);
-				}
-			} else if (shiftsData.length > 0) {
-				setCurrentShift(shiftsData[0]);
-			} else {
-				setCurrentShift(null);
+			try {
+				// Use the correct method to get shifts for a specific schedule
+				const fetchedShifts = await ShiftsAPI.getShiftsForSchedule(scheduleId);
+				setShifts(fetchedShifts || []);
+				toast.success(`Shifts refreshed for schedule ${scheduleId}`);
+			} catch (error) {
+				console.error("Error refreshing shifts for schedule:", error);
+				toast.error("Failed to refresh shifts for schedule");
+			} finally {
+				setIsLoading(false);
 			}
-		} catch (error) {
-			console.error(`Error fetching shifts for schedule ${scheduleId}:`, error);
-			toast.error("Failed to load shifts for the selected schedule");
-		} finally {
-			setIsLoading(false);
-		}
-	};
+		},
+		[organizationId, setIsLoading, setShifts]
+	);
 
 	// Get the current shift ID safely
 	const getCurrentShiftId = (): string | null => {
@@ -142,73 +139,32 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
 
 	// Select a specific shift
 	const selectShift = async (shiftId: string) => {
+		setIsLoading(true);
 		try {
-			setIsLoading(true);
-			const shift = await ShiftsAPI.getShiftById(shiftId);
-			if (shift) {
-				setCurrentShift(shift);
-
-				// If this is a schedule, also load its shifts
-				if (shift.is_schedule) {
-					await refreshShiftsForSchedule(shift.id);
-				}
-			} else {
-				toast.error("Shift not found");
+			const selected = await ShiftsAPI.getShiftById(shiftId);
+			setCurrentShift(selected);
+			// Check if it's a schedule (parent shift)
+			if (selected && selected.isSchedule) {
+				// If it's a schedule, load its child shifts
+				await refreshShiftsForSchedule(shiftId);
 			}
+			toast.info(`Selected shift: ${selected?.name || shiftId}`);
 		} catch (error) {
 			console.error(`Error selecting shift ${shiftId}:`, error);
 			toast.error("Failed to select shift");
+			setCurrentShift(null);
 		} finally {
 			setIsLoading(false);
 		}
 	};
 
-	// Initial data fetch - depends on organization context
+	// Effect to load initial shifts and schedules when organizationId is available
 	useEffect(() => {
-		console.log("ShiftProvider: Initial fetch triggered.");
-		refreshShifts();
-		// Depend on org state
-	}, [isOrgLoading, getCurrentOrganizationId]);
-
-	// Set up real-time subscription for shift updates - depends on org ID
-	useEffect(() => {
-		// Get organization ID from context
-		const organizationId = getCurrentOrganizationId();
-
-		// Only subscribe if organization is loaded and has an ID
-		if (isOrgLoading || !organizationId) {
-			console.log(
-				"ShiftProvider: Skipping subscription setup - org not ready."
-			);
-			return; // Don't subscribe yet
+		// Use the organizationId retrieved in the component scope
+		if (organizationId) {
+			refreshShifts();
 		}
-
-		console.log(
-			`ShiftProvider: Setting up subscription for org: ${organizationId}`
-		);
-
-		const subscription = supabase
-			.channel("shift-updates")
-			.on(
-				"postgres_changes",
-				{
-					event: "*", // Listen for all events (INSERT, UPDATE, DELETE)
-					schema: "public",
-					table: "shifts",
-					filter: `organization_id=eq.${organizationId}`,
-				},
-				() => {
-					refreshShifts();
-				}
-			)
-			.subscribe();
-
-		return () => {
-			console.log("ShiftProvider: Unsubscribing from shift updates.");
-			subscription.unsubscribe();
-		};
-		// Depend on org state to re-subscribe if it changes
-	}, [isOrgLoading, getCurrentOrganizationId]);
+	}, [organizationId, refreshShifts]);
 
 	// Context value
 	const contextValue: ShiftContextType = {

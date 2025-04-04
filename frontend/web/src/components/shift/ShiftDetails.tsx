@@ -58,8 +58,16 @@ import { Badge } from "../ui/badge";
 import { ShiftStatus } from "./ShiftStatus";
 import { Link } from "react-router-dom";
 import { Alert, AlertTitle, AlertDescription } from "../ui/alert";
-import { supabase } from "../../lib/supabase";
-import { RealtimeChannel } from "@supabase/supabase-js";
+import { db } from "../../lib/firebase";
+import {
+	collection,
+	query,
+	where,
+	onSnapshot,
+	Timestamp,
+	doc,
+} from "firebase/firestore";
+import { mapDocToShift, mapDocToEmployee } from "@/api/real/api";
 
 // Define API access functions
 const getShift = async (shiftId: string): Promise<Shift | null> => {
@@ -72,11 +80,11 @@ const getLocation = async (locationId: string): Promise<Location | null> => {
 	return LocationsAPI.getById(locationId);
 };
 
-const getShiftAssignments = async (
-	shiftId: string
-): Promise<ShiftAssignment[]> => {
-	console.log(`Getting assignments for shift: ${shiftId}`);
-	return ShiftAssignmentsAPI.getAll(shiftId);
+const getShiftAssignments = async (filter: {
+	shiftId: string;
+}): Promise<ShiftAssignment[]> => {
+	console.log(`Getting assignments for shift: ${filter.shiftId}`);
+	return ShiftAssignmentsAPI.getAll(filter);
 };
 
 const getEmployee = async (employeeId: string): Promise<Employee | null> => {
@@ -97,19 +105,21 @@ const updateShift = async (
 	return ShiftsAPI.updateShift(shiftId, shiftData);
 };
 
-const deleteShift = async (shiftId: string): Promise<void> => {
+const deleteShift = async (shiftId: string): Promise<boolean> => {
 	console.log(`Deleting shift with ID: ${shiftId}`);
 	return ShiftsAPI.deleteShift(shiftId);
 };
 
 const createShiftAssignment = async (
-	assignmentData: Omit<ShiftAssignment, "id">
-): Promise<ShiftAssignment> => {
-	console.log(`Creating assignment for shift: ${assignmentData.shift_id}`);
+	assignmentData: Omit<ShiftAssignment, "id" | "createdAt" | "updatedAt">
+): Promise<ShiftAssignment | null> => {
+	console.log(`Creating assignment for shift: ${assignmentData.shiftId}`);
 	return ShiftAssignmentsAPI.create(assignmentData);
 };
 
-const deleteShiftAssignment = async (assignmentId: string): Promise<void> => {
+const deleteShiftAssignment = async (
+	assignmentId: string
+): Promise<boolean> => {
 	console.log(`Deleting assignment with ID: ${assignmentId}`);
 	return ShiftAssignmentsAPI.delete(assignmentId);
 };
@@ -120,22 +130,22 @@ interface ShiftDetailsProps {
 
 // Function to determine if shift is completed (end time is in the past)
 const isShiftCompleted = (shift: Shift): boolean => {
-	const endTime = new Date(shift.end_time);
+	const endTime = new Date(shift.endTime);
 	const now = new Date();
 	return now > endTime;
 };
 
 // Function to determine if shift is in progress
 const isShiftInProgress = (shift: Shift): boolean => {
-	const startTime = new Date(shift.start_time);
-	const endTime = new Date(shift.end_time);
+	const startTime = new Date(shift.startTime);
+	const endTime = new Date(shift.endTime);
 	const now = new Date();
 	return now >= startTime && now <= endTime;
 };
 
 // Function to determine if shift is upcoming
 const isShiftUpcoming = (shift: Shift): boolean => {
-	const startTime = new Date(shift.start_time);
+	const startTime = new Date(shift.startTime);
 	const now = new Date();
 	return now < startTime;
 };
@@ -159,13 +169,6 @@ export function ShiftDetails({ hideHeader = false }: ShiftDetailsProps) {
 	const [shiftAssignments, setShiftAssignments] = useState<ShiftAssignment[]>(
 		[]
 	);
-
-	// Add state for real-time channels
-	const [shiftsChannel, setShiftsChannel] = useState<RealtimeChannel | null>(
-		null
-	);
-	const [assignmentsChannel, setAssignmentsChannel] =
-		useState<RealtimeChannel | null>(null);
 
 	// Dialog states
 	const [assignEmployeeDialogOpen, setAssignEmployeeDialogOpen] =
@@ -198,19 +201,19 @@ export function ShiftDetails({ hideHeader = false }: ShiftDetailsProps) {
 			}
 
 			// Load location data
-			if (shiftData.location_id) {
-				const locationData = await getLocation(shiftData.location_id);
+			if (shiftData.locationId) {
+				const locationData = await getLocation(shiftData.locationId);
 				setLocation(locationData);
 			}
 
 			// Load shift assignments and associated employees
-			const assignmentsData = await getShiftAssignments(shiftId);
+			const assignmentsData = await getShiftAssignments({ shiftId });
 			setShiftAssignments(assignmentsData);
 
 			// For each assignment, fetch the employee details
 			const assignedEmployeePromises = assignmentsData.map(
-				async (assignment) => {
-					const employee = await getEmployee(assignment.employee_id);
+				async (assignment: ShiftAssignment) => {
+					const employee = await getEmployee(assignment.employeeId);
 					if (employee) {
 						return {
 							...employee,
@@ -228,12 +231,12 @@ export function ShiftDetails({ hideHeader = false }: ShiftDetailsProps) {
 			setAssignedEmployees(filteredEmployees);
 
 			// Set check-in/check-out tasks and notes
-			if (shiftData.check_in_tasks) {
-				setLocalCheckInTasks(shiftData.check_in_tasks);
+			if (shiftData.checkInTasks) {
+				setLocalCheckInTasks(shiftData.checkInTasks);
 			}
 
-			if (shiftData.check_out_tasks) {
-				setLocalCheckOutTasks(shiftData.check_out_tasks);
+			if (shiftData.checkOutTasks) {
+				setLocalCheckOutTasks(shiftData.checkOutTasks);
 			}
 
 			if (shiftData.description) {
@@ -241,8 +244,8 @@ export function ShiftDetails({ hideHeader = false }: ShiftDetailsProps) {
 			}
 
 			// Load available employees
-			if (shiftData.organization_id) {
-				const employeesData = await getEmployees(shiftData.organization_id);
+			if (shiftData.organizationId) {
+				const employeesData = await getEmployees(shiftData.organizationId);
 				setAvailableEmployees(employeesData);
 			}
 		} catch (error) {
@@ -253,86 +256,89 @@ export function ShiftDetails({ hideHeader = false }: ShiftDetailsProps) {
 		}
 	}, [shiftId]);
 
-	// Setup real-time subscriptions
-	const setupRealtimeSubscriptions = useCallback(() => {
-		if (!shiftId) return;
-
-		console.log(`Setting up real-time subscriptions for shift: ${shiftId}`);
-
-		// Unsubscribe from existing channels first
-		if (shiftsChannel) {
-			shiftsChannel.unsubscribe();
-		}
-
-		if (assignmentsChannel) {
-			assignmentsChannel.unsubscribe();
-		}
-
-		// Subscribe to shifts table changes for this specific shift
-		const shiftsSubscription = supabase
-			.channel("shift-details-changes")
-			.on(
-				"postgres_changes",
-				{
-					event: "*",
-					schema: "public",
-					table: "shifts",
-					filter: `id=eq.${shiftId}`,
-				},
-				(payload) => {
-					console.log("Shift details changed:", payload);
-					// Reload data when the shift changes
-					loadData();
-				}
-			)
-			.subscribe((status) => {
-				console.log("Shift subscription status:", status);
-			});
-
-		// Subscribe to shift assignments changes for this shift
-		const assignmentsSubscription = supabase
-			.channel("shift-assignments-details-changes")
-			.on(
-				"postgres_changes",
-				{
-					event: "*",
-					schema: "public",
-					table: "shift_assignments",
-					filter: `shift_id=eq.${shiftId}`,
-				},
-				(payload) => {
-					console.log("Shift assignment changed:", payload);
-					// Reload data when assignments change
-					loadData();
-				}
-			)
-			.subscribe((status) => {
-				console.log("Shift assignments subscription status:", status);
-			});
-
-		// Save channel references for cleanup
-		setShiftsChannel(shiftsSubscription);
-		setAssignmentsChannel(assignmentsSubscription);
-	}, [shiftId, loadData]);
-
-	// Initial data load
+	// Initial data load and Firestore listeners
 	useEffect(() => {
 		loadData();
 
-		// Setup real-time subscriptions
-		setupRealtimeSubscriptions();
+		if (!shiftId) return; // Don't setup listeners without shiftId
 
-		// Cleanup subscriptions when component unmounts
+		console.log(`Setting up Firestore listeners for shift: ${shiftId}`);
+
+		// Listener for the specific shift document
+		const shiftDocRef = doc(db, "shifts", shiftId);
+		const unsubscribeShift = onSnapshot(
+			shiftDocRef,
+			(docSnap) => {
+				if (docSnap.exists()) {
+					console.log("Firestore: Shift details updated");
+					const updatedShift = mapDocToShift(docSnap);
+					setShift(updatedShift);
+					// Update local states derived from shift
+					setLocalCheckInTasks(updatedShift.checkInTasks || []);
+					setLocalCheckOutTasks(updatedShift.checkOutTasks || []);
+					setLocalNotes(updatedShift.description || "");
+					if (updatedShift.locationId && !location) {
+						// Fetch location if it wasn't loaded initially
+						getLocation(updatedShift.locationId).then(setLocation);
+					}
+				} else {
+					console.warn(`Shift with ID ${shiftId} no longer exists.`);
+					setShift(null); // Handle shift deletion
+					// Optionally navigate away or show message
+					navigate("/manage-shifts");
+					toast.warning("The shift you were viewing has been deleted.");
+				}
+			},
+			(error) => {
+				console.error("Error listening to shift document:", error);
+				toast.error("Error getting real-time shift updates.");
+			}
+		);
+
+		// Listener for shift assignments
+		const assignmentsQuery = query(
+			collection(db, "shiftAssignments"),
+			where("shiftId", "==", shiftId)
+		);
+		const unsubscribeAssignments = onSnapshot(
+			assignmentsQuery,
+			async (snapshot) => {
+				console.log("Firestore: Shift assignments updated");
+				const updatedAssignments = snapshot.docs.map((doc) => ({
+					id: doc.id,
+					...doc.data(),
+				})) as ShiftAssignment[];
+				setShiftAssignments(updatedAssignments);
+
+				// Refetch employee details for the assignments
+				const assignedEmployeePromises = updatedAssignments.map(
+					async (assignment) => {
+						const employee = await getEmployee(assignment.employeeId);
+						return employee
+							? { ...employee, assignmentId: assignment.id }
+							: null;
+					}
+				);
+				const assignedEmployeeData = await Promise.all(
+					assignedEmployeePromises
+				);
+				setAssignedEmployees(
+					assignedEmployeeData.filter((e) => e !== null) as AssignedEmployee[]
+				);
+			},
+			(error) => {
+				console.error("Error listening to shift assignments:", error);
+				toast.error("Error getting real-time assignment updates.");
+			}
+		);
+
+		// Cleanup listeners on unmount or when shiftId changes
 		return () => {
-			console.log("Cleaning up real-time subscriptions");
-			if (shiftsChannel) {
-				shiftsChannel.unsubscribe();
-			}
-			if (assignmentsChannel) {
-				assignmentsChannel.unsubscribe();
-			}
+			console.log("Cleaning up Firestore listeners for shift details");
+			unsubscribeShift();
+			unsubscribeAssignments();
 		};
-	}, [shiftId, loadData, setupRealtimeSubscriptions]);
+	}, [shiftId, loadData, location, navigate]); // Add location dependency for fetching
 
 	// Save shift changes
 	const saveShift = async (updatedShift: Partial<Shift>) => {
@@ -342,9 +348,8 @@ export function ShiftDetails({ hideHeader = false }: ShiftDetailsProps) {
 		try {
 			const result = await updateShift(shiftId, updatedShift);
 			if (result) {
-				console.log("Shift updated. This should trigger a real-time update.");
+				// Listener should handle UI update
 				toast.success("Shift updated successfully");
-				// The real-time subscription will update the UI
 			}
 		} catch (error) {
 			console.error("Error updating shift:", error);
@@ -390,14 +395,10 @@ export function ShiftDetails({ hideHeader = false }: ShiftDetailsProps) {
 			// Create assignments for each new employee
 			for (const employee of newAssignments) {
 				await createShiftAssignment({
-					shift_id: shiftId,
-					employee_id: employee.id,
+					shiftId: shiftId,
+					employeeId: employee.id,
 				});
 			}
-
-			console.log(
-				`${newAssignments.length} new employees assigned. This should trigger a real-time update.`
-			);
 
 			if (newAssignments.length > 0) {
 				toast.success(
@@ -406,8 +407,6 @@ export function ShiftDetails({ hideHeader = false }: ShiftDetailsProps) {
 					} assigned to shift`
 				);
 			}
-
-			// The real-time subscription will update the UI
 		} catch (error) {
 			console.error("Error assigning employees:", error);
 			toast.error("Failed to assign employees");
@@ -431,13 +430,7 @@ export function ShiftDetails({ hideHeader = false }: ShiftDetailsProps) {
 		try {
 			await deleteShiftAssignment(employeeToRemove.assignmentId);
 
-			console.log(
-				`Employee removed from shift. This should trigger a real-time update.`
-			);
-
 			toast.success("Employee removed from shift");
-
-			// The real-time subscription will update the UI
 		} catch (error) {
 			console.error("Error removing employee:", error);
 			toast.error("Failed to remove employee");
@@ -458,14 +451,14 @@ export function ShiftDetails({ hideHeader = false }: ShiftDetailsProps) {
 	// Handle check-in tasks updates
 	const handleSaveCheckInTasks = async (tasks: ShiftTask[]) => {
 		setLocalCheckInTasks(tasks);
-		await saveShift({ check_in_tasks: tasks });
+		await saveShift({ checkInTasks: tasks });
 		setCheckInTasksDialogOpen(false);
 	};
 
 	// Handle check-out tasks updates
 	const handleSaveCheckOutTasks = async (tasks: ShiftTask[]) => {
 		setLocalCheckOutTasks(tasks);
-		await saveShift({ check_out_tasks: tasks });
+		await saveShift({ checkOutTasks: tasks });
 		setCheckOutTasksDialogOpen(false);
 	};
 
@@ -482,10 +475,7 @@ export function ShiftDetails({ hideHeader = false }: ShiftDetailsProps) {
 			setLocalCheckInTasks(updatedTasks);
 
 			// Save to the server (will trigger real-time update)
-			saveShift({ check_in_tasks: updatedTasks });
-			console.log(
-				"Updated check-in task. This should trigger a real-time update."
-			);
+			saveShift({ checkInTasks: updatedTasks });
 		} else {
 			const updatedTasks = localCheckOutTasks.map((task) =>
 				task.id === taskId ? { ...task, completed: !task.completed } : task
@@ -493,10 +483,7 @@ export function ShiftDetails({ hideHeader = false }: ShiftDetailsProps) {
 			setLocalCheckOutTasks(updatedTasks);
 
 			// Save to the server (will trigger real-time update)
-			saveShift({ check_out_tasks: updatedTasks });
-			console.log(
-				"Updated check-out task. This should trigger a real-time update."
-			);
+			saveShift({ checkOutTasks: updatedTasks });
 		}
 	};
 
@@ -512,10 +499,7 @@ export function ShiftDetails({ hideHeader = false }: ShiftDetailsProps) {
 			setLocalCheckInTasks(updatedTasks);
 
 			// Save to the server (will trigger real-time update)
-			saveShift({ check_in_tasks: updatedTasks });
-			console.log(
-				"Removed check-in task. This should trigger a real-time update."
-			);
+			saveShift({ checkInTasks: updatedTasks });
 		} else {
 			const updatedTasks = localCheckOutTasks.filter(
 				(task) => task.id !== taskId
@@ -523,16 +507,13 @@ export function ShiftDetails({ hideHeader = false }: ShiftDetailsProps) {
 			setLocalCheckOutTasks(updatedTasks);
 
 			// Save to the server (will trigger real-time update)
-			saveShift({ check_out_tasks: updatedTasks });
-			console.log(
-				"Removed check-out task. This should trigger a real-time update."
-			);
+			saveShift({ checkOutTasks: updatedTasks });
 		}
 	};
 
 	// Format date for URL parameters
 	const formatDateParam = (date: string) => {
-		return format(parseISO(date), "yyyy-MM-dd");
+		return format(new Date(date), "yyyy-MM-dd"); // Use new Date for ISO or Timestamp
 	};
 
 	// Calculate total cost for shift
@@ -540,8 +521,8 @@ export function ShiftDetails({ hideHeader = false }: ShiftDetailsProps) {
 		if (assignedEmployees.length === 0) return "0.00";
 
 		return calculateTotalCost(
-			shift?.start_time || "",
-			shift?.end_time || "",
+			shift?.startTime || "",
+			shift?.endTime || "",
 			assignedEmployees
 		);
 	}, [assignedEmployees, shift]);
@@ -549,7 +530,7 @@ export function ShiftDetails({ hideHeader = false }: ShiftDetailsProps) {
 	// Check if shift has ended
 	const hasShiftEnded = useCallback(() => {
 		if (!shift) return false;
-		const endTime = new Date(shift.end_time);
+		const endTime = new Date(shift.endTime);
 		const now = new Date();
 		return endTime < now;
 	}, [shift]);
@@ -644,11 +625,11 @@ export function ShiftDetails({ hideHeader = false }: ShiftDetailsProps) {
 			updateHeader({
 				title: "Shift Details",
 				description: `${format(
-					parseISO(shift.start_time),
+					new Date(shift.startTime), // Use new Date
 					"EEEE, MMMM d, yyyy"
 				)} · 
-					${format(parseISO(shift.start_time), "h:mm a")} - 
-					${format(parseISO(shift.end_time), "h:mm a")} · 
+					${format(new Date(shift.startTime), "h:mm a")} - 
+					${format(new Date(shift.endTime), "h:mm a")} · 
 					${
 						assignedEmployees.length > 0
 							? `${assignedEmployees.length} Assigned`
@@ -671,8 +652,8 @@ export function ShiftDetails({ hideHeader = false }: ShiftDetailsProps) {
 	// Check if shift is in progress
 	const isInProgress = useCallback(() => {
 		if (!shift) return false;
-		const startTime = new Date(shift.start_time);
-		const endTime = new Date(shift.end_time);
+		const startTime = new Date(shift.startTime);
+		const endTime = new Date(shift.endTime);
 		const now = new Date();
 		return now >= startTime && now <= endTime;
 	}, [shift]);
@@ -680,7 +661,7 @@ export function ShiftDetails({ hideHeader = false }: ShiftDetailsProps) {
 	// Check if shift is upcoming
 	const isUpcoming = useCallback(() => {
 		if (!shift) return false;
-		const startTime = new Date(shift.start_time);
+		const startTime = new Date(shift.startTime);
 		const now = new Date();
 		return now < startTime;
 	}, [shift]);
@@ -717,7 +698,7 @@ export function ShiftDetails({ hideHeader = false }: ShiftDetailsProps) {
 					<AlertDescription>
 						This shift is scheduled to start on{" "}
 						{format(
-							parseISO(shift.start_time),
+							new Date(shift.startTime), // Use new Date
 							"EEEE, MMMM d, yyyy 'at' h:mm a"
 						)}
 						.
@@ -799,8 +780,8 @@ export function ShiftDetails({ hideHeader = false }: ShiftDetailsProps) {
 							!assignedEmployees.some((assigned) => assigned.id === employee.id)
 					)}
 					shift={{
-						start_time: shift?.start_time || "",
-						end_time: shift?.end_time || "",
+						startTime: shift?.startTime || new Date().toISOString(),
+						endTime: shift?.endTime || new Date().toISOString(),
 					}}
 					onRemoveEmployeeClick={handleRemoveEmployee}
 					onAssignClick={handleAssignEmployeeDialogOpen}
@@ -876,14 +857,12 @@ export function ShiftDetails({ hideHeader = false }: ShiftDetailsProps) {
 							if (shiftData) {
 								setShift(shiftData);
 								// Also refresh the assigned employees
-								getShiftAssignments(shiftId).then((assignments) => {
+								getShiftAssignments({ shiftId }).then((assignments) => {
 									setShiftAssignments(assignments);
 									// For each assignment, fetch employee details
 									const assignedEmployeePromises = assignments.map(
 										async (assignment) => {
-											const employee = await getEmployee(
-												assignment.employee_id
-											);
+											const employee = await getEmployee(assignment.employeeId);
 											if (employee) {
 												return {
 													...employee,

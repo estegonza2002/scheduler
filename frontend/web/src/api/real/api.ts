@@ -1,5 +1,4 @@
 import { toast } from "sonner";
-import { supabase } from "../../lib/supabase";
 import { format, parseISO } from "date-fns";
 import { db, auth } from "../../lib/firebase"; // Assuming initialized firebase instances
 import {
@@ -39,6 +38,7 @@ import {
 	CheckoutSession,
 	SubscriptionPlan,
 	UserProfile, // Import UserProfile type
+	OrganizationMember, // Import OrganizationMember type
 } from "../types"; // Import from main types file
 
 // Helper function to convert Firestore data (with Timestamps) to Organization type
@@ -354,7 +354,9 @@ export const UserAPI = {
 // Organization Members API (New)
 export const OrganizationMembersAPI = {
 	// Fetches all member entries for a given organization
-	getAllByOrgId: async (organizationId: string): Promise<any[]> => {
+	getAllByOrgId: async (
+		organizationId: string
+	): Promise<OrganizationMember[]> => {
 		// Return type needs refinement
 		if (!organizationId) {
 			console.error("getAllByOrgId called without organizationId.");
@@ -367,8 +369,27 @@ export const OrganizationMembersAPI = {
 				where("organizationId", "==", organizationId)
 			);
 			const querySnapshot = await getDocs(q);
-			// Return documents with their IDs
-			return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+			// Map Firestore data to OrganizationMember type
+			return querySnapshot.docs.map((doc) => {
+				const data = doc.data();
+				return {
+					id: doc.id,
+					organizationId: data.organizationId,
+					userId: data.userId,
+					email: data.email,
+					role: data.role,
+					status: data.status,
+					joinedAt:
+						data.joinedAt instanceof Timestamp
+							? data.joinedAt.toDate().toISOString()
+							: new Date().toISOString(), // Fallback, consider if this makes sense
+					updatedAt:
+						data.updatedAt instanceof Timestamp
+							? data.updatedAt.toDate().toISOString()
+							: new Date().toISOString(), // Fallback
+					invitedByUserId: data.invitedByUserId,
+				} as OrganizationMember; // Type assertion
+			});
 		} catch (error) {
 			console.error("Error fetching organization members:", error);
 			toast.error("Failed to load team members.");
@@ -406,7 +427,7 @@ export const OrganizationMembersAPI = {
 	getByUserIdAndOrgId: async (
 		userId: string,
 		organizationId: string
-	): Promise<any | null> => {
+	): Promise<OrganizationMember | null> => {
 		if (!userId || !organizationId) {
 			console.error(
 				"getByUserIdAndOrgId called without userId or organizationId."
@@ -426,7 +447,25 @@ export const OrganizationMembersAPI = {
 			}
 			// Return the first match (should only be one)
 			const docSnap = querySnapshot.docs[0];
-			return { id: docSnap.id, ...docSnap.data() };
+			const data = docSnap.data();
+			// Map to OrganizationMember type
+			return {
+				id: docSnap.id,
+				organizationId: data.organizationId,
+				userId: data.userId,
+				email: data.email,
+				role: data.role,
+				status: data.status,
+				joinedAt:
+					data.joinedAt instanceof Timestamp
+						? data.joinedAt.toDate().toISOString()
+						: new Date().toISOString(), // Fallback
+				updatedAt:
+					data.updatedAt instanceof Timestamp
+						? data.updatedAt.toDate().toISOString()
+						: new Date().toISOString(), // Fallback
+				invitedByUserId: data.invitedByUserId,
+			} as OrganizationMember; // Type assertion
 		} catch (error) {
 			console.error("Error checking organization membership:", error);
 			// Don't toast here, might be expected check
@@ -441,7 +480,7 @@ export const OrganizationMembersAPI = {
 		email: string,
 		role: "admin" | "member",
 		invitedByUserId: string
-	): Promise<any | null> => {
+	): Promise<OrganizationMember | null> => {
 		if (!organizationId || !email || !role || !invitedByUserId) {
 			console.error("inviteUser called with missing parameters.");
 			toast.error("Missing information required to send invitation.");
@@ -501,20 +540,27 @@ export const OrganizationMembersAPI = {
 			if (!newDocSnap.exists()) {
 				throw new Error("Failed to fetch newly created member document.");
 			}
-			const createdData = newDocSnap.data();
-			const newMember = {
+			const createdData = newDocSnap.data(); // Contains resolved timestamps
+			const newMember: OrganizationMember = {
 				id: newDocSnap.id,
-				...createdData,
-				// Convert Timestamps to ISO strings for consistency if needed, or handle Timestamp objects
-				createdAt:
+				// Use properties from the data originally sent to Firestore
+				organizationId: newMemberData.organizationId,
+				userId: newMemberData.userId, // Will be null initially
+				email: newMemberData.email,
+				role: newMemberData.role,
+				status: newMemberData.status,
+				invitedByUserId: newMemberData.invitedByUserId,
+				// Use resolved timestamps from the fetched document
+				// joinedAt is derived from the Firestore createdAt timestamp
+				joinedAt:
 					createdData.createdAt instanceof Timestamp
 						? createdData.createdAt.toDate().toISOString()
-						: new Date().toISOString(),
+						: new Date().toISOString(), // Fallback
 				updatedAt:
 					createdData.updatedAt instanceof Timestamp
 						? createdData.updatedAt.toDate().toISOString()
-						: new Date().toISOString(),
-			} as any; // Cast to OrganizationMember type
+						: new Date().toISOString(), // Fallback
+			};
 
 			toast.success(`Invitation record created for ${email}.`);
 			return newMember;
@@ -546,8 +592,8 @@ export const OrganizationMembersAPI = {
 	},
 };
 
-// Helper function to map Firestore doc data to Shift/Schedule type
-const mapDocToShift = (docSnap: DocumentSnapshot): Shift => {
+// Helper function to map Firestore doc data to Shift type
+export const mapDocToShift = (docSnap: DocumentSnapshot): Shift => {
 	const data = docSnap.data() as any; // Use 'any' for flexibility, ensure fields exist
 	const shift: Shift = {
 		id: docSnap.id,
@@ -1071,7 +1117,7 @@ export const LocationsAPI = {
 };
 
 // Helper function to map Firestore doc data to Employee type
-const mapDocToEmployee = (docSnap: DocumentSnapshot): Employee => {
+export const mapDocToEmployee = (docSnap: DocumentSnapshot): Employee => {
 	const data = docSnap.data() as any;
 	const employee: Employee = {
 		id: docSnap.id,

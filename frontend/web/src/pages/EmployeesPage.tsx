@@ -68,7 +68,6 @@ import { FilterGroup } from "@/components/ui/filter-group";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingState } from "@/components/ui/loading-state";
 import { EmployeeStatusBadge } from "@/components/ui/employee-status-badge";
-import { useEmployeePresenceWithNotifications } from "@/lib/presence";
 import {
 	Tooltip,
 	TooltipContent,
@@ -90,31 +89,7 @@ import {
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useHeader } from "@/lib/header-context";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
-import { supabase } from "@/lib/supabase";
-import {
-	RealtimeChannel,
-	RealtimePostgresChangesPayload,
-} from "@supabase/supabase-js";
 import { useAuth } from "@/lib/auth";
-
-// Interface for the raw employee data from Supabase (snake_case)
-interface EmployeeSupabaseRow {
-	id: string;
-	organization_id: string;
-	name: string;
-	email: string;
-	position?: string | null;
-	phone?: string | null;
-	hire_date?: string | null;
-	address?: string | null;
-	emergency_contact?: string | null;
-	notes?: string | null;
-	avatar?: string | null;
-	hourly_rate?: number | string | null;
-	status: string;
-	is_online?: boolean | null;
-	last_active?: string | null;
-}
 
 export default function EmployeesPage() {
 	const { updateHeader } = useHeader();
@@ -127,182 +102,9 @@ export default function EmployeesPage() {
 	const [currentPage, setCurrentPage] = useState(1);
 	const [pageSize, setPageSize] = useState(10);
 	const [employeeDialogOpen, setEmployeeDialogOpen] = useState(false);
-	const [employeesChannel, setEmployeesChannel] =
-		useState<RealtimeChannel | null>(null);
 	const { user } = useAuth();
 	const [searchParams, setSearchParams] = useSearchParams();
-
-	const {
-		initialized: presenceInitialized,
-		toggleNotifications,
-		notificationsEnabled,
-	} = useEmployeePresenceWithNotifications(organizationId || "");
 	const navigate = useNavigate();
-
-	// Setup Supabase real-time subscriptions
-	const setupRealtimeSubscriptions = useCallback((orgId: string) => {
-		if (!orgId) return;
-
-		console.log(
-			`Setting up real-time subscriptions for organization: ${orgId}`
-		);
-
-		if (employeesChannel) {
-			employeesChannel.unsubscribe();
-		}
-
-		const employeesSubscription = supabase
-			.channel("employees-changes")
-			.on(
-				"postgres_changes",
-				{
-					event: "*",
-					schema: "public",
-					table: "employees",
-					filter: `organization_id=eq.${orgId}`,
-				},
-				(payload: any) => {
-					console.log("Employee data changed:", payload);
-
-					if (payload.eventType === "INSERT") {
-						console.log("New employee added:", payload.new);
-						const newEmployee = {
-							id: payload.new?.id,
-							organizationId: payload.new?.organization_id,
-							name: payload.new?.name,
-							email: payload.new?.email,
-							position: payload.new?.position,
-							phone: payload.new?.phone,
-							hireDate: payload.new?.hire_date,
-							address: payload.new?.address,
-							emergencyContact: payload.new?.emergency_contact,
-							notes: payload.new?.notes,
-							avatar: payload.new?.avatar,
-							hourlyRate:
-								payload.new?.hourly_rate != null
-									? parseFloat(String(payload.new.hourly_rate))
-									: undefined,
-							status: payload.new?.status,
-							isOnline: payload.new?.is_online,
-							lastActive: payload.new?.last_active,
-						} as Employee;
-						setEmployees((prevEmployees) =>
-							[...prevEmployees, newEmployee].filter((emp) => emp.id)
-						);
-					} else if (payload.eventType === "UPDATE") {
-						console.log("Employee updated:", payload.new);
-						const updatedEmployee = {
-							id: payload.new?.id,
-							organizationId: payload.new?.organization_id,
-							name: payload.new?.name,
-							email: payload.new?.email,
-							position: payload.new?.position,
-							phone: payload.new?.phone,
-							hireDate: payload.new?.hire_date,
-							address: payload.new?.address,
-							emergencyContact: payload.new?.emergency_contact,
-							notes: payload.new?.notes,
-							avatar: payload.new?.avatar,
-							hourlyRate:
-								payload.new?.hourly_rate != null
-									? parseFloat(String(payload.new.hourly_rate))
-									: undefined,
-							status: payload.new?.status,
-							isOnline: payload.new?.is_online,
-							lastActive: payload.new?.last_active,
-						} as Employee;
-						if (updatedEmployee.id) {
-							setEmployees((prevEmployees) =>
-								prevEmployees.map((emp) =>
-									emp.id === updatedEmployee.id ? updatedEmployee : emp
-								)
-							);
-						}
-					} else if (payload.eventType === "DELETE") {
-						console.log("Employee deleted:", payload.old);
-						const deletedId = payload.old?.id;
-						if (deletedId) {
-							setEmployees((prevEmployees) =>
-								prevEmployees.filter((emp) => emp.id !== deletedId)
-							);
-						}
-					} else {
-						const refreshData = async () => {
-							try {
-								console.log(
-									`Reloading employees due to ${payload.eventType} event`
-								);
-								const refreshedEmployees = await EmployeesAPI.getAll(orgId);
-								setEmployees(refreshedEmployees);
-							} catch (error) {
-								console.error("Error reloading employees:", error);
-							}
-						};
-						refreshData();
-					}
-				}
-			)
-			.subscribe((status) => {
-				console.log("Employees subscription status:", status);
-			});
-
-		setEmployeesChannel(employeesSubscription);
-	}, []);
-
-	// Listen for employee-added events from the system header
-	useEffect(() => {
-		const handleEmployeeAdded = (event: CustomEvent<Employee>) => {
-			if (event.detail) {
-				setEmployees((prev) => [...prev, event.detail]);
-			}
-		};
-
-		const handleEmployeeUpdated = (event: CustomEvent<Employee>) => {
-			if (event.detail) {
-				setEmployees((prev) =>
-					prev.map((emp) => (emp.id === event.detail.id ? event.detail : emp))
-				);
-			}
-		};
-
-		const handleEmployeeDeleted = (event: CustomEvent<string>) => {
-			if (event.detail) {
-				setEmployees((prev) => prev.filter((emp) => emp.id !== event.detail));
-			}
-		};
-
-		window.addEventListener(
-			"employee-added",
-			handleEmployeeAdded as EventListener
-		);
-
-		window.addEventListener(
-			"employee-updated",
-			handleEmployeeUpdated as EventListener
-		);
-
-		window.addEventListener(
-			"employee-deleted",
-			handleEmployeeDeleted as EventListener
-		);
-
-		return () => {
-			window.removeEventListener(
-				"employee-added",
-				handleEmployeeAdded as EventListener
-			);
-
-			window.removeEventListener(
-				"employee-updated",
-				handleEmployeeUpdated as EventListener
-			);
-
-			window.removeEventListener(
-				"employee-deleted",
-				handleEmployeeDeleted as EventListener
-			);
-		};
-	}, []);
 
 	// Initial data fetch and setup
 	useEffect(() => {
@@ -327,8 +129,6 @@ export default function EmployeesPage() {
 				fetchedEmployees = await EmployeesAPI.getAll(organizationId);
 				if (isMounted) {
 					setEmployees(fetchedEmployees);
-					// Set up subscriptions *after* getting employees and ensuring we have org ID
-					setupRealtimeSubscriptions(organizationId);
 				}
 			} catch (error) {
 				console.error("Error fetching initial employee data:", error);
@@ -344,13 +144,9 @@ export default function EmployeesPage() {
 		// Cleanup function
 		return () => {
 			isMounted = false; // Mark component as unmounted
-			if (employeesChannel) {
-				console.log("Cleaning up employees subscription");
-				employeesChannel.unsubscribe();
-			}
 		};
 		// Depend on organization context state
-	}, [organizationId, isOrgLoading, setupRealtimeSubscriptions]);
+	}, [organizationId, isOrgLoading]);
 
 	// Calculate pagination for card view
 	const paginatedEmployees = useMemo(() => {
@@ -361,8 +157,8 @@ export default function EmployeesPage() {
 
 	// Set the page header on component mount and when data/loading/presence state changes
 	useEffect(() => {
-		// Wait for both loading to finish and presence to initialize
-		if (isLoading || !presenceInitialized || !organizationId) {
+		// Wait for loading to finish
+		if (isLoading || !organizationId) {
 			// Optionally set a loading state for the header
 			updateHeader({
 				title: "Employees",
@@ -431,31 +227,6 @@ export default function EmployeesPage() {
 						</Button>
 					)}
 
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<Button
-								size="icon"
-								variant="ghost"
-								onClick={() => toggleNotifications()}
-								disabled={!presenceInitialized}
-								className={cn(
-									"relative",
-									notificationsEnabled && "text-primary"
-								)}>
-								{notificationsEnabled ? (
-									<BellRing className="h-4 w-4" />
-								) : (
-									<BellOff className="h-4 w-4" />
-								)}
-							</Button>
-						</TooltipTrigger>
-						<TooltipContent>
-							{notificationsEnabled
-								? "Disable status notifications"
-								: "Enable status notifications"}
-						</TooltipContent>
-					</Tooltip>
-
 					<Button
 						className="bg-primary text-primary-foreground"
 						onClick={() => setEmployeeDialogOpen(true)}>
@@ -502,11 +273,6 @@ export default function EmployeesPage() {
 		updateHeader,
 		employees,
 		searchParams,
-		toggleNotifications,
-		presenceInitialized,
-		notificationsEnabled,
-		organizationId, // Use ID from context
-		isLoading,
 		setSearchParams,
 		employeeDialogOpen,
 		setEmployeeDialogOpen,
@@ -540,7 +306,7 @@ export default function EmployeesPage() {
 										.map((n) => n[0])
 										.join("")
 										.toUpperCase()}
-									isOnline={row.original.isOnline}
+									isOnline={false}
 									status={row.original.status as any}
 									size="sm"
 								/>
@@ -600,7 +366,7 @@ export default function EmployeesPage() {
 					return (
 						<EmployeeStatusBadge
 							status={employee.status as any}
-							isOnline={employee.isOnline}
+							isOnline={false}
 							compact
 						/>
 					);

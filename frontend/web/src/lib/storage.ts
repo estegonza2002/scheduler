@@ -1,31 +1,33 @@
-import { supabase } from "./supabase";
+import {
+	getStorage,
+	ref,
+	uploadBytes,
+	getDownloadURL,
+	deleteObject,
+} from "firebase/storage";
+import { getAuth } from "firebase/auth";
 import { v4 as uuidv4 } from "uuid";
+import { app } from "./firebase"; // Assuming firebase initializes and exports 'app'
+
+// Get Firebase services
+const storage = getStorage(app);
+const auth = getAuth(app);
 
 /**
- * Uploads an image to Supabase Storage
+ * Uploads an image to Firebase Cloud Storage
  */
 export async function uploadImage(
 	file: File,
-	bucket: string = "location-images",
-	folder: string = "public"
+	bucketPath: string = "location-images/public" // Firebase uses a single path structure
 ): Promise<string> {
 	try {
-		console.log(`Attempting to upload to bucket: ${bucket}`);
+		console.log(`Attempting to upload to path: ${bucketPath}`);
 
 		// Check authentication status first
-		const { data: authData, error: authError } =
-			await supabase.auth.getSession();
-		console.log(
-			"Auth session:",
-			authData?.session ? "Authenticated" : "Not authenticated"
-		);
+		const user = auth.currentUser;
+		console.log("Auth status:", user ? "Authenticated" : "Not authenticated");
 
-		if (authError) {
-			console.error("Auth error:", authError);
-			throw new Error("Authentication error: " + authError.message);
-		}
-
-		if (!authData?.session) {
+		if (!user) {
 			console.error("User not authenticated");
 			throw new Error("User not authenticated");
 		}
@@ -33,103 +35,80 @@ export async function uploadImage(
 		// Generate a unique file name
 		const fileExt = file.name.split(".").pop();
 		const fileName = `${uuidv4()}.${fileExt}`;
-
-		// Always use a folder path format that matches your policy
-		const filePath = `${folder}/${fileName}`;
+		const filePath = `${bucketPath}/${fileName}`; // Full path including folders
 
 		console.log(`File path for upload: ${filePath}`);
-		console.log(`User ID for upload: ${authData.session.user.id}`);
+		console.log(`User ID for upload: ${user.uid}`);
 
-		// Upload the file to Supabase
-		const { data, error } = await supabase.storage
-			.from(bucket)
-			.upload(filePath, file, {
-				cacheControl: "3600",
-				upsert: true,
-			});
+		// Create a storage reference
+		const storageRef = ref(storage, filePath);
 
-		if (error) {
-			console.error("Error uploading file:", error);
-			throw error;
-		}
+		// Upload the file to Firebase Storage
+		const snapshot = await uploadBytes(storageRef, file, {
+			cacheControl: "public, max-age=3600", // Example cache control
+		});
+		console.log("Upload successful, snapshot:", snapshot);
 
-		console.log("Upload successful, data:", data);
+		// Get the public download URL
+		const downloadURL = await getDownloadURL(snapshot.ref);
 
-		// Get the public URL
-		const { data: publicUrlData } = supabase.storage
-			.from(bucket)
-			.getPublicUrl(data.path);
-
-		console.log("Public URL:", publicUrlData);
-		return publicUrlData.publicUrl;
-	} catch (error) {
+		console.log("Download URL:", downloadURL);
+		return downloadURL;
+	} catch (error: any) {
 		console.error("Exception in uploadImage:", error);
-		throw error;
+		// Log specific Firebase Storage errors if available
+		if (error.code) {
+			console.error(
+				`Firebase Storage Error Code: ${error.code}, Message: ${error.message}`
+			);
+		}
+		throw error; // Re-throw the error after logging
 	}
 }
 
 /**
- * Deletes an image from Supabase Storage
+ * Deletes an image from Firebase Cloud Storage using its download URL
  */
-export async function deleteImage(
-	url: string,
-	bucket: string = "location-images"
-): Promise<boolean> {
+export async function deleteImage(url: string): Promise<boolean> {
 	try {
-		// Skip if not a valid URL
-		if (!url.startsWith("http")) {
-			return true;
+		// Basic check if it looks like a Firebase Storage URL
+		if (!url || !url.includes("firebasestorage.googleapis.com")) {
+			console.log("Skipping deletion, not a valid Firebase Storage URL:", url);
+			return true; // Or false, depending on desired behavior for invalid URLs
 		}
 
 		// Check authentication status first
-		const { data: authData, error: authError } =
-			await supabase.auth.getSession();
-		if (authError) {
-			console.error("Auth error:", authError);
-			throw new Error("Authentication error: " + authError.message);
-		}
-
-		if (!authData?.session) {
-			console.error("User not authenticated");
+		const user = auth.currentUser;
+		if (!user) {
+			console.error("User not authenticated for deletion");
 			throw new Error("User not authenticated");
 		}
 
 		console.log(`Attempting to delete from URL: ${url}`);
-		console.log(`User ID for deletion: ${authData.session.user.id}`);
+		console.log(`User ID for deletion: ${user.uid}`);
 
-		// Extract the file path from the URL
-		// The format is typically: https://[project-ref].supabase.co/storage/v1/object/public/[bucket]/[path]
-		const path = new URL(url).pathname;
-		const segments = path.split("/");
+		// Create a reference from the download URL
+		const storageRef = ref(storage, url);
 
-		// Find the position of the bucket name and "public" in the path
-		const bucketIndex = segments.indexOf(bucket);
-		const publicIndex = segments.indexOf("public");
+		console.log(`Deleting file reference: ${storageRef.fullPath}`);
 
-		// Construct the file path relative to the bucket
-		let filePath;
-		if (bucketIndex !== -1 && publicIndex !== -1 && publicIndex > bucketIndex) {
-			// If both bucket and "public" are found, extract the path after "public"
-			filePath = segments.slice(publicIndex).join("/");
-		} else {
-			// Fallback: just extract the filename
-			filePath = segments.pop() || "";
-			// Ensure we include the public folder
-			filePath = `public/${filePath}`;
-		}
+		// Delete the file
+		await deleteObject(storageRef);
 
-		console.log(`Deleting file: ${filePath}`);
-
-		const { error } = await supabase.storage.from(bucket).remove([filePath]);
-
-		if (error) {
-			console.error("Error deleting file:", error);
-			return false;
-		}
-
+		console.log("Deletion successful for:", url);
 		return true;
-	} catch (error) {
+	} catch (error: any) {
 		console.error("Exception in deleteImage:", error);
-		return false;
+		// Log specific Firebase Storage errors if available
+		if (error.code === "storage/object-not-found") {
+			console.warn("Attempted to delete an object that does not exist:", url);
+			// Decide if this should be treated as success (it's already gone) or failure
+			return true; // Assuming idempotency: if it's gone, the goal is achieved.
+		} else if (error.code) {
+			console.error(
+				`Firebase Storage Error Code: ${error.code}, Message: ${error.message}`
+			);
+		}
+		return false; // Return false on error
 	}
 }

@@ -1,0 +1,13 @@
+{
+	"mcpServers": {
+		"firebase-mcp": {
+			"command": "node",
+			"args": [
+				"/Users/gonzalefam/Documents/Scheduler/frontend/web/mcp-server-firebase/dist/index.js"
+			],
+			"env": {
+				"SERVICE_ACCOUNT_KEY_PATH": "/Users/gonzalefam/Documents/Scheduler/frontend/web/secrets/schedule-dev-561-firebase-adminsdk-fbsvc-48ca7833c1.json"
+			}
+		}
+	}
+}

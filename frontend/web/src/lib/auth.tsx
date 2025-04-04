@@ -21,12 +21,16 @@ import {
 	UserCredential, // Type for sign-in/sign-up results
 } from "firebase/auth";
 import { auth } from "./firebase"; // Import initialized Firebase auth instance
+// API and Type Imports
+import { OrganizationMembersAPI } from "@/api";
+import { OrganizationMember } from "@/api/types";
 
 // Updated interface for Firebase
 interface AuthContextType {
 	user: FirebaseUser | null;
-	// session: Session | null; // Removed session, Firebase User object contains necessary info
-	isLoading: boolean;
+	currentMembership: OrganizationMember | null; // Added membership state
+	isLoading: boolean; // Initial auth check loading
+	isMembershipLoading: boolean; // Loading state for membership data
 	// --- Updated Function Signatures (Placeholders for now) ---
 	signUp: (
 		email: string,
@@ -59,18 +63,50 @@ export function useAuth() {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
 	const [user, setUser] = useState<FirebaseUser | null>(null);
-	// const [session, setSession] = useState<Session | null>(null); // Removed session state
-	const [isLoading, setIsLoading] = useState(true); // Start loading until auth state is known
+	const [currentMembership, setCurrentMembership] =
+		useState<OrganizationMember | null>(null);
+	const [isLoading, setIsLoading] = useState(true); // For initial auth state check
+	const [isMembershipLoading, setIsMembershipLoading] = useState(true); // For membership fetch
 
 	useEffect(() => {
 		// Set up Firebase auth state listener
-		const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+		const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
 			console.log(
 				"Firebase Auth state changed, user:",
 				currentUser ? currentUser.uid : null
 			);
 			setUser(currentUser);
-			setIsLoading(false); // Set loading false once auth state is determined
+			setIsLoading(false); // Initial auth check done
+
+			if (currentUser) {
+				setIsMembershipLoading(true);
+				// Attempt to get active org ID from localStorage
+				const activeOrgId = localStorage.getItem("activeOrganizationId");
+				console.log("Found activeOrgId in localStorage:", activeOrgId);
+
+				if (activeOrgId) {
+					try {
+						const membership = await OrganizationMembersAPI.getByUserIdAndOrgId(
+							currentUser.uid,
+							activeOrgId
+						);
+						setCurrentMembership(membership); // Will be null if not found
+						console.log("Fetched membership:", membership);
+					} catch (error) {
+						console.error("Error fetching organization membership:", error);
+						setCurrentMembership(null); // Set to null on error
+					}
+				} else {
+					// No active org selected yet
+					console.log("No active organization ID found in localStorage.");
+					setCurrentMembership(null);
+				}
+				setIsMembershipLoading(false);
+			} else {
+				// User logged out
+				setCurrentMembership(null);
+				setIsMembershipLoading(false); // Not loading if no user
+			}
 		});
 
 		// Cleanup subscription on unmount
@@ -203,8 +239,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 	const value = {
 		user,
-		// session, // Removed session
+		currentMembership, // Added
 		isLoading,
+		isMembershipLoading, // Added
 		signUp,
 		signIn,
 		signInWithGoogle,

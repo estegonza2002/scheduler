@@ -1,369 +1,309 @@
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
-import { z } from "zod";
+import * as z from "zod";
+import { useAuth } from "@/lib/auth"; // Keep useAuth import
+import { User } from "firebase/auth"; // Import User directly from firebase/auth
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User as AuthUser } from "@supabase/supabase-js"; // Alias to avoid name clash
-import { User, Trash2, Loader2, Upload } from "lucide-react"; // User icon used for fallback
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"; // Import Avatar components
+import { uploadImage, deleteImage } from "@/lib/storage"; // Import storage functions
+import { Loader2, Upload, X } from "lucide-react"; // Import icons
 import {
 	Form,
 	FormControl,
+	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,
 	FormMessage,
-	FormDescription, // Added for avatar hint text
 } from "@/components/ui/form";
-import { supabase } from "@/lib/supabase";
-import { FormPhoneInput } from "@/components/ui/form-phone-input";
-import { isValidPhoneNumber } from "react-phone-number-input";
-import { FormSection } from "@/components/ui/form-section";
 
-// Define form schema for validation (copied from ProfilePage)
+// Define form schema without avatar (handled separately)
 const profileSchema = z.object({
-	firstName: z.string().min(2, "First name is required"),
-	lastName: z.string().min(2, "Last name is required"),
+	firstName: z.string().min(1, "First name is required"),
+	lastName: z.string().min(1, "Last name is required"),
 	email: z.string().email("Invalid email address"),
-	phone: z
-		.string()
-		.optional()
-		.refine(
-			(val) => !val || isValidPhoneNumber(val),
-			"Please enter a valid phone number"
-		),
-	// Avatar is handled separately, not part of form data validation
 });
 
-type ProfileFormValues = z.infer<typeof profileSchema>;
-
-// Bucket name (copied from ProfilePage)
-const BUCKET_NAME = "avatars";
+type EditProfileFormValues = z.infer<typeof profileSchema>;
 
 interface EditProfileModalProps {
-	user: AuthUser | null;
-	updateUserMetadata: (
-		metadata: Record<string, any>
-	) => Promise<{ error: any }>;
+	user: User | null; // Use the imported User type
 	onClose: () => void;
 }
 
-export function EditProfileModal({
-	user,
-	updateUserMetadata,
-	onClose,
-}: EditProfileModalProps) {
+export function EditProfileModal({ user, onClose }: EditProfileModalProps) {
+	const { updateUserProfile } = useAuth();
 	const [isLoading, setIsLoading] = useState(false);
-	const [profileImage, setProfileImage] = useState<string | null>(null); // Base64 or URL
-	const [imageFile, setImageFile] = useState<File | null>(null); // For upload
+	const [profileImagePreview, setProfileImagePreview] = useState<string | null>(
+		null
+	); // For local preview
+	const [imageFile, setImageFile] = useState<File | null>(null); // The actual file to upload
+	const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+	const [imageRemoved, setImageRemoved] = useState(false); // Flag to track if user explicitly removed image
 
-	const profileForm = useForm<ProfileFormValues>({
+	const form = useForm<EditProfileFormValues>({
 		resolver: zodResolver(profileSchema),
 		defaultValues: {
-			firstName: user?.user_metadata?.firstName || "",
-			lastName: user?.user_metadata?.lastName || "",
-			email: user?.email || "",
-			phone: user?.user_metadata?.phone || "",
+			firstName: "",
+			lastName: "",
+			email: "",
 		},
 	});
 
-	// Get user initials for avatar fallback
-	const getInitials = () => {
-		const firstName = user?.user_metadata?.firstName || "";
-		const lastName = user?.user_metadata?.lastName || "";
-		if (!firstName && !lastName) return <User className="h-8 w-8" />; // Default icon
-		return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
-	};
-
-	// Get profile image URL on initial load
+	// Populate form and image preview effect
 	useEffect(() => {
-		if (user?.user_metadata?.avatar_url) {
-			setProfileImage(user.user_metadata.avatar_url);
-		} else {
-			setProfileImage(null); // Ensure it's reset if no URL
+		if (user) {
+			const nameParts = user.displayName?.split(" ") || [];
+			form.reset({
+				firstName: nameParts[0] || "",
+				lastName: nameParts.slice(1).join(" ") || "",
+				email: user.email || "",
+			});
+			setProfileImagePreview(user.photoURL); // Set initial preview from user profile
+			setImageFile(null); // Reset selected file
+			setImageRemoved(false); // Reset removal flag
 		}
-	}, [user]); // Depend only on user object
+	}, [user, form]);
 
-	// Handle profile picture selection
-	const handleProfilePictureChange = (
-		e: React.ChangeEvent<HTMLInputElement>
-	) => {
-		const files = e.target.files;
-		if (!files || files.length === 0) return;
-
-		const file = files[0];
-		setImageFile(file); // Store the file for upload
-
-		// Show preview
-		const reader = new FileReader();
-		reader.onload = () => {
-			const result = reader.result as string;
-			setProfileImage(result); // Show base64 preview
-		};
-		reader.readAsDataURL(file);
+	// Handle new image selection
+	const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+		const file = event.target.files?.[0];
+		if (file) {
+			if (!file.type.startsWith("image/")) {
+				toast.error("Please select an image file.");
+				return;
+			}
+			if (file.size > 2 * 1024 * 1024) {
+				// 2MB limit
+				toast.error("Image size must be less than 2MB.");
+				return;
+			}
+			setImageFile(file);
+			setProfileImagePreview(URL.createObjectURL(file)); // Show local preview
+			setImageRemoved(false); // If a new image is selected, it overrides removal intent
+			event.target.value = ""; // Clear input value
+		}
 	};
 
-	// Handle removing profile picture
-	const handleRemoveProfilePicture = async () => {
+	// Handle removal of the selected/current image preview
+	const handleRemoveImage = () => {
 		setImageFile(null); // Clear selected file
-		setProfileImage(null); // Clear preview
+		setProfileImagePreview(null); // Clear preview
+		setImageRemoved(true); // Mark that the user wants to remove the image
 	};
 
-	// Handle form submission
-	const onProfileSubmit = async (values: ProfileFormValues) => {
+	const onSubmit = async (values: EditProfileFormValues) => {
+		if (!user) {
+			toast.error("User data not available.");
+			return;
+		}
 		setIsLoading(true);
+		setIsUploadingAvatar(true); // Show loading indicator for potential upload
+
+		let photoUrlToUpdate: string | null = user.photoURL; // Start with existing URL
+		let uploadError = false;
+
 		try {
-			let avatarUrl = user?.user_metadata?.avatar_url; // Start with existing URL
-			let deleteOldAvatar = false;
-			const oldAvatarFileName = avatarUrl
-				? avatarUrl.split(`/${BUCKET_NAME}/`).pop()
-				: null;
-
-			// 1. Handle Avatar Upload/Removal
+			// 1. Handle Image Upload/Removal
 			if (imageFile) {
-				// New image selected for upload
-				const userId = user?.id;
-				if (!userId) throw new Error("User ID is required for avatar upload");
-
-				// Delete old avatar if it exists
-				if (oldAvatarFileName) {
-					deleteOldAvatar = true;
-				}
-
-				// Corrected string splitting for file extension
-				const fileExt = imageFile.name.split(".").pop();
-				const fileName = `${userId}-${Date.now()}.${fileExt}`;
-				const filePath = `${fileName}`; // Store at bucket root for simplicity
-
-				// Upload to Supabase Storage
-				const { error: uploadError, data: uploadData } = await supabase.storage
-					.from(BUCKET_NAME)
-					.upload(filePath, imageFile, {
-						upsert: true, // Overwrite if somehow filename clashes (unlikely)
-					});
-
-				if (uploadError)
-					throw new Error(`Avatar Upload Failed: ${uploadError.message}`);
-
-				// Get public URL for the file
-				const { data: publicUrlData } = supabase.storage
-					.from(BUCKET_NAME)
-					.getPublicUrl(filePath);
-
-				avatarUrl = publicUrlData.publicUrl;
-			} else if (profileImage === null && user?.user_metadata?.avatar_url) {
-				// Image explicitly removed (profileImage is null, but metadata had one)
-				avatarUrl = undefined; // Signal to remove the URL from metadata
-				if (oldAvatarFileName) {
-					deleteOldAvatar = true;
-				}
-			}
-
-			// 2. Update User Metadata
-			const updatedMetadata: Record<string, any> = {
-				...user?.user_metadata,
-				firstName: values.firstName,
-				lastName: values.lastName,
-				phone: values.phone,
-				avatar_url: avatarUrl, // Set new URL or undefined to remove
-			};
-			// Ensure avatar_url is actually deleted if undefined
-			if (avatarUrl === undefined) {
-				delete updatedMetadata.avatar_url;
-			}
-
-			const { error: metadataError } = await updateUserMetadata(
-				updatedMetadata
-			);
-			if (metadataError) {
-				// If metadata update fails, try to roll back avatar upload? Maybe too complex. Log error.
-				console.error("Metadata update failed:", metadataError);
-				throw new Error(`Failed to update profile: ${metadataError.message}`);
-			}
-
-			// 3. Update Email (if changed) - Separate Auth call
-			if (values.email !== user?.email) {
-				const { error: emailError } = await supabase.auth.updateUser({
-					email: values.email,
-				});
-				if (emailError)
-					throw new Error(`Email Update Failed: ${emailError.message}`);
-				toast.info(
-					"Verification email sent. Please check your inbox to confirm your new email address."
-				);
-			}
-
-			// 4. Delete Old Avatar from Storage (if necessary and metadata update succeeded)
-			if (deleteOldAvatar && oldAvatarFileName) {
-				const { error: deleteError } = await supabase.storage
-					.from(BUCKET_NAME)
-					.remove([oldAvatarFileName]);
-				if (deleteError) {
-					// Log error but don't fail the whole operation, metadata is updated
-					console.error("Failed to delete old avatar:", deleteError);
-					toast.warning(
-						"Profile updated, but failed to remove old avatar image."
+				// Upload new image
+				const storagePath = `profile-images/${user.uid}/${imageFile.name}`;
+				try {
+					const newPhotoURL = await uploadImage(imageFile, storagePath);
+					// Delete old image *after* successful upload of new one
+					if (user.photoURL) {
+						try {
+							await deleteImage(user.photoURL);
+						} catch (deleteErr) {
+							console.warn("Failed to delete old profile image:", deleteErr);
+							// Non-critical, proceed with update
+						}
+					}
+					photoUrlToUpdate = newPhotoURL;
+				} catch (uploadErr) {
+					console.error("Failed to upload new profile image:", uploadErr);
+					toast.error(
+						`Failed to upload image: ${
+							uploadErr instanceof Error ? uploadErr.message : "Unknown error"
+						}`
 					);
+					uploadError = true; // Flag error to prevent profile update if desired
+				}
+			} else if (imageRemoved && user.photoURL) {
+				// Remove existing image if flagged and one exists
+				try {
+					await deleteImage(user.photoURL);
+					photoUrlToUpdate = null; // Set to null for removal
+				} catch (deleteErr) {
+					console.warn("Failed to delete profile image:", deleteErr);
+					toast.warning(
+						`Failed to delete image from storage, but it will be removed from your profile.`
+					);
+					// Still set to null even if storage deletion failed
+					photoUrlToUpdate = null;
 				}
 			}
 
-			toast.success("Profile updated successfully!");
-			onClose(); // Close modal on success
-			// Optionally trigger a refresh on the parent page if needed, especially for avatar
-			// window.location.reload(); // Or pass a refresh callback
-		} catch (error) {
-			console.error("Error updating profile:", error);
-			const errorMessage =
-				error instanceof Error ? error.message : "An unknown error occurred";
-			toast.error(`Failed to update profile: ${errorMessage}`);
+			// 2. Update Profile (only if image operations didn't critically fail)
+			if (!uploadError) {
+				const displayName = `${values.firstName} ${values.lastName}`.trim();
+				const profileData: { displayName?: string; photoURL?: string | null } =
+					{};
+
+				let profileUpdated = false;
+				if (displayName !== user.displayName) {
+					profileData.displayName = displayName;
+					profileUpdated = true;
+				}
+				// Only include photoURL in update if it changed
+				if (photoUrlToUpdate !== user.photoURL) {
+					profileData.photoURL = photoUrlToUpdate;
+					profileUpdated = true;
+				}
+
+				if (profileUpdated) {
+					await updateUserProfile(profileData);
+					toast.success("Profile updated successfully!");
+				} else {
+					toast.info("No changes detected.");
+				}
+
+				// Close modal only on success or no changes
+				onClose();
+			}
+		} catch (error: any) {
+			console.error("Failed to update profile:", error);
+			toast.error(`Update failed: ${error.message}`);
 		} finally {
 			setIsLoading(false);
+			setIsUploadingAvatar(false);
 		}
+	};
+
+	const getInitials = (name: string | null | undefined): string => {
+		if (!name) return "?";
+		const parts = name.split(" ");
+		if (parts.length === 1) return parts[0][0]?.toUpperCase() || "?";
+		return (
+			(parts[0][0]?.toUpperCase() || "") +
+			(parts[parts.length - 1][0]?.toUpperCase() || "")
+		);
 	};
 
 	return (
-		<>
-			{/* Form Section for Name, Email, Phone */}
-			<Form {...profileForm}>
-				<form
-					id="edit-profile-form" // ID for DialogFooter button to trigger submit
-					onSubmit={profileForm.handleSubmit(onProfileSubmit)}
-					className="space-y-4 pt-4">
-					<FormField
-						control={profileForm.control}
-						name="firstName"
-						render={({ field }) => (
-							<FormItem>
-								<FormLabel>First Name</FormLabel>
-								<FormControl>
-									<Input
-										placeholder="Enter your first name"
-										{...field}
-									/>
-								</FormControl>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
-					<FormField
-						control={profileForm.control}
-						name="lastName"
-						render={({ field }) => (
-							<FormItem>
-								<FormLabel>Last Name</FormLabel>
-								<FormControl>
-									<Input
-										placeholder="Enter your last name"
-										{...field}
-									/>
-								</FormControl>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
-					<FormField
-						control={profileForm.control}
-						name="email"
-						render={({ field }) => (
-							<FormItem>
-								<FormLabel>Email</FormLabel>
-								<FormControl>
-									<Input
-										type="email"
-										placeholder="Enter your email"
-										{...field}
-									/>
-								</FormControl>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
-					<FormField
-						control={profileForm.control}
-						name="phone"
-						render={(
-							{ field } // field contains { value, onChange, onBlur, name, ref }
-						) => (
-							<FormItem>
-								<FormLabel>Phone Number</FormLabel>
-								<FormControl>
-									{/* Pass control and name to the custom phone input */}
-									<FormPhoneInput
-										control={profileForm.control}
-										name="phone"
-										placeholder="Enter your phone number"
-										// The 'field' object from render is automatically handled by FormPhoneInput's useController
-									/>
-								</FormControl>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
-				</form>
-			</Form>
-
-			{/* FormSection for Profile Picture */}
-			<FormSection
-				title="Profile Picture"
-				description="Upload or remove your profile picture."
-				className="pt-6" // Add some top padding
-			>
-				<div className="flex items-center gap-4">
-					{" "}
-					{/* Changed from items-start */}
-					<Avatar className="h-20 w-20">
-						{" "}
-						{/* Slightly smaller avatar */}
-						{profileImage ? (
-							<AvatarImage
-								src={profileImage}
-								alt="Profile Preview"
-							/>
-						) : (
-							<AvatarFallback>{getInitials()}</AvatarFallback>
-						)}
+		<Form {...form}>
+			<form
+				id="edit-profile-form" // ID for potential external submit button
+				onSubmit={form.handleSubmit(onSubmit)}
+				className="space-y-6 pt-4">
+				{/* Avatar Section */}
+				<div className="space-y-2 flex flex-col items-center">
+					<Label htmlFor="profile-picture-upload">Profile Picture</Label>
+					<Avatar className="h-24 w-24">
+						<AvatarImage src={profileImagePreview || undefined} />
+						<AvatarFallback>{getInitials(user?.displayName)}</AvatarFallback>
 					</Avatar>
-					<div className="flex flex-col gap-2">
-						{" "}
-						{/* Use column layout for buttons */}
+					<div className="flex items-center gap-2">
 						<Button
-							type="button"
-							variant="outline"
 							size="sm"
-							className="relative">
-							<input
-								type="file"
-								className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-								onChange={handleProfilePictureChange}
-								accept="image/png, image/jpeg, image/gif" // Be specific
-							/>
-							<Upload className="mr-2 h-4 w-4" />
-							{profileImage ? "Change Image" : "Upload Image"}
+							variant="outline"
+							type="button"
+							asChild>
+							<Label
+								htmlFor="profile-picture-upload"
+								className="cursor-pointer">
+								{isUploadingAvatar ? (
+									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+								) : (
+									<Upload className="mr-2 h-4 w-4" />
+								)}
+								Upload
+							</Label>
 						</Button>
-						{profileImage && ( // Show remove button only if there's an image (preview or existing)
+						<Input
+							id="profile-picture-upload"
+							type="file"
+							accept="image/*"
+							onChange={handleImageChange}
+							className="hidden"
+							disabled={isUploadingAvatar || isLoading}
+						/>
+						{profileImagePreview && (
 							<Button
-								type="button"
-								variant="ghost" // Use ghost for less emphasis
 								size="sm"
-								className="text-red-600 hover:text-red-700" // Destructive intent
-								onClick={handleRemoveProfilePicture}
-								disabled={isLoading} // Disable while submitting
-							>
-								<Trash2 className="mr-2 h-4 w-4" />
-								Remove
+								variant="ghost"
+								type="button"
+								onClick={handleRemoveImage}
+								disabled={isUploadingAvatar || isLoading}>
+								<X className="mr-2 h-4 w-4" /> Remove
 							</Button>
 						)}
-						<FormDescription>
-							{" "}
-							{/* Added description */}
-							Max 5MB. Recommended: Square JPG, PNG, GIF.
-						</FormDescription>
 					</div>
+					<p className="text-xs text-muted-foreground">
+						Recommended size: 200x200px, Max 2MB.
+					</p>
 				</div>
-			</FormSection>
-			{/* Note: DialogFooter with Save/Cancel buttons is expected to be rendered by the parent (<ProfileTab>) */}
-		</>
+
+				{/* Form Fields */}
+				<FormField
+					control={form.control}
+					name="firstName"
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>First Name</FormLabel>
+							<FormControl>
+								<Input
+									placeholder="Enter your first name"
+									{...field}
+									disabled={isLoading}
+								/>
+							</FormControl>
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
+				<FormField
+					control={form.control}
+					name="lastName"
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>Last Name</FormLabel>
+							<FormControl>
+								<Input
+									placeholder="Enter your last name"
+									{...field}
+									disabled={isLoading}
+								/>
+							</FormControl>
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
+				<FormField
+					control={form.control}
+					name="email"
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>Email</FormLabel>
+							<FormControl>
+								<Input
+									type="email"
+									placeholder="Enter your email"
+									{...field}
+									disabled // Keep disabled - email change handled elsewhere
+								/>
+							</FormControl>
+							<FormDescription>Email cannot be changed here.</FormDescription>
+							<FormMessage />
+						</FormItem>
+					)}
+				/>
+				{/* Submit button is likely handled by a DialogFooter in the parent component */}
+			</form>
+		</Form>
 	);
 }

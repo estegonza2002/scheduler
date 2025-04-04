@@ -34,24 +34,23 @@ This document outlines the steps to migrate the application backend from Supabas
         - `OrganizationMembersAPI` refactored (getAll, updateRole, getByUserIdAndOrgId, removeMember). _(✅ Completed)_
         - `OrganizationMembersAPI.inviteUser` partially implemented (creates pending Firestore record; email sending TODO). _(✅ In Progress)_
         - `EmployeesAPI` refactored. _(✅ Completed)_
-        - `LocationsAPI` refactored. _(✅ Completed)_
+        - `LocationsAPI` refactored (including form fixes in `LocationForm.tsx`). _(✅ Completed)_
         - `ShiftsAPI` refactored. _(✅ Completed)_
         - `NotificationsAPI` refactored. _(✅ Completed)_
         - `ShiftAssignmentsAPI` refactored. _(✅ Completed)_
         - `EmployeeLocationsAPI` refactored. _(✅ Completed)_
         - ~ConversationsAPI~ _(❌ To be removed)_
         - ~MessagesAPI~ _(❌ To be removed)_
-        - etc. _(🚧 Pending - Check BillingAPI)_
-      - Plan and execute migration for existing data (requires a script - current plan notes no data migration). _(🚧 Pending - No data migration planned)_.
-      - Update UI components displaying or interacting with database data.
+      - Plan and execute migration for existing data (requires a script - current plan notes no data migration). _(✅ Completed - No data migration required)_.
+      - Update UI components displaying or interacting with database data. _(🚧 Pending)_
 
-7.  **Storage Migration (If Used):**
-    - **Goal:** Replace Supabase Storage with Firebase Cloud Storage.
+7.  **Storage Migration (If Used):** _(✅ Completed - No file migration required)_
+    - **Goal:** Replace Supabase Storage with Firebase Cloud Storage. _(✅ Completed - Not required)_
     - **Actions:**
-      - **Set Up Firebase Storage:** Ensure enabled, configure Storage rules.
-      - Replace Supabase storage functions (upload, download, delete, `getPublicUrl`) with Firebase Storage equivalents (`ref`, `uploadBytes`, `getDownloadURL`, `deleteObject`, etc.) in relevant files/components.
-      - Plan and execute migration for existing files (requires a script - current plan notes no file migration).
-      - Update UI components related to file handling.
+      - **Set Up Firebase Storage:** Ensure enabled, configure Storage rules. _(✅ Completed - Not required)_
+      - Replace Supabase storage functions (upload, download, delete, `getPublicUrl`) with Firebase Storage equivalents (`ref`, `uploadBytes`, `getDownloadURL`, `deleteObject`, etc.) in relevant files/components. _(✅ Completed - Not required)_
+      - Plan and execute migration for existing files (requires a script - current plan notes no file migration). _(✅ Completed - No file migration required)_
+      - Update UI components related to file handling. _(✅ Completed - Not required)_
 
 ---
 

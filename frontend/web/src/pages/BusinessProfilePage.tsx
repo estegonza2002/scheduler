@@ -33,13 +33,14 @@ import { LoadingState } from "@/components/ui/loading-state";
 import { FormPhoneInput } from "@/components/ui/form-phone-input";
 import { isValidPhoneNumber } from "react-phone-number-input";
 import { Form } from "@/components/ui/form";
-import { supabase } from "@/lib/supabase";
 import {
 	GooglePlacesAutocomplete,
 	type GooglePlaceResult,
 } from "@/components/GooglePlacesAutocomplete";
 import { AppContent } from "@/components/layout/AppLayout";
 import { useHeader } from "@/lib/header-context";
+import { useOrganization } from "@/lib/organization";
+import { useAuth } from "@/lib/auth";
 
 // Define form schema for validation
 const businessProfileSchema = z.object({
@@ -66,35 +67,30 @@ const businessProfileSchema = z.object({
 
 type BusinessProfileFormValues = z.infer<typeof businessProfileSchema>;
 
-// Add an extended type to handle database column names
-interface DBOrganization extends Organization {
-	// Add database column names (lowercase)
-	contactemail?: string;
-	contactphone?: string;
-	zipcode?: string;
-	businesshours?: string;
-	// Plus the original fields from Organization
-}
-
 export default function BusinessProfilePage() {
 	const { updateHeader } = useHeader();
 	const navigate = useNavigate();
 	const location = useLocation();
 	const isInAccountPage = location.pathname.includes("/account/");
-	const [isLoading, setIsLoading] = useState(false);
-	const [organization, setOrganization] = useState<Organization | null>(null);
+	const {
+		organization,
+		isLoading: isOrgLoading,
+		refreshOrganization,
+	} = useOrganization();
+	const { user: authUser } = useAuth();
+	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [isLoading, setIsLoading] = useState(isOrgLoading);
 	const [subscriptionPlan, setSubscriptionPlan] = useState<
 		"free" | "pro" | "business"
 	>("free");
-	const [isUpgrading, setIsUpgrading] = useState(false);
 	const [isManualEntry, setIsManualEntry] = useState(false);
+	const [isUpgrading, setIsUpgrading] = useState(false);
 
 	// Add local state for new business creation
 	const [newBusinessName, setNewBusinessName] = useState("");
 	const [newBusinessDescription, setNewBusinessDescription] = useState("");
 	const [createBusinessError, setCreateBusinessError] = useState("");
 
-	// Initialize form with default empty values first
 	const form = useForm<BusinessProfileFormValues>({
 		resolver: zodResolver(businessProfileSchema),
 		defaultValues: {
@@ -117,147 +113,98 @@ export default function BusinessProfilePage() {
 		});
 	}, [updateHeader]);
 
+	// Update form values when organization data is loaded from context
 	useEffect(() => {
-		const fetchOrganization = async () => {
-			try {
-				setIsLoading(true);
+		// Update local loading state based on context
+		setIsLoading(isOrgLoading);
 
-				// Try to get organizations using the API
-				const orgs = await OrganizationsAPI.getAll();
-
-				if (orgs && orgs.length > 0) {
-					// We have organizations - set the first one for the business profile
-					const currentOrg = orgs[0] as DBOrganization;
-					setOrganization(currentOrg);
-
-					// Pre-populate the form with organization data
-					form.reset({
-						name: currentOrg.name || "",
-						description: currentOrg.description || "",
-						contactEmail: currentOrg.contactemail || "",
-						contactPhone: currentOrg.contactphone || "",
-						address: currentOrg.address || "",
-						country: currentOrg.country || "",
-						website: currentOrg.website || "",
-						businessHours: currentOrg.businesshours || "",
-					});
-				} else {
-					// No organizations found
-					toast.warning(
-						"No business profile found. Please create a business profile first."
-					);
-
-					// Initialize the form with empty values
-					form.reset({
-						name: "",
-						description: "",
-						contactEmail: "",
-						contactPhone: "",
-						address: "",
-						country: "",
-						website: "",
-						businessHours: "",
-					});
-				}
-			} catch (error) {
-				console.error("Error fetching organization:", error);
-				toast.error("Failed to load business information");
-
-				// Reset form on error
-				form.reset({
-					name: "",
-					description: "",
-					contactEmail: "",
-					contactPhone: "",
-					address: "",
-					country: "",
-					website: "",
-					businessHours: "",
-				});
-			} finally {
-				setIsLoading(false);
-			}
-		};
-
-		fetchOrganization();
-	}, []);
-
-	// Update form values when organization data is loaded
-	useEffect(() => {
-		if (organization) {
-			const dbOrg = organization as DBOrganization;
+		if (organization && !isOrgLoading) {
+			// Populate form with context organization data
+			// Assuming Organization type from API/context has the correct fields (camelCase)
 			form.reset({
-				name: dbOrg.name || "",
-				description: dbOrg.description || "",
-				contactEmail: dbOrg.contactemail || "",
-				contactPhone: dbOrg.contactphone || "",
-				address: dbOrg.address || "",
-				country: dbOrg.country || "",
-				website: dbOrg.website || "",
-				businessHours: dbOrg.businesshours || "",
+				name: organization.name || "",
+				description: organization.description || "",
+				contactEmail: organization.contactEmail || "", // Use camelCase
+				contactPhone: organization.contactPhone || "", // Use camelCase
+				// Address might be an object now, adjust if needed
+				address:
+					typeof organization.address === "string" ? organization.address : "", // Handle address potentially being object
+				country:
+					// Address from context might not have country, default to empty
+					"", // Remove reliance on address.country
+				website: organization.website || "",
+				businessHours: organization.businessHours || "", // Use camelCase
+			});
+			// Set subscription plan based on context data
+			setSubscriptionPlan(organization.subscriptionPlan || "free");
+		} else if (!isOrgLoading && !organization) {
+			// Org loading finished, but no org found
+			toast.warning(
+				"No organization selected or found. Cannot load business profile."
+			);
+			// Reset form if no org
+			form.reset({
+				name: "",
+				description: "",
+				contactEmail: "",
+				contactPhone: "",
+				address: "",
+				country: "",
+				website: "",
+				businessHours: "",
 			});
 		}
-	}, [organization, form]);
+	}, [organization, isOrgLoading, form]);
 
-	async function onSubmit(values: BusinessProfileFormValues) {
-		setIsLoading(true);
-		try {
+	// Convert onSubmit to useCallback
+	const handleSubmit = useCallback(
+		async (values: BusinessProfileFormValues) => {
+			// Ensure organization from context is available
 			if (!organization) {
-				console.error("No organization found when attempting to save");
-				toast.error(
-					"No organization found. Please create a business profile first."
-				);
-
-				// Show create button dialog if no organization exists
-				const createProfileSection = document.querySelector(".mt-8.p-6.border");
-				if (createProfileSection) {
-					createProfileSection.scrollIntoView({ behavior: "smooth" });
-					// Highlight the create profile section
-					createProfileSection.classList.add("animate-pulse", "border-primary");
-					setTimeout(() => {
-						createProfileSection.classList.remove(
-							"animate-pulse",
-							"border-primary"
-						);
-					}, 2000);
-				}
-
-				setIsLoading(false);
+				toast.error("No active organization selected. Cannot save profile.");
 				return;
 			}
 
-			// Map the values to match the database column names
-			const updatedFields = {
-				id: organization.id,
-				name: values.name,
-				description: values.description,
-				contactemail: values.contactEmail,
-				contactphone: values.contactPhone,
-				address: values.address,
-				country: values.country,
-				website: values.website,
-				businesshours: values.businessHours,
-			};
+			setIsSubmitting(true);
+			try {
+				// Map form values to update payload (use camelCase matching API)
+				const updatedFields = {
+					id: organization.id, // Use ID from context organization
+					name: values.name,
+					description: values.description,
+					contactEmail: values.contactEmail,
+					contactPhone: values.contactPhone,
+					// Handle address potentially being object
+					address: values.address, // Assuming API expects string for now, adjust if needed
+					website: values.website,
+					businessHours: values.businessHours,
+					// Do NOT include country if address is just a string
+				};
 
-			// Update the organization in the database via API
-			const updatedOrg = await OrganizationsAPI.update(updatedFields as any);
+				// Update the organization via API
+				const updatedOrg = await OrganizationsAPI.update(updatedFields);
 
-			if (updatedOrg) {
-				setOrganization(updatedOrg);
-				toast.success("Business profile updated successfully");
-			} else {
-				console.error("Update returned null/undefined");
-				toast.error("Failed to update business profile");
+				if (updatedOrg) {
+					// Context listener should update the organization state automatically,
+					// but we can trigger a refresh just in case or if listener isn't setup/working
+					// refreshOrganization(); // Optional: Force refresh context
+					toast.success("Business profile updated successfully");
+				} else {
+					// API call returned null/error (toast likely shown in API handler)
+					console.error("Update returned null/undefined");
+					// toast.error("Failed to update business profile");
+				}
+			} catch (error: unknown) {
+				console.error("Error during update:", error);
+				const errorMessage =
+					error instanceof Error ? error.message : "Unknown error";
+				toast.error("Failed to update business profile: " + errorMessage);
+			} finally {
+				setIsSubmitting(false);
 			}
-		} catch (error: unknown) {
-			console.error("Error during update:", error);
-			const errorMessage =
-				error instanceof Error ? error.message : "Unknown error";
-			toast.error("Failed to update business profile: " + errorMessage);
-		} finally {
-			setIsLoading(false);
-		}
-	}
+		},
+		[organization] // Depend on context organization
+	);
 
 	// Update handler functions to use useCallback
 	const goBack = useCallback(() => {
@@ -266,7 +213,7 @@ export default function BusinessProfilePage() {
 
 	// Get business initials for avatar fallback
 	const getBusinessInitials = useCallback(() => {
-		const name = organization?.name || "";
+		const name = organization?.name || ""; // Use context organization
 		const words = name.split(" ");
 		if (words.length >= 2) {
 			return `${words[0].charAt(0)}${words[1].charAt(0)}`.toUpperCase();
@@ -290,82 +237,27 @@ export default function BusinessProfilePage() {
 		}
 	}, []);
 
-	// Convert onSubmit to useCallback
-	const handleSubmit = useCallback(
-		async (values: BusinessProfileFormValues) => {
-			setIsLoading(true);
-			try {
-				if (!organization) {
-					console.error("No organization found when attempting to save");
-					toast.error(
-						"No organization found. Please create a business profile first."
-					);
-
-					// Show create button dialog if no organization exists
-					const createProfileSection =
-						document.querySelector(".mt-8.p-6.border");
-					if (createProfileSection) {
-						createProfileSection.scrollIntoView({ behavior: "smooth" });
-						// Highlight the create profile section
-						createProfileSection.classList.add(
-							"animate-pulse",
-							"border-primary"
-						);
-						setTimeout(() => {
-							createProfileSection.classList.remove(
-								"animate-pulse",
-								"border-primary"
-							);
-						}, 2000);
-					}
-
-					setIsLoading(false);
-					return;
-				}
-
-				// Map the values to match the database column names
-				const updatedFields = {
-					id: organization.id,
-					name: values.name,
-					description: values.description,
-					contactemail: values.contactEmail,
-					contactphone: values.contactPhone,
-					address: values.address,
-					country: values.country,
-					website: values.website,
-					businesshours: values.businessHours,
-				};
-
-				// Update the organization in the database via API
-				const updatedOrg = await OrganizationsAPI.update(updatedFields as any);
-
-				if (updatedOrg) {
-					setOrganization(updatedOrg);
-					toast.success("Business profile updated successfully");
-				} else {
-					console.error("Update returned null/undefined");
-					toast.error("Failed to update business profile");
-				}
-			} catch (error: unknown) {
-				console.error("Error during update:", error);
-				const errorMessage =
-					error instanceof Error ? error.message : "Unknown error";
-				toast.error("Failed to update business profile: " + errorMessage);
-			} finally {
-				setIsLoading(false);
-			}
-		},
-		[organization]
-	);
-
-	if (isLoading && !organization) {
+	if (isLoading) {
+		// Show loading state while context is loading
 		return (
-			<div className="flex justify-center items-center min-h-screen">
+			<AppContent className="flex justify-center items-center">
 				<LoadingState
 					message="Loading business profile..."
 					type="spinner"
 				/>
-			</div>
+			</AppContent>
+		);
+	}
+
+	if (!organization) {
+		// Show message if no organization is selected/available
+		return (
+			<AppContent className="flex justify-center items-center">
+				<p className="text-muted-foreground">
+					No organization selected. Please select or create an organization.
+				</p>
+				{/* Optionally add a button to navigate to org selector/creation */}
+			</AppContent>
 		);
 	}
 
@@ -582,8 +474,8 @@ export default function BusinessProfilePage() {
 				<div className="flex justify-end pt-4">
 					<Button
 						type="submit"
-						disabled={isLoading}>
-						{isLoading ? "Saving..." : "Save Changes"}
+						disabled={isSubmitting}>
+						{isSubmitting ? "Saving..." : "Save Changes"}
 					</Button>
 				</div>
 			</form>
@@ -645,162 +537,47 @@ export default function BusinessProfilePage() {
 
 								setIsLoading(true);
 
-								// Get the current user
-								const { data: userData } = await supabase.auth.getUser();
-								const userId = userData.user?.id;
-
-								if (!userId) {
+								if (!authUser) {
 									toast.error(
 										"You must be logged in to create a business profile"
 									);
+									setIsLoading(false);
 									return;
 								}
 
-								// Use direct Supabase query to create organization
-								const { data, error } = await supabase
-									.from("organizations")
-									.insert({
-										name: newBusinessName,
-										description: newBusinessDescription || "",
-										owner_id: userId,
-									})
-									.select()
-									.single();
+								// Use OrganizationsAPI to create the organization
+								// This API call now also handles adding the creator as owner/admin
+								const newOrg = await OrganizationsAPI.create({
+									name: newBusinessName,
+									description: newBusinessDescription || undefined,
+									// ownerId is set automatically in the API based on authUser
+								});
 
-								if (error) {
-									console.error("Error creating organization:", error);
-									toast.error(
-										`Failed to create organization: ${error.message}`
-									);
-
-									if (
-										error.message.includes("column") &&
-										error.message.includes("does not exist")
-									) {
-										toast.error(
-											"Database schema needs to be updated. Please run the SQL script in update_organization_schema.sql"
-										);
-									}
-								} else if (data) {
+								if (newOrg) {
 									toast.success("Business profile created successfully!");
 
-									try {
-										// Get the user's email
-										const userData = await supabase.auth.getUser();
-										const userEmail = userData.data.user?.email;
+									// Refresh organization context to make the new org available
+									refreshOrganization();
 
-										// First check if member already exists
-										const { data: existingMember, error: checkError } =
-											await supabase
-												.from("organization_members")
-												.select("*")
-												.eq("organization_id", data.id)
-												.eq("user_id", userId)
-												.single();
-
-										if (existingMember) {
-											// Set the organization in state
-											setOrganization(data);
-
-											// Update the form with the new organization data
-											form.reset({
-												name: data.name || "",
-												description: data.description || "",
-												contactEmail: data.contactemail || "",
-												contactPhone: data.contactphone || "",
-												address: data.address || "",
-												country: data.country || "",
-												website: data.website || "",
-												businessHours: data.businesshours || "",
-											});
-
-											toast.success("Business profile ready to use!");
-											return;
-										}
-
-										// Add user as organization member
-										const { error: memberError } = await supabase
-											.from("organization_members")
-											.insert({
-												organization_id: data.id,
-												user_id: userId,
-												role: "admin",
-											});
-
-										if (memberError) {
-											console.error("Error adding member:", memberError);
-
-											if (
-												memberError.message.includes(
-													"violates foreign key constraint"
-												)
-											) {
-												toast.error(
-													"Can't add you as a member because of a database constraint issue. Please run the updated SQL script that fixes the foreign key relationships."
-												);
-											} else {
-												toast.error(
-													`Failed to add member: ${memberError.message}`
-												);
-											}
-
-											// Even with member error, we can still show the organization
-											setOrganization(data);
-
-											// Update the form with the new organization data
-											form.reset({
-												name: data.name || "",
-												description: data.description || "",
-												contactEmail: data.contactemail || "",
-												contactPhone: data.contactphone || "",
-												address: data.address || "",
-												country: data.country || "",
-												website: data.website || "",
-												businessHours: data.businesshours || "",
-											});
-
-											toast.warning(
-												"Organization created, but you weren't added as a member due to a database constraint. Some features may be limited."
-											);
-										} else {
-											// Set the organization in state instead of reloading
-											setOrganization(data);
-
-											// Update the form with the new organization data
-											form.reset({
-												name: data.name || "",
-												description: data.description || "",
-												contactEmail: data.contactemail || "",
-												contactPhone: data.contactphone || "",
-												address: data.address || "",
-												country: data.country || "",
-												website: data.website || "",
-												businessHours: data.businesshours || "",
-											});
-
-											toast.success("Business profile ready to use!");
-										}
-									} catch (memberError) {
-										console.error("Exception adding member:", memberError);
-										toast.error(
-											"Failed to add you as a member, but organization was created"
-										);
-
-										// Still set the organization in state
-										setOrganization(data);
-										form.reset({
-											name: data.name || "",
-											description: data.description || "",
-											contactEmail: data.contactemail || "",
-											contactPhone: data.contactphone || "",
-											address: data.address || "",
-											country: data.country || "",
-											website: data.website || "",
-											businessHours: data.businesshours || "",
-										});
-									}
+									// Update the form with the new organization data (use camelCase)
+									form.reset({
+										name: newOrg.name || "",
+										description: newOrg.description || "",
+										contactEmail: newOrg.contactEmail || "",
+										contactPhone: newOrg.contactPhone || "",
+										address:
+											typeof newOrg.address === "string" ? newOrg.address : "",
+										country: "", // Address field may not contain country
+										website: newOrg.website || "",
+										businessHours: newOrg.businessHours || "",
+									});
+								} else {
+									// Error likely handled and toasted within OrganizationsAPI.create
+									console.error("OrganizationsAPI.create returned null");
+									// Optionally, add a generic error toast here if needed
+									// toast.error("Failed to create organization. Please try again.");
 								}
-							} catch (error) {
+							} catch (error: unknown) {
 								console.error("Exception creating organization:", error);
 								toast.error("Failed to create organization");
 							} finally {

@@ -245,3 +245,17 @@ export interface EmployeeLocationAssignment {
 	organizationId: string; // Good practice to scope assignments by org
 	createdAt?: string; // Optional timestamp
 }
+
+// Represents a link between a user and an organization
+export interface OrganizationMember {
+	id: string; // Firestore document ID of the membership
+	organizationId: string;
+	userId: string | null; // Null if invite is pending
+	email?: string; // Stored for pending invites before user ID is known
+	role: "owner" | "admin" | "member";
+	status: "active" | "pending" | "inactive"; // Status of the membership
+	joinedAt: string; // ISO string date format
+	updatedAt: string; // ISO string date format
+	invitedByUserId?: string; // ID of user who sent invite (optional)
+	// Add other relevant fields from Firestore if necessary
+}

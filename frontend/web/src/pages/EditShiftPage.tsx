@@ -16,13 +16,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import {
-	Shift,
-	ShiftsAPI,
-	LocationsAPI,
-	Location,
-	OrganizationsAPI,
-} from "@/api";
+import { Shift, ShiftsAPI, LocationsAPI, Location } from "@/api";
 import { format, parseISO } from "date-fns";
 import { ChevronLeft, Save } from "lucide-react";
 import { toast } from "sonner";
@@ -31,12 +25,18 @@ import { ContentContainer } from "@/components/ui/content-container";
 import { FormSection } from "@/components/ui/form-section";
 import { LoadingState } from "@/components/ui/loading-state";
 import { useHeader } from "@/lib/header-context";
+import { useOrganization } from "@/lib/organization";
 
 export default function EditShiftPage() {
 	const { shiftId } = useParams<{ shiftId: string }>();
 	const [searchParams] = useSearchParams();
 	const navigate = useNavigate();
 	const { updateHeader } = useHeader();
+	const {
+		organization,
+		isLoading: isOrgLoading,
+		getCurrentOrganizationId,
+	} = useOrganization();
 	const [shift, setShift] = useState<Shift | null>(null);
 	const [locations, setLocations] = useState<Location[]>([]);
 	const [loading, setLoading] = useState(true);
@@ -52,7 +52,18 @@ export default function EditShiftPage() {
 	// Additional form fields
 	const returnUrl = searchParams.get("returnUrl") || "/";
 	const locationIdParam = searchParams.get("locationId") || "";
-	const [organizationId, setOrganizationId] = useState<string>("");
+
+	// Define loadLocations function
+	const loadLocations = async (orgId: string) => {
+		try {
+			const locationsData = await LocationsAPI.getAll(orgId);
+			setLocations(locationsData);
+		} catch (error) {
+			console.error("Error loading locations:", error);
+			toast.error("Failed to load locations");
+			setLocations([]); // Clear locations on error
+		}
+	};
 
 	// Load shift data
 	useEffect(() => {
@@ -72,18 +83,23 @@ export default function EditShiftPage() {
 
 				setShift(shiftData);
 
-				// Set form values
-				const shiftDate = parseISO(shiftData.start_time);
-				setDate(format(shiftDate, "yyyy-MM-dd"));
-				setStartTime(format(parseISO(shiftData.start_time), "HH:mm"));
-				setEndTime(format(parseISO(shiftData.end_time), "HH:mm"));
-				setLocationId(shiftData.location_id || "none");
-				setNotes(shiftData.description || "");
+				// Set form values using camelCase
+				const shiftStartDate = parseISO(shiftData.startTime);
+				const shiftEndDate = parseISO(shiftData.endTime);
+				setDate(format(shiftStartDate, "yyyy-MM-dd"));
+				setStartTime(format(shiftStartDate, "HH:mm"));
+				setEndTime(format(shiftEndDate, "HH:mm"));
+				setLocationId(shiftData.locationId || "none");
+				setNotes(shiftData.description || ""); // Use description field
 
-				// Load locations
-				const organizationId = searchParams.get("organizationId") || "org-1";
-				const locationsData = await LocationsAPI.getAll(organizationId);
-				setLocations(locationsData);
+				// Load locations (now defined above)
+				const orgId = getCurrentOrganizationId();
+				if (orgId && !isOrgLoading) {
+					loadLocations(orgId);
+				} else if (!isOrgLoading) {
+					toast.error("Could not determine organization to load locations.");
+					setLocations([]);
+				}
 			} catch (error) {
 				console.error("Error loading shift data:", error);
 				toast.error("Failed to load shift data");
@@ -93,7 +109,7 @@ export default function EditShiftPage() {
 		}
 
 		loadShiftData();
-	}, [shiftId, searchParams, navigate]);
+	}, [shiftId, navigate, getCurrentOrganizationId, isOrgLoading]); // Removed searchParams as direct dependency if not needed for shift loading itself
 
 	// Update header content
 	useEffect(() => {
@@ -130,63 +146,37 @@ export default function EditShiftPage() {
 	// Handle form submission
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
+		if (!shiftId) return;
 
-		if (!shift || !date || !startTime || !endTime || !shiftId) {
-			toast.error("Please fill out all required fields");
+		const currentOrgId = getCurrentOrganizationId();
+		if (!currentOrgId) {
+			toast.error("Organization context not available. Cannot save shift.");
 			return;
 		}
 
 		try {
 			setSaving(true);
+			const startDateTime = `${date}T${startTime}`;
+			const endDateTime = `${date}T${endTime}`;
 
-			// Combine date and times
-			const startDateTime = new Date(`${date}T${startTime}`).toISOString();
-			const endDateTime = new Date(`${date}T${endTime}`).toISOString();
-
-			// Update shift
 			await ShiftsAPI.updateShift(shiftId, {
-				...shift,
-				start_time: startDateTime,
-				end_time: endDateTime,
-				location_id:
-					locationId === "none" ? undefined : locationId || undefined,
+				startTime: new Date(startDateTime).toISOString(),
+				endTime: new Date(endDateTime).toISOString(),
+				locationId: locationId !== "none" ? locationId : undefined,
+				// Use description field instead of notes for update
 				description: notes,
+				organizationId: currentOrgId,
 			});
 
 			toast.success("Shift updated successfully");
 			navigate(`/shifts/${shiftId}`);
 		} catch (error) {
-			console.error("Error saving shift:", error);
+			console.error("Error updating shift:", error);
 			toast.error("Failed to update shift");
 		} finally {
 			setSaving(false);
 		}
 	};
-
-	// Look up the organization ID
-	useEffect(() => {
-		const fetchOrganization = async () => {
-			try {
-				const organizations = await OrganizationsAPI.getAll();
-				if (organizations && organizations.length > 0) {
-					setOrganizationId(organizations[0].id);
-					console.log("Using organization ID:", organizations[0].id);
-				} else {
-					console.error("No organization found");
-				}
-			} catch (error) {
-				console.error("Error fetching organizations:", error);
-			}
-		};
-
-		// Check if we have an org ID in params first
-		const orgIdParam = searchParams.get("organizationId");
-		if (orgIdParam) {
-			setOrganizationId(orgIdParam);
-		} else {
-			fetchOrganization();
-		}
-	}, [searchParams]);
 
 	if (loading) {
 		return (

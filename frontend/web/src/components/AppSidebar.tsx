@@ -35,7 +35,8 @@ import {
 	SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { useState, useEffect } from "react";
-import { OrganizationsAPI, type Organization } from "@/api";
+import { type Organization, UserAPI, UserProfile } from "@/api";
+import { useOrganization } from "@/lib/organization";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { AvatarWithStatus } from "@/components/ui/avatar-with-status";
@@ -54,15 +55,44 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 	const { user, signOut } = useAuth();
 	const location = useLocation();
 	const navigate = useNavigate();
-	const [organization, setOrganization] = useState<Organization | null>(null);
+	const { organization, isLoading: isOrgLoading } = useOrganization();
+	const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+	const [isProfileLoading, setIsProfileLoading] = useState(true);
 	const [subscriptionPlan, setSubscriptionPlan] = useState<
 		"free" | "pro" | "business"
 	>("free");
 	// Add online status state (in a real app, this would come from a user status service)
 	const [isOnline, setIsOnline] = useState(true);
 
-	// Check if user is an admin
-	const isAdmin = user?.user_metadata?.role === "admin";
+	// Fetch user profile when user object is available
+	useEffect(() => {
+		const fetchUserProfile = async () => {
+			if (user) {
+				setIsProfileLoading(true);
+				try {
+					const profile = await UserAPI.getProfile(user.uid);
+					setUserProfile(profile);
+				} catch (error) {
+					console.error("Error fetching user profile in sidebar:", error);
+					setUserProfile(null); // Ensure profile is null on error
+				} finally {
+					setIsProfileLoading(false);
+				}
+			} else {
+				// No user, clear profile
+				setUserProfile(null);
+				setIsProfileLoading(false);
+			}
+		};
+
+		fetchUserProfile();
+	}, [user]);
+
+	// Check if user is an admin (Now needs to check profile or potentially member role)
+	// TODO: Determine admin status properly - needs OrganizationMembersAPI?
+	// For now, keep the old logic structure but note it's likely incorrect.
+	const isAdmin = false; // Placeholder - Fix this logic
+	// const isAdmin = user?.user_metadata?.role === "admin"; // Old Supabase logic
 	const isPaidUser = subscriptionPlan !== "free";
 
 	// Helper function to check if a route is active
@@ -85,23 +115,17 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 	};
 
 	useEffect(() => {
-		const fetchOrganizationData = async () => {
-			try {
-				// In a real implementation, this would fetch the organization by the user's organization_id
-				const orgs = await OrganizationsAPI.getAll();
-				if (orgs.length > 0) {
-					setOrganization(orgs[0]);
-					// In a real implementation, this would fetch the subscription plan from the organization data
-					// For now, we'll assume the plan is "free"
-					setSubscriptionPlan("free");
-				}
-			} catch (error) {
-				console.error("Error fetching organization:", error);
-			}
-		};
-
-		fetchOrganizationData();
-	}, []);
+		if (organization) {
+			// Example: derive plan from context data
+			// Replace 'free' with actual logic based on organization data
+			// setSubscriptionPlan(organization.subscriptionPlan || "free");
+			setSubscriptionPlan("free"); // Keeping placeholder for now
+		} else if (!isOrgLoading) {
+			// If org is not loading and still null, reset plan
+			setSubscriptionPlan("free");
+		}
+		// Depend on the organization object from context
+	}, [organization, isOrgLoading]);
 
 	// Handle navigation for a menu item
 	const handleNavigation = (href: string, event?: React.MouseEvent) => {
@@ -161,13 +185,13 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 		navigate("/logout");
 	};
 
-	// User display info directly in AppSidebar (formerly in NavUser)
+	// User display info directly in AppSidebar - use userProfile
 	const userDisplay = {
-		name: `${user?.user_metadata?.firstName || ""} ${
-			user?.user_metadata?.lastName || ""
-		}`,
-		email: user?.email || "",
-		avatar_url: user?.user_metadata?.avatar_url || "",
+		// Use displayName from profile, fallback to email part if needed
+		name: userProfile?.displayName || user?.email?.split("@")[0] || "User",
+		email: userProfile?.email || user?.email || "",
+		// Use photoURL from profile
+		avatar_url: userProfile?.photoURL || "",
 	};
 
 	const mainNavItems: NavItem[] = [
@@ -271,7 +295,6 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 
 	// Debug logs for avatar URL
 	console.log("User in sidebar:", JSON.stringify(user, null, 2));
-	console.log("User metadata in sidebar:", user?.user_metadata);
 	console.log("Avatar URL in sidebar:", userDisplay.avatar_url);
 
 	const renderMenuItems = (items: NavItem[], isFooterMenu = false) => {
