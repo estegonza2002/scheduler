@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useCallback } from "react";
+import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -95,6 +95,7 @@ import {
 	RealtimeChannel,
 	RealtimePostgresChangesPayload,
 } from "@supabase/supabase-js";
+import { useAuth } from "@/lib/auth";
 
 // Interface for the raw employee data from Supabase (snake_case)
 interface EmployeeSupabaseRow {
@@ -128,6 +129,8 @@ export default function EmployeesPage() {
 	const [employeeDialogOpen, setEmployeeDialogOpen] = useState(false);
 	const [employeesChannel, setEmployeesChannel] =
 		useState<RealtimeChannel | null>(null);
+	const { user } = useAuth();
+	const [searchParams, setSearchParams] = useSearchParams();
 
 	const {
 		initialized: presenceInitialized,
@@ -135,7 +138,6 @@ export default function EmployeesPage() {
 		notificationsEnabled,
 	} = useEmployeePresenceWithNotifications(organizationId || "");
 	const navigate = useNavigate();
-	const [searchParams, setSearchParams] = useSearchParams();
 
 	// Setup Supabase real-time subscriptions
 	const setupRealtimeSubscriptions = useCallback((orgId: string) => {
@@ -477,6 +479,18 @@ export default function EmployeesPage() {
 								isOnline: false,
 								lastActive: new Date().toISOString(),
 							});
+							// Navigate to the new employee's detail page
+							console.log("Attempting navigation with employee:", newEmployee); // DEBUG LOG
+							if (newEmployee && newEmployee.id) {
+								// Ensure ID exists
+								navigate(`/employee/${newEmployee.id}`);
+							} else {
+								console.error(
+									"Navigation failed: Invalid newEmployee object",
+									newEmployee
+								);
+								toast.error("Could not navigate to employee page.");
+							}
 							// Optionally trigger a refresh or directly add to state if realtime isn't immediate
 							// setEmployees((prev) => [...prev, newEmployee]);
 						}}
@@ -496,6 +510,7 @@ export default function EmployeesPage() {
 		setSearchParams,
 		employeeDialogOpen,
 		setEmployeeDialogOpen,
+		navigate,
 	]);
 
 	const columns = useMemo<ColumnDef<Employee>[]>(
@@ -662,7 +677,7 @@ export default function EmployeesPage() {
 							className="h-8"
 							onClick={(e) => {
 								e.stopPropagation();
-								navigate(`/employees/${employee.id}`);
+								navigate(`/employee/${employee.id}`);
 							}}>
 							<ChevronRight className="h-4 w-4" />
 							View
@@ -713,7 +728,7 @@ export default function EmployeesPage() {
 				data={employees}
 				searchKey="name"
 				searchPlaceholder="Search employees..."
-				onRowClick={(employee) => navigate(`/employees/${employee.id}`)}
+				onRowClick={(employee) => navigate(`/employee/${employee.id}`)}
 				viewOptions={{
 					enableViewToggle: true,
 					defaultView: viewMode,
@@ -723,7 +738,7 @@ export default function EmployeesPage() {
 							employee={employee}
 							variant="standard"
 							size="md"
-							onViewDetails={() => navigate(`/employees/${employee.id}`)}
+							onViewDetails={() => navigate(`/employee/${employee.id}`)}
 							showActions={true}
 							actions={
 								<DropdownMenu>
@@ -739,7 +754,7 @@ export default function EmployeesPage() {
 										<DropdownMenuItem
 											onClick={(e) => {
 												e.stopPropagation();
-												navigate(`/employees/${employee.id}`);
+												navigate(`/employee/${employee.id}`);
 											}}>
 											<Edit className="mr-2 h-4 w-4" />
 											View Profile

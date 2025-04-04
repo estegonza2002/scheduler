@@ -399,6 +399,9 @@ export const LocationsAPI = {
 			zipCode: data.zipCode || data.zip_code,
 			isActive: data.isActive || data.is_active,
 			organizationId: data.organizationId || data.organization_id,
+			latitude: data.latitude,
+			longitude: data.longitude,
+			imageUrl: data.image_url,
 		} as Location;
 	},
 

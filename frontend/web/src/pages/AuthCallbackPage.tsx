@@ -9,21 +9,30 @@ export default function AuthCallbackPage() {
 	const { user, isLoading } = useAuth();
 	const [showBusinessSetup, setShowBusinessSetup] = useState(false);
 	const [processingAuth, setProcessingAuth] = useState(true);
+	const [redirectAttempted, setRedirectAttempted] = useState(false);
 
 	// Handle redirection after auth callback
 	useEffect(() => {
 		const handleAuthRedirect = async () => {
-			// Only proceed if auth loading is complete
-			if (isLoading) {
-				console.log("Auth callback: Waiting for auth loading to complete...");
-				setProcessingAuth(true); // Keep showing processing indicator
+			// Only proceed if auth loading is complete AND redirect hasn't been attempted
+			if (isLoading || redirectAttempted) {
+				console.log("Auth callback: Waiting or redirect already attempted...", {
+					isLoading,
+					redirectAttempted,
+				});
+				if (isLoading) {
+					setProcessingAuth(true); // Keep showing processing indicator if loading
+				}
 				return;
 			}
 
 			setProcessingAuth(false); // Auth loading is done
+			setRedirectAttempted(true); // Mark redirect as attempted
 
 			try {
-				console.log("Auth callback processing started (after loading check)");
+				console.log(
+					"Auth callback processing started (after loading check, first attempt)"
+				);
 
 				if (user) {
 					// Check user state from AuthProvider
@@ -57,7 +66,7 @@ export default function AuthCallbackPage() {
 		};
 
 		handleAuthRedirect();
-	}, [navigate, user, isLoading]); // Add user and isLoading dependencies
+	}, [navigate, user, isLoading, redirectAttempted]); // Add redirectAttempted dependency
 
 	return (
 		<>
