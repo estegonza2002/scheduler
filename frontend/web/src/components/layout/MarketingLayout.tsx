@@ -78,12 +78,14 @@ const featureSubmenuItems = [
 const additionalFeatures = [
 	{
 		title: "Mobile App",
-		href: "/features/all",
+		href: "/features/all#mobile",
+		id: "mobile-app",
 		icon: <Smartphone className="h-5 w-5 text-primary" />,
 	},
 	{
 		title: "Reports & Analytics",
-		href: "/features/all",
+		href: "/features/all#analytics",
+		id: "reports-analytics",
 		icon: <BarChart2 className="h-5 w-5 text-primary" />,
 	},
 ];
@@ -192,7 +194,7 @@ export default function MarketingLayout() {
 													<div className="space-y-2">
 														{additionalFeatures.map((item) => (
 															<Link
-																key={item.href}
+																key={item.id}
 																to={item.href}
 																className="block select-none rounded-md p-2 text-sm leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
 																<div className="flex items-center gap-2">
