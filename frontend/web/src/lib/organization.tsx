@@ -8,8 +8,42 @@ import {
 import { Organization } from "@/api/types";
 import { OrganizationsAPI } from "@/api";
 import { useAuth } from "./auth";
-import { supabase } from "./supabase";
 import { toast } from "sonner";
+import { db } from "./firebase";
+import { doc, onSnapshot, Timestamp } from "firebase/firestore";
+
+// Add the helper function (copied from api.ts)
+const mapDocToOrganization = (docData: any, id: string): Organization => {
+	// Ensure timestamps are handled correctly (e.g., converted to ISO strings)
+	const createdAt =
+		docData.createdAt instanceof Timestamp
+			? docData.createdAt.toDate().toISOString()
+			: docData.createdAt;
+	const updatedAt =
+		docData.updatedAt instanceof Timestamp
+			? docData.updatedAt.toDate().toISOString()
+			: docData.updatedAt;
+
+	// Map other fields, handling potential undefined values and camelCase
+	return {
+		id: id,
+		name: docData.name || "",
+		description: docData.description || undefined,
+		logoUrl: docData.logoUrl || undefined,
+		ownerId: docData.ownerId || "",
+		createdAt: createdAt,
+		updatedAt: updatedAt,
+		address: docData.address || undefined,
+		contactEmail: docData.contactEmail || undefined,
+		contactPhone: docData.contactPhone || undefined,
+		website: docData.website || undefined,
+		businessHours: docData.businessHours || undefined,
+		stripeCustomerId: docData.stripeCustomerId || undefined,
+		subscriptionId: docData.subscriptionId || undefined,
+		subscriptionStatus: docData.subscriptionStatus || undefined,
+		subscriptionPlan: docData.subscriptionPlan || undefined,
+	};
+};
 
 // Context type that includes all necessary functionality
 interface OrganizationContextType {
@@ -78,30 +112,44 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
 		}
 	}, [user]);
 
-	// Set up real-time subscription for organization updates
+	// Set up real-time subscription for organization updates using Firestore
 	useEffect(() => {
-		if (!organization) return;
+		if (!organization?.id) return () => {}; // No org selected, nothing to subscribe to
 
-		const subscription = supabase
-			.channel("organization-updates")
-			.on(
-				"postgres_changes",
-				{
-					event: "UPDATE",
-					schema: "public",
-					table: "organizations",
-					filter: `id=eq.${organization.id}`,
-				},
-				() => {
-					refreshOrganization();
+		console.log(
+			`Setting up Firestore listener for organization: ${organization.id}`
+		);
+		const orgRef = doc(db, "organizations", organization.id);
+
+		const unsubscribe = onSnapshot(
+			orgRef,
+			(docSnap) => {
+				if (docSnap.exists()) {
+					console.log("Organization data updated via snapshot:", docSnap.id);
+					// Map data and update state
+					const updatedOrg = mapDocToOrganization(docSnap.data(), docSnap.id);
+					setOrganization(updatedOrg);
+				} else {
+					console.log("Current organization document deleted.");
+					setOrganization(null);
+					// Optionally, trigger refreshOrganization to load other orgs if needed
+					// refreshOrganization();
 				}
-			)
-			.subscribe();
+			},
+			(error) => {
+				console.error("Error listening to organization updates:", error);
+				toast.error("Real-time connection issue with organization data.");
+			}
+		);
 
+		// Cleanup function to unsubscribe when component unmounts or org changes
 		return () => {
-			subscription.unsubscribe();
+			console.log(
+				`Unsubscribing from Firestore listener for org: ${organization.id}`
+			);
+			unsubscribe();
 		};
-	}, [organization]);
+	}, [organization?.id]); // Rerun effect if the organization ID changes
 
 	// Context value
 	const contextValue: OrganizationContextType = {

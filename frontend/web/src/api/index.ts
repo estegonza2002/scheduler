@@ -10,10 +10,12 @@ import {
 	LocationsAPI,
 	NotificationsAPI,
 	OrganizationsAPI,
+	OrganizationMembersAPI,
 	ShiftAssignmentsAPI,
 	ShiftsAPI,
 	EmployeeLocationsAPI,
 	BillingAPI,
+	UserAPI,
 } from "./real/api";
 
 // Log that we're using the real API implementation
@@ -25,8 +27,10 @@ export {
 	LocationsAPI,
 	NotificationsAPI,
 	OrganizationsAPI,
+	OrganizationMembersAPI,
 	ShiftsAPI,
 	ShiftAssignmentsAPI,
 	EmployeeLocationsAPI,
 	BillingAPI,
+	UserAPI,
 };

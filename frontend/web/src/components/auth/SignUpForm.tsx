@@ -16,7 +16,7 @@ import {
 import { toast } from "sonner";
 import { Checkbox } from "../ui/checkbox";
 import { Label } from "../ui/label";
-import { supabase } from "../../lib/supabase";
+import { AuthError as FirebaseAuthError } from "firebase/auth";
 
 const signUpSchema = z
 	.object({
@@ -37,7 +37,7 @@ const signUpSchema = z
 type SignUpFormValues = z.infer<typeof signUpSchema>;
 
 export function SignUpForm() {
-	const { signUp } = useAuth();
+	const { signUp, signInWithGoogle } = useAuth();
 	const navigate = useNavigate();
 	const [isLoading, setIsLoading] = useState(false);
 	const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -54,84 +54,32 @@ export function SignUpForm() {
 		},
 	});
 
-	// Custom handler for terms acceptance logging
-	const logTermsAcceptance = useCallback(
-		async (userId: string, email: string) => {
-			try {
-				console.log("Attempting to log terms acceptance for user:", userId);
-
-				// Log essential terms acceptance data, with error handling
-				const { error: insertError } = await supabase
-					.from("terms_acceptances")
-					.insert({
-						user_id: userId,
-						email: email,
-						terms_version: "1.0",
-						privacy_version: "1.0",
-						accepted_at: new Date().toISOString(),
-						ip_address: "Logged client-side",
-						user_agent: navigator.userAgent,
-					});
-
-				if (insertError) {
-					console.warn(
-						"Failed to insert terms acceptance record:",
-						insertError.message
-					);
-					// Continue with registration even if this fails
-				} else {
-					console.log("Terms acceptance logged successfully");
-				}
-			} catch (error) {
-				console.error("Failed to log terms acceptance:", error);
-				// Don't block registration if this fails
-			}
-		},
-		[]
-	);
-
 	const onSubmit = useCallback(
 		async (values: SignUpFormValues) => {
 			setIsLoading(true);
 			try {
-				console.log("Starting signup process for email:", values.email);
+				console.log(
+					"Starting Firebase signup process for email:",
+					values.email
+				);
 
-				// Using signUp from auth context
-				const response = await signUp({
-					email: values.email,
-					password: values.password,
-					options: {
-						data: {
-							firstName: values.firstName,
-							lastName: values.lastName,
-							termsAccepted: true,
-							termsAcceptedAt: new Date().toISOString(),
-							termsAcceptedVersion: "1.0", // Store version of terms they accepted
-						},
-					},
+				// Call the Firebase signUp function from useAuth
+				const userCredential = await signUp(values.email, values.password, {
+					// Pass profile data for potential immediate update
+					firstName: values.firstName,
+					lastName: values.lastName,
 				});
 
-				if (response.error) {
-					// Check for specific error types and provide user-friendly messages
-					if (response.error.message.includes("already registered")) {
-						toast.error(
-							"This email is already registered. Please login instead or use a different email."
-						);
-					} else if (response.error.message.includes("password")) {
-						toast.error(response.error.message);
-					} else {
-						toast.error(`Registration error: ${response.error.message}`);
-					}
-					console.error("Signup error:", response.error);
-					return;
-				}
+				// Sign-up succeeded if it doesn't throw
+				console.log(
+					"Firebase user created successfully:",
+					userCredential.user.uid
+				);
 
-				// Sign-up succeeded, try to log terms acceptance but don't block registration if it fails
-				if (response.data?.user) {
-					console.log("User created successfully:", response.data.user.id);
-
-					// Try to log terms acceptance but continue regardless of result
-					logTermsAcceptance(response.data.user.id, values.email).catch(
+				// TODO: Implement terms acceptance logging using Firestore
+				/*
+				if (userCredential.user) {
+					logTermsAcceptance(userCredential.user.uid, values.email).catch(
 						(termsError) => {
 							console.warn(
 								"Terms acceptance logging failed, but continuing with registration:",
@@ -139,61 +87,71 @@ export function SignUpForm() {
 							);
 						}
 					);
-
-					// Success message and redirect to account type selection page
-					toast.success(
-						"Registration successful! Please select how you want to use the platform."
-					);
-					navigate("/account-type");
-				} else {
-					// This shouldn't happen if there's no error but response.data.user is null
-					console.warn("Sign-up completed but no user data returned");
-					toast.success("Registration successful! Please continue.");
-					navigate("/account-type");
 				}
-			} catch (error) {
-				console.error("Unexpected registration exception:", error);
-				toast.error(
-					"An unexpected error occurred during registration. Please try again."
+				*/
+
+				// Success message and redirect
+				toast.success(
+					"Registration successful! Redirecting..."
+					// Old message: "Registration successful! Please select how you want to use the platform."
 				);
+				// Redirect to dashboard or a confirmation page after signup
+				navigate("/dashboard"); // Or maybe "/welcome" or "/verify-email" depending on flow
+			} catch (error) {
+				// Handle Firebase Auth errors
+				let errorMessage = "An unexpected error occurred during registration.";
+				if (error instanceof Error) {
+					if ("code" in error) {
+						const firebaseError = error as FirebaseAuthError;
+						switch (firebaseError.code) {
+							case "auth/email-already-in-use":
+								errorMessage =
+									"This email is already registered. Please login instead.";
+								break;
+							case "auth/weak-password":
+								errorMessage =
+									"Password is too weak. Please choose a stronger password.";
+								break;
+							case "auth/invalid-email":
+								errorMessage = "The email address is not valid.";
+								break;
+							default:
+								// Use the default message for other Firebase errors
+								console.error("Firebase signup error:", firebaseError);
+								break;
+						}
+					} else {
+						// Handle generic errors
+						console.error("Registration exception:", error);
+						errorMessage = error.message; // Use the generic error message
+					}
+				} else {
+					console.error("Unknown registration error structure:", error);
+				}
+				toast.error(errorMessage);
 			} finally {
 				setIsLoading(false);
 			}
 		},
-		[signUp, navigate, logTermsAcceptance]
+		[signUp, navigate /*, logTermsAcceptance */] // Removed logTermsAcceptance dependency
 	);
 
 	const handleGoogleSignIn = async () => {
 		setIsGoogleLoading(true);
 		try {
-			console.log("Starting Google sign-in process...");
-
 			// Clear any existing business signup flag
 			localStorage.removeItem("business_signup");
 
-			// Use direct Supabase client call
-			const { data, error } = await supabase.auth.signInWithOAuth({
-				provider: "google",
-				options: {
-					redirectTo: `${window.location.origin}/auth-callback`,
-					queryParams: {
-						prompt: "select_account",
-					},
-				},
-			});
-
-			if (error) {
-				console.error("Google sign-in error:", error);
-				toast.error(`Google sign-in error: ${error.message}`);
-			} else {
-				console.log("Google auth initialized, redirecting to:", data?.url);
-				// The browser will be redirected automatically by Supabase
-			}
-		} catch (error) {
+			// Use the signInWithGoogle function from the useAuth hook
+			await signInWithGoogle();
+			// Firebase handles the redirect and auth state change via onAuthStateChanged
+			toast.info("Redirecting to Google for sign up..."); // Optional user feedback
+		} catch (error: any) {
 			console.error("Exception during Google sign in:", error);
-			toast.error("An error occurred during Google sign in");
+			toast.error(`Google sign-in error: ${error.message || "Unknown error"}`);
 		} finally {
-			setIsGoogleLoading(false);
+			// Keep loading true as the page will redirect
+			// setIsGoogleLoading(false);
 		}
 	};
 

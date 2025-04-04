@@ -1,33 +1,48 @@
-import { createContext, useContext, useEffect, useState } from "react";
 import {
-	User,
-	Session,
-	AuthError,
-	AuthResponse,
-	SignInWithPasswordCredentials,
-	SignUpWithPasswordCredentials,
-	Provider,
-	OAuthResponse,
-} from "@supabase/supabase-js";
-import { supabase } from "./supabase";
+	createContext,
+	useContext,
+	useEffect,
+	useState,
+	ReactNode,
+} from "react";
+// Firebase Imports
+import {
+	User as FirebaseUser,
+	AuthError as FirebaseAuthError,
+	createUserWithEmailAndPassword, // Will be used later
+	signInWithEmailAndPassword, // Will be used later
+	signInWithRedirect, // Will be used later
+	GoogleAuthProvider, // Will be used later
+	signOut as firebaseSignOut, // Will be used later
+	sendPasswordResetEmail, // Will be used later
+	updateProfile, // Will be used later
+	updatePassword as firebaseUpdatePassword, // Will be used later
+	onAuthStateChanged,
+	UserCredential, // Type for sign-in/sign-up results
+} from "firebase/auth";
+import { auth } from "./firebase"; // Import initialized Firebase auth instance
 
+// Updated interface for Firebase
 interface AuthContextType {
-	user: User | null;
-	session: Session | null;
+	user: FirebaseUser | null;
+	// session: Session | null; // Removed session, Firebase User object contains necessary info
 	isLoading: boolean;
-	signUp: (credentials: SignUpWithPasswordCredentials) => Promise<AuthResponse>;
-	signIn: (credentials: SignInWithPasswordCredentials) => Promise<AuthResponse>;
-	signInWithGoogle: () => Promise<OAuthResponse>;
-	signOut: () => Promise<{ error: AuthError | null }>;
-	resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
-	updateUserMetadata: (metadata: Record<string, any>) => Promise<{
-		user: User | null;
-		error: AuthError | null;
-	}>;
-	updatePassword: (password: string) => Promise<{
-		user: User | null;
-		error: AuthError | null;
-	}>;
+	// --- Updated Function Signatures (Placeholders for now) ---
+	signUp: (
+		email: string,
+		password: string,
+		profileData?: { firstName?: string; lastName?: string }
+	) => Promise<UserCredential>; // More specific profile data
+	signIn: (email: string, password: string) => Promise<UserCredential>;
+	signInWithGoogle: () => Promise<void>;
+	signOut: () => Promise<void>;
+	resetPassword: (email: string) => Promise<void>;
+	updateUserProfile: (profileData: {
+		displayName?: string | null;
+		photoURL?: string | null;
+	}) => Promise<void>;
+	updatePassword: (password: string) => Promise<void>;
+	// --- End Updated Function Signatures ---
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(
@@ -42,147 +57,160 @@ export function useAuth() {
 	return context;
 }
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-	const [user, setUser] = useState<User | null>(null);
-	const [session, setSession] = useState<Session | null>(null);
-	const [isLoading, setIsLoading] = useState(true);
+export function AuthProvider({ children }: { children: ReactNode }) {
+	const [user, setUser] = useState<FirebaseUser | null>(null);
+	// const [session, setSession] = useState<Session | null>(null); // Removed session state
+	const [isLoading, setIsLoading] = useState(true); // Start loading until auth state is known
 
 	useEffect(() => {
-		// Get initial session
-		const initializeAuth = async () => {
-			setIsLoading(true);
-
-			try {
-				// Get session on load
-				console.time("supabase.auth.getSession"); // Start timing
-				const { data } = await supabase.auth.getSession();
-				console.timeEnd("supabase.auth.getSession"); // End timing
-				console.log("Initial session check:", data.session ? "Active" : "None");
-
-				setSession(data.session);
-				setUser(data.session?.user ?? null);
-			} catch (error) {
-				console.error("Error getting auth session:", error);
-			} finally {
-				setIsLoading(false);
-			}
-		};
-
-		initializeAuth();
-
-		// Set up auth state listener
-		const {
-			data: { subscription },
-		} = supabase.auth.onAuthStateChange((_event, session) => {
-			console.log("Auth state changed, event:", _event);
-			setSession(session);
-			setUser(session?.user ?? null);
+		// Set up Firebase auth state listener
+		const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+			console.log(
+				"Firebase Auth state changed, user:",
+				currentUser ? currentUser.uid : null
+			);
+			setUser(currentUser);
+			setIsLoading(false); // Set loading false once auth state is determined
 		});
 
+		// Cleanup subscription on unmount
 		return () => {
-			subscription.unsubscribe();
+			unsubscribe();
 		};
-	}, []);
+	}, []); // Empty dependency array ensures this runs only once on mount
 
-	const signUp = async (credentials: SignUpWithPasswordCredentials) => {
-		console.log("Auth provider signUp called with:", {
-			// Type-safe way to log credentials without exposing the password
-			hasEmail: "email" in credentials,
-			hasPassword: !!credentials.password,
-			hasOptions: !!credentials.options,
-		});
-
+	// --- Firebase Auth Method Implementations ---
+	const signUp = async (
+		email: string,
+		password: string,
+		profileData?: { firstName?: string; lastName?: string }
+	): Promise<UserCredential> => {
 		try {
-			console.log("About to call Supabase auth.signUp");
-			const response = await supabase.auth.signUp(credentials);
+			const userCredential = await createUserWithEmailAndPassword(
+				auth,
+				email,
+				password
+			);
+			// Optionally update profile immediately after signup
+			if (userCredential.user && profileData) {
+				const displayName = [profileData.firstName, profileData.lastName]
+					.filter(Boolean)
+					.join(" ")
+					.trim();
+				console.log("Constructed displayName:", displayName);
 
-			console.log("Supabase signUp response:", {
-				error: response.error
-					? {
-							message: response.error.message,
-							status: response.error.status,
-							name: response.error.name,
-					  }
-					: null,
-				user: response.data?.user
-					? {
-							id: response.data.user.id,
-							email: response.data.user.email,
-							emailConfirmed: response.data.user.email_confirmed_at !== null,
-							metadata: response.data.user.user_metadata,
-					  }
-					: null,
-				session: response.data?.session ? "Session exists" : "No session",
-			});
-
-			return response;
+				if (displayName) {
+					console.log("Updating profile with displayName...");
+					await updateProfile(userCredential.user, {
+						displayName: displayName,
+					});
+					// Update local user state if needed, though onAuthStateChanged might handle it
+					setUser({ ...userCredential.user, displayName });
+				}
+			}
+			return userCredential;
 		} catch (error) {
-			console.error("Network or unexpected exception in signUp method:", error);
-			// Rethrow the error to be handled by the component
+			console.error("Firebase signUp error:", error);
+			// Consider mapping Firebase errors to user-friendly messages
 			throw error;
 		}
 	};
 
-	const signIn = async (credentials: SignInWithPasswordCredentials) => {
-		return await supabase.auth.signInWithPassword(credentials);
-	};
-
-	const signInWithGoogle = async () => {
-		console.log(
-			"Initiating Google sign-in with redirect to:",
-			`${window.location.origin}/auth-callback`
-		);
-		return await supabase.auth.signInWithOAuth({
-			provider: "google",
-			options: {
-				redirectTo: `${window.location.origin}/auth-callback`,
-				queryParams: {
-					prompt: "select_account",
-				},
-			},
-		});
-	};
-
-	const signOut = async () => {
-		return await supabase.auth.signOut();
-	};
-
-	const resetPassword = async (email: string) => {
-		return await supabase.auth.resetPasswordForEmail(email, {
-			redirectTo: `${window.location.origin}/reset-password`,
-		});
-	};
-
-	const updateUserMetadata = async (metadata: Record<string, any>) => {
-		const { data, error } = await supabase.auth.updateUser({
-			data: metadata,
-		});
-
-		if (!error && data?.user) {
-			setUser(data.user);
+	const signIn = async (
+		email: string,
+		password: string
+	): Promise<UserCredential> => {
+		try {
+			return await signInWithEmailAndPassword(auth, email, password);
+		} catch (error) {
+			console.error("Firebase signIn error:", error);
+			throw error;
 		}
-
-		return { user: data?.user || null, error };
 	};
 
-	const updatePassword = async (password: string) => {
-		const { data, error } = await supabase.auth.updateUser({
-			password: password,
-		});
-
-		return { user: data?.user || null, error };
+	const signInWithGoogle = async (): Promise<void> => {
+		try {
+			const provider = new GoogleAuthProvider();
+			// Using redirect flow
+			await signInWithRedirect(auth, provider);
+			// No return needed here, Firebase handles the redirect and auth state change
+		} catch (error) {
+			console.error("Firebase signInWithGoogle error:", error);
+			throw error;
+		}
 	};
+
+	const signOut = async (): Promise<void> => {
+		try {
+			return await firebaseSignOut(auth);
+		} catch (error) {
+			console.error("Firebase signOut error:", error);
+			throw error;
+		}
+	};
+
+	const resetPassword = async (email: string): Promise<void> => {
+		try {
+			const actionCodeSettings = {
+				// URL to redirect back to after password reset
+				url: `${window.location.origin}/login?passwordReset=true`, // Example redirect
+				handleCodeInApp: true,
+			};
+			return await sendPasswordResetEmail(auth, email, actionCodeSettings);
+		} catch (error) {
+			console.error("Firebase resetPassword error:", error);
+			throw error;
+		}
+	};
+
+	const updateUserProfile = async (profileData: {
+		displayName?: string | null;
+		photoURL?: string | null;
+	}): Promise<void> => {
+		if (!auth.currentUser) {
+			throw new Error("User not logged in to update profile.");
+		}
+		try {
+			await updateProfile(auth.currentUser, profileData);
+			// Manually update local state as updateProfile doesn't trigger onAuthStateChanged
+			const updatedUser = { ...auth.currentUser, ...profileData };
+			// We need to cast because TS doesn't know currentUser is not null here
+			setUser(updatedUser as FirebaseUser);
+			console.log(
+				"User profile updated locally and in Firebase. New state:",
+				updatedUser
+			);
+		} catch (error) {
+			console.error("Firebase updateUserProfile error:", error);
+			throw error;
+		}
+	};
+
+	const updatePassword = async (password: string): Promise<void> => {
+		if (!auth.currentUser) {
+			throw new Error("User not logged in to update password.");
+		}
+		try {
+			// Note: This often requires recent re-authentication for security reasons.
+			// The UI calling this might need to handle re-authentication flows.
+			return await firebaseUpdatePassword(auth.currentUser, password);
+		} catch (error) {
+			console.error("Firebase updatePassword error:", error);
+			throw error;
+		}
+	};
+	// --- End Firebase Auth Method Implementations ---
 
 	const value = {
 		user,
-		session,
+		// session, // Removed session
 		isLoading,
 		signUp,
 		signIn,
 		signInWithGoogle,
 		signOut,
 		resetPassword,
-		updateUserMetadata,
+		updateUserProfile,
 		updatePassword,
 	};
 

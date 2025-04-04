@@ -6,13 +6,13 @@ import { ReactNode } from "react";
 
 interface ProtectedRouteProps {
 	redirectTo?: string;
-	adminOnly?: boolean;
+	// adminOnly?: boolean; // TODO: Re-enable when Firebase role check is implemented
 	children?: ReactNode;
 }
 
 export function ProtectedRoute({
 	redirectTo = "/login",
-	adminOnly = false,
+	// adminOnly = false, // TODO: Re-enable when Firebase role check is implemented
 	children,
 }: ProtectedRouteProps) {
 	const { user, isLoading } = useAuth();
@@ -41,8 +41,10 @@ export function ProtectedRoute({
 		);
 	}
 
+	// TODO: Implement admin check based on Firebase user data (custom claims or Firestore)
+	/*
 	// Check if the route is admin-only and the user is not an admin
-	const isAdmin = user?.user_metadata?.role === "admin";
+	const isAdmin = user?.user_metadata?.role === "admin"; // <-- Needs Firebase update
 
 	// Get the current path
 	const path = location.pathname;
@@ -64,6 +66,7 @@ export function ProtectedRoute({
 			/>
 		);
 	}
+	*/
 
 	// Render the protected content (either children or Outlet)
 	return children ? <>{children}</> : <Outlet />;

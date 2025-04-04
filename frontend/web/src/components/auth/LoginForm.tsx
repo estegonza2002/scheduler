@@ -16,7 +16,7 @@ import {
 } from "../ui/form";
 import { toast } from "sonner";
 import { Label } from "../ui/label";
-import { supabase } from "../../lib/supabase";
+import { AuthError as FirebaseAuthError } from "firebase/auth";
 
 const loginSchema = z.object({
 	email: z.string().email("Invalid email address"),
@@ -43,31 +43,41 @@ export function LoginForm() {
 		async (values: LoginFormValues) => {
 			setIsLoading(true);
 			try {
-				const { data, error } = await signIn({
-					email: values.email,
-					password: values.password,
-				});
-
-				if (error) {
-					if (error.message.includes("Invalid login credentials")) {
-						toast.error("Invalid email or password. Please try again.");
-					} else if (error.message.includes("Email not confirmed")) {
-						toast.error("Please confirm your email address before logging in.");
-					} else {
-						toast.error(error.message);
-					}
-					console.error("Login error:", error);
-					return;
-				}
+				const userCredential = await signIn(values.email, values.password);
 
 				toast.success("Logged in successfully");
 
-				// Check if user is an admin and redirect to appropriate dashboard
-				const isAdmin = data.user?.user_metadata?.role === "admin";
-				navigate(isAdmin ? "/admin-dashboard" : "/dashboard");
+				navigate("/dashboard");
 			} catch (error) {
-				toast.error("An unexpected error occurred");
-				console.error("Login exception:", error);
+				let errorMessage = "An unexpected error occurred during login.";
+				if (error instanceof Error) {
+					if ("code" in error) {
+						const firebaseError = error as FirebaseAuthError;
+						switch (firebaseError.code) {
+							case "auth/invalid-credential":
+							case "auth/user-not-found":
+							case "auth/wrong-password":
+								errorMessage = "Invalid email or password. Please try again.";
+								break;
+							case "auth/user-disabled":
+								errorMessage = "This account has been disabled.";
+								break;
+							case "auth/too-many-requests":
+								errorMessage =
+									"Access to this account has been temporarily disabled due to many failed login attempts. You can immediately restore it by resetting your password or you can try again later.";
+								break;
+							default:
+								console.error("Firebase login error:", firebaseError);
+								break;
+						}
+					} else {
+						console.error("Login exception:", error);
+						errorMessage = error.message;
+					}
+				} else {
+					console.error("Unknown login error structure:", error);
+				}
+				toast.error(errorMessage);
 			} finally {
 				setIsLoading(false);
 			}
@@ -78,34 +88,13 @@ export function LoginForm() {
 	const handleGoogleSignIn = async () => {
 		setIsGoogleLoading(true);
 		try {
-			console.log("Starting Google sign-in process...");
-
-			// Clear any existing business signup flag
 			localStorage.removeItem("business_signup");
 
-			// Use direct Supabase client call
-			const { data, error } = await supabase.auth.signInWithOAuth({
-				provider: "google",
-				options: {
-					redirectTo: `${window.location.origin}/auth-callback`,
-					queryParams: {
-						prompt: "select_account",
-					},
-				},
-			});
-
-			if (error) {
-				console.error("Google sign-in error:", error);
-				toast.error(`Google sign-in error: ${error.message}`);
-			} else {
-				console.log("Google auth initialized, redirecting to:", data?.url);
-				// The browser will be redirected automatically by Supabase
-			}
-		} catch (error) {
+			await signInWithGoogle();
+			toast.info("Redirecting to Google for sign in...");
+		} catch (error: any) {
 			console.error("Exception during Google sign in:", error);
-			toast.error("An error occurred during Google sign in");
-		} finally {
-			setIsGoogleLoading(false);
+			toast.error(`Google sign-in error: ${error.message || "Unknown error"}`);
 		}
 	};
 

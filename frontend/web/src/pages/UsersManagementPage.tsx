@@ -44,7 +44,6 @@ import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LoadingState } from "@/components/ui/loading-state";
 import { EmptyState } from "@/components/ui/empty-state";
-import { supabase } from "@/lib/supabase";
 import {
 	Sheet,
 	SheetContent,
@@ -62,56 +61,28 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 
-// User types for actual data
+// Import new APIs
+import { UserAPI, OrganizationMembersAPI } from "@/api";
+// Import UserProfile type if needed for mapping
+import { UserProfile } from "@/api/types";
+// Correct the Firebase User type import and alias it
+import { User as FirebaseUser } from "firebase/auth";
+
+// Adjusted User type for page state
 interface User {
-	id: string;
+	id: string; // Firebase User UID or Invite ID
+	memberDocId?: string; // Firestore document ID for organizationMembers entry (for updates/deletes)
 	name: string;
 	email: string;
 	role: "owner" | "admin" | "member";
-	status: "active" | "pending";
+	status: "active" | "pending"; // Keep status for pending invites
 	avatarUrl?: string;
-}
-
-// Type for Supabase query result
-interface OrganizationMember {
-	id: string;
-	user_id: string;
-	role: "owner" | "admin" | "member";
-	status: "active" | "pending";
-	users: {
-		id: string;
-		email: string;
-		full_name?: string;
-		avatar_url?: string;
-	};
-}
-
-// Type for the Auth.users data
-interface AuthUser {
-	id: string;
-	email: string;
-	raw_user_meta_data: {
-		full_name?: string;
-		firstName?: string;
-		lastName?: string;
-		avatar_url?: string;
-		picture?: string;
-		[key: string]: any;
-	};
-}
-
-// Type for the joined query result
-interface OrgMemberWithUser {
-	id: string;
-	user_id: string;
-	role: string;
-	organization_id: string;
-	"auth.users": AuthUser;
+	// invitedAt?: string; // Maybe needed if we implement invites properly
 }
 
 export default function UsersManagementPage() {
-	const { user } = useAuth();
-	const { organization } = useOrganization();
+	const { user: firebaseUser } = useAuth(); // Alias the user from useAuth
+	const { organization } = useOrganization(); // Using the refactored context
 	const [users, setUsers] = useState<User[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
@@ -133,14 +104,13 @@ export default function UsersManagementPage() {
 		}
 	}, [updateHeader, isInAccountPage]);
 
-	// Define fetchUsers function in the component scope so it can be called from anywhere
+	// Refactored fetchUsers
 	const fetchUsers = async () => {
 		setLoading(true);
 		setError(null);
 
 		if (!organization?.id) {
 			console.log("No organization ID found", { organization });
-			// Don't show error immediately, just log it and keep showing the current user
 			setLoading(false);
 			return;
 		}
@@ -148,182 +118,75 @@ export default function UsersManagementPage() {
 		try {
 			console.log("Fetching organization members for org:", organization.id);
 
-			// 1. Get active members
-			const { data: memberData, error: memberError } = await supabase
-				.from("organization_members")
-				.select("*")
-				.eq("organization_id", organization.id);
+			// 1. Get organization member entries
+			const memberEntries = await OrganizationMembersAPI.getAllByOrgId(
+				organization.id
+			);
+			console.log("Fetched member entries:", memberEntries);
 
-			if (memberError) {
-				console.error("Error fetching members:", memberError);
-				// Continue with just the current user rather than throwing
-			}
-
-			console.log("Active members found:", memberData?.length || 0, memberData);
-
-			// 2. Get pending invitations
-			// console.log("Fetching invitations for organization:", organization.id);
-
-			// // First try without the status filter to see if any invitations exist
-			// const { data: allInvitationData, error: allInvitationError } =
-			// 	await supabase
-			// 		.from("invitations")
-			// 		.select("*")
-			// 		.eq("organization_id", organization.id);
-
-			// if (allInvitationError) {
-			// 	console.error("Error fetching all invitations:", allInvitationError);
-			// } else {
-			// 	console.log(
-			// 		"All invitations found (any status):",
-			// 		allInvitationData?.length || 0,
-			// 		allInvitationData
-			// 	);
-			// }
-
-			// // Then try with the status filter for pending only
-			// const { data: invitationData, error: invitationError } = await supabase
-			// 	.from("invitations")
-			// 	.select("*")
-			// 	.eq("organization_id", organization.id)
-			// 	.eq("status", "pending");
-
-			// if (invitationError) {
-			// 	console.error("Error fetching pending invitations:", invitationError);
-			// 	// We continue even if this fails - we'll just show active members
-			// }
-
-			// console.log(
-			// 	"Pending invitations found:",
-			// 	invitationData?.length || 0,
-			// 	invitationData
-			// );
-			const invitationData: any[] = []; // No invitations table
-
-			// 3. Process active members
-			const activeUsers =
-				memberData && memberData.length > 0
-					? memberData.map((member) => {
-							// If this is the current user, use their data
-							if (user && user.id && member.user_id === user.id) {
-								const currentUserEmail = user.email || "unknown@example.com";
-								const userName =
-									user.user_metadata?.full_name ||
-									(user.user_metadata?.firstName && user.user_metadata?.lastName
-										? `${user.user_metadata.firstName} ${user.user_metadata.lastName}`
-										: currentUserEmail.split("@")[0] || "Current User");
-
-								return {
-									id: user.id,
-									name: userName,
-									email: currentUserEmail,
-									role: member.role as "owner" | "admin" | "member",
-									status: "active" as const,
-									avatarUrl:
-										user.user_metadata?.avatar_url ||
-										user.user_metadata?.picture,
-								};
-							}
-
-							// Generate a display name based on member role
-							const displayName =
-								member.role === "owner"
-									? "Organization Owner"
-									: member.role === "admin"
-									? `Admin ${member.user_id.substring(0, 4)}`
-									: `Team Member ${member.user_id.substring(0, 4)}`;
-
-							// For other members, create mock data
-							return {
-								id: member.user_id,
-								name: displayName,
-								email: `user-${member.user_id.substring(0, 6)}@example.com`,
-								role: member.role as "owner" | "admin" | "member",
-								status: "active" as const,
-								avatarUrl: undefined,
-							};
-					  })
-					: [];
-
-			// 4. Process pending invitations
-			const pendingUsers: User[] = [];
-			// invitationData && invitationData.length > 0
-			// 	? invitationData.map((invite) => {
-			// 			// Use the saved name if available, otherwise format from email
-			// 			const nameFromEmail = invite.email.split("@")[0];
-			// 			const formattedName =
-			// 				invite.name ||
-			// 				nameFromEmail
-			// 					.split(/[._-]/)
-			// 					.map(
-			// 						(part: string) =>
-			// 							part.charAt(0).toUpperCase() + part.slice(1)
-			// 					)
-			// 					.join(" ");
-
-			// 			const pendingUser = {
-			// 				id: `invite-${invite.id}`,
-			// 				name: formattedName,
-			// 				email: invite.email,
-			// 				role: invite.role as "owner" | "admin" | "member",
-			// 				status: "pending" as const,
-			// 				invitedAt: invite.created_at,
-			// 				avatarUrl: undefined,
-			// 			};
-
-			// 			console.log(
-			// 				"Processing pending invitation:",
-			// 				invite.id,
-			// 				"for email:",
-			// 				invite.email
-			// 			);
-			// 			return pendingUser;
-			// 	  })
-			// 	: [];
-
-			// 5. Combine active members and pending invitations
-			const combinedUsers = [...activeUsers, ...pendingUsers];
-
-			// 6. Deduplicate users based on ID
-			const uniqueUserIds = new Set<string>();
-			const uniqueUsers = combinedUsers.filter((user) => {
-				if (uniqueUserIds.has(user.id)) {
-					console.log(
-						"Duplicate user ID found, removing:",
-						user.id,
-						user.email
-					);
-					return false;
-				}
-				uniqueUserIds.add(user.id);
-				return true;
-			});
-
-			if (uniqueUsers.length === 0) {
-				console.log("No team members or invitations found");
-				// Don't show an error, we already have the current user as fallback
+			if (!memberEntries || memberEntries.length === 0) {
+				console.log("No members found for this organization.");
+				setUsers([]);
 				setLoading(false);
 				return;
 			}
 
-			console.log("Setting unique users:", uniqueUsers);
-			setUsers(uniqueUsers);
+			// 2. Fetch user profiles for each member
+			const userProfilePromises = memberEntries.map(
+				(member) => UserAPI.getProfile(member.userId) // Assuming member object has userId field
+			);
+			const userProfiles = await Promise.all(userProfilePromises);
+			console.log("Fetched user profiles:", userProfiles);
+
+			// 3. Combine member data and user profile data
+			const combinedUsers: User[] = memberEntries
+				.map((member, index) => {
+					const profile = userProfiles[index];
+
+					// Determine name and avatar
+					let name = "Unknown User";
+					let avatarUrl: string | undefined = undefined;
+					if (profile) {
+						name =
+							profile.displayName ||
+							profile.email ||
+							`User ${member.userId.substring(0, 6)}`;
+						avatarUrl = profile.photoURL;
+					} else if (member.userId === firebaseUser?.uid) {
+						// Fallback for current user if profile fetch failed
+						name =
+							firebaseUser?.displayName ||
+							firebaseUser?.email ||
+							"Current User";
+						avatarUrl = firebaseUser?.photoURL || undefined;
+					}
+
+					return {
+						id: member.userId, // Use Firebase User UID as primary ID
+						memberDocId: member.id, // Store Firestore document ID for role updates/deletes
+						name: name,
+						email: profile?.email || member.email || "unknown@example.com", // Need member.email if invite stored it
+						role: member.role as "owner" | "admin" | "member", // Assuming role is stored on member entry
+						status: (member.status || "active") as "active" | "pending", // Default to active if status missing
+						avatarUrl: avatarUrl,
+					};
+				})
+				.filter((u) => u); // Filter out any null/undefined results
+
+			console.log("Setting combined users:", combinedUsers);
+			setUsers(combinedUsers);
 			setLoading(false);
 		} catch (error) {
 			console.error("Error fetching users:", error);
-			// Don't show an error toast for expected failures during loading
-			// Only set the error state if we don't have any user data at all
-			if (users.length === 0) {
-				setError("Failed to load team members. Please try again.");
-				toast.error("Failed to load team members");
-			}
+			setError("Failed to load team members. Please try again.");
+			toast.error("Failed to load team members");
 			setLoading(false);
 		}
 	};
 
 	useEffect(() => {
 		fetchUsers();
-	}, [organization?.id, user]);
+	}, [organization?.id]); // Removed user dependency, fetchUsers now gets all members for the org
 
 	// Reset form fields
 	const resetInviteForm = () => {
@@ -332,324 +195,75 @@ export default function UsersManagementPage() {
 		setInviteRole("admin");
 	};
 
+	// Refactored handleInviteUser (Placeholder)
 	const handleInviteUser = async () => {
-		// Immediately check if we have what we need
 		if (!inviteEmail) {
 			toast.error("Please enter an email address");
 			return;
 		}
-
-		if (!organization) {
-			console.error("No organization object available:", organization);
+		if (!organization?.id) {
 			toast.error("Organization data not available. Please refresh the page.");
 			return;
 		}
-
-		if (!organization.id) {
-			console.error("Missing organization ID:", organization);
-			toast.error("Organization ID is missing. Please refresh the page.");
+		if (!firebaseUser?.uid) {
+			toast.error("Authentication error. Please log in again.");
 			return;
 		}
 
-		console.log(
-			"Starting invitation process for:",
+		console.log("Attempting to invite user:", inviteEmail, "Role:", inviteRole);
+
+		// TODO: Full invite implementation needed
+		// 1. Check if email already exists in Firebase Auth (optional, depends on flow)
+		// 2. Check if user is already a member using OrganizationMembersAPI.getByUserIdAndOrgId (needs lookup by email first)
+		// 3. Call OrganizationMembersAPI.inviteUser (or Cloud Function)
+		const result = await OrganizationMembersAPI.inviteUser(
+			organization.id,
 			inviteEmail,
-			"Org ID:",
-			organization.id
+			inviteRole,
+			firebaseUser.uid
 		);
 
-		try {
-			// First check if user already exists
-			const { data: existingUsers, error: userQueryError } = await supabase
-				.from("users")
-				.select("id")
-				.eq("email", inviteEmail);
-
-			if (userQueryError) {
-				console.error("Error checking existing users:", userQueryError);
-				toast.error("Unable to verify user status");
-				return;
-			}
-
-			const existingUserId =
-				existingUsers && existingUsers.length > 0 ? existingUsers[0].id : null;
-
-			// Check if user is already a member
-			if (existingUserId) {
-				const { data: existingMember, error: memberQueryError } = await supabase
-					.from("organization_members")
-					.select("id")
-					.eq("organization_id", organization.id)
-					.eq("user_id", existingUserId);
-
-				if (memberQueryError) {
-					console.error(
-						"Error checking organization members:",
-						memberQueryError
-					);
-					toast.error("Unable to verify membership status");
-					return;
-				}
-
-				if (existingMember && existingMember.length > 0) {
-					toast.error("User is already a member of this organization");
-					return;
-				}
-			}
-
-			// Check if invitation already exists
-			// const { data: existingInvitation, error: inviteQueryError } =
-			// 	await supabase
-			// 		.from("invitations")
-			// 		.select("id")
-			// 		.eq("organization_id", organization.id)
-			// 		.eq("email", inviteEmail)
-			// 		.eq("status", "pending");
-
-			// if (inviteQueryError) {
-			// 	// Don't stop the process, just log the error and continue
-			// 	console.error("Error checking existing invitations:", inviteQueryError);
-			// 	console.log(
-			// 		"Continuing with invitation process despite verification error"
-			// 	);
-			// 	// We'll just attempt to create the invitation anyway
-			// } else if (existingInvitation && existingInvitation.length > 0) {
-			// 	toast.error(
-			// 		"An invitation has already been sent to this email address"
-			// 	);
-			// 	return;
-			// }
-
-			console.log(
-				"Creating invitation record in database for org:",
-				organization.id
-			);
-
-			// Prepare display name - use entered name or derive from email
-			const displayName =
-				inviteName ||
-				inviteEmail
-					.split("@")[0]
-					.split(/[._-]/)
-					.map((part: string) => part.charAt(0).toUpperCase() + part.slice(1))
-					.join(" ");
-
-			// Create invitation with name and selected role
-			const invitePayload = {
-				organization_id: organization.id,
-				email: inviteEmail,
-				name: displayName, // Store the name
-				role: inviteRole, // Use the selected role, defaults to admin
-				status: "pending",
-				invited_by: user?.id,
-				created_at: new Date().toISOString(),
-			};
-
-			console.log("Invitation payload:", invitePayload);
-
-			// Try to create the invitation with detailed logging
-			let insertSuccess = false;
-			let invitationId = "";
-			let insertAttemptError = null;
-
-			try {
-				console.log("Attempting to insert invitation into database...");
-				const { data: invitationData, error: insertError } = await supabase
-					.from("invitations")
-					.insert(invitePayload)
-					.select();
-
-				console.log("Insert response:", {
-					data: invitationData,
-					error: insertError,
-				});
-
-				if (insertError) {
-					console.error("Database error creating invitation:", insertError);
-					insertAttemptError = insertError;
-
-					// Check if it's a permission error
-					if (
-						insertError.code === "42501" ||
-						(insertError.message &&
-							(insertError.message.includes("permission") ||
-								insertError.message.includes("policy")))
-					) {
-						toast.error(
-							"You don't have permission to invite users. Please contact your administrator."
-						);
-						return;
-					}
-
-					// Check if it's a duplicate entry error
-					if (
-						insertError.code === "23505" ||
-						(insertError.message &&
-							(insertError.message.includes("duplicate") ||
-								insertError.message.includes("unique constraint")))
-					) {
-						toast.error("This user has already been invited.");
-						return;
-					}
-
-					// For any database error, show the error message and stop the process
-					toast.error(
-						`Failed to create invitation: ${
-							insertError.message || "Unknown database error"
-						}`
-					);
-
-					// Keep the dialog open so the user can try again
-					return;
-				}
-
-				// If we get here, the database insert was successful
-				console.log("Invitation record created successfully:", invitationData);
-
-				// Verify we have the data we need
-				if (!invitationData || invitationData.length === 0) {
-					console.error("No invitation data returned from successful insert");
-					toast.error(
-						"Failed to create invitation: No data returned from database"
-					);
-					return;
-				}
-
-				const invite = invitationData[0];
-				invitationId = invite.id;
-				insertSuccess = true;
-				console.log("Using invitation data:", invite);
-			} catch (dbError) {
-				console.error("Exception during database operation:", dbError);
-				const errorMessage =
-					dbError instanceof Error ? dbError.message : "Unknown database error";
-				toast.error(`Database error: ${errorMessage}`);
-				return;
-			}
-
-			// If insert was successful, add the user to the UI
-			if (insertSuccess && invitationId) {
-				// Add to the UI only after successful database insertion
-				const newUser = {
-					id: `invite-${invitationId}`,
-					name: displayName,
-					email: inviteEmail,
-					role: inviteRole,
-					status: "pending" as const,
-					invitedAt: new Date().toISOString(),
-				};
-
-				console.log("Adding new user to UI:", newUser);
-				setUsers((currentUsers) => [...currentUsers, newUser]);
-
-				// Email would be sent here in a real implementation
-				console.log("Would send email to:", inviteEmail);
-
-				// Show success message only for successful DB operation
-				toast.success(`Invitation sent to ${inviteEmail}`);
-				resetInviteForm();
-				setIsInviteSheetOpen(false);
-
-				// Reload all users to ensure we have the latest data
-				setTimeout(() => {
-					// Refresh the user list after a short delay to ensure DB consistency
-					console.log("Refreshing user list after invitation...");
-					fetchUsers();
-				}, 1000);
-			} else {
-				console.error(
-					"Insert appeared successful but no invitation ID was returned"
-				);
-				toast.error("Failed to create invitation properly. Please try again.");
-			}
-		} catch (error) {
-			console.error("Error inviting user:", error);
-			const errorMessage =
-				error instanceof Error ? error.message : "Unknown error";
-			toast.error(`Failed to send invitation: ${errorMessage}`);
-			// Don't close the dialog so the user can try again
+		if (result) {
+			// Assuming inviteUser adds a pending user and returns it
+			// We would add this pending user to the local state `users`
+			toast.success(`Invitation sent to ${inviteEmail}`);
+			resetInviteForm();
+			setIsInviteSheetOpen(false);
+			// Optionally refresh the list
+			fetchUsers();
+		} else {
+			// Error handled within inviteUser placeholder or specific checks above
+			console.log("Invite user failed or not implemented.");
 		}
 	};
 
-	const handlePromoteToAdmin = async (userId: string) => {
-		if (!organization?.id) return;
-
-		try {
-			const { error } = await supabase
-				.from("organization_members")
-				.update({ role: "admin" })
-				.eq("organization_id", organization.id)
-				.eq("user_id", userId);
-
-			if (error) throw error;
-
-			// Update UI
-			setUsers(
-				users.map((u) => (u.id === userId ? { ...u, role: "admin" } : u))
-			);
-			toast.success("User promoted to admin");
-		} catch (error) {
-			console.error("Error updating role:", error);
-			toast.error("Failed to update user role");
+	// Refactored role change handlers
+	const handlePromoteToAdmin = async (memberDocId: string | undefined) => {
+		if (!memberDocId) {
+			toast.error("Cannot update role: Member identifier missing.");
+			return;
 		}
+		await OrganizationMembersAPI.updateRole(memberDocId, "admin");
+		// Optimistic UI update or refetch
+		setUsers(
+			users.map((u) =>
+				u.memberDocId === memberDocId ? { ...u, role: "admin" } : u
+			)
+		);
 	};
 
-	const handleDemoteToMember = async (userId: string) => {
-		if (!organization?.id) return;
-
-		try {
-			const { error } = await supabase
-				.from("organization_members")
-				.update({ role: "member" })
-				.eq("organization_id", organization.id)
-				.eq("user_id", userId);
-
-			if (error) throw error;
-
-			// Update UI
-			setUsers(
-				users.map((u) => (u.id === userId ? { ...u, role: "member" } : u))
-			);
-			toast.success("User changed to member");
-		} catch (error) {
-			console.error("Error updating role:", error);
-			toast.error("Failed to update user role");
+	const handleDemoteToMember = async (memberDocId: string | undefined) => {
+		if (!memberDocId) {
+			toast.error("Cannot update role: Member identifier missing.");
+			return;
 		}
-	};
-
-	const handleResendInvite = async (email: string) => {
-		if (!organization?.id) return;
-
-		try {
-			// Get the invitation
-			const { data, error } = await supabase
-				.from("invitations")
-				.select("id")
-				.eq("organization_id", organization.id)
-				.eq("email", email)
-				.eq("status", "pending");
-
-			if (error || !data || data.length === 0)
-				throw error || new Error("Invitation not found");
-
-			// Update the invitation to trigger a new email
-			const { error: updateError } = await supabase
-				.from("invitations")
-				.update({
-					updated_at: new Date().toISOString(),
-					invited_by: user?.id,
-				})
-				.eq("id", data[0].id);
-
-			if (updateError) throw updateError;
-
-			// Call a serverless function or API endpoint to resend the email
-
-			toast.success(`Invitation resent to ${email}`);
-		} catch (error) {
-			console.error("Error resending invitation:", error);
-			toast.error("Failed to resend invitation");
-		}
+		await OrganizationMembersAPI.updateRole(memberDocId, "member");
+		// Optimistic UI update or refetch
+		setUsers(
+			users.map((u) =>
+				u.memberDocId === memberDocId ? { ...u, role: "member" } : u
+			)
+		);
 	};
 
 	// Get initials for avatar fallback
@@ -778,44 +392,65 @@ export default function UsersManagementPage() {
 								<TableCell>{renderRoleBadge(user.role)}</TableCell>
 								<TableCell>{renderStatusBadge(user.status)}</TableCell>
 								<TableCell className="text-right">
-									<DropdownMenu>
-										<DropdownMenuTrigger asChild>
-											<Button
-												variant="ghost"
-												className="h-8 w-8 p-0">
-												<span className="sr-only">Open menu</span>
-												<Users className="h-4 w-4" />
-											</Button>
-										</DropdownMenuTrigger>
-										<DropdownMenuContent align="end">
-											{user.status === "pending" ? (
+									{user.id !== firebaseUser?.uid && user.role !== "owner" && (
+										<DropdownMenu>
+											<DropdownMenuTrigger asChild>
+												<Button
+													variant="ghost"
+													size="sm">
+													Actions
+												</Button>
+											</DropdownMenuTrigger>
+											<DropdownMenuContent>
+												{user.role === "member" && (
+													<DropdownMenuItem
+														onClick={() =>
+															handlePromoteToAdmin(user.memberDocId)
+														} // Pass memberDocId
+													>
+														<UserCheck className="mr-2 h-4 w-4" />
+														Promote to Admin
+													</DropdownMenuItem>
+												)}
+												{user.role === "admin" && (
+													<DropdownMenuItem
+														onClick={() =>
+															handleDemoteToMember(user.memberDocId)
+														} // Pass memberDocId
+													>
+														<UserX className="mr-2 h-4 w-4" />
+														Demote to Member
+													</DropdownMenuItem>
+												)}
+												{/* Remove User Option */}
 												<DropdownMenuItem
-													onClick={() => handleResendInvite(user.email)}>
-													Resend Invite
-												</DropdownMenuItem>
-											) : null}
-
-											{user.status === "active" && user.role === "member" ? (
-												<DropdownMenuItem
-													onClick={() => handlePromoteToAdmin(user.id)}>
-													Promote to Admin
-												</DropdownMenuItem>
-											) : null}
-
-											{user.status === "active" && user.role === "admin" ? (
-												<DropdownMenuItem
-													onClick={() => handleDemoteToMember(user.id)}>
-													Change to Member
-												</DropdownMenuItem>
-											) : null}
-
-											{user.role !== "owner" ? (
-												<DropdownMenuItem className="text-red-600 focus:text-red-600">
+													className="text-red-600"
+													onClick={() => {
+														if (
+															window.confirm(
+																`Are you sure you want to remove ${user.name}?`
+															)
+														) {
+															OrganizationMembersAPI.removeMember(
+																user.memberDocId!
+															).then((success) => {
+																if (success) {
+																	// Optimistic UI update or refetch
+																	setUsers(
+																		users.filter(
+																			(u) => u.memberDocId !== user.memberDocId
+																		)
+																	);
+																}
+															});
+														}
+													}}>
+													<UserX className="mr-2 h-4 w-4" />
 													Remove User
 												</DropdownMenuItem>
-											) : null}
-										</DropdownMenuContent>
-									</DropdownMenu>
+											</DropdownMenuContent>
+										</DropdownMenu>
+									)}
 								</TableCell>
 							</TableRow>
 						))}

@@ -3,6 +3,10 @@ export interface Organization {
 	id: string;
 	name: string;
 	description?: string;
+	logoUrl?: string;
+	ownerId: string;
+	createdAt: string;
+	updatedAt: string;
 	contactEmail?: string;
 	contactPhone?: string;
 	address?: string;
@@ -12,9 +16,10 @@ export interface Organization {
 	country?: string;
 	website?: string;
 	businessHours?: string;
-	stripe_customer_id?: string;
-	subscription_id?: string;
-	subscription_status?: string;
+	stripeCustomerId?: string;
+	subscriptionId?: string;
+	subscriptionStatus?: string;
+	subscriptionPlan?: SubscriptionPlan;
 }
 
 /**
@@ -36,50 +41,48 @@ export interface ShiftTask {
  */
 export interface Shift {
 	id: string;
-	created_at: string;
-	updated_at: string;
-
-	// Time information
-	start_time: string; // ISO format timestamp
-	end_time: string; // ISO format timestamp
+	createdAt: string;
+	updatedAt: string;
+	startTime: string;
+	endTime: string;
 
 	// Relations
-	organization_id: string;
-	user_id?: string; // Employee assigned to this shift
-	created_by?: string; // User who created this shift
-	location_id?: string; // Location where this shift takes place
-	parent_shift_id?: string; // Self-reference to parent schedule/shift
+	organizationId: string;
+	userId?: string;
+	createdBy?: string;
+	locationId?: string;
+	parentShiftId?: string;
 
 	// Metadata
-	name?: string; // Mainly for schedules, can be used for shifts too
-	description?: string; // Notes or additional information
-	status?: string; // e.g., "scheduled", "completed", "canceled"
-	is_schedule: boolean; // Flag to distinguish schedule vs shift
+	name?: string;
+	description?: string;
+	status?: string;
+	isSchedule: boolean;
 
 	// Optional associated data
-	check_in_tasks?: ShiftTask[];
-	check_out_tasks?: ShiftTask[];
+	checkInTasks?: ShiftTask[];
+	checkOutTasks?: ShiftTask[];
 }
 
 /**
  * Input type for creating a shift or schedule, excluding auto-generated fields
  */
-export type ShiftCreateInput = Omit<Shift, "id" | "created_at" | "updated_at">;
+export type ShiftCreateInput = Omit<Shift, "id" | "createdAt" | "updatedAt">;
 
 /**
  * Input type specifically for creating schedules
  */
-export type ScheduleCreateInput = Omit<ShiftCreateInput, "is_schedule"> & {
-	is_schedule: true;
+export type ScheduleCreateInput = Omit<ShiftCreateInput, "isSchedule"> & {
+	isSchedule: true;
 };
 
 /**
  * Input type specifically for creating individual shifts
  */
-export type ShiftItemCreateInput = Omit<ShiftCreateInput, "is_schedule"> & {
-	is_schedule: false;
-	parent_shift_id?: string; // Optional for individual shifts
-	status: string; // Required field
+export type ShiftItemCreateInput = Omit<ShiftCreateInput, "isSchedule"> & {
+	isSchedule: false;
+	parentShiftId?: string;
+	status: string;
 };
 
 /**
@@ -88,19 +91,21 @@ export type ShiftItemCreateInput = Omit<ShiftCreateInput, "is_schedule"> & {
  * @returns True if the shift is a schedule
  */
 export function isSchedule(shift: Shift): shift is Schedule {
-	return shift.is_schedule === true;
+	return shift.isSchedule === true;
 }
 
 /**
  * Helper type for schedules
  * Enforces is_schedule=true for better type safety
  */
-export type Schedule = Shift & { is_schedule: true };
+export type Schedule = Shift & { isSchedule: true };
 
 export interface ShiftAssignment {
 	id: string;
-	shift_id: string;
-	employee_id: string;
+	shiftId: string;
+	employeeId: string;
+	organizationId?: string;
+	createdAt?: string;
 }
 
 export interface Employee {
@@ -119,7 +124,13 @@ export interface Employee {
 	status: string;
 	isOnline: boolean;
 	lastActive: string;
-	custom_properties?: Record<string, any>; // For storing custom properties like locationAssignments
+	custom_properties?: {
+		locationAssignments?: string[]; // Array of Location IDs
+		// Add other custom properties here if needed
+		[key: string]: any; // Allow other arbitrary properties
+	};
+	createdAt?: string;
+	updatedAt?: string;
 }
 
 export interface Location {
@@ -213,4 +224,24 @@ export interface SubscriptionUpdateParams {
 export interface CheckoutSession {
 	id: string;
 	url: string;
+}
+
+// Add UserProfile type (moved from api.ts)
+export interface UserProfile {
+	id: string; // Firebase UID
+	email?: string;
+	displayName?: string;
+	photoURL?: string;
+	currentOrganizationId?: string;
+	// Add other profile fields as needed
+	createdAt?: any; // Use 'any' for now to avoid Timestamp import here, handled in API mapping
+	updatedAt?: any; // Use 'any' for now
+}
+
+export interface EmployeeLocationAssignment {
+	id?: string; // Firestore document ID (optional as it's set by Firestore)
+	employeeId: string;
+	locationId: string;
+	organizationId: string; // Good practice to scope assignments by org
+	createdAt?: string; // Optional timestamp
 }

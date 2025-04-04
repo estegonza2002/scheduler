@@ -1,18 +1,8 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { useAuth } from "./auth";
-import { supabase } from "./supabase";
-import { OrganizationsAPI } from "@/api";
+import { OrganizationsAPI, UserAPI } from "@/api";
 import { toast } from "sonner";
-
-// Types
-export interface Organization {
-	id: string;
-	name: string;
-	description?: string;
-	created_at: string;
-	logo_url?: string;
-	owner_id: string;
-}
+import { Organization } from "@/api/types";
 
 interface OrganizationContextType {
 	currentOrganization: Organization | null;
@@ -26,18 +16,15 @@ interface OrganizationContextType {
 	selectOrganization: (organizationId: string) => Promise<void>;
 	updateOrganization: (
 		organizationId: string,
-		data: Partial<Organization>
+		data: Partial<Omit<Organization, "id" | "createdAt" | "updatedAt">>
 	) => Promise<Organization | null>;
-	getCurrentOrganizationId: () => string;
-	tablesInitialized: boolean;
+	getCurrentOrganizationId: () => string | null;
 }
 
-// Create context
 const OrganizationContext = createContext<OrganizationContextType | undefined>(
 	undefined
 );
 
-// Custom hook to use the context
 export function useOrganization() {
 	const context = useContext(OrganizationContext);
 	if (context === undefined) {
@@ -48,146 +35,74 @@ export function useOrganization() {
 	return context;
 }
 
-// Provider component
 export function OrganizationProvider({
 	children,
 }: {
 	children: React.ReactNode;
 }) {
-	const { user, updateUserMetadata } = useAuth();
+	const { user } = useAuth();
 	const [currentOrganization, setCurrentOrganization] =
 		useState<Organization | null>(null);
 	const [organizations, setOrganizations] = useState<Organization[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<Error | null>(null);
-	const [tablesInitialized, setTablesInitialized] = useState(false);
 
-	// Check if tables exist in database
 	useEffect(() => {
-		const checkTablesExist = async () => {
-			try {
-				// Check if organizations table exists by trying to select from it
-				const { error } = await supabase
-					.from("organizations")
-					.select("id")
-					.limit(1);
-
-				if (error && error.code === "42P01") {
-					// Table doesn't exist
-					console.warn("Organizations table does not exist yet");
-					setTablesInitialized(false);
-					setIsLoading(false);
-					return;
-				}
-
-				setTablesInitialized(true);
-			} catch (err) {
-				console.error("Error checking tables:", err);
-				setTablesInitialized(false);
-				setIsLoading(false);
-			}
-		};
-
-		checkTablesExist();
-	}, []);
-
-	// Load organizations and set current one when user changes
-	useEffect(() => {
-		if (user && tablesInitialized) {
+		if (user) {
 			loadOrganizations();
 		} else {
-			// Reset state when user logs out
 			setCurrentOrganization(null);
 			setOrganizations([]);
 			setIsLoading(false);
 		}
-	}, [user, tablesInitialized]);
+	}, [user]);
 
-	// Load all organizations the user has access to
 	const loadOrganizations = async () => {
-		if (!user) return;
-
 		setIsLoading(true);
 		try {
-			// Try to use a direct SQL query to bypass RLS issues
-			const { data: orgs, error } = await supabase
-				.from("organizations")
-				.select(
-					`
-					*,
-					organization_members!inner(*)
-				`
-				)
-				.eq("organization_members.user_id", user.id);
+			const fetchedOrgs = await OrganizationsAPI.getAll();
 
-			if (error) {
-				console.error("Error loading organizations with join:", error);
+			let userProfile = null;
+			if (user) {
+				userProfile = await UserAPI.getProfile(user.uid);
+			}
 
-				// Fallback: Try a simpler query with disabled RLS
-				const { data: simpleOrgs, error: simpleError } = await supabase
-					.from("organizations")
-					.select("*");
+			if (fetchedOrgs && fetchedOrgs.length > 0) {
+				setOrganizations(fetchedOrgs);
 
-				if (simpleError) {
-					throw simpleError;
-				}
+				const currentOrgId = userProfile?.currentOrganizationId;
 
-				if (simpleOrgs && simpleOrgs.length > 0) {
-					setOrganizations(simpleOrgs);
+				console.log("Current Org ID from user profile:", currentOrgId);
+				console.log(
+					"Fetched Orgs:",
+					fetchedOrgs.map((o) => o.id)
+				);
 
-					// Get the user's current organization
-					const currentOrgId = user.user_metadata?.current_organization_id;
-
-					// If the user has a current organization set and it exists in the list
-					if (
-						currentOrgId &&
-						simpleOrgs.some((org) => org.id === currentOrgId)
-					) {
-						const current = simpleOrgs.find((org) => org.id === currentOrgId);
-						setCurrentOrganization(current || null);
-					} else {
-						// Default to the first organization
-						setCurrentOrganization(simpleOrgs[0]);
-
-						// Update user metadata with the current organization
-						if (simpleOrgs[0]) {
-							await updateUserMetadata({
-								current_organization_id: simpleOrgs[0].id,
-							});
-						}
-					}
-				}
-			} else if (orgs && orgs.length > 0) {
-				// Clean up the nested structure
-				const cleanOrgs = orgs.map((org) => {
-					// Remove the nested organization_members property
-					const { organization_members, ...cleanOrg } = org;
-					return cleanOrg;
-				});
-
-				setOrganizations(cleanOrgs);
-
-				// Get the user's current organization
-				const currentOrgId = user.user_metadata?.current_organization_id;
-
-				// If the user has a current organization set and it exists in the list
-				if (currentOrgId && cleanOrgs.some((org) => org.id === currentOrgId)) {
-					const current = cleanOrgs.find((org) => org.id === currentOrgId);
+				if (
+					currentOrgId &&
+					fetchedOrgs.some((org) => org.id === currentOrgId)
+				) {
+					const current = fetchedOrgs.find((org) => org.id === currentOrgId);
+					console.log("Setting current org from user profile:", current);
 					setCurrentOrganization(current || null);
 				} else {
-					// Default to the first organization
-					setCurrentOrganization(cleanOrgs[0]);
+					console.log("Setting current org to first in list:", fetchedOrgs[0]);
+					setCurrentOrganization(fetchedOrgs[0]);
 
-					// Update user metadata with the current organization
-					if (cleanOrgs[0]) {
-						await updateUserMetadata({
-							current_organization_id: cleanOrgs[0].id,
+					if (user && fetchedOrgs[0] && !currentOrgId) {
+						console.log(
+							"Updating user profile with default org ID:",
+							fetchedOrgs[0].id
+						);
+						await UserAPI.updateProfile(user.uid, {
+							currentOrganizationId: fetchedOrgs[0].id,
 						});
 					}
 				}
 			} else {
-				// No organizations found
+				console.log("No organizations found for user.");
 				setCurrentOrganization(null);
+				setOrganizations([]);
 			}
 
 			setError(null);
@@ -201,7 +116,6 @@ export function OrganizationProvider({
 		}
 	};
 
-	// Create a new organization
 	const createOrganization = async (
 		name: string,
 		description?: string
@@ -211,30 +125,18 @@ export function OrganizationProvider({
 		try {
 			setIsLoading(true);
 
-			// Create organization in Supabase
-			const { data: newOrg, error } = await supabase
-				.from("organizations")
-				.insert({
-					name,
-					description,
-					owner_id: user.id,
-				})
-				.select()
-				.single();
-
-			if (error) throw error;
+			const newOrg = await OrganizationsAPI.create({ name, description });
 
 			if (newOrg) {
-				// Add to local state
 				setOrganizations((prev) => [...prev, newOrg]);
 
-				// Set as current organization
 				setCurrentOrganization(newOrg);
 
-				// Update user metadata
-				await updateUserMetadata({
-					current_organization_id: newOrg.id,
-				});
+				if (user) {
+					await UserAPI.updateProfile(user.uid, {
+						currentOrganizationId: newOrg.id,
+					});
+				}
 
 				toast.success(`Organization "${name}" created successfully`);
 				return newOrg;
@@ -253,22 +155,20 @@ export function OrganizationProvider({
 		}
 	};
 
-	// Select an organization as the current one
 	const selectOrganization = async (organizationId: string): Promise<void> => {
 		if (!user) return;
 
 		try {
-			// Find the organization in our list
 			const org = organizations.find((o) => o.id === organizationId);
 			if (!org) throw new Error("Organization not found");
 
-			// Set as current
 			setCurrentOrganization(org);
 
-			// Update user metadata
-			await updateUserMetadata({
-				current_organization_id: org.id,
-			});
+			if (user) {
+				await UserAPI.updateProfile(user.uid, {
+					currentOrganizationId: org.id,
+				});
+			}
 
 			toast.success(`Switched to ${org.name}`);
 		} catch (err) {
@@ -280,35 +180,33 @@ export function OrganizationProvider({
 		}
 	};
 
-	// Update an organization
 	const updateOrganization = async (
 		organizationId: string,
-		data: Partial<Organization>
+		data: Partial<Omit<Organization, "id" | "createdAt" | "updatedAt">>
 	): Promise<Organization | null> => {
 		if (!user) return null;
 
 		try {
 			setIsLoading(true);
 
-			// Update in Supabase
-			const { data: updatedOrg, error } = await supabase
-				.from("organizations")
-				.update(data)
-				.eq("id", organizationId)
-				.select()
-				.single();
-
-			if (error) throw error;
+			const updatedOrg = await OrganizationsAPI.update({
+				id: organizationId,
+				...data,
+			});
 
 			if (updatedOrg) {
-				// Update in local state
 				setOrganizations((prev) =>
 					prev.map((org) => (org.id === organizationId ? updatedOrg : org))
 				);
 
-				// Update current organization if it's the one being updated
 				if (currentOrganization?.id === organizationId) {
 					setCurrentOrganization(updatedOrg);
+				}
+
+				if (user) {
+					await UserAPI.updateProfile(user.uid, {
+						currentOrganizationId: updatedOrg.id,
+					});
 				}
 
 				toast.success("Organization updated successfully");
@@ -328,29 +226,21 @@ export function OrganizationProvider({
 		}
 	};
 
-	// Helper function to get the current organization ID safely
-	const getCurrentOrganizationId = (): string => {
-		// If we don't have organization tables initialized, throw an error
-		if (!tablesInitialized) {
-			throw new Error("Organization tables not initialized");
-		}
-
+	const getCurrentOrganizationId = (): string | null => {
 		if (currentOrganization) {
 			return currentOrganization.id;
 		}
 
-		// If we don't have a current organization but we do have organizations
 		if (organizations.length > 0) {
 			return organizations[0].id;
 		}
 
-		// No organization available, throw an error
-		throw new Error(
-			"No organization available - user must create or join an organization"
+		console.warn(
+			"getCurrentOrganizationId called but no organization is available."
 		);
+		return null;
 	};
 
-	// Context value
 	const value = {
 		currentOrganization,
 		isLoading,
@@ -360,7 +250,6 @@ export function OrganizationProvider({
 		selectOrganization,
 		updateOrganization,
 		getCurrentOrganizationId,
-		tablesInitialized,
 	};
 
 	return (
