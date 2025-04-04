@@ -9,7 +9,7 @@ import { Location } from "@/api/types";
 import { LocationsAPI } from "@/api";
 import { supabase } from "./supabase";
 import { toast } from "sonner";
-import { getOrgId } from "./organization";
+import { getOrgId, useOrganization } from "./organization";
 
 // Context type that includes all necessary functionality
 interface LocationContextType {
@@ -32,15 +32,28 @@ const LocationContext = createContext<LocationContextType | undefined>(
 );
 
 export function LocationProvider({ children }: { children: ReactNode }) {
+	// Get organization context
+	const { organization, isLoading: isOrgLoading } = useOrganization();
 	const [locations, setLocations] = useState<Location[]>([]);
 	const [currentLocation, setCurrentLocation] = useState<Location | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
 
 	// Fetch all locations for the current organization
 	const refreshLocations = async () => {
+		// Ensure organization is loaded before fetching
+		const organizationId = organization?.id;
+		if (!organizationId) {
+			// Don't fetch if org ID is not available yet
+			// Clear locations if org becomes unavailable
+			setLocations([]);
+			setCurrentLocation(null);
+			setIsLoading(false); // Stop loading if no org ID
+			return;
+		}
+
 		try {
 			setIsLoading(true);
-			const organizationId = getOrgId();
+			// Pass the confirmed organizationId
 			const locationData = await LocationsAPI.getAll(organizationId);
 
 			setLocations(locationData);
@@ -85,14 +98,30 @@ export function LocationProvider({ children }: { children: ReactNode }) {
 		}
 	};
 
-	// Initial data fetch
+	// Initial data fetch - depends on organization ID
 	useEffect(() => {
-		refreshLocations();
-	}, []);
+		// Only refresh if organization is loaded and has an ID
+		if (organization?.id) {
+			refreshLocations();
+		} else if (!isOrgLoading) {
+			// If org loading is finished and there's still no ID, clear locations
+			setLocations([]);
+			setCurrentLocation(null);
+			setIsLoading(false);
+		}
+		// Add organization.id and isOrgLoading as dependencies
+	}, [organization?.id, isOrgLoading]);
 
 	// Set up real-time subscription for location updates
 	useEffect(() => {
-		const organizationId = getOrgId();
+		// Get organizationId directly from context if available
+		const organizationId = organization?.id;
+
+		// Only subscribe if we have an organizationId
+		if (!organizationId) {
+			return; // Return an empty cleanup function if no subscription is made
+		}
+
 		const subscription = supabase
 			.channel("location-updates")
 			.on(
@@ -101,10 +130,14 @@ export function LocationProvider({ children }: { children: ReactNode }) {
 					event: "*", // Listen for all events (INSERT, UPDATE, DELETE)
 					schema: "public",
 					table: "locations",
-					filter: `organization_id=eq.${organizationId}`,
+					filter: `organization_id=eq.${organizationId}`, // Use organizationId here
 				},
 				() => {
-					refreshLocations();
+					// Refresh locations on updates
+					if (organization?.id) {
+						// Check again in case org changed during update
+						refreshLocations();
+					}
 				}
 			)
 			.subscribe();
@@ -112,7 +145,8 @@ export function LocationProvider({ children }: { children: ReactNode }) {
 		return () => {
 			subscription.unsubscribe();
 		};
-	}, []);
+		// Depend on organization.id to resubscribe if it changes
+	}, [organization?.id]);
 
 	// Context value
 	const contextValue: LocationContextType = {
@@ -141,14 +175,15 @@ export function useLocation() {
 }
 
 // Utility function to get location ID (can be used in any context)
-export function getCurrentLocation(): string | null {
-	try {
-		// This will work in component contexts
-		const { getCurrentLocationId } = useLocation();
-		return getCurrentLocationId();
-	} catch (error) {
-		// Return null if we're not in a component context
-		console.warn("Unable to get location ID - not in component context");
-		return null;
-	}
-}
+// Remove the function below as it violates hook rules
+// export function getCurrentLocation(): string | null {
+// 	try {
+// 		// This will work in component contexts
+// 		const { getCurrentLocationId } = useLocation();
+// 		return getCurrentLocationId();
+// 	} catch (error) {
+// 		// Return null if we're not in a component context
+// 		console.warn("Unable to get location ID - not in component context");
+// 		return null;
+// 	}
+// }

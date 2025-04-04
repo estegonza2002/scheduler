@@ -7,7 +7,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Location, LocationsAPI, OrganizationsAPI, Organization } from "@/api";
+import { Location, Organization } from "@/api";
 import {
 	MapPin,
 	Plus,
@@ -58,21 +58,19 @@ import { LocationCard } from "@/components/ui/location-card";
 import { useOrganizationId } from "@/hooks/useOrganizationId";
 import { LocationFormDialog } from "@/components/LocationFormDialog";
 
+// Import the location context hook
+import { useLocation } from "@/lib/location";
+
 export default function LocationsPage() {
 	const { updateHeader } = useHeader();
 	const [searchParams] = useSearchParams();
-	const [loading, setLoading] = useState<boolean>(true);
-	const [loadingPhase, setLoadingPhase] = useState<string>("organization");
-	const [locations, setLocations] = useState<Location[]>([]);
-	const [organization, setOrganization] = useState<Organization | null>(null);
 	const [viewMode, setViewMode] = useState<"table" | "cards">("cards");
 	const organizationId = useOrganizationId();
 
-	// Add state for real-time subscription
-	const [locationsChannel, setLocationsChannel] =
-		useState<RealtimeChannel | null>(null);
+	// Use state from location context
+	const { locations, isLoading: loading, refreshLocations } = useLocation();
 
-	// Add pagination state for card view
+	// Pagination state for card view
 	const [currentPage, setCurrentPage] = useState(1);
 	const [pageSize, setPageSize] = useState(25);
 
@@ -85,119 +83,18 @@ export default function LocationsPage() {
 	const [editDialogOpen, setEditDialogOpen] = useState(false);
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-	const handleLocationsAdded = useCallback((newLocations: Location[]) => {
-		console.log("Locations added:", newLocations);
-		setLocations((prev) => [...prev, ...newLocations]);
+	// Define dialog handlers *before* columns useMemo
+	const handleOpenEditDialog = useCallback((location: Location) => {
+		setSelectedLocation(location);
+		setEditDialogOpen(true);
 	}, []);
 
-	const handleLocationUpdated = useCallback((updatedLocation: Location) => {
-		console.log("Location updated:", updatedLocation);
-		setLocations((prev) =>
-			prev.map((loc) => (loc.id === updatedLocation.id ? updatedLocation : loc))
-		);
+	const handleOpenDeleteDialog = useCallback((location: Location) => {
+		setSelectedLocation(location);
+		setDeleteDialogOpen(true);
 	}, []);
 
-	const handleLocationDeleted = useCallback((locationId: string) => {
-		console.log("Location deleted:", locationId);
-		setLocations((prev) => prev.filter((loc) => loc.id !== locationId));
-	}, []);
-
-	// Load location data function
-	const loadLocationData = useCallback(async () => {
-		try {
-			setLoading(true);
-			setLoadingPhase("organization");
-			const orgs = await OrganizationsAPI.getAll();
-			if (orgs.length > 0) {
-				setOrganization(orgs[0]);
-				setLoadingPhase("locations");
-
-				// Now get the locations for this organization
-				const fetchedLocations = await LocationsAPI.getAll(organizationId);
-				console.log("Fetched locations:", fetchedLocations);
-				setLocations(fetchedLocations);
-			}
-		} catch (error) {
-			console.error("Error fetching location data:", error);
-			toast.error("Failed to load locations");
-		} finally {
-			setLoading(false);
-		}
-	}, [organizationId]);
-
-	// Setup real-time subscriptions
-	const setupRealtimeSubscriptions = useCallback(() => {
-		if (!organizationId) {
-			console.log("No organization ID available for subscriptions");
-			return;
-		}
-
-		console.log("Setting up real-time subscriptions for locations");
-
-		// Subscribe to locations table changes
-		const locationsSubscription = supabase
-			.channel("locations-changes")
-			.on(
-				"postgres_changes",
-				{
-					event: "*",
-					schema: "public",
-					table: "locations",
-					filter: `organization_id=eq.${organizationId}`,
-				},
-				(payload) => {
-					console.log("Location change detected:", payload);
-
-					if (payload.eventType === "INSERT") {
-						console.log("New location added:", payload.new);
-						// Map DB data to Location object format
-						const newLocation = {
-							id: payload.new.id,
-							name: payload.new.name,
-							address: payload.new.address,
-							city: payload.new.city,
-							state: payload.new.state,
-							zipCode: payload.new.zip_code,
-							isActive: payload.new.is_active,
-							organizationId: payload.new.organization_id,
-						} as Location;
-
-						handleLocationsAdded([newLocation]);
-					} else if (payload.eventType === "UPDATE") {
-						console.log("Location updated:", payload.new);
-						// Map DB data to Location object format
-						const updatedLocation = {
-							id: payload.new.id,
-							name: payload.new.name,
-							address: payload.new.address,
-							city: payload.new.city,
-							state: payload.new.state,
-							zipCode: payload.new.zip_code,
-							isActive: payload.new.is_active,
-							organizationId: payload.new.organization_id,
-						} as Location;
-
-						handleLocationUpdated(updatedLocation);
-					} else if (payload.eventType === "DELETE") {
-						console.log("Location deleted:", payload.old);
-						handleLocationDeleted(payload.old.id);
-					}
-				}
-			)
-			.subscribe((status) => {
-				console.log("Locations subscription status:", status);
-			});
-
-		// Save channel reference for cleanup
-		setLocationsChannel(locationsSubscription);
-	}, [
-		organizationId,
-		handleLocationsAdded,
-		handleLocationUpdated,
-		handleLocationDeleted,
-	]);
-
-	// Set the page header on component mount
+	// Set the page header
 	useEffect(() => {
 		updateHeader({
 			title: "Locations",
@@ -213,8 +110,8 @@ export default function LocationsPage() {
 					<LocationDialog
 						organizationId={organizationId}
 						onLocationCreated={(newLocation) => {
-							console.log("Location created:", newLocation);
-							handleLocationsAdded([newLocation]);
+							console.log("Location created via dialog:", newLocation);
+							refreshLocations();
 						}}
 						trigger={
 							<Button>
@@ -226,25 +123,66 @@ export default function LocationsPage() {
 				</div>
 			),
 		});
-	}, [updateHeader, organizationId, handleLocationsAdded, navigate]);
+	}, [updateHeader, organizationId, navigate, refreshLocations]);
 
-	// Fetch data and setup subscriptions
+	// Refactored subscriptions effect: directly manages channel based on organizationId
 	useEffect(() => {
-		// Initial data load
-		loadLocationData();
+		if (!organizationId) {
+			console.log("Subscription Effect: No organization ID, skipping setup.");
+			return; // Return undefined, no cleanup needed if no channel was created
+		}
 
-		// Setup real-time subscriptions
-		setupRealtimeSubscriptions();
+		console.log(
+			`Subscription Effect: Setting up channel for org ${organizationId}`
+		);
 
-		// Cleanup subscriptions when component unmounts
+		// Create the new subscription channel
+		const channel = supabase
+			.channel(`locations-changes-${organizationId}`) // Unique channel name per org
+			.on(
+				"postgres_changes",
+				{
+					event: "*",
+					schema: "public",
+					table: "locations",
+					filter: `organization_id=eq.${organizationId}`,
+				},
+				(payload) => {
+					console.log("Location change detected via Supabase RT:", payload);
+					refreshLocations(); // Refresh context data
+					// Avoid toast on every update, might be too noisy
+					// toast.info("Locations list updated.");
+				}
+			)
+			.subscribe((status, err) => {
+				console.log(
+					`Subscription Effect: Channel status for org ${organizationId}: ${status}`
+				);
+				if (status === "SUBSCRIBED") {
+					// Connection successful
+				} else if (status === "CHANNEL_ERROR") {
+					console.error("Subscription error:", err);
+					toast.error("Real-time connection error. Refresh may be needed.");
+				} else if (status === "TIMED_OUT") {
+					toast.warning(
+						"Real-time connection timed out. Refresh may be needed."
+					);
+				}
+			});
+
+		// Cleanup function: This runs when organizationId changes or component unmounts
 		return () => {
-			console.log("Cleaning up real-time subscriptions");
-			if (locationsChannel) {
-				locationsChannel.unsubscribe();
+			console.log(
+				`Subscription Effect: Cleaning up channel for org ${organizationId}`
+			);
+			if (channel) {
+				supabase.removeChannel(channel);
 			}
 		};
-	}, [organizationId, loadLocationData, setupRealtimeSubscriptions]);
+		// This useEffect now only depends on organizationId and the stable refreshLocations
+	}, [organizationId, refreshLocations]);
 
+	// Define columns *after* dialog handlers
 	const columns = useMemo<ColumnDef<Location>[]>(
 		() => [
 			{
@@ -339,13 +277,13 @@ export default function LocationsPage() {
 				cell: ({ row }) => {
 					const location = row.original;
 					return (
-						<div>
+						<div className="relative flex justify-end">
 							<DropdownMenu>
 								<DropdownMenuTrigger asChild>
 									<Button
 										variant="ghost"
-										size="sm"
-										className="h-8 w-8 p-0 hover:bg-accent/80 absolute top-2 right-2"
+										size="icon"
+										className="h-8 w-8 p-0 hover:bg-accent/80"
 										onClick={(e) => e.stopPropagation()}>
 										<MoreHorizontal className="h-4 w-4" />
 									</Button>
@@ -375,57 +313,37 @@ export default function LocationsPage() {
 				},
 			},
 		],
-		[navigate]
+		[handleOpenEditDialog, handleOpenDeleteDialog]
 	);
 
+	// Calculate displayed locations for card pagination
 	const displayedLocations = useMemo(() => {
 		if (viewMode === "cards") {
-			// Calculate start and end index based on current page
 			const startIndex = (currentPage - 1) * pageSize;
 			const endIndex = startIndex + pageSize;
-
-			// Return paginated slice of locations
 			return locations.slice(startIndex, endIndex);
 		}
-
-		// If in table view, return all locations
 		return locations;
 	}, [locations, viewMode, currentPage, pageSize]);
 
-	// Handle pagination
+	// Pagination handlers
 	const handlePageChange = (page: number) => {
 		setCurrentPage(page);
 	};
 
 	const handlePageSizeChange = (size: number) => {
 		setPageSize(size);
-		setCurrentPage(1); // Reset to first page when page size changes
+		setCurrentPage(1);
 	};
 
-	// Handle opening dialogs for location management
-	const handleOpenEditDialog = (location: Location) => {
-		setSelectedLocation(location);
-		setEditDialogOpen(true);
-	};
-
-	const handleOpenDeleteDialog = (location: Location) => {
-		setSelectedLocation(location);
-		setDeleteDialogOpen(true);
-	};
-
-	// Get the total number of pages for card view pagination
+	// Calculation for pagination display
 	const totalPages = Math.ceil(locations.length / pageSize);
-
-	// Calculate total locations based on applied filters
 	const totalLocationsCount = locations.length;
-
-	// Get the index of locations for display "Showing X to Y of Z locations"
 	const startIndex = Math.min(
 		(currentPage - 1) * pageSize + 1,
 		totalLocationsCount
 	);
 	const endIndex = Math.min(startIndex + pageSize - 1, totalLocationsCount);
-
 	const countDisplay =
 		totalLocationsCount > 0
 			? `Showing ${startIndex} to ${endIndex} of ${totalLocationsCount} locations`
@@ -435,12 +353,10 @@ export default function LocationsPage() {
 		return (
 			<>
 				<Helmet>
-					<title>Locations | Scheduler</title>
+					<title>Loading Locations | Scheduler</title>
 				</Helmet>
 				<LoadingState
-					message={`Loading ${
-						loadingPhase === "organization" ? "organization" : "locations"
-					}...`}
+					message={"Loading locations..."}
 					type="spinner"
 					className="py-12"
 				/>
@@ -464,9 +380,13 @@ export default function LocationsPage() {
 							<div className="flex gap-2">
 								<LocationDialog
 									organizationId={organizationId}
-									onLocationCreated={(newLocation) =>
-										handleLocationsAdded([newLocation])
-									}
+									onLocationCreated={(newLocation) => {
+										console.log(
+											"Location created via empty state:",
+											newLocation
+										);
+										refreshLocations();
+									}}
 									trigger={
 										<Button>
 											<PlusCircle className="h-4 w-4 mr-2" />
@@ -493,7 +413,6 @@ export default function LocationsPage() {
 									{totalLocationsCount} total locations
 								</p>
 							</div>
-
 							<div className="flex items-center space-x-2">
 								<Button
 									variant={viewMode === "cards" ? "default" : "outline"}
@@ -521,14 +440,22 @@ export default function LocationsPage() {
 									open={editDialogOpen}
 									onOpenChange={setEditDialogOpen}
 									location={selectedLocation}
-									onSuccess={handleLocationUpdated}
+									onSuccess={(updatedLocation) => {
+										console.log(
+											"Location updated via dialog:",
+											updatedLocation
+										);
+										refreshLocations();
+									}}
 								/>
-
 								<DeleteLocationDialog
 									open={deleteDialogOpen}
 									onOpenChange={setDeleteDialogOpen}
 									location={selectedLocation}
-									onLocationDeleted={handleLocationDeleted}
+									onLocationDeleted={(locationId) => {
+										console.log("Location deleted via dialog:", locationId);
+										refreshLocations();
+									}}
 								/>
 							</>
 						)}
@@ -548,13 +475,11 @@ export default function LocationsPage() {
 										/>
 									))}
 								</div>
-
 								{totalPages > 1 && (
 									<div className="mt-6 flex items-center justify-between">
 										<p className="text-sm text-muted-foreground">
 											{countDisplay}
 										</p>
-
 										<div className="flex items-center space-x-2">
 											<Button
 												variant="outline"

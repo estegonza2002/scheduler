@@ -81,6 +81,13 @@ export const initializePresence = async (
 
 					if (newPresences && newPresences.length > 0) {
 						const employeeId = key;
+
+						// If the joining user is the current user, don't show a notification
+						// We need to access the userId used during initialization.
+						// Since userId isn't directly available here, we might need to store it
+						// or pass it differently. For now, let's skip the check and revisit if needed.
+						// A simpler approach might be to check if the name resolution leads to the fallback.
+
 						const presence = newPresences[0];
 						const wasOnline = presenceState[employeeId]?.isOnline || false;
 						const employeeName =
@@ -93,8 +100,14 @@ export const initializePresence = async (
 							name: presence.name || presenceState[employeeId]?.name,
 						};
 
-						// Show notification if status changed and notifications are enabled
-						if (!wasOnline && notifyStatusChange) {
+						// Show notification if status changed, notifications are enabled,
+						// and the employee name is not the fallback indicating an issue.
+						if (
+							!wasOnline &&
+							notifyStatusChange &&
+							employeeName !== "An employee" &&
+							employeeName !== "Fetching name..."
+						) {
 							toast.success(`${employeeName} is now online`, {
 								id: `login-${employeeId}`,
 								duration: 3000,
@@ -154,7 +167,7 @@ export const initializePresence = async (
 				// Start tracking this user's presence
 				await presenceChannel.track({
 					id: userId,
-					name: userEmployee?.name || "Unknown user",
+					name: userEmployee?.name || "Fetching name...",
 					last_active: new Date().toISOString(),
 				});
 
