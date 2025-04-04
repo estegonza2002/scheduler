@@ -50,7 +50,7 @@ import {
 	CardContent,
 	CardFooter,
 } from "@/components/ui/card";
-import { useOrganizationId } from "@/hooks/useOrganizationId";
+import { useOrganization } from "@/lib/organization";
 import { useHeader } from "@/lib/header-context";
 
 // Define columns outside the component to prevent re-renders
@@ -190,7 +190,8 @@ export default function SchedulesPage() {
 	const { updateHeader } = useHeader();
 	const navigate = useNavigate();
 	const [searchParams] = useSearchParams();
-	const organizationId = useOrganizationId();
+	const { getCurrentOrganizationId } = useOrganization();
+	const organizationId = getCurrentOrganizationId();
 
 	// State for schedules data and loading
 	const [schedules, setSchedules] = useState<Schedule[]>([]);

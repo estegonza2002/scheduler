@@ -70,7 +70,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { DataCardGrid } from "@/components/ui/data-card-grid";
 import { DatePicker } from "@/components/ui/date-picker";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
-import { useOrganizationId } from "@/hooks/useOrganizationId";
+import { useOrganization } from "@/lib/organization";
 import { toast } from "sonner";
 import { ShiftCard } from "@/components/ShiftCard";
 
@@ -89,7 +89,8 @@ export default function DailyShiftsPage() {
 	const [loading, setLoading] = useState(true);
 	const [loadingPhase, setLoadingPhase] = useState<string>("shifts");
 	const [selectedSchedule, setSelectedSchedule] = useState<string>("");
-	const organizationId = useOrganizationId();
+	const { getCurrentOrganizationId } = useOrganization();
+	const organizationId = getCurrentOrganizationId();
 	const [viewMode, setViewMode] = useState<"table" | "cards">("cards");
 	const [currentPage, setCurrentPage] = useState<number>(1);
 	const [itemsPerPage, setItemsPerPage] = useState<number>(25);

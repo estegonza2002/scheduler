@@ -53,8 +53,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { EmployeeAssignmentSheet } from "@/components/EmployeeAssignmentSheet";
 import { ShiftCreationDialog } from "@/components/ShiftCreationDialog";
 import { useAuth } from "@/lib/auth";
-import { getDefaultOrganizationId } from "@/lib/utils";
-import { useOrganizationId } from "@/hooks/useOrganizationId";
+import { useOrganization } from "@/lib/organization";
 import { useHeader } from "@/lib/header-context";
 import { GoogleMap } from "@/components/ui/google-map";
 import { LocationNav } from "@/components/LocationNav";
@@ -96,7 +95,9 @@ export default function LocationDetailPage() {
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
 	const [defaultScheduleId, setDefaultScheduleId] = useState<string>("");
 	const { user } = useAuth();
-	const organizationId = useOrganizationId();
+	const { getCurrentOrganizationId, isLoading: isOrgLoading } =
+		useOrganization();
+	const organizationId = getCurrentOrganizationId();
 	const [employeeLocationCounts, setEmployeeLocationCounts] = useState<
 		Record<string, number>
 	>({});
@@ -193,6 +194,7 @@ export default function LocationDetailPage() {
 
 	useEffect(() => {
 		const fetchLocation = async () => {
+			// Ensure locationId from URL is present
 			if (!locationId) {
 				setErrorMessage("No location ID provided");
 				setHasError(true);
@@ -200,11 +202,29 @@ export default function LocationDetailPage() {
 				return;
 			}
 
+			// Wait for organization context to be ready
+			if (isOrgLoading || !organizationId) {
+				console.log("LocationDetailPage: Waiting for organization context...", {
+					isOrgLoading,
+					organizationId,
+				});
+				// Keep loading indicator active, but don't fetch yet
+				// If org loading finished with no ID, set error state
+				if (!isOrgLoading && !organizationId) {
+					setErrorMessage("Organization context not available.");
+					setHasError(true);
+					setLoading(false);
+				}
+				return;
+			}
+
+			// Proceed with fetching now that org ID is available
 			try {
 				setLoading(true);
 				setHasError(false);
 				setLoadingPhase("location");
 
+				// Fetch location by ID
 				const locationData = await LocationsAPI.getById(locationId);
 
 				if (!locationData) {
@@ -216,9 +236,9 @@ export default function LocationDetailPage() {
 
 				setLocation(locationData);
 
-				// Fetch shifts for this location
-				setLoadingPhase("shifts");
-				const allSchedules = await ShiftsAPI.getAllSchedules();
+				// Fetch shifts using the organizationId from context
+				setLoadingPhase("schedules & shifts");
+				const allSchedules = await ShiftsAPI.getAllSchedules(organizationId);
 
 				// Find a default schedule to use for shift creation
 				const defaultSchedule = allSchedules.find(

@@ -13,55 +13,51 @@ export default function AuthCallbackPage() {
 	// Handle redirection after auth callback
 	useEffect(() => {
 		const handleAuthRedirect = async () => {
+			// Only proceed if auth loading is complete
+			if (isLoading) {
+				console.log("Auth callback: Waiting for auth loading to complete...");
+				setProcessingAuth(true); // Keep showing processing indicator
+				return;
+			}
+
+			setProcessingAuth(false); // Auth loading is done
+
 			try {
-				console.log("Auth callback processing started");
-				console.log(
-					"Business signup flag:",
-					localStorage.getItem("business_signup")
-				);
+				console.log("Auth callback processing started (after loading check)");
 
-				// Explicitly get the session to ensure it's properly loaded
-				const {
-					data: { session },
-				} = await supabase.auth.getSession();
-				console.log("Current session:", session ? "Active" : "None");
+				if (user) {
+					// Check user state from AuthProvider
+					console.log("User authenticated via AuthProvider:", user.email);
 
-				if (session?.user) {
-					console.log("User authenticated:", session.user.email);
-
-					// Check if this is a business signup
+					// Check for business signup flow
 					if (localStorage.getItem("business_signup") === "true") {
 						console.log(
 							"Detected business signup flow, showing business setup modal"
 						);
 						setShowBusinessSetup(true);
 					} else {
-						// Regular user login - check if admin
-						const isAdmin = session.user.user_metadata?.role === "admin";
+						// Regular user login - redirect based on role
+						const isAdmin = user.user_metadata?.role === "admin";
 						console.log("Regular user login, isAdmin:", isAdmin);
-
-						// Use a short timeout to ensure navigation happens after state updates
-						setTimeout(() => {
-							navigate(isAdmin ? "/admin-dashboard" : "/dashboard", {
-								replace: true,
-							});
-						}, 100);
+						navigate(isAdmin ? "/admin-dashboard" : "/dashboard", {
+							replace: true,
+						});
 					}
 				} else {
-					console.log("No authenticated user found, redirecting to login");
+					// No user found after loading, redirect to login
+					console.log(
+						"No authenticated user found after loading, redirecting to login"
+					);
 					navigate("/login", { replace: true });
 				}
 			} catch (error) {
 				console.error("Error in auth callback:", error);
 				navigate("/login", { replace: true });
-			} finally {
-				setProcessingAuth(false);
 			}
 		};
 
-		// Only run once when component mounts
 		handleAuthRedirect();
-	}, [navigate]); // Only depend on navigate, not on user or isLoading
+	}, [navigate, user, isLoading]); // Add user and isLoading dependencies
 
 	return (
 		<>

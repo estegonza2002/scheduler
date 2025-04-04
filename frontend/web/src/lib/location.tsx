@@ -9,7 +9,7 @@ import { Location } from "@/api/types";
 import { LocationsAPI } from "@/api";
 import { supabase } from "./supabase";
 import { toast } from "sonner";
-import { getOrgId, useOrganization } from "./organization";
+import { useOrganization } from "./organization";
 
 // Context type that includes all necessary functionality
 interface LocationContextType {
@@ -20,7 +20,7 @@ interface LocationContextType {
 	// Loading state
 	isLoading: boolean;
 	// Refresh the locations
-	refreshLocations: () => Promise<void>;
+	refreshLocations: (isBackgroundUpdate?: boolean) => Promise<void>;
 	// Get the current location ID safely (with fallback)
 	getCurrentLocationId: () => string | null;
 	// Select a specific location
@@ -39,7 +39,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
 	const [isLoading, setIsLoading] = useState(true);
 
 	// Fetch all locations for the current organization
-	const refreshLocations = async () => {
+	const refreshLocations = async (isBackgroundUpdate = false) => {
 		// Ensure organization is loaded before fetching
 		const organizationId = organization?.id;
 		if (!organizationId) {
@@ -52,7 +52,10 @@ export function LocationProvider({ children }: { children: ReactNode }) {
 		}
 
 		try {
-			setIsLoading(true);
+			// Only set loading for non-background updates
+			if (!isBackgroundUpdate) {
+				setIsLoading(true);
+			}
 			// Pass the confirmed organizationId
 			const locationData = await LocationsAPI.getAll(organizationId);
 
@@ -136,7 +139,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
 					// Refresh locations on updates
 					if (organization?.id) {
 						// Check again in case org changed during update
-						refreshLocations();
+						refreshLocations(true); // Pass true for background updates
 					}
 				}
 			)

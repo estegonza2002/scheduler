@@ -1,6 +1,5 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { getOrgId } from "./organization";
 
 export function cn(...inputs: ClassValue[]) {
 	return twMerge(clsx(inputs));
@@ -15,20 +14,7 @@ export function formatPhoneNumber(phone: string): string {
 	return phone;
 }
 
-/**
- * Returns the current organization ID from context or an empty string
- * This should be used in components that require an organization ID
- *
- * @deprecated Use getOrgId from @/lib/organization instead
- */
-export function getDefaultOrganizationId(): string {
-	try {
-		return getOrgId();
-	} catch (error) {
-		console.log(
-			"Error in getDefaultOrganizationId - returning empty string:",
-			error
-		);
-		return "";
-	}
-}
+// The getDefaultOrganizationId function below was removed because it
+// relied on getOrgId which used React hooks incorrectly outside of
+// a component context. Any component needing the org ID should use
+// the useOrganization hook directly.

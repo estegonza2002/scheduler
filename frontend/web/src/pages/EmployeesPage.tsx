@@ -79,7 +79,7 @@ import { AvatarWithStatus } from "@/components/ui/avatar-with-status";
 import { cn } from "@/lib/utils";
 import { ContentSection } from "@/components/ui/content-section";
 import { DataCardGrid } from "@/components/ui/data-card-grid";
-import { getDefaultOrganizationId } from "@/lib/utils";
+import { useOrganization } from "@/lib/organization";
 import { getProfileCompletionStatus } from "@/utils/profile-completion";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
@@ -117,7 +117,9 @@ interface EmployeeSupabaseRow {
 
 export default function EmployeesPage() {
 	const { updateHeader } = useHeader();
-	const [organization, setOrganization] = useState<Organization | null>(null);
+	const { getCurrentOrganizationId, isLoading: isOrgLoading } =
+		useOrganization();
+	const organizationId = getCurrentOrganizationId();
 	const [employees, setEmployees] = useState<Employee[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [viewMode, setViewMode] = useState<"table" | "cards">("table");
@@ -131,7 +133,7 @@ export default function EmployeesPage() {
 		initialized: presenceInitialized,
 		toggleNotifications,
 		notificationsEnabled,
-	} = useEmployeePresenceWithNotifications(organization?.id || "");
+	} = useEmployeePresenceWithNotifications(organizationId || "");
 	const navigate = useNavigate();
 	const [searchParams, setSearchParams] = useSearchParams();
 
@@ -302,32 +304,34 @@ export default function EmployeesPage() {
 
 	// Initial data fetch and setup
 	useEffect(() => {
-		let isMounted = true; // Flag to prevent state updates on unmounted component
+		let isMounted = true;
 		const fetchData = async () => {
-			let fetchedOrg: Organization | null = null;
 			let fetchedEmployees: Employee[] = [];
 
+			// Wait for organization ID
+			if (isOrgLoading || !organizationId) {
+				console.log("EmployeesPage: Waiting for organization ID...");
+				// Don't set loading to false prematurely
+				if (!isOrgLoading) setIsLoading(false); // Stop loading only if org loading finished but no ID
+				return;
+			}
+
 			try {
+				// Set loading true only when we start fetching employees
 				setIsLoading(true);
-				const orgs = await OrganizationsAPI.getAll();
-
-				if (!isMounted) return; // Check if component is still mounted
-
-				if (orgs.length > 0) {
-					fetchedOrg = orgs[0];
-					fetchedEmployees = await EmployeesAPI.getAll(fetchedOrg.id);
-					if (isMounted) {
-						setupRealtimeSubscriptions(fetchedOrg.id);
-					}
-				} else {
-					console.log("No organizations found for the user.");
+				console.log(
+					`EmployeesPage: Fetching employees for org: ${organizationId}`
+				);
+				fetchedEmployees = await EmployeesAPI.getAll(organizationId);
+				if (isMounted) {
+					setEmployees(fetchedEmployees);
+					// Set up subscriptions *after* getting employees and ensuring we have org ID
+					setupRealtimeSubscriptions(organizationId);
 				}
 			} catch (error) {
-				console.error("Error fetching initial data:", error);
+				console.error("Error fetching initial employee data:", error);
 			} finally {
 				if (isMounted) {
-					setOrganization(fetchedOrg);
-					setEmployees(fetchedEmployees);
 					setIsLoading(false);
 				}
 			}
@@ -343,7 +347,8 @@ export default function EmployeesPage() {
 				employeesChannel.unsubscribe();
 			}
 		};
-	}, [setupRealtimeSubscriptions]);
+		// Depend on organization context state
+	}, [organizationId, isOrgLoading, setupRealtimeSubscriptions]);
 
 	// Calculate pagination for card view
 	const paginatedEmployees = useMemo(() => {
@@ -354,8 +359,16 @@ export default function EmployeesPage() {
 
 	// Set the page header on component mount and when data/loading/presence state changes
 	useEffect(() => {
-		// Only update the header once loading is complete AND presence is initialized
-		if (isLoading || !presenceInitialized) return;
+		// Wait for both loading to finish and presence to initialize
+		if (isLoading || !presenceInitialized || !organizationId) {
+			// Optionally set a loading state for the header
+			updateHeader({
+				title: "Employees",
+				description: "Loading...",
+				actions: null, // No actions while loading
+			});
+			return;
+		}
 
 		updateHeader({
 			title: "Employees",
@@ -451,15 +464,21 @@ export default function EmployeesPage() {
 						open={employeeDialogOpen}
 						onOpenChange={setEmployeeDialogOpen}
 						onSubmit={async (data: any) => {
+							// Use organizationId from context
+							if (!organizationId) {
+								toast.error("Organization ID not found.");
+								return;
+							}
 							const newEmployee = await EmployeesAPI.create({
 								...data,
-								organizationId: organization?.id || getDefaultOrganizationId(),
+								organizationId: organizationId, // Use ID from context
 								position: data.position || "Employee",
 								status: "invited",
 								isOnline: false,
 								lastActive: new Date().toISOString(),
 							});
-							setEmployees((prev) => [...prev, newEmployee]);
+							// Optionally trigger a refresh or directly add to state if realtime isn't immediate
+							// setEmployees((prev) => [...prev, newEmployee]);
 						}}
 					/>
 				</>
@@ -472,10 +491,11 @@ export default function EmployeesPage() {
 		toggleNotifications,
 		presenceInitialized,
 		notificationsEnabled,
-		organization?.id,
-		organization?.name,
-		setSearchParams,
+		organizationId, // Use ID from context
 		isLoading,
+		setSearchParams,
+		employeeDialogOpen,
+		setEmployeeDialogOpen,
 	]);
 
 	const columns = useMemo<ColumnDef<Employee>[]>(
@@ -744,9 +764,7 @@ export default function EmployeesPage() {
 															{
 																...data,
 																organizationId:
-																	employee.organizationId ||
-																	organization?.id ||
-																	getDefaultOrganizationId(),
+																	employee.organizationId || organizationId,
 																position: data.position || "Employee",
 																status: employee.status || "active",
 																isOnline: employee.isOnline || false,
@@ -769,7 +787,7 @@ export default function EmployeesPage() {
 				}}
 			/>
 		),
-		[employees, columns, navigate, viewMode, setViewMode, organization?.id]
+		[employees, columns, navigate, viewMode, setViewMode, organizationId]
 	);
 
 	return (
@@ -779,7 +797,7 @@ export default function EmployeesPage() {
 					{isLoading ? (
 						<LoadingState
 							message={
-								!organization
+								!organizationId
 									? "Loading organization..."
 									: "Loading employees..."
 							}

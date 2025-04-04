@@ -326,17 +326,21 @@ function App() {
 							element={<ProfilePage />}
 						/>
 						<Route
-							path="/business-profile"
-							element={<BusinessProfilePage />}
-						/>
-						<Route
 							path="/account"
-							element={<AccountPage />}
-						/>
-						<Route
-							path="/billing"
-							element={<BillingPage />}
-						/>
+							element={<AccountPage />}>
+							<Route
+								path="business-profile"
+								element={<BusinessProfilePage />}
+							/>
+							<Route
+								path="users"
+								element={<UsersManagementPage />}
+							/>
+							<Route
+								path="billing"
+								element={<BillingPage />}
+							/>
+						</Route>
 						<Route
 							path="/branding"
 							element={<BrandingPage />}

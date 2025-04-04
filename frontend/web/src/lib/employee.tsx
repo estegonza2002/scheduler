@@ -9,7 +9,7 @@ import { Employee } from "@/api/types";
 import { EmployeesAPI } from "@/api";
 import { supabase } from "./supabase";
 import { toast } from "sonner";
-import { getOrgId } from "./organization";
+import { useOrganization } from "./organization";
 
 // Context type that includes all necessary functionality
 interface EmployeeContextType {
@@ -35,24 +35,35 @@ export function EmployeeProvider({ children }: { children: ReactNode }) {
 	const [employees, setEmployees] = useState<Employee[]>([]);
 	const [currentEmployee, setCurrentEmployee] = useState<Employee | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
+	// Get organization context
+	const { getCurrentOrganizationId, isLoading: isOrgLoading } =
+		useOrganization();
 
 	// Fetch all employees for the current organization
 	const refreshEmployees = async () => {
-		try {
-			setIsLoading(true);
-			let organizationId;
+		// Get organization ID from context
+		const organizationId = getCurrentOrganizationId();
 
-			try {
-				organizationId = getOrgId();
-			} catch (error) {
-				console.error("No organization available:", error);
-				toast.error(
-					"No organization available. Please create or join an organization first."
-				);
+		// Wait until organization is loaded and ID is available
+		if (isOrgLoading || !organizationId) {
+			console.log(
+				"EmployeeProvider: Waiting for organization ID or organization is loading..."
+			);
+			// Clear employees if org is not available and not loading
+			if (!isOrgLoading) {
+				setEmployees([]);
+				setCurrentEmployee(null);
 				setIsLoading(false);
-				return;
 			}
+			return;
+		}
 
+		try {
+			// Set loading only when we are sure we can fetch
+			setIsLoading(true);
+			console.log(
+				`EmployeeProvider: Fetching employees for organization: ${organizationId}`
+			);
 			const employeeData = await EmployeesAPI.getAll(organizationId);
 
 			setEmployees(employeeData);
@@ -97,21 +108,29 @@ export function EmployeeProvider({ children }: { children: ReactNode }) {
 		}
 	};
 
-	// Initial data fetch
+	// Initial data fetch - depends on organization context
 	useEffect(() => {
+		console.log("EmployeeProvider: Initial fetch triggered.");
 		refreshEmployees();
-	}, []);
+		// Depend on org state
+	}, [isOrgLoading, getCurrentOrganizationId]);
 
-	// Set up real-time subscription for employee updates
+	// Set up real-time subscription for employee updates - depends on org ID
 	useEffect(() => {
-		let organizationId;
+		// Get organization ID from context
+		const organizationId = getCurrentOrganizationId();
 
-		try {
-			organizationId = getOrgId();
-		} catch (error) {
-			console.error("No organization available for subscription:", error);
-			return; // Exit early without setting up subscription
+		// Only subscribe if organization is loaded and has an ID
+		if (isOrgLoading || !organizationId) {
+			console.log(
+				"EmployeeProvider: Skipping subscription setup - org not ready."
+			);
+			return; // Don't subscribe yet
 		}
+
+		console.log(
+			`EmployeeProvider: Setting up subscription for org: ${organizationId}`
+		);
 
 		const subscription = supabase
 			.channel("employee-updates")
@@ -130,9 +149,11 @@ export function EmployeeProvider({ children }: { children: ReactNode }) {
 			.subscribe();
 
 		return () => {
+			console.log("EmployeeProvider: Unsubscribing from employee updates.");
 			subscription.unsubscribe();
 		};
-	}, []);
+		// Depend on org state to re-subscribe if it changes
+	}, [isOrgLoading, getCurrentOrganizationId]);
 
 	// Context value
 	const contextValue: EmployeeContextType = {

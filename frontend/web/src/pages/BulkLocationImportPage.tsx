@@ -8,13 +8,14 @@ import { Helmet } from "react-helmet";
 import { useHeader } from "@/lib/header-context";
 import { ContentContainer } from "@/components/ui/content-container";
 import { ContentSection } from "@/components/ui/content-section";
-import { useOrganizationId } from "@/hooks/useOrganizationId";
+import { useOrganization } from "@/lib/organization";
 import { toast } from "sonner";
 
 export default function BulkLocationImportPage() {
 	const { updateHeader } = useHeader();
 	const navigate = useNavigate();
-	const organizationId = useOrganizationId();
+	const { getCurrentOrganizationId } = useOrganization();
+	const organizationId = getCurrentOrganizationId();
 	const [successCount, setSuccessCount] = useState(0);
 
 	// Set the page header on component mount

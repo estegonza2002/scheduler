@@ -9,7 +9,7 @@ import { Shift, Schedule } from "@/api/types";
 import { ShiftsAPI } from "@/api";
 import { supabase } from "./supabase";
 import { toast } from "sonner";
-import { getOrgId } from "./organization";
+import { useOrganization } from "./organization";
 
 // Context type that includes all necessary functionality
 interface ShiftContextType {
@@ -38,23 +38,36 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
 	const [shifts, setShifts] = useState<Shift[]>([]);
 	const [currentShift, setCurrentShift] = useState<Shift | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
+	// Get organization context
+	const { getCurrentOrganizationId, isLoading: isOrgLoading } =
+		useOrganization();
 
 	// Fetch all schedules for the current organization
 	const refreshShifts = async () => {
-		try {
-			setIsLoading(true);
-			let organizationId;
+		// Get organization ID from context
+		const organizationId = getCurrentOrganizationId();
 
-			try {
-				organizationId = getOrgId();
-			} catch (error) {
-				console.error("No organization available:", error);
-				toast.error(
-					"No organization available. Please create or join an organization first."
-				);
+		// Wait until organization is loaded and ID is available
+		if (isOrgLoading || !organizationId) {
+			console.log(
+				"ShiftProvider: Waiting for organization ID or organization is loading..."
+			);
+			// Clear shifts/schedules if org is not available and not loading
+			if (!isOrgLoading) {
+				setSchedules([]);
+				setShifts([]);
+				setCurrentShift(null);
 				setIsLoading(false);
-				return;
 			}
+			return;
+		}
+
+		try {
+			// Set loading only when we are sure we can fetch
+			setIsLoading(true);
+			console.log(
+				`ShiftProvider: Fetching schedules for organization: ${organizationId}`
+			);
 
 			// First get all schedules
 			const schedulesData = await ShiftsAPI.getAllSchedules(organizationId);
@@ -150,21 +163,29 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
 		}
 	};
 
-	// Initial data fetch
+	// Initial data fetch - depends on organization context
 	useEffect(() => {
+		console.log("ShiftProvider: Initial fetch triggered.");
 		refreshShifts();
-	}, []);
+		// Depend on org state
+	}, [isOrgLoading, getCurrentOrganizationId]);
 
-	// Set up real-time subscription for shift updates
+	// Set up real-time subscription for shift updates - depends on org ID
 	useEffect(() => {
-		let organizationId;
+		// Get organization ID from context
+		const organizationId = getCurrentOrganizationId();
 
-		try {
-			organizationId = getOrgId();
-		} catch (error) {
-			console.error("No organization available for subscription:", error);
-			return; // Exit early without setting up subscription
+		// Only subscribe if organization is loaded and has an ID
+		if (isOrgLoading || !organizationId) {
+			console.log(
+				"ShiftProvider: Skipping subscription setup - org not ready."
+			);
+			return; // Don't subscribe yet
 		}
+
+		console.log(
+			`ShiftProvider: Setting up subscription for org: ${organizationId}`
+		);
 
 		const subscription = supabase
 			.channel("shift-updates")
@@ -183,9 +204,11 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
 			.subscribe();
 
 		return () => {
+			console.log("ShiftProvider: Unsubscribing from shift updates.");
 			subscription.unsubscribe();
 		};
-	}, []);
+		// Depend on org state to re-subscribe if it changes
+	}, [isOrgLoading, getCurrentOrganizationId]);
 
 	// Context value
 	const contextValue: ShiftContextType = {

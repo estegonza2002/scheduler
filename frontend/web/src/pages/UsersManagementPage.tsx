@@ -138,30 +138,6 @@ export default function UsersManagementPage() {
 		setLoading(true);
 		setError(null);
 
-		// Always ensure we have at least the current user as a fallback
-		if (user && user.id) {
-			console.log("Setting current user as fallback:", user.id);
-			const currentUserEmail = user.email || "unknown@example.com";
-			const userName =
-				user.user_metadata?.full_name ||
-				(user.user_metadata?.firstName && user.user_metadata?.lastName
-					? `${user.user_metadata.firstName} ${user.user_metadata.lastName}`
-					: currentUserEmail.split("@")[0] || "Current User");
-
-			const currentUserData = {
-				id: user.id,
-				name: userName,
-				email: currentUserEmail,
-				role: "owner" as const,
-				status: "active" as const,
-				avatarUrl:
-					user.user_metadata?.avatar_url || user.user_metadata?.picture,
-			};
-
-			// Set the current user immediately so we always have something to show
-			setUsers([currentUserData]);
-		}
-
 		if (!organization?.id) {
 			console.log("No organization ID found", { organization });
 			// Don't show error immediately, just log it and keep showing the current user
@@ -186,42 +162,43 @@ export default function UsersManagementPage() {
 			console.log("Active members found:", memberData?.length || 0, memberData);
 
 			// 2. Get pending invitations
-			console.log("Fetching invitations for organization:", organization.id);
+			// console.log("Fetching invitations for organization:", organization.id);
 
-			// First try without the status filter to see if any invitations exist
-			const { data: allInvitationData, error: allInvitationError } =
-				await supabase
-					.from("invitations")
-					.select("*")
-					.eq("organization_id", organization.id);
+			// // First try without the status filter to see if any invitations exist
+			// const { data: allInvitationData, error: allInvitationError } =
+			// 	await supabase
+			// 		.from("invitations")
+			// 		.select("*")
+			// 		.eq("organization_id", organization.id);
 
-			if (allInvitationError) {
-				console.error("Error fetching all invitations:", allInvitationError);
-			} else {
-				console.log(
-					"All invitations found (any status):",
-					allInvitationData?.length || 0,
-					allInvitationData
-				);
-			}
+			// if (allInvitationError) {
+			// 	console.error("Error fetching all invitations:", allInvitationError);
+			// } else {
+			// 	console.log(
+			// 		"All invitations found (any status):",
+			// 		allInvitationData?.length || 0,
+			// 		allInvitationData
+			// 	);
+			// }
 
-			// Then try with the status filter for pending only
-			const { data: invitationData, error: invitationError } = await supabase
-				.from("invitations")
-				.select("*")
-				.eq("organization_id", organization.id)
-				.eq("status", "pending");
+			// // Then try with the status filter for pending only
+			// const { data: invitationData, error: invitationError } = await supabase
+			// 	.from("invitations")
+			// 	.select("*")
+			// 	.eq("organization_id", organization.id)
+			// 	.eq("status", "pending");
 
-			if (invitationError) {
-				console.error("Error fetching pending invitations:", invitationError);
-				// We continue even if this fails - we'll just show active members
-			}
+			// if (invitationError) {
+			// 	console.error("Error fetching pending invitations:", invitationError);
+			// 	// We continue even if this fails - we'll just show active members
+			// }
 
-			console.log(
-				"Pending invitations found:",
-				invitationData?.length || 0,
-				invitationData
-			);
+			// console.log(
+			// 	"Pending invitations found:",
+			// 	invitationData?.length || 0,
+			// 	invitationData
+			// );
+			const invitationData: any[] = []; // No invitations table
 
 			// 3. Process active members
 			const activeUsers =
@@ -269,53 +246,68 @@ export default function UsersManagementPage() {
 					: [];
 
 			// 4. Process pending invitations
-			const pendingUsers =
-				invitationData && invitationData.length > 0
-					? invitationData.map((invite) => {
-							// Use the saved name if available, otherwise format from email
-							const nameFromEmail = invite.email.split("@")[0];
-							const formattedName =
-								invite.name ||
-								nameFromEmail
-									.split(/[._-]/)
-									.map(
-										(part: string) =>
-											part.charAt(0).toUpperCase() + part.slice(1)
-									)
-									.join(" ");
+			const pendingUsers: User[] = [];
+			// invitationData && invitationData.length > 0
+			// 	? invitationData.map((invite) => {
+			// 			// Use the saved name if available, otherwise format from email
+			// 			const nameFromEmail = invite.email.split("@")[0];
+			// 			const formattedName =
+			// 				invite.name ||
+			// 				nameFromEmail
+			// 					.split(/[._-]/)
+			// 					.map(
+			// 						(part: string) =>
+			// 							part.charAt(0).toUpperCase() + part.slice(1)
+			// 					)
+			// 					.join(" ");
 
-							const pendingUser = {
-								id: `invite-${invite.id}`,
-								name: formattedName,
-								email: invite.email,
-								role: invite.role as "owner" | "admin" | "member",
-								status: "pending" as const,
-								invitedAt: invite.created_at,
-								avatarUrl: undefined,
-							};
+			// 			const pendingUser = {
+			// 				id: `invite-${invite.id}`,
+			// 				name: formattedName,
+			// 				email: invite.email,
+			// 				role: invite.role as "owner" | "admin" | "member",
+			// 				status: "pending" as const,
+			// 				invitedAt: invite.created_at,
+			// 				avatarUrl: undefined,
+			// 			};
 
-							console.log(
-								"Processing pending invitation:",
-								invite.id,
-								"for email:",
-								invite.email
-							);
-							return pendingUser;
-					  })
-					: [];
+			// 			console.log(
+			// 				"Processing pending invitation:",
+			// 				invite.id,
+			// 				"for email:",
+			// 				invite.email
+			// 			);
+			// 			return pendingUser;
+			// 	  })
+			// 	: [];
 
 			// 5. Combine active members and pending invitations
-			const allUsers = [...activeUsers, ...pendingUsers];
+			const combinedUsers = [...activeUsers, ...pendingUsers];
 
-			if (allUsers.length === 0) {
+			// 6. Deduplicate users based on ID
+			const uniqueUserIds = new Set<string>();
+			const uniqueUsers = combinedUsers.filter((user) => {
+				if (uniqueUserIds.has(user.id)) {
+					console.log(
+						"Duplicate user ID found, removing:",
+						user.id,
+						user.email
+					);
+					return false;
+				}
+				uniqueUserIds.add(user.id);
+				return true;
+			});
+
+			if (uniqueUsers.length === 0) {
 				console.log("No team members or invitations found");
 				// Don't show an error, we already have the current user as fallback
 				setLoading(false);
 				return;
 			}
 
-			console.log("Setting users:", allUsers);
-			setUsers(allUsers);
+			console.log("Setting unique users:", uniqueUsers);
+			setUsers(uniqueUsers);
 			setLoading(false);
 		} catch (error) {
 			console.error("Error fetching users:", error);
@@ -406,27 +398,27 @@ export default function UsersManagementPage() {
 			}
 
 			// Check if invitation already exists
-			const { data: existingInvitation, error: inviteQueryError } =
-				await supabase
-					.from("invitations")
-					.select("id")
-					.eq("organization_id", organization.id)
-					.eq("email", inviteEmail)
-					.eq("status", "pending");
+			// const { data: existingInvitation, error: inviteQueryError } =
+			// 	await supabase
+			// 		.from("invitations")
+			// 		.select("id")
+			// 		.eq("organization_id", organization.id)
+			// 		.eq("email", inviteEmail)
+			// 		.eq("status", "pending");
 
-			if (inviteQueryError) {
-				// Don't stop the process, just log the error and continue
-				console.error("Error checking existing invitations:", inviteQueryError);
-				console.log(
-					"Continuing with invitation process despite verification error"
-				);
-				// We'll just attempt to create the invitation anyway
-			} else if (existingInvitation && existingInvitation.length > 0) {
-				toast.error(
-					"An invitation has already been sent to this email address"
-				);
-				return;
-			}
+			// if (inviteQueryError) {
+			// 	// Don't stop the process, just log the error and continue
+			// 	console.error("Error checking existing invitations:", inviteQueryError);
+			// 	console.log(
+			// 		"Continuing with invitation process despite verification error"
+			// 	);
+			// 	// We'll just attempt to create the invitation anyway
+			// } else if (existingInvitation && existingInvitation.length > 0) {
+			// 	toast.error(
+			// 		"An invitation has already been sent to this email address"
+			// 	);
+			// 	return;
+			// }
 
 			console.log(
 				"Creating invitation record in database for org:",

@@ -405,47 +405,6 @@ export const LocationsAPI = {
 	create: async (data: Omit<Location, "id">): Promise<Location> => {
 		console.log("Creating location with data:", JSON.stringify(data, null, 2));
 
-		// Verify database structure first
-		try {
-			// Use admin client to bypass RLS
-			const client = supabase;
-
-			// Get table information using system tables
-			const { data: dbInfo, error: dbInfoError } = await client
-				.from("pg_catalog.pg_tables")
-				.select("*")
-				.eq("tablename", "locations")
-				.limit(1);
-
-			if (dbInfoError) {
-				console.error(
-					"Error checking locations table:",
-					JSON.stringify(dbInfoError, null, 2)
-				);
-			} else {
-				console.log("Locations table exists:", dbInfo && dbInfo.length > 0);
-
-				// Check columns in the locations table
-				const { data: columnInfo, error: columnError } = await client
-					.rpc("get_table_columns", { table_name: "locations" })
-					.select("*");
-
-				if (columnError) {
-					console.error(
-						"Error fetching column info:",
-						JSON.stringify(columnError, null, 2)
-					);
-				} else {
-					console.log(
-						"Locations table columns:",
-						JSON.stringify(columnInfo, null, 2)
-					);
-				}
-			}
-		} catch (infoError) {
-			console.error("Error checking database structure:", infoError);
-		}
-
 		// Ensure we have a valid organization ID
 		if (!data.organizationId) {
 			console.warn("No organization ID provided, using default");
@@ -492,33 +451,6 @@ export const LocationsAPI = {
 		if (data.imageUrl !== undefined) dbData.image_url = data.imageUrl;
 
 		console.log("Transformed DB data:", JSON.stringify(dbData, null, 2));
-
-		// First try a simple select to check permissions
-		try {
-			const client = supabase;
-			const { data: permCheck, error: permError } = await client
-				.from("locations")
-				.select("id")
-				.limit(1);
-
-			if (permError) {
-				console.error(
-					"Permission error checking locations table:",
-					JSON.stringify(permError, null, 2)
-				);
-				toast.error(
-					"Permission issue with accessing locations. Please check your account."
-				);
-			} else {
-				console.log(
-					"Location permissions check successful, found:",
-					permCheck?.length || 0,
-					"locations"
-				);
-			}
-		} catch (permCheckError) {
-			console.error("Error in permission check:", permCheckError);
-		}
 
 		try {
 			const client = supabase;

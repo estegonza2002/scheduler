@@ -128,24 +128,3 @@ export function useOrganization() {
 	}
 	return context;
 }
-
-// Utility function to get organization ID (can be used in any context)
-export function getOrgId(): string {
-	try {
-		// This will work in component contexts
-		const { getCurrentOrganizationId } = useOrganization();
-		const orgId = getCurrentOrganizationId();
-
-		// If no organization found, return empty string rather than throwing
-		if (!orgId) {
-			console.log("No organization found in getOrgId - returning empty string");
-			return "";
-		}
-
-		return orgId;
-	} catch (error) {
-		// No more error throwing - return empty string
-		console.log("Error in getOrgId - returning empty string:", error);
-		return "";
-	}
-}

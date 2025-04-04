@@ -55,7 +55,7 @@ import { ContentContainer } from "@/components/ui/content-container";
 import { ContentSection } from "@/components/ui/content-section";
 import { LocationCard } from "@/components/ui/location-card";
 
-import { useOrganizationId } from "@/hooks/useOrganizationId";
+import { useOrganization } from "@/lib/organization";
 import { LocationFormDialog } from "@/components/LocationFormDialog";
 
 // Import the location context hook
@@ -65,7 +65,8 @@ export default function LocationsPage() {
 	const { updateHeader } = useHeader();
 	const [searchParams] = useSearchParams();
 	const [viewMode, setViewMode] = useState<"table" | "cards">("cards");
-	const organizationId = useOrganizationId();
+	const { getCurrentOrganizationId } = useOrganization();
+	const organizationId = getCurrentOrganizationId();
 
 	// Use state from location context
 	const { locations, isLoading: loading, refreshLocations } = useLocation();
@@ -124,63 +125,6 @@ export default function LocationsPage() {
 			),
 		});
 	}, [updateHeader, organizationId, navigate, refreshLocations]);
-
-	// Refactored subscriptions effect: directly manages channel based on organizationId
-	useEffect(() => {
-		if (!organizationId) {
-			console.log("Subscription Effect: No organization ID, skipping setup.");
-			return; // Return undefined, no cleanup needed if no channel was created
-		}
-
-		console.log(
-			`Subscription Effect: Setting up channel for org ${organizationId}`
-		);
-
-		// Create the new subscription channel
-		const channel = supabase
-			.channel(`locations-changes-${organizationId}`) // Unique channel name per org
-			.on(
-				"postgres_changes",
-				{
-					event: "*",
-					schema: "public",
-					table: "locations",
-					filter: `organization_id=eq.${organizationId}`,
-				},
-				(payload) => {
-					console.log("Location change detected via Supabase RT:", payload);
-					refreshLocations(); // Refresh context data
-					// Avoid toast on every update, might be too noisy
-					// toast.info("Locations list updated.");
-				}
-			)
-			.subscribe((status, err) => {
-				console.log(
-					`Subscription Effect: Channel status for org ${organizationId}: ${status}`
-				);
-				if (status === "SUBSCRIBED") {
-					// Connection successful
-				} else if (status === "CHANNEL_ERROR") {
-					console.error("Subscription error:", err);
-					toast.error("Real-time connection error. Refresh may be needed.");
-				} else if (status === "TIMED_OUT") {
-					toast.warning(
-						"Real-time connection timed out. Refresh may be needed."
-					);
-				}
-			});
-
-		// Cleanup function: This runs when organizationId changes or component unmounts
-		return () => {
-			console.log(
-				`Subscription Effect: Cleaning up channel for org ${organizationId}`
-			);
-			if (channel) {
-				supabase.removeChannel(channel);
-			}
-		};
-		// This useEffect now only depends on organizationId and the stable refreshLocations
-	}, [organizationId, refreshLocations]);
 
 	// Define columns *after* dialog handlers
 	const columns = useMemo<ColumnDef<Location>[]>(

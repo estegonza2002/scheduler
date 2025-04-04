@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { User, Trash2, Loader2, LogOut, Upload } from "lucide-react";
+import { User, Trash2, Loader2, LogOut, Upload, Edit } from "lucide-react";
 import {
 	Form,
 	FormControl,
@@ -33,6 +33,16 @@ import { useTheme } from "@/components/ThemeProvider";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { EmployeeCard } from "@/components/EmployeeCard";
 import { Employee } from "@/api";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from "@/components/ui/dialog";
+import { EditProfileModal } from "@/components/EditProfileModal";
 
 // Get the Supabase URL from environment or use a fallback
 const supabaseUrl =
@@ -302,9 +312,7 @@ function SecurityTab() {
 // Profile tab component
 function ProfileTab() {
 	const { user, signOut, updateUserMetadata } = useAuth();
-	const [isLoading, setIsLoading] = useState(false);
-	const [profileImage, setProfileImage] = useState<string | null>(null);
-	const [isUploading, setIsUploading] = useState(false);
+	const [isModalOpen, setIsModalOpen] = useState(false);
 
 	// Create an employee object from the user data for EmployeeCard
 	const employeeData: Employee = {
@@ -314,7 +322,6 @@ function ProfileTab() {
 			user?.user_metadata?.lastName || ""
 		}`.trim(),
 		email: user?.email || "",
-		role: user?.user_metadata?.role || "employee",
 		phone: user?.user_metadata?.phone || "",
 		status: "active",
 		address: user?.user_metadata?.address || "",
@@ -322,385 +329,88 @@ function ProfileTab() {
 		hourlyRate: user?.user_metadata?.hourlyRate || 20,
 		isOnline: false,
 		lastActive: new Date().toISOString(),
-	};
-
-	const profileForm = useForm<ProfileFormValues>({
-		resolver: zodResolver(profileSchema),
-		defaultValues: {
-			firstName: user?.user_metadata?.firstName || "",
-			lastName: user?.user_metadata?.lastName || "",
-			email: user?.email || "",
-			phone: user?.user_metadata?.phone || "",
-		},
-	});
-
-	// Get user initials for avatar fallback
-	const getInitials = () => {
-		const firstName = user?.user_metadata?.firstName || "";
-		const lastName = user?.user_metadata?.lastName || "";
-		return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
-	};
-
-	// Handle profile picture upload
-	const handleProfilePictureChange = (
-		e: React.ChangeEvent<HTMLInputElement>
-	) => {
-		const files = e.target.files;
-		if (!files || files.length === 0) return;
-
-		const file = files[0];
-		const reader = new FileReader();
-
-		reader.onload = () => {
-			const result = reader.result as string;
-			setProfileImage(result);
-		};
-		reader.readAsDataURL(file);
-	};
-
-	// Handle removing profile picture
-	const handleRemoveProfilePicture = async () => {
-		setProfileImage(null);
-
-		if (user?.user_metadata?.avatar_url) {
-			try {
-				// Extract the file name from the URL
-				const avatarUrl = user.user_metadata.avatar_url;
-				const splitUrl = avatarUrl.split("/");
-				const fileName = splitUrl[splitUrl.length - 1];
-
-				if (fileName) {
-					// First update the user metadata to remove the avatar_url
-					const updatedMetadata = { ...user.user_metadata };
-					delete updatedMetadata.avatar_url;
-
-					const { error: updateError } = await updateUserMetadata(
-						updatedMetadata
-					);
-
-					if (updateError) {
-						throw new Error(updateError.message);
-					}
-
-					// Then delete the file from storage
-					const { error } = await supabase.storage
-						.from(BUCKET_NAME)
-						.remove([fileName]);
-
-					if (error) {
-						throw new Error(error.message);
-					}
-
-					toast.success("Profile picture removed");
-				}
-			} catch (error) {
-				console.error("Error removing profile picture:", error);
-				toast.error("Failed to remove profile picture");
-			}
-		}
-	};
-
-	// Get profile image URL if available
-	useEffect(() => {
-		if (user?.user_metadata?.avatar_url) {
-			setProfileImage(user.user_metadata.avatar_url);
-		}
-	}, [user]);
-
-	// Handle form submission
-	const onProfileSubmit = async (values: ProfileFormValues) => {
-		setIsLoading(true);
-		try {
-			// Prepare the metadata to update
-			const updatedMetadata: Record<string, any> = {
-				...user?.user_metadata,
-				firstName: values.firstName,
-				lastName: values.lastName,
-				phone: values.phone,
-			};
-
-			// Handle profile picture if changed
-			let avatarUrl;
-			if (profileImage && !user?.user_metadata?.avatar_url) {
-				// Upload the image to Supabase storage
-				const userId = user?.id;
-				if (!userId) throw new Error("User ID is required");
-
-				try {
-					// Convert image to blob
-					const base64Response = await fetch(profileImage);
-					const blob = await base64Response.blob();
-
-					// Create a unique filename
-					const fileExt = blob.type.split("/")[1];
-					const fileName = `${userId}-${Date.now()}.${fileExt}`;
-
-					// Upload to Supabase Storage
-					const { error: uploadError, data: uploadData } =
-						await supabase.storage.from(BUCKET_NAME).upload(fileName, blob, {
-							upsert: true,
-						});
-
-					if (uploadError) throw new Error(uploadError.message);
-
-					// Get public URL for the file
-					const { data: publicUrlData } = supabase.storage
-						.from(BUCKET_NAME)
-						.getPublicUrl(fileName);
-
-					avatarUrl = publicUrlData.publicUrl;
-				} catch (error) {
-					console.error("Error uploading avatar:", error);
-					// Continue with the rest of the update even if avatar upload fails
-					toast.error(
-						"Failed to upload avatar, but continuing with profile update"
-					);
-					avatarUrl = user?.user_metadata?.avatar_url;
-				}
-			} else if (profileImage === null) {
-				// If user clicked remove picture
-				avatarUrl = undefined; // This will remove the avatar URL
-			}
-
-			// Add avatar URL to metadata if we have one
-			if (avatarUrl) {
-				updatedMetadata.avatar_url = avatarUrl;
-			} else if (profileImage === null) {
-				// If explicitly removed
-				delete updatedMetadata.avatar_url;
-			}
-
-			const { error } = await updateUserMetadata(updatedMetadata);
-
-			if (error) {
-				throw new Error(error.message);
-			}
-
-			// Also update email if it changed
-			if (values.email !== user?.email) {
-				const { error: emailError } = await supabase.auth.updateUser({
-					email: values.email,
-				});
-
-				if (emailError) throw new Error(emailError.message);
-			}
-
-			toast.success("Profile updated successfully");
-
-			// If changing email, show confirmation message
-			if (values.email !== user?.email) {
-				toast.info(
-					"Email verification sent. Please check your inbox to confirm your new email."
-				);
-			} else {
-				// Add page refresh if avatar was updated
-				if (profileImage) {
-					setTimeout(() => {
-						window.location.reload();
-					}, 1000);
-				}
-			}
-		} catch (error) {
-			console.error("Error updating profile:", error);
-			const errorMessage =
-				error instanceof Error ? error.message : "Unknown error";
-			toast.error("Failed to update profile: " + errorMessage);
-		} finally {
-			setIsLoading(false);
-			// Don't reset profileImage here to prevent UI flicker
-		}
+		position: user?.user_metadata?.position || "Employee",
 	};
 
 	return (
 		<TabsContent
 			value="profile"
 			className="space-y-6">
-			<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-				{/* Profile Card */}
-				<div>
-					<EmployeeCard
-						employee={employeeData}
-						variant="profile"
-						className="shadow-sm"
-					/>
-				</div>
-
-				{/* Edit Form */}
-				<Card>
-					<CardContent className="pt-6">
-						<h3 className="text-lg font-medium mb-4">Edit Profile</h3>
-						<Form {...profileForm}>
-							<form
-								onSubmit={profileForm.handleSubmit(onProfileSubmit)}
-								className="space-y-4">
-								<FormField
-									control={profileForm.control}
-									name="firstName"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>First Name</FormLabel>
-											<FormControl>
-												<Input
-													placeholder="Enter your first name"
-													{...field}
-												/>
-											</FormControl>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
-
-								<FormField
-									control={profileForm.control}
-									name="lastName"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>Last Name</FormLabel>
-											<FormControl>
-												<Input
-													placeholder="Enter your last name"
-													{...field}
-												/>
-											</FormControl>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
-
-								<FormField
-									control={profileForm.control}
-									name="email"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>Email</FormLabel>
-											<FormControl>
-												<Input
-													type="email"
-													placeholder="Enter your email"
-													{...field}
-												/>
-											</FormControl>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
-
-								<FormField
-									control={profileForm.control}
-									name="phone"
-									render={({ field }) => (
-										<FormItem>
-											<FormLabel>Phone Number</FormLabel>
-											<FormControl>
-												<FormPhoneInput
-													control={profileForm.control}
-													name="phone"
-													placeholder="Enter your phone number"
-												/>
-											</FormControl>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
-
-								<Button
-									type="submit"
-									className="w-full"
-									disabled={isLoading}>
-									{isLoading ? (
-										<>
-											<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-											Updating...
-										</>
-									) : (
-										"Update Profile"
-									)}
-								</Button>
-							</form>
-						</Form>
-					</CardContent>
-				</Card>
-			</div>
-
-			<Card>
-				<CardContent className="pt-6">
-					<FormSection
-						title="Profile Picture"
-						description="Upload a profile picture for your account">
-						<div className="flex items-start gap-4">
-							<Avatar className="h-24 w-24">
-								{profileImage ? (
-									<AvatarImage
-										src={profileImage}
-										alt={`${user?.user_metadata?.firstName} ${user?.user_metadata?.lastName}`}
-									/>
-								) : (
-									<AvatarFallback className="text-2xl">
-										{getInitials()}
-									</AvatarFallback>
-								)}
-							</Avatar>
-							<div className="flex-1 space-y-2">
-								<div className="flex flex-col gap-2 sm:flex-row">
+			<Dialog
+				open={isModalOpen}
+				onOpenChange={setIsModalOpen}>
+				<div className="grid grid-cols-1 gap-6">
+					<div className="relative">
+						<EmployeeCard
+							employee={employeeData}
+							variant="profile"
+							className="shadow-sm"
+						/>
+						<DialogTrigger asChild>
+							<Button
+								variant="outline"
+								size="icon"
+								className="absolute top-4 right-4">
+								<Edit className="h-4 w-4" />
+								<span className="sr-only">Edit Profile</span>
+							</Button>
+						</DialogTrigger>
+						<div className="absolute bottom-4 right-4">
+							<ConfirmDialog
+								title="Log Out"
+								description="Are you sure you want to log out? You'll need to sign in again to access your account."
+								confirmLabel="Log Out"
+								cancelLabel="Cancel"
+								destructive={true}
+								onConfirm={() => signOut()}
+								trigger={
 									<Button
 										type="button"
-										variant="outline"
-										size="sm"
-										className="relative">
-										<input
-											type="file"
-											className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-											onChange={handleProfilePictureChange}
-											accept="image/*"
-										/>
-										<Upload className="mr-2 h-4 w-4" />
-										Upload New Image
+										variant="destructive"
+										size="sm">
+										<LogOut className="mr-2 h-4 w-4" />
+										Log out
 									</Button>
-									{profileImage && (
-										<Button
-											type="button"
-											variant="outline"
-											size="sm"
-											onClick={handleRemoveProfilePicture}>
-											<Trash2 className="mr-2 h-4 w-4" />
-											Remove
-										</Button>
-									)}
-								</div>
-								<p className="text-xs text-muted-foreground">
-									Recommended: Square JPG, PNG, or GIF, at least 500x500 pixels.
-								</p>
-
-								<div className="mt-4">
-									<ConfirmDialog
-										title="Log Out"
-										description="Are you sure you want to log out? You'll need to sign in again to access your account."
-										confirmLabel="Log Out"
-										cancelLabel="Cancel"
-										destructive={true}
-										onConfirm={() => signOut()}
-										trigger={
-											<Button
-												type="button"
-												variant="destructive"
-												size="sm">
-												<LogOut className="mr-2 h-4 w-4" />
-												Log out
-											</Button>
-										}
-									/>
-								</div>
-							</div>
+								}
+							/>
 						</div>
-					</FormSection>
-				</CardContent>
-			</Card>
+					</div>
+				</div>
+
+				<DialogContent className="sm:max-w-[600px]">
+					<DialogHeader>
+						<DialogTitle>Edit Profile</DialogTitle>
+						<DialogDescription>
+							Make changes to your profile below. Click save when done.
+						</DialogDescription>
+					</DialogHeader>
+
+					<EditProfileModal
+						user={user}
+						updateUserMetadata={updateUserMetadata}
+						onClose={() => setIsModalOpen(false)}
+					/>
+
+					<DialogFooter>
+						<Button
+							variant="outline"
+							onClick={() => setIsModalOpen(false)}>
+							Cancel
+						</Button>
+						<Button
+							type="submit"
+							form="edit-profile-form">
+							Save changes
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 		</TabsContent>
 	);
 }
 
-// Preferences tab component
-function PreferencesTab() {
+// Preferences tab component - Renamed to SettingsTab
+function SettingsTab() {
 	const { user, updateUserMetadata } = useAuth();
 	const [isLoading, setIsLoading] = useState(false);
 
@@ -750,12 +460,12 @@ function PreferencesTab() {
 	};
 
 	return (
-		<TabsContent value="preferences">
+		<TabsContent value="settings">
 			<div className="space-y-6">
 				<div className="mb-6">
-					<h3 className="text-lg font-medium">Notification Preferences</h3>
+					<h3 className="text-lg font-medium">Settings</h3>
 					<p className="text-sm text-muted-foreground">
-						Manage how and when you receive notifications
+						Manage your notification preferences and app appearance
 					</p>
 				</div>
 
@@ -964,27 +674,17 @@ function PreferencesTab() {
 						</Button>
 					</form>
 				</Form>
-			</div>
-		</TabsContent>
-	);
-}
 
-function AppearanceTab() {
-	return (
-		<TabsContent value="appearance">
-			<div className="space-y-6">
-				<div className="mb-6">
-					<h3 className="text-lg font-medium">Appearance</h3>
-					<p className="text-sm text-muted-foreground">
+				<FormSection title="Appearance">
+					<p className="text-sm text-muted-foreground pb-4">
 						Customize the app's appearance and theme settings
 					</p>
-				</div>
-
-				<Card>
-					<CardContent className="pt-6">
-						<ThemeToggle />
-					</CardContent>
-				</Card>
+					<Card>
+						<CardContent className="pt-6">
+							<ThemeToggle />
+						</CardContent>
+					</Card>
+				</FormSection>
 			</div>
 		</TabsContent>
 	);
@@ -1014,14 +714,9 @@ export default function ProfilePage() {
 							Profile
 						</TabsTrigger>
 						<TabsTrigger
-							value="preferences"
+							value="settings"
 							className="flex-1">
-							Preferences
-						</TabsTrigger>
-						<TabsTrigger
-							value="appearance"
-							className="flex-1">
-							Appearance
+							Settings
 						</TabsTrigger>
 						<TabsTrigger
 							value="security"
@@ -1030,8 +725,7 @@ export default function ProfilePage() {
 						</TabsTrigger>
 					</TabsList>
 					<ProfileTab />
-					<PreferencesTab />
-					<AppearanceTab />
+					<SettingsTab />
 					<SecurityTab />
 				</Tabs>
 			</div>

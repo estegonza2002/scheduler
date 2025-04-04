@@ -37,12 +37,14 @@ import { format, addDays } from "date-fns";
 import { FormulaExplainer } from "@/components/ui/formula-explainer";
 import { ContentContainer } from "@/components/ui/content-container";
 import { ContentSection } from "@/components/ui/content-section";
-import { getDefaultOrganizationId } from "@/lib/utils";
+import { useOrganization } from "@/lib/organization";
 import { useHeader } from "@/lib/header-context";
 
 export default function DashboardPage() {
 	const { user } = useAuth();
 	const { updateHeader } = useHeader();
+	const { getCurrentOrganizationId, isLoading: isOrgLoading } =
+		useOrganization();
 	const [myShifts, setMyShifts] = useState<Shift[]>([]);
 	const [upcomingShifts, setUpcomingShifts] = useState<Shift[]>([]);
 	const [employee, setEmployee] = useState<Employee | null>(null);
@@ -86,10 +88,23 @@ export default function DashboardPage() {
 				const userId = user?.id;
 				if (!userId) {
 					console.error("No user ID available");
+					setIsLoading(false);
 					return;
 				}
 
-				const organizationId = getDefaultOrganizationId();
+				// Get organization ID from context
+				const organizationId = getCurrentOrganizationId();
+
+				// Wait for organization ID to be available
+				if (isOrgLoading || !organizationId) {
+					console.log("Dashboard: Waiting for organization ID...");
+					if (!isOrgLoading) setIsLoading(false);
+					return;
+				}
+
+				console.log(
+					`Dashboard: Fetching data for org ${organizationId} and user ${userId}`
+				);
 
 				// First get the employee record for the current user
 				const employees = await EmployeesAPI.getAll(organizationId);

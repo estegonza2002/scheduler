@@ -53,6 +53,7 @@ import {
 } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { LocationForm } from "./LocationForm";
+import { useNavigate } from "react-router-dom";
 
 // Extended Location type to include optional fields
 interface ExtendedLocation extends Location {
@@ -155,6 +156,7 @@ export function LocationCreationSheet({
 	const [locationSelected, setLocationSelected] = useState(false);
 	const [showNameField, setShowNameField] = useState(false);
 	const [uploadingImage, setUploadingImage] = useState(false);
+	const navigate = useNavigate();
 
 	// Determine if we're using controlled or uncontrolled open state
 	const isControlled =
@@ -182,6 +184,17 @@ export function LocationCreationSheet({
 		setIsComplete(true);
 		if (onLocationCreated) {
 			onLocationCreated(newLocation);
+		}
+
+		// Log the received location object for debugging
+		console.log("Location created, attempting navigation with:", newLocation);
+
+		// Navigate to the new location's detail page
+		if (newLocation?.id) {
+			navigate(`/locations/${newLocation.id}`);
+		} else {
+			console.error("Location created but ID is missing, cannot navigate.");
+			toast.warning("Location created, but could not navigate to details.");
 		}
 	};
 

@@ -54,7 +54,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 			try {
 				// Get session on load
+				console.time("supabase.auth.getSession"); // Start timing
 				const { data } = await supabase.auth.getSession();
+				console.timeEnd("supabase.auth.getSession"); // End timing
 				console.log("Initial session check:", data.session ? "Active" : "None");
 
 				setSession(data.session);
@@ -66,16 +68,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 			}
 		};
 
-		// Add a safety timeout to prevent getting stuck in loading state
-		const safetyTimeout = setTimeout(() => {
-			if (isLoading) {
-				console.warn(
-					"Auth loading timeout reached, forcing loading state to complete"
-				);
-				setIsLoading(false);
-			}
-		}, 5000); // 5 second timeout
-
 		initializeAuth();
 
 		// Set up auth state listener
@@ -85,12 +77,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 			console.log("Auth state changed, event:", _event);
 			setSession(session);
 			setUser(session?.user ?? null);
-			setIsLoading(false);
 		});
 
 		return () => {
 			subscription.unsubscribe();
-			clearTimeout(safetyTimeout);
 		};
 	}, []);
 
